@@ -366,7 +366,20 @@ Layer READMEs: all 5 exist (`application/`, `config/`, `domain/`, `infrastructur
 - **Confirms:** `check_headers.dart` catches real `.dart` files missing the GOSL v1.0 3-line copyright header inside `lib/`, names the offending file path exactly, and returns exit 1 from real CI. The Phase 01 exclude list (`*.g.dart`, `*.freezed.dart`) does NOT falsely whitelist new files under `lib/presentation/widgets/`. Gate step name matches `.github/workflows/ci.yml:42` verbatim.
 
 ### Test 3: Missing DEPENDENCIES.md entry
-(pending)
+
+- **Branch:** `adversarial/02-deps-missing-entry` (deleted 2026-04-17, local + remote)
+- **Poison commit:** `1d75451` — added `equatable: 2.0.7` (MIT) under `dependencies:` in `pubspec.yaml`, regenerated `pubspec.lock` via `flutter pub get`, and did NOT add a matching row in `DEPENDENCIES.md`; same commit also expands `on.push.branches` to include `adversarial/**` for this branch only
+- **Run URL:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24581688234
+- **Job:** `Lint / Licence / Headers / Deps` (the `gates` job, conclusion=failure)
+- **Gate step:** `Check DEPENDENCIES.md is up to date` — step #9, exit code **1** (policy violation). Preceding steps #7 (`Check GOSL headers`) and #8 (`Check licenses`) passed — i.e. the MIT `equatable` is correctly not a header-scope file (no `.dart` added to `lib/`) and correctly not a forbidden-license hit (MIT is in the allowlist). The failure lands exactly on the deps-audit gate.
+- **Error excerpt (stderr, step #9):**
+  ```
+  [command]dart run tool/check_dependencies_md.dart
+  check_dependencies_md: 1 package(s) in pubspec.lock MISSING from DEPENDENCIES.md:
+    - equatable 2.0.7
+  ##[error]Process completed with exit code 1.
+  ```
+- **Confirms:** `check_dependencies_md.dart` detects real MIT packages added to `pubspec.lock` without a matching markdown row in `DEPENDENCIES.md`, names the offender verbatim with its locked version, and returns exit 1 from real CI after the license + header gates both pass. The 3-gate sequencing (Headers → Licenses → Dependencies) is confirmed end-to-end: a benign-license poison makes it through the first two and dies on the third. Gate step name matches `.github/workflows/ci.yml:48` verbatim.
 
 ## 5. CI-green confirmation
 
