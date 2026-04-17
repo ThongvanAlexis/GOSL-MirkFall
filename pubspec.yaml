@@ -55,6 +55,12 @@ dev_dependencies:
   freezed: 3.2.3
   json_serializable: 6.11.2
   riverpod_generator: 4.0.0+1
+
+  # Phase 02 test mocks — declared directly so test imports are explicit
+  # (path_provider_platform_interface ships a PathProviderPlatform contract
+  # we subclass with MockPlatformInterfaceMixin from plugin_platform_interface).
+  path_provider_platform_interface: 2.1.2
+  plugin_platform_interface: 2.1.8
   # NOTE Phase 03: `custom_lint` + `riverpod_lint` were deferred from Phase 01
   # because no compatible trio (custom_lint + riverpod_lint + analyzer) exists
   # in the current ecosystem. Re-add them in Phase 03 when the Riverpod

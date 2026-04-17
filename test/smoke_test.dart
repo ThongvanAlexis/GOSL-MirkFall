@@ -9,16 +9,11 @@ import 'package:mirkfall/app.dart';
 import 'package:mirkfall/config/constants.dart';
 
 void main() {
-  testWidgets('MirkFallApp pumps and renders the Phase 01 placeholder home', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('MirkFallApp pumps and renders the Phase 01 placeholder home', (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: MirkFallApp()));
     await tester.pump();
 
     expect(find.text('MirkFall — bootstrap OK'), findsOneWidget);
-    expect(
-      find.descendant(of: find.byType(AppBar), matching: find.text(kAppName)),
-      findsOneWidget,
-    );
+    expect(find.descendant(of: find.byType(AppBar), matching: find.text(kAppName)), findsOneWidget);
   });
 }

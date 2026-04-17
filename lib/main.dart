@@ -10,24 +10,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 
 import 'app.dart';
+import 'infrastructure/logging/file_logger.dart';
 
 Future<void> main() async {
   await runZonedGuarded<Future<void>>(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      // Phase 02 will replace this with FileLogger bootstrap.
-      // Phase 01 uses a minimal console handler gated on kDebugMode so
-      // production builds stay silent.
-      Logger.root.level = Level.INFO;
-      Logger.root.onRecord.listen((LogRecord rec) {
-        if (kDebugMode) {
-          // Workaround: `avoid_print` is `error` in analysis_options.yaml, so
-          // we use `debugPrint` here. Phase 02 replaces this listener with
-          // FileLogger writing JSONL.
-          debugPrint('[${rec.level.name}] ${rec.loggerName}: ${rec.message}');
-        }
-      });
+      // File-sink logger: opens today's JSONL file, prunes oldest, sets root
+      // level from `--dart-define=DEBUG` or the SharedPreferences flag.
+      // Phase 01 did a debugPrint listener; Phase 02 replaces it with this.
+      await FileLogger.bootstrap();
 
       final log = Logger('main');
 
@@ -38,6 +31,7 @@ Future<void> main() async {
         }
       };
 
+      log.info('MirkFall starting — logger armed');
       runApp(const ProviderScope(child: MirkFallApp()));
     },
     (Object error, StackTrace stack) {

@@ -14,20 +14,13 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('pubspec.yaml has no `^` or `~` in dependencies / dev_dependencies', () {
     final File pubspecFile = File('pubspec.yaml');
-    expect(
-      pubspecFile.existsSync(),
-      isTrue,
-      reason: 'pubspec.yaml must exist at repo root for this test to run.',
-    );
+    expect(pubspecFile.existsSync(), isTrue, reason: 'pubspec.yaml must exist at repo root for this test to run.');
 
     final List<String> lines = pubspecFile.readAsLinesSync();
 
     // Section tracking: we only enforce the pin rule inside
     // `dependencies:` and `dev_dependencies:` (top-level blocks).
-    const Set<String> enforcedSectionSet = <String>{
-      'dependencies',
-      'dev_dependencies',
-    };
+    const Set<String> enforcedSectionSet = <String>{'dependencies', 'dev_dependencies'};
 
     String? currentSection;
     final List<String> offendingLines = <String>[];
@@ -42,19 +35,14 @@ void main() {
       }
 
       // Detect a new top-level section (no leading indentation).
-      final bool isTopLevelKey =
-          rawLine == trimmedLine && trimmedLine.endsWith(':');
+      final bool isTopLevelKey = rawLine == trimmedLine && trimmedLine.endsWith(':');
       if (isTopLevelKey) {
-        final String sectionName = trimmedLine.substring(
-          0,
-          trimmedLine.length - 1,
-        );
+        final String sectionName = trimmedLine.substring(0, trimmedLine.length - 1);
         currentSection = sectionName;
         continue;
       }
 
-      if (currentSection == null ||
-          !enforcedSectionSet.contains(currentSection)) {
+      if (currentSection == null || !enforcedSectionSet.contains(currentSection)) {
         continue;
       }
 

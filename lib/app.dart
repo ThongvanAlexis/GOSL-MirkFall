@@ -6,28 +6,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'config/constants.dart';
-import 'presentation/screens/placeholder_home_screen.dart';
+import 'presentation/router.dart';
 
 /// Root application widget for MirkFall.
 ///
-/// Phase 01 uses a minimal `MaterialApp` with a fixed home so the smoke test
-/// can pump the app without pulling in GoRouter or Riverpod codegen. Phase 02
-/// will swap the `home:` for `routerConfig:` once `appRouterProvider` exists.
+/// Phase 02 wires `MaterialApp.router` to the `appRouterProvider` (GoRouter
+/// via Riverpod codegen). Three routes live there: `/`, `/about`, `/debug`.
+/// Later phases replace the home placeholder with the real map entry.
 class MirkFallApp extends ConsumerWidget {
   const MirkFallApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp(
+    final router = ref.watch(appRouterProvider);
+    return MaterialApp.router(
       title: kAppName,
       theme: ThemeData.from(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-          brightness: Brightness.dark,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo, brightness: Brightness.dark),
         useMaterial3: true,
       ),
-      home: const PlaceholderHomeScreen(),
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
     );
   }
