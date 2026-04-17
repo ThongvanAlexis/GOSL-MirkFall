@@ -16,10 +16,21 @@ const String _expectedHeader = '''// Copyright (c) 2026 THONGVAN Alexis
 // See LICENSE file for details''';
 
 final List<RegExp> _excludePatterns = <RegExp>[
+  // Build-generated files — explicitly exempt from the GOSL header rule per
+  // CLAUDE.md convention. Every codegen tool in common use gets its own
+  // suffix match; keep the list exhaustive so new generators in later phases
+  // don't silently pollute the failure report.
   RegExp(r'\.g\.dart$'),
   RegExp(r'\.freezed\.dart$'),
   RegExp(r'\.gr\.dart$'),
   RegExp(r'\.config\.dart$'),
+  RegExp(r'\.pb\.dart$'), // protobuf
+  RegExp(r'\.pbenum\.dart$'), // protobuf enums
+  RegExp(r'\.pbjson\.dart$'), // protobuf json
+  RegExp(r'\.pbserver\.dart$'), // protobuf gRPC server stubs
+  RegExp(r'\.swagger\.dart$'), // chopper swagger
+  RegExp(r'\.chopper\.dart$'), // chopper
+  RegExp(r'\.mocks\.dart$'), // mockito
   RegExp(r'[/\\]generated[/\\]'),
   RegExp(r'[/\\]\.dart_tool[/\\]'),
   RegExp(r'[/\\]build[/\\]'),
