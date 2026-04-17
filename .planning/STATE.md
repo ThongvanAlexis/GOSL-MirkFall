@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 1
+current_plan: 2
 status: executing
-stopped_at: Completed 02-01-PLAN.md (scaffold + user-first capture)
-last_updated: "2026-04-17T18:15:16Z"
+stopped_at: Phase_02_plan_02_02_complete
+last_updated: "2026-04-17T18:41:40Z"
 last_activity: 2026-04-17
 progress:
   total_phases: 16
   completed_phases: 1
   total_plans: 8
-  completed_plans: 5
-  percent: 56
+  completed_plans: 6
+  percent: 63
 ---
 
 # Project State
@@ -22,18 +22,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 02 — Review Gate Foundation (02-01 done, 02-02 audit sub-agents unblocked)
+**Current focus:** Phase 02 — Review Gate Foundation (02-01 + 02-02 done; 02-03 adversarial wave unblocked)
 
 ## Current Position
 
 Phase: 02 of 16 (Review Gate — Foundation)
-Current Plan: 1
+Current Plan: 2
 Total Plans in Phase: 4
-Plan: 1 of 4 in current phase (02-01 scaffold + user-first §1 capture shipped)
+Plan: 2 of 4 in current phase (02-02 audit wave + triage shipped — 54 findings, 42 to fix)
 Status: In Progress
 Last Activity: 2026-04-17
 
-Progress: [█████▌░░░░] 56%
+Progress: [██████▎░░░] 63%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [█████▌░░░░] 56%
 | Phase 01-foundation P03 | 9 min | 2 tasks | 9 files |
 | Phase 01-foundation P04 | 1h 36m | 2 tasks | 2 files |
 | Phase 02-review-gate-foundation P01 | 2 min | 2 tasks | 1 files |
+| Phase 02-review-gate-foundation P02 | 25 min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,14 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 02-review-gate-foundation]: Review-gate protocol operationalized as Plan 02-01 with blocking checkpoint — Encoding CLAUDE.md §Code Review Phases as a structural gate (scaffold + solicit+capture + commit-before-agents) makes it enforceable under time pressure. Future review gates (04, 06, 08, 10, 12, 14, 16) will reuse this 2-task pattern.
 - [Phase 02-review-gate-foundation]: 5-section review artifact contract locked — §1 User-observed / §2 Claude audit / §3 Triage / §4 Adversarial / §5 CI-green. gsd-verifier greps `^## [1-5]\\.` to confirm 5 headings. Reusable across all even-numbered phases.
 - [Phase 02-review-gate-foundation]: GOSL Dart copyright header NOT prepended to .md review artifacts — tool/check_headers.dart scans .dart only; markdown exempt. Consistent with Phase 01 header scanner scope.
+- [Phase 02-review-gate-foundation]: 4-parallel-sub-agent audit wave template validated — single tool-use message spawning 4 concern-sliced `general-purpose` agents (CI gates / bootstrap runtime / code quality / tests+tooling) yielded 54 findings in one wall-clock slot. Pattern reusable for every future review gate (phases 04, 06, 08, 10, 12, 14, 16).
+- [Phase 02-review-gate-foundation]: All 4 audit agents set to `general-purpose` for wave consistency — even the read-only Agent #3 (code sweep) which could have been `Explore` was kept `general-purpose` so future review gates have a predictable agent-type rule. Minor efficiency loss outweighed by rule clarity.
+- [Phase 02-review-gate-foundation]: User blanket-fix decision on 42 findings (all Blockers + Shoulds + Coulds) rather than per-finding triage — rationale "setup du projet, autant rendre ça aussi propre qu'on peu maintenant" preserved verbatim in §3. Reduces Plan 02-04 decision overhead at cost of ~13 Could-level polish fixes that might have been deferrable.
+- [Phase 02-review-gate-foundation]: Phase 01 closure gap surfaced — `check_licenses.dart` parser has 4 Blocker-level issues (case-sensitivity, compound-AND semantics, license-field-bypass, MPL-unreachable heuristic) despite Phase 01 VERIFIED:PASSED. Gate script was only stressed against happy-path fixtures. Adversarial Plan 02-03 catches 3 of 4; Plan 02-04 must add unit coverage for the 4th (MPL-unreachable branch).
+- [Phase 02-review-gate-foundation]: Phase 01 closure gap surfaced — `PlatformDispatcher.onError` missing with no recorded user sign-off. Phase 01 RESEARCH flagged this as needing user confirmation but no decision was captured. Plan 02-04 will either wire `PlatformDispatcher.onError` or record explicit waiver — no silent deferral.
+- [Phase 02-review-gate-foundation]: Runtime reachability gap — `/ → /about` has no UI link in `PlaceholderHomeScreen`, so the 7-tap debug menu is unreachable on pristine builds. Agent #2 patched the router temporarily to execute the visual walk, then reverted. Plan 02-04 will add a real UI affordance.
+- [Phase 02-review-gate-foundation]: Cross-lens finding overlap handling convention — same-line findings captured by two different audit agents (e.g. `_onToggleVerbose(bool _)` in Agent #2 runtime lens AND Agent #3 style lens) are preserved under BOTH with explicit cross-reference rather than deduplicated. Audit transparency precedent for all future review gates.
+- [Phase 02-review-gate-foundation]: Adversarial poison recipes routed through 02-02-SUMMARY.md rather than inlined into 02-03-PLAN.md — keeps recipe freshness (GPL status of `multi_dropdown` can drift between publisher versions) tied to audit wave and gives Plan 02-03 a single source of truth.
 
 ### Pending Todos
 
@@ -109,6 +118,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-17T18:15:16Z
-Stopped at: Completed 02-01-PLAN.md (scaffold + user-first §1 capture)
-Resume file: .planning/phases/02-review-gate-foundation/02-02-PLAN.md
+Last session: 2026-04-17T18:41:40Z
+Stopped at: Phase_02_plan_02_02_complete
+Resume file: .planning/phases/02-review-gate-foundation/02-03-PLAN.md
