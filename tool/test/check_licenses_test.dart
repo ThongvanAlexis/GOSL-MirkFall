@@ -143,6 +143,44 @@ void main() {
       expect(code, 0);
     });
 
+    test('returns 0 when a package declares an OR-compound license with an allowed side', () async {
+      // Exercise the OR-split logic at runCheck: 'Apache-2.0 OR BSD-3-Clause'
+      // must resolve green when at least one side is in _allowedSpdx. Uses
+      // the pubspec.yaml license: field path to inject a compound expression
+      // directly (LICENSE files never carry OR compounds).
+      final StringBuffer lockBuf = StringBuffer()
+        ..writeln('packages:')
+        ..writeln('  pkg_dual:')
+        ..writeln('    dependency: "direct main"')
+        ..writeln('    description:')
+        ..writeln('      name: pkg_dual')
+        ..writeln('      url: "https://pub.dev"')
+        ..writeln('    source: hosted')
+        ..writeln('    version: "1.0.0"')
+        ..writeln('sdks:')
+        ..writeln('  dart: ">=3.0.0 <4.0.0"');
+      await File(p.join(tempDir.path, 'pubspec.lock')).writeAsString(lockBuf.toString());
+
+      final Directory dartToolDir = Directory(p.join(tempDir.path, '.dart_tool'));
+      await dartToolDir.create(recursive: true);
+      final Directory pkgDir = Directory(p.join(tempDir.path, 'pkg_dual'));
+      await pkgDir.create(recursive: true);
+      // pubspec.yaml declares OR-compound, no LICENSE file → the resolver
+      // drops through to the pubspec license: field.
+      await File(p.join(pkgDir.path, 'pubspec.yaml')).writeAsString('name: pkg_dual\nversion: 1.0.0\nlicense: Apache-2.0 OR BSD-3-Clause\n');
+      await File(p.join(dartToolDir.path, 'package_config.json')).writeAsString(
+        jsonEncode(<String, Object>{
+          'configVersion': 2,
+          'packages': <Map<String, Object>>[
+            <String, Object>{'name': 'pkg_dual', 'rootUri': '../pkg_dual', 'packageUri': 'lib/'},
+          ],
+        }),
+      );
+
+      final int code = await check_licenses.runCheck(<String>[tempDir.path]);
+      expect(code, 0);
+    });
+
     test('returns 1 when a package cannot be resolved (no LICENSE, no pubspec license field)', () async {
       // Build a fixture with one package whose package directory exists but
       // has no LICENSE file and no pubspec license field — exercises the
