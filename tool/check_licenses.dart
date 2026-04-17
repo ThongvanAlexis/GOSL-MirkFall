@@ -126,8 +126,11 @@ Future<int> runCheck(List<String> args) async {
     // Split compound expressions: "Apache-2.0 OR BSD-3-Clause" passes when
     // either side is allowed. "AND" compounds would need every side allowed;
     // we don't currently have any in tree, keep the logic minimal.
-    final List<String> ids = spdx.split(RegExp(r'\s+OR\s+')).map((String s) => s.trim()).toList();
-    final bool allowed = ids.any(_allowedSpdx.contains);
+    // Case-insensitive match: upstream publishers occasionally lowercase the
+    // SPDX id (e.g. `license: apache-2.0`); treat them the same as canonical.
+    final List<String> ids = spdx.split(RegExp(r'\s+OR\s+', caseSensitive: false)).map((String s) => s.trim()).toList();
+    final Set<String> allowedLower = _allowedSpdx.map((String s) => s.toLowerCase()).toSet();
+    final bool allowed = ids.any((String id) => allowedLower.contains(id.toLowerCase()));
     if (!allowed) {
       violations.add('$name: $spdx NOT in allowlist');
     } else {
