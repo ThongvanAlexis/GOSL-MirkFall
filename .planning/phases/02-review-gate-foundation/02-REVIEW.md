@@ -264,11 +264,68 @@ Layer READMEs: all 5 exist (`application/`, `config/`, `domain/`, `infrastructur
 
 ## 3. Triage decisions
 
-*Filled by Plan 02-02 after user selects what to fix. Every Blocker MUST be `fix`. Every Should MUST be either `fix` or `waived` with inline rationale.*
+*Captured by Plan 02-02 Task 2. User decision: "fix tous les could, should, et blocker, on est au setup du projet, autant rendre ça aussi propre qu'on peu maintenant". 42 findings to fix, 12 Noted retained as observations only.*
 
 | # | Finding | Severity | Decision | Rationale |
 |---|---------|----------|----------|-----------|
-| (pending) | | | | |
+| 1 | SPDX matching case-sensitive | Blocker | fix | User blanket "fix all B/S/C" |
+| 2 | Compound-license AND silently wrong | Blocker | fix | User blanket |
+| 3 | Declared `license:` bypasses LICENSE-text scan | Blocker | fix | User blanket |
+| 4 | MPL detection never fires on LICENSE text | Blocker | fix | User blanket |
+| 5 | `PlatformDispatcher.onError` not wired | Blocker | fix | User blanket |
+| 6 | Whitespace/empty license field not unresolved | Should | fix | User blanket |
+| 7 | `LicenseRef-*` / SPDX-WITH-exception not handled | Should | fix | User blanket |
+| 8 | Exit-2 coverage for check_licenses weak | Should | fix | User blanket |
+| 9 | No exit-1 test for unresolved-package advisory | Should | fix | User blanket |
+| 10 | No test for `_manualOverrides` path | Should | fix | User blanket |
+| 11 | Header check no trailing-newline validation | Should | fix | User blanket |
+| 12 | Header exclude patterns miss codegen suffixes | Should | fix | User blanket |
+| 13 | Header scan doesn't exclude ios/android example/ | Should | fix | User blanket |
+| 14 | check_dependencies_md `line.startsWith('\| ')` fragile | Should | fix | User blanket |
+| 15 | check_dependencies_md tooling filter loose | Should | fix | User blanket |
+| 16 | check_dependencies_md column-count guard weak | Should | fix | User blanket |
+| 17 | No exit-2 test for pubspec.lock missing | Should | fix | User blanket |
+| 18 | No test for dual-licensing OR passes | Should | fix | User blanket |
+| 19 | runZonedGuarded wraps ensureInitialized+runApp | Should | fix | User blanket |
+| 20 | `_onShare` no try/catch no timeout | Should | fix | User blanket |
+| 21 | `_onShare` doesn't flush sink before share | Should | fix | User blanket |
+| 22 | `FileLogger.clearAll()` leaves logger silent no-op | Should | fix | User blanket |
+| 23 | No UI path from / to /about (7-tap unreachable) | Should | fix | User blanket |
+| 24 | listLogFiles() sort relies on filename invariant | Should | fix | User blanket |
+| 25 | Prune races with concurrent launches | Should | fix | User blanket |
+| 26 | `_onRecord` no write-failure handling | Should | fix | User blanket |
+| 27 | Magic `EdgeInsets.all(24)` | Should | fix | User blanket |
+| 28 | Magic `SizedBox(height: 16)` | Should | fix | User blanket |
+| 29 | Magic `EdgeInsets.all(16)` | Should | fix | User blanket |
+| 30 | Forbidden-marker detection case-sensitive | Could | fix | User blanket |
+| 31 | `_resolveSpdx` reads full LICENSE into memory | Could | fix | User blanket |
+| 32 | BOM detection UTF-8 only (no UTF-16 LE) | Could | fix | User blanket |
+| 33 | `runCheck(List<String>)` no CLI parser layer | Could | fix | User blanket |
+| 34 | `_defaultRoots` missing `integration_test/` | Could | fix | User blanket |
+| 35 | `_onRecord` flush after every record | Could | fix | User blanket |
+| 36 | 7-tap window inter-tap not total | Could | fix | User blanket |
+| 37 | `_onToggleVerbose(bool _)` ignores new value | Could | fix | User blanket |
+| 38 | `pad(…, 4)` / `pad(…, 2)` width literals | Could | fix | User blanket |
+| 39 | `main()` lacks docstring | Could | fix | User blanket |
+| 40 | `depend_on_referenced_packages` implicit inherit | Could | fix | User blanket |
+| 41 | `smoke_test.dart` single `pump()` fragile | Could | fix | User blanket |
+| 42 | CI fail-fast scope-sheet artifact (N/A) | Could | fix | User blanket (marks as reviewed + documents N/A outcome) |
+| 43 | Override `flutter_plugin_android_lifecycle` mixed rationale | Noted | noted | Observation only |
+| 44 | `MPL-2.0-Linux-only` synthetic SPDX non-standard | Noted | noted | Observation only |
+| 45 | MPL overrides stay narrow | Noted | noted | Observation only |
+| 46 | Exit-code 0/1/2 respected everywhere | Noted | noted | Observation only |
+| 47 | check_dependencies_md doesn't check Date recency | Noted | noted | Observation only |
+| 48 | `tool/` in header-scope, not license-scope | Noted | noted | Observation only |
+| 49 | Log dir Windows = Documents\logs\ | Noted | noted | Observation only |
+| 50 | MSBuild C1041 PDB race (environmental) | Noted | noted | Observation only |
+| 51 | `router.g.dart` lacks GOSL header (generated) | Noted | noted | Observation only |
+| 52 | `_onToggleVerbose` unused `_` param (cross-ref #37) | Noted | noted | Same subject as #37 |
+| 53 | `Info.plist` 4 TODO UsageDescription (expected) | Noted | noted | Observation only |
+| 54 | `Podfile.lock` 5-byte placeholder (expected) | Noted | noted | Observation only |
+
+**Triage summary:** 42 fix / 0 waived / 0 deferred / 0 won't-fix / 12 noted.
+
+**User resume signal:** "fix tous les could, should, et blocker" (2026-04-17) — Plan 02-03 unblocked.
 
 ## 4. Adversarial evidence
 
