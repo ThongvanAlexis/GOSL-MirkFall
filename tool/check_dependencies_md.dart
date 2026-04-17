@@ -72,8 +72,13 @@ Future<int> runCheck(List<String> args) async {
     // gate would flip from green to reporting "everything in lock is missing".
     if (!line.startsWith('|')) continue;
     final List<String> cells = line.split('|').map((String c) => c.trim()).toList();
-    // Expected at minimum: ['', name, version, ..., ''] — 5 cells via 4 pipes.
-    if (cells.length < 4) continue;
+    // Expected shape from the `| Package | Version | License | Source | ... |`
+    // template: at least 4 `|` → 5 cells where cells[0] and cells[last] are
+    // empty (artifacts of the leading/trailing pipes). Guard both the column
+    // count AND the existence of cells[1]/cells[2] explicitly so a schema
+    // evolution (e.g. reorder columns) fails noisily instead of silently
+    // reading the wrong cells.
+    if (cells.length < 5) continue;
     final String name = cells[1];
     final String version = cells[2];
     // Filter out header + separator rows.
