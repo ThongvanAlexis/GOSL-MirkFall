@@ -34,6 +34,15 @@ final List<RegExp> _excludePatterns = <RegExp>[
   RegExp(r'[/\\]generated[/\\]'),
   RegExp(r'[/\\]\.dart_tool[/\\]'),
   RegExp(r'[/\\]build[/\\]'),
+  // Plugin package `example/` fixtures and managed platform Dart files
+  // (Flutter writes these under ios/ and android/ when configuring runners)
+  // are third-party / platform-owned. Excluding them protects against a dev
+  // accidentally running `dart run tool/check_headers.dart .` from the repo
+  // root picking up nested Flutter example projects or managed platform
+  // templates.
+  RegExp(r'[/\\]ios[/\\]'),
+  RegExp(r'[/\\]android[/\\]'),
+  RegExp(r'[/\\]example[/\\]'),
 ];
 
 const List<String> _defaultRoots = <String>['lib', 'test', 'tool'];
