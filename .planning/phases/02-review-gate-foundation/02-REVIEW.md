@@ -350,7 +350,20 @@ Layer READMEs: all 5 exist (`application/`, `config/`, `domain/`, `infrastructur
 - **Confirms:** `check_licenses.dart` catches real pub.dev GPL-3.0 packages at their LICENSE-text level — not just synthetic fixtures. The forbidden-substring path is exercised in production-like conditions against a freshly `pub get`-resolved tree. Plan 02-04 Blockers #1-#4 (case-sensitivity, compound-AND, license-field bypass, MPL-unreachable heuristic) remain for unit-level reinforcement, but the "real GPL package in `pubspec.yaml`" scenario is proven end-to-end green-to-red.
 
 ### Test 2: Missing GOSL header
-(pending)
+
+- **Branch:** `adversarial/02-header-missing` (deleted 2026-04-17, local + remote)
+- **Poison commit:** `7f26d24` — created `lib/presentation/widgets/poison_widget.dart` (single line `class PoisonWidget {}` — no GOSL header, but `dart format --line-length 160`-clean and `flutter analyze`-clean so gates #4 and #5 don't short-circuit before the header gate); same commit also expands `on.push.branches` to include `adversarial/**` for this branch only
+- **Run URL:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24581566943
+- **Job:** `Lint / Licence / Headers / Deps` (the `gates` job, conclusion=failure)
+- **Gate step:** `Check GOSL headers` — step #7, exit code **1** (policy violation). Preceding steps #4 (`Dart format check`) and #5 (`Flutter analyze`) passed, confirming the failure lands on the intended gate and not on an earlier lint pipeline stage (per plan sanity check).
+- **Error excerpt (stderr, step #7):**
+  ```
+  [command]dart run tool/check_headers.dart
+  check_headers: 1 file(s) missing GOSL v1.0 header:
+    - lib/presentation/widgets/poison_widget.dart
+  ##[error]Process completed with exit code 1.
+  ```
+- **Confirms:** `check_headers.dart` catches real `.dart` files missing the GOSL v1.0 3-line copyright header inside `lib/`, names the offending file path exactly, and returns exit 1 from real CI. The Phase 01 exclude list (`*.g.dart`, `*.freezed.dart`) does NOT falsely whitelist new files under `lib/presentation/widgets/`. Gate step name matches `.github/workflows/ci.yml:42` verbatim.
 
 ### Test 3: Missing DEPENDENCIES.md entry
 (pending)
