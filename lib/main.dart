@@ -12,11 +12,17 @@ import 'package:logging/logging.dart';
 import 'app.dart';
 import 'infrastructure/logging/file_logger.dart';
 
-/// Application entry point.
+/// Application entry point — bootstraps logging, error handling, and UI.
 ///
-/// Bootstraps the file-sink logger, wires three error channels to a single
-/// shared handler (Flutter framework errors, platform/engine-level async
-/// errors, and zone-escaped errors), then runs the app inside a guarded zone.
+/// Invoked by the Flutter engine on Android, iOS, and desktop. Responsibilities:
+/// 1. Initialise the Flutter binding in the root zone (before runZonedGuarded)
+///    to avoid the Flutter 3.10+ zone-mismatch pitfall.
+/// 2. Bootstrap [FileLogger] (opens today's JSONL file, prunes oldest,
+///    sets [Logger.root.level]).
+/// 3. Wire three error channels — [FlutterError.onError], [PlatformDispatcher.onError],
+///    and the runZonedGuarded handler — through a single shared reporter that
+///    SHOUTs to the logger.
+/// 4. Mount the app via [runApp] inside a [ProviderScope].
 Future<void> main() async {
   // Initialise the Flutter binding in the ROOT zone, before runZonedGuarded.
   // Rationale (Phase 01 RESEARCH:349-354,987-989 — Flutter 3.10+ zone-mismatch
