@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 01 context gathered
-last_updated: "2026-04-17T10:04:15.410Z"
-last_activity: 2026-04-17 — Roadmap créé par gsd-roadmapper, 86/86 requirements mappés, 8 code phases + 8 review gates
+status: executing
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-04-17T13:10:06.032Z"
+last_activity: 2026-04-17 — Plan 01-01 (scaffold) complete — Flutter 3.41.7 + pinned deps + strict analyzer + lib/ 5-layer + 7 tests green
 progress:
   total_phases: 16
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 4
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 01 of 16 (Foundation)
-Plan: — of — in current phase (plans non encore détaillés)
-Status: Ready to plan
-Last activity: 2026-04-17 — Roadmap créé par gsd-roadmapper, 86/86 requirements mappés, 8 code phases + 8 review gates
+Plan: 1 of 4 in current phase (01-01 scaffold shipped)
+Status: In Progress
+Last activity: 2026-04-17 — Plan 01-01 (scaffold) complete — Flutter 3.41.7 + pinned deps + strict analyzer + lib/ 5-layer + 7 tests green
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01-foundation P01 | 9 min | 1 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,9 @@ Recent decisions carried from research (2026-04-17) :
 - Phase 07: `TileSource` seam — V1.0 online OSM, V1.1 MBTiles offline en pur ajout (D7)
 - Phase 09: `MirkRenderer` seam — expose uniquement `paint(Canvas, Size, MirkPaintContext)`, aucun détail d'implémentation (D6)
 - Project-wide: Riverpod comme unique state management + DI (D5)
+- [Phase 01-foundation]: Held analyzer stack at <9.0 for Phase 01 — No compatible custom_lint + riverpod_lint + analyzer trio exists yet; upgrading to analyzer ^9 would force dropping lint tools. Phase 03 will re-evaluate when ecosystem converges.
+- [Phase 01-foundation]: Defer custom_lint + riverpod_lint to Phase 03 — Phase 01 has no @riverpod providers; lint tools add no value until codegen starts.
+- [Phase 01-foundation]: Empty ios/Podfile.lock placeholder on Windows dev host — CocoaPods not available on Windows; macOS CI regenerates on first pod install.
 
 ### Pending Todos
 
@@ -85,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-17T10:04:15.403Z
-Stopped at: Phase 01 context gathered
-Resume file: .planning/phases/01-foundation/01-CONTEXT.md
+Last session: 2026-04-17T13:09:51.807Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None
