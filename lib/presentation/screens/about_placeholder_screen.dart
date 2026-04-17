@@ -24,12 +24,19 @@ class AboutPlaceholderScreen extends StatefulWidget {
 class _AboutPlaceholderScreenState extends State<AboutPlaceholderScreen> {
   int _tapCount = 0;
   DateTime _lastTap = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _firstTap = DateTime.fromMillisecondsSinceEpoch(0);
 
   void _onTap() {
     final now = DateTime.now();
-    if (now.difference(_lastTap).inMilliseconds > kAboutTapWindowMilliseconds) {
-      // Window elapsed since last tap: reset counter.
+    // Reset on either inter-tap window lapse OR total-window lapse since the
+    // first tap. Inter-tap-only (Phase 01 behaviour) allowed 7 taps spaced
+    // ~2.9s apart — ~21 s total — to still trigger the easter egg, which is
+    // too lax for casual-interaction scenarios.
+    final bool interTapStale = now.difference(_lastTap).inMilliseconds > kAboutTapWindowMilliseconds;
+    final bool totalWindowStale = now.difference(_firstTap).inMilliseconds > kAboutTapTotalWindowMilliseconds;
+    if (_tapCount == 0 || interTapStale || totalWindowStale) {
       _tapCount = 0;
+      _firstTap = now;
     }
     _tapCount++;
     _lastTap = now;
