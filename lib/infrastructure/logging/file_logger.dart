@@ -111,8 +111,12 @@ class FileLogger {
   }
 
   /// Deletes every log file, closes the active sink, and clears the active
-  /// filename. Subsequent logs are no-ops until the next [bootstrap] call.
-  static Future<void> clearAll() async {
+  /// filename. When [rearm] is true (default), immediately re-bootstraps so
+  /// subsequent logs are persisted to a fresh file — this matches the
+  /// intuitive user mental model ("clear the logs and keep recording").
+  /// Pass [rearm] = false for test tear-downs or shutdown code that explicitly
+  /// wants the logger to stay closed after clearing.
+  static Future<void> clearAll({bool rearm = true}) async {
     await _sink?.flush();
     await _sink?.close();
     await _subscription?.cancel();
@@ -129,6 +133,13 @@ class FileLogger {
       }
     }
     _activeFilename = null;
+
+    if (rearm) {
+      // Re-arm: open a fresh sink so subsequent LogRecords are persisted
+      // instead of silently dropped. The new file sits inside an empty dir,
+      // so the bootstrap prune step is a no-op.
+      await bootstrap();
+    }
   }
 
   static Future<void> _onRecord(LogRecord rec) async {

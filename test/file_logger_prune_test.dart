@@ -46,7 +46,7 @@ void main() {
   });
 
   tearDown(() async {
-    await FileLogger.clearAll();
+    await FileLogger.clearAll(rearm: false);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }

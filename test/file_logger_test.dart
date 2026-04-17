@@ -44,7 +44,7 @@ void main() {
   tearDown(() async {
     // Ensure the active sink is closed before the OS tries to delete its
     // backing file; otherwise Windows keeps the file handle open.
-    await FileLogger.clearAll();
+    await FileLogger.clearAll(rearm: false);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
