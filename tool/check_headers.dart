@@ -49,11 +49,25 @@ final List<RegExp> _excludePatterns = <RegExp>[
 const List<String> _defaultRoots = <String>['lib', 'test', 'tool'];
 
 /// Runs the header check. Accepts an optional list of root directories — if
-/// empty the default `lib/test/tool` roots are scanned. Returns the process
-/// exit code: 0 on success, 1 when at least one file is missing the header,
-/// 2 if all roots are absent.
+/// empty the default `lib/test/tool` roots are scanned. Recognises `--help` /
+/// `-h` to print usage and exit 0; flags starting with `--` that aren't
+/// recognised are silently dropped (forward-compat) rather than misinterpreted
+/// as a root path. Returns the process exit code: 0 on success, 1 when at
+/// least one file is missing the header, 2 if all roots are absent.
 Future<int> runCheck(List<String> args) async {
-  final List<String> roots = args.isNotEmpty ? args : _defaultRoots;
+  // Minimal CLI split: `--help` / `-h` prints usage and exits 0; other `--`
+  // flags are stripped up front so a future `--verbose` addition doesn't
+  // have to rearchitect the call shape. Positional args are the root paths.
+  if (args.any((String a) => a == '--help' || a == '-h')) {
+    stdout.writeln(
+      'Usage: dart run tool/check_headers.dart [ROOTS...]\n'
+      '  ROOTS    Directories to scan (default: lib test tool).\n'
+      '  --help   Show this message and exit.',
+    );
+    return 0;
+  }
+  final List<String> positional = args.where((String a) => !a.startsWith('--')).toList();
+  final List<String> roots = positional.isNotEmpty ? positional : _defaultRoots;
   final List<String> failures = <String>[];
   var scanned = 0;
   var rootsSeen = 0;
