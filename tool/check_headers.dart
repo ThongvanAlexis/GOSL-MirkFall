@@ -46,7 +46,14 @@ final List<RegExp> _excludePatterns = <RegExp>[
   RegExp(r'[/\\]example[/\\]'),
 ];
 
-const List<String> _defaultRoots = <String>['lib', 'test', 'tool'];
+const List<String> _defaultRoots = <String>[
+  'lib',
+  'test',
+  'tool',
+  // Phase 15 (integration_test/) will add e2e tests; include the root up-front
+  // so any .dart file landing there is scanned without re-editing this list.
+  'integration_test',
+];
 
 /// Runs the header check. Accepts an optional list of root directories — if
 /// empty the default `lib/test/tool` roots are scanned. Recognises `--help` /
