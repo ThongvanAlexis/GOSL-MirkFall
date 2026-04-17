@@ -46,16 +46,25 @@ Future<int> runCheck(List<String> args) async {
     expected[name] = version;
   }
 
-  // Parse DEPENDENCIES.md: keep the last-seen version per package name. The
-  // "Tooling / GitHub Actions" table has different columns (no version that
-  // matches pubspec.lock naming); we filter that out by only accepting rows
-  // that have a version matching typical pub semver shape OR being the first
-  // column of a `Package | Version | ...` table. We simply index everything
-  // and let the cross-ref do the filtering.
+  // Parse DEPENDENCIES.md: keep the last-seen version per package name.
+  // Track the current section header (e.g. `## Direct dependencies`,
+  // `## Tooling / GitHub Actions`) so we can skip rows that aren't
+  // pubspec-correlated up front, instead of relying on the fragile
+  // name-contains-slash heuristic Phase 01 used.
   final String mdText = await mdFile.readAsString();
   final Map<String, String> declared = <String, String>{};
+  // Lowercase section-header substrings that indicate pub.dev-correlated rows.
+  // Only rows under one of these headers are cross-referenced with pubspec.lock.
+  const Set<String> pubspecSections = <String>{'direct dependencies', 'dev dependencies', 'transitive dependencies'};
+  bool inPubspecSection = false;
   for (final String rawLine in mdText.split('\n')) {
     final String line = rawLine.trimRight();
+    if (line.startsWith('## ')) {
+      final String section = line.substring(3).trim().toLowerCase();
+      inPubspecSection = pubspecSections.any(section.contains);
+      continue;
+    }
+    if (!inPubspecSection) continue;
     // Accept any leading `|` — `| a |` (markdown-conventional, with space)
     // and `|a|` (collapsed by a markdownlint fix) both describe the same row.
     // Phase 01's `startsWith('| ')` was fragile: a future markdownlint rule
@@ -86,10 +95,9 @@ Future<int> runCheck(List<String> args) async {
     }
   }
   for (final String d in declared.keys) {
-    // Ignore rows that clearly belong to the Tooling / GitHub Actions table
-    // (those start with a GitHub action name containing '/'). Those are
-    // audited separately and are not expected to appear in pubspec.lock.
-    if (d.contains('/')) continue;
+    // Section-header filter already excluded the Tooling table rows — any
+    // package name left here belongs to a pubspec section. If it's not in
+    // pubspec.lock, it's a stale entry.
     if (!expected.containsKey(d)) {
       extra.add(d);
     }
