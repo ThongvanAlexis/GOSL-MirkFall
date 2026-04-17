@@ -160,8 +160,19 @@ class FileLogger {
     };
     final sink = _sink;
     if (sink == null) return;
-    sink.writeln(jsonEncode(entry));
-    await sink.flush();
+    // Guard against write failures (disk full, sink closed mid-write, etc.)
+    // If the sink throws, clear the reference so subsequent records are
+    // silently dropped instead of re-entering the zone error handler —
+    // which would itself call Logger.shout → _onRecord → infinite loop.
+    try {
+      sink.writeln(jsonEncode(entry));
+      await sink.flush();
+    } on FileSystemException {
+      _sink = null;
+    } on StateError {
+      // IOSink throws StateError when addStream/write is called after close.
+      _sink = null;
+    }
   }
 
   /// Prunes oldest log files until the directory total stays under
