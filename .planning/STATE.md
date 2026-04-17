@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 2
+current_plan: 3
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-04-17T13:38:38.603Z"
-last_activity: 2026-04-17 — Plan 01-02 (logger + router + debug menu) complete — FileLogger JSONL + 7-tap easter egg + 14 tests green
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-04-17T13:53:20.581Z"
+last_activity: 2026-04-17
 progress:
   total_phases: 16
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 50
 ---
 
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 01 of 16 (Foundation)
-Current Plan: 2
+Current Plan: 3
 Total Plans in Phase: 4
 Plan: 2 of 4 in current phase (01-02 logger + router + debug menu shipped)
 Status: In Progress
-Last Activity: 2026-04-17 — Plan 01-02 (logger + router + debug menu) complete — FileLogger JSONL + 7-tap easter egg + 14 tests green
+Last Activity: 2026-04-17
 
 Progress: [█████░░░░░] 50%
 
@@ -55,6 +55,7 @@ Progress: [█████░░░░░] 50%
 *Updated after each plan completion*
 | Phase 01-foundation P01 | 9 min | 1 tasks | 14 files |
 | Phase 01-foundation P02 | 13 min | 2 tasks | 15 files |
+| Phase 01-foundation P03 | 9 min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,9 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 01-foundation]: Single DEBUG-define test with runtime branching on bool.fromEnvironment('DEBUG') — One test file asserts Level.ALL when --dart-define=DEBUG=true and Level.INFO otherwise — CI never silently skips the DEBUG-define path
 - [Phase 01-foundation]: cross_file imported via share_plus re-export (not as direct dep) — share_plus_platform_interface re-exports package:cross_file/cross_file.dart — XFile available through share_plus import, no extra audit entry
 - [Phase 01-foundation]: pumpAndSettle() replaced with bounded settleRefresh(tester) in DebugMenuScreen tests — Active FileLogger sink + Logger.root listener feed microtask queue continuously; pump+runAsync helper with bounded iteration avoids timeout
+- [Phase 01-foundation]: Accept dbus/geoclue/gsettings MPL-2.0 as Linux-only transitives via narrow _manualOverrides with synthetic SPDX MPL-2.0-Linux-only — Linux plugin surfaces never execute on Android/iOS (MirkFall's ship targets); MPL-2.0 is file-level weak-copyleft so it does not contaminate combined work. Synthetic SPDX keeps exception visible in code review.
+- [Phase 01-foundation]: Promote yaml + test from transitive to direct dev dependencies — Our scripts/tests import them directly; depend_on_referenced_packages lint + CLAUDE.md pin policy require explicit declaration.
+- [Phase 01-foundation]: CI gate exit code contract: 0=clean, 1=policy violation, 2=misconfiguration — Distinct signals let CI differentiate between a caught violation and a broken run; keeps gate outputs actionable.
 
 ### Pending Todos
 
@@ -97,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-17T13:38:17.594Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-04-17T13:53:07.123Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
