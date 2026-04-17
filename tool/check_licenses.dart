@@ -198,12 +198,15 @@ Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) as
   //    `license: MIT` in pubspec but shipping a GPL LICENSE file must NOT
   //    bypass the forbidden-substring scan — CLAUDE.md §Audit obligatoire
   //    flags exactly this "divergence between pub.dev and repo source" risk.
+  //    Case-insensitive so a LICENSE titled `Gnu General Public License`
+  //    (non-standard casing) is caught the same as the canonical ALL-CAPS.
   for (final String candidate in <String>['LICENSE', 'LICENSE.md', 'LICENSE.txt']) {
     final File f = File(p.join(packageDir, candidate));
     if (!await f.exists()) continue;
     final String text = await f.readAsString();
+    final String textLower = text.toLowerCase();
     for (final String bad in _forbiddenSubstrings) {
-      if (text.contains(bad)) {
+      if (textLower.contains(bad.toLowerCase())) {
         // MPL is weak copyleft and CAN ship if the package is a Linux-only
         // platform transitive (see _manualOverrides). Surface a hint for that
         // case instead of the same generic message GPL/AGPL/LGPL get.
@@ -242,9 +245,10 @@ Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) as
 
     final String text = await f.readAsString();
     // Forbidden marker scan was done above — keep this as a fallback for
-    // unusual file orderings.
+    // unusual file orderings. Case-insensitive match for symmetry with step 1.
+    final String textLower = text.toLowerCase();
     for (final String bad in _forbiddenSubstrings) {
-      if (text.contains(bad)) {
+      if (textLower.contains(bad.toLowerCase())) {
         return 'UNKNOWN-FORBIDDEN-MARKER: $bad';
       }
     }
