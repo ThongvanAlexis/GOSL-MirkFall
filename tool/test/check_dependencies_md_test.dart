@@ -119,5 +119,14 @@ void main() {
       final int code = await check_deps.runCheck(<String>[tempDir.path]);
       expect(code, 2);
     });
+
+    test('returns 2 when pubspec.lock is missing', () async {
+      // DEPENDENCIES.md present but pubspec.lock absent — second exit-2
+      // branch that the Phase 01 test suite left uncovered.
+      await File(p.join(tempDir.path, 'DEPENDENCIES.md')).writeAsString(_depsMdComplete);
+
+      final int code = await check_deps.runCheck(<String>[tempDir.path]);
+      expect(code, 2);
+    });
   });
 }
