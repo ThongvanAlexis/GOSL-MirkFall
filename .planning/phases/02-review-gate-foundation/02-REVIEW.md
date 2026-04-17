@@ -8,7 +8,7 @@
 
 *Captured verbatim at phase start, BEFORE Claude's audit.*
 
-(awaiting user input — Task 2 of this plan fills this section)
+*Aucune observation utilisateur — l'user n'a pas identifié de point à revoir dans son IDE (codebase encore minimale, une seule page).*
 
 ## 2. Claude audit findings
 
