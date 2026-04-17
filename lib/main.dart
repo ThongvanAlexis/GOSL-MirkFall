@@ -18,10 +18,17 @@ import 'infrastructure/logging/file_logger.dart';
 /// shared handler (Flutter framework errors, platform/engine-level async
 /// errors, and zone-escaped errors), then runs the app inside a guarded zone.
 Future<void> main() async {
+  // Initialise the Flutter binding in the ROOT zone, before runZonedGuarded.
+  // Rationale (Phase 01 RESEARCH:349-354,987-989 — Flutter 3.10+ zone-mismatch
+  // pitfall): if ensureInitialized() is called inside the guarded zone while
+  // runApp is also inside the same zone, the binding's message handlers can
+  // observe a different zone than the one that installed them, leading to
+  // subtle microtask routing bugs. Doing ensureInitialized here keeps the
+  // binding's root zone stable; the guarded zone only wraps the runtime body.
+  WidgetsFlutterBinding.ensureInitialized();
+
   await runZonedGuarded<Future<void>>(
     () async {
-      WidgetsFlutterBinding.ensureInitialized();
-
       // File-sink logger: opens today's JSONL file, prunes oldest, sets root
       // level from `--dart-define=DEBUG` or the SharedPreferences flag.
       // Phase 01 did a debugPrint listener; Phase 02 replaces it with this.
