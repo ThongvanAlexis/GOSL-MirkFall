@@ -82,6 +82,59 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      # Forensic dump of the runner environment. Runs after `flutter pub get`
+      # so the toolchain is fully hydrated, but before the build step, so a
+      # build failure leaves this trace above it in the log. `continue-on-error`
+      # ensures a failing diagnostic never breaks the build.
+      - name: Forensic analysis
+        continue-on-error: true
+        run: |
+          echo "=== Runner info ==="
+          uname -a || true
+          echo "RUNNER_OS=$RUNNER_OS RUNNER_ARCH=$RUNNER_ARCH"
+          lsb_release -a 2>/dev/null || true
+          echo ""
+          echo "=== Flutter ==="
+          flutter --version || true
+          echo ""
+          echo "=== Dart ==="
+          dart --version || true
+          echo ""
+          echo "=== JDK ==="
+          java -version 2>&1 || true
+          javac -version 2>&1 || true
+          echo ""
+          echo "=== Gradle (project wrapper) ==="
+          if [ -f android/gradlew ]; then
+            (cd android && ./gradlew --version) || true
+          else
+            echo "android/gradlew not present"
+          fi
+          echo ""
+          echo "=== Android SDK ==="
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          if command -v sdkmanager >/dev/null 2>&1; then
+            sdkmanager --list_installed 2>&1 | head -80 || true
+          else
+            echo "sdkmanager not on PATH"
+          fi
+          echo ""
+          echo "=== flutter doctor -v ==="
+          flutter doctor -v || true
+          echo ""
+          echo "=== flutter pub deps (compact) ==="
+          flutter pub deps --no-dev --style=compact || true
+          echo ""
+          echo "=== Disk space ==="
+          df -h || true
+          echo ""
+          echo "=== Env ==="
+          echo "PATH=$PATH"
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "FLUTTER_ROOT=$FLUTTER_ROOT"
+          echo "PUB_CACHE=$PUB_CACHE"
+
       - name: Build APK (debug)
         run: flutter build apk --debug
 
@@ -117,6 +170,57 @@ jobs:
 
       - name: Pub get
         run: flutter pub get
+
+      # Forensic dump of the runner environment. Runs after `flutter pub get`
+      # so the toolchain is fully hydrated, but before the `pod install` +
+      # build steps, so any iOS-specific failure leaves this trace above it
+      # in the log. `continue-on-error` ensures a failing diagnostic never
+      # breaks the build.
+      - name: Forensic analysis
+        continue-on-error: true
+        run: |
+          echo "=== Runner info ==="
+          uname -a || true
+          echo "RUNNER_OS=$RUNNER_OS RUNNER_ARCH=$RUNNER_ARCH"
+          sw_vers || true
+          echo ""
+          echo "=== Flutter ==="
+          flutter --version || true
+          echo ""
+          echo "=== Dart ==="
+          dart --version || true
+          echo ""
+          echo "=== Xcode ==="
+          xcodebuild -version || true
+          xcode-select -p || true
+          echo ""
+          echo "=== CocoaPods ==="
+          pod --version || true
+          echo ""
+          echo "=== flutter doctor -v ==="
+          flutter doctor -v || true
+          echo ""
+          echo "=== flutter pub deps (compact) ==="
+          flutter pub deps --no-dev --style=compact || true
+          echo ""
+          echo "=== ios/Podfile.lock state ==="
+          if [ -f ios/Podfile.lock ]; then
+            echo "exists, $(wc -c < ios/Podfile.lock) bytes"
+            head -5 ios/Podfile.lock || true
+            echo "--- tail ---"
+            tail -5 ios/Podfile.lock || true
+          else
+            echo "absent"
+          fi
+          echo ""
+          echo "=== Disk space ==="
+          df -h || true
+          echo ""
+          echo "=== Env ==="
+          echo "PATH=$PATH"
+          echo "FLUTTER_ROOT=$FLUTTER_ROOT"
+          echo "PUB_CACHE=$PUB_CACHE"
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR"
 
       # Windows-dev bootstrap: `ios/Podfile.lock` cannot be generated on
       # Windows (no CocoaPods), so Plan 01-01 committed a comment-only
