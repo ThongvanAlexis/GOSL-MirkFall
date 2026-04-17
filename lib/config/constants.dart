@@ -15,6 +15,16 @@ const int kMaxLogsDirBytes = 10 * 1024 * 1024; // 10 MB
 const int kAboutTapsToTriggerDebugMenu = 7;
 const int kAboutTapWindowMilliseconds = 3000;
 
+/// Upper bound on total elapsed time from first tap to 7th tap for the
+/// easter egg to fire. Guards against users inadvertently accumulating
+/// seven taps over several minutes of casual interaction.
+const int kAboutTapTotalWindowMilliseconds = 10000;
+
+/// Share-sheet call timeout (ms). Applied to every native plugin share call
+/// so a pending OS dialog cannot hang the UI indefinitely — mandated by
+/// CLAUDE.md §Timeouts for native-plugin invocations.
+const int kShareCallTimeoutMilliseconds = 30000;
+
 // Reserved for later phases (declared here so future callers can import from
 // a stable location):
 //   - kDefaultRevealRadiusMeters  (Phase 09 — fog reveal radius)

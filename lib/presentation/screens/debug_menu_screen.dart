@@ -2,12 +2,14 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../config/constants.dart';
 import '../../infrastructure/logging/file_logger.dart';
 
 /// Hidden debug menu reached via 7-tap on the `/about` placeholder.
@@ -61,7 +63,21 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
   }
 
   Future<void> _onShare(File f) async {
-    await SharePlus.instance.share(ShareParams(files: <XFile>[XFile(f.path)]));
+    // Wrap the plugin call in a bounded timeout per CLAUDE.md §Timeouts —
+    // share_plus can hang indefinitely on OS-level dialog failures. Any
+    // plugin error (or timeout) is logged and surfaced as a SnackBar so the
+    // user sees feedback instead of a silent no-op.
+    try {
+      await SharePlus.instance.share(ShareParams(files: <XFile>[XFile(f.path)])).timeout(const Duration(milliseconds: kShareCallTimeoutMilliseconds));
+    } on TimeoutException catch (e, st) {
+      Logger('debug_menu').warning('_onShare timeout', e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Partage annulé (timeout)')));
+    } on Exception catch (e, st) {
+      Logger('debug_menu').warning('_onShare failed', e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Partage échoué : $e')));
+    }
   }
 
   Future<void> _onClearAll() async {
