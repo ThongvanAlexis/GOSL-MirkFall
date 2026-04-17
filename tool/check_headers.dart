@@ -54,6 +54,17 @@ Future<int> runCheck(List<String> args) async {
       final String trimmed = contents.startsWith('\uFEFF') ? contents.substring(1) : contents;
       if (!trimmed.startsWith(_expectedHeader)) {
         failures.add(entity.path);
+        continue;
+      }
+      // The header match must be followed by a line break — otherwise a file
+      // starting with `// Copyright ...details// hack injected on same line`
+      // would pass the startsWith check while actually concatenating arbitrary
+      // content onto the final header line (minor poison vector).
+      final int headerEnd = _expectedHeader.length;
+      if (trimmed.length == headerEnd) continue; // EOF right after header — acceptable.
+      final String afterHeader = trimmed.substring(headerEnd);
+      if (!afterHeader.startsWith('\n') && !afterHeader.startsWith('\r\n')) {
+        failures.add(entity.path);
       }
     }
   }
