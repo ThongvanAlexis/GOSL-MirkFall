@@ -130,6 +130,14 @@ Future<int> runCheck(List<String> args) async {
     // and flag them as unresolved — never silently pass a monolithic string
     // through the allowlist contains check.
     final String normalized = _stripOuterParens(spdx.trim());
+    // `LicenseRef-*` is the SPDX escape hatch for non-standard / proprietary
+    // licenses. We can't reason about those automatically — surface a hint.
+    if (normalized.toLowerCase().startsWith('licenseref-')) {
+      violations.add(
+        '$name: $spdx — LicenseRef-* is non-standard; add a manual override mapping "$name" to the effective SPDX id if the license is compatible.',
+      );
+      continue;
+    }
     if (RegExp(r'\s+AND\s+', caseSensitive: false).hasMatch(normalized) || RegExp(r'\s+WITH\s+', caseSensitive: false).hasMatch(normalized)) {
       violations.add('$name: $spdx — compound SPDX (AND/WITH) not supported; add a manual override with the effective SPDX.');
       continue;
