@@ -14,7 +14,7 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 - [x] **FOUND-01**: Repo Flutter initialisé avec `analysis_options.yaml` strict (`strict-casts`, `strict-inference`, `strict-raw-types`)
 - [x] **FOUND-02**: Chaque fichier source contient le header de licence GOSL v1.0 obligatoire
 - [x] **FOUND-03**: `DEPENDENCIES.md` à la racine, tenu à jour (licence + audit télémétrie par dépendance)
-- [ ] **FOUND-04**: Pipeline GitHub Actions CI construit un APK Android (ubuntu-latest) et un build iOS non-signé (macos-latest) sur chaque push
+- [x] **FOUND-04**: Pipeline GitHub Actions CI construit un APK Android (ubuntu-latest) et un build iOS non-signé (macos-latest) sur chaque push
 - [x] **FOUND-05**: Versions des dépendances `pubspec.yaml` strictement pinnées (pas de `^`, pas de `~`)
 - [x] **FOUND-06**: Logger configurable via `--dart-define=DEBUG=true` et menu debug in-app ; logs écrits dans `<app_docs>/logs/yyyymmdd_hhmm.ss_logs.txt`
 - [x] **FOUND-07**: Constantes partagées (rayon défaut, timeouts, tailles limites) centralisées dans `lib/config/constants.dart`
@@ -184,7 +184,7 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | FOUND-01 | Phase 01 | Complete |
 | FOUND-02 | Phase 01 | Complete |
 | FOUND-03 | Phase 01 | Complete |
-| FOUND-04 | Phase 01 | Pending |
+| FOUND-04 | Phase 01 | Complete |
 | FOUND-05 | Phase 01 | Complete |
 | FOUND-06 | Phase 01 | Complete |
 | FOUND-07 | Phase 01 | Complete |
