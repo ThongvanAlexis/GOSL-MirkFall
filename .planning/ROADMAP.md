@@ -56,7 +56,11 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
   2. Les findings sont présentés comme une liste de **titres** avec explication courte, pas comme des diffs — l'utilisateur choisit ce qu'on corrige
   3. Le scan de licence CI tourne à vide sur une branche de test qui tenterait d'ajouter une dépendance GPL (le pipeline échoue comme attendu)
   4. Les corrections choisies sont appliquées et la CI repasse au vert avant ouverture de la Phase 03
-**Plans**: TBD
+**Plans** (4 plans, 4 waves):
+- [ ] 02-review-gate-foundation/02-01-PLAN.md — Wave 1: Scaffold 02-REVIEW.md 5-section skeleton + user-first IDE review capture into §1
+- [ ] 02-review-gate-foundation/02-02-PLAN.md — Wave 2: 4 parallel sub-agent audits (CI gates, bootstrap runtime + Windows visual walk, code quality sweep, tests+tooling+CI), findings synthesis into §2, user triage into §3
+- [ ] 02-review-gate-foundation/02-03-PLAN.md — Wave 3: 3 adversarial stress-test branches (real GPL dep, missing GOSL header, missing DEPENDENCIES.md entry), evidence archived in §4, branches deleted local+remote
+- [ ] 02-review-gate-foundation/02-04-PLAN.md — Wave 4: Apply fix-triaged findings as atomic commits with CI-gated loop, §5 CI-green confirmation, flip status=closed, update STATE.md + ROADMAP.md, unblock Phase 03
 
 ### Phase 03: Persistence & Domain Models
 **Goal**: Figer les deux décisions architecturales les plus coûteuses à changer rétroactivement — le modèle de stockage du mirk révélé (bitmap 64×64 par parent-tile, décision D3) et le format d'échange JSON versionné (envelope `{schemaVersion, type, payload}`, décision D9) — avant qu'une seule ligne de GPS ou d'export ne les consomme.
@@ -234,7 +238,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 01. Foundation | 4/4 | Complete    | 2026-04-17 |
-| 02. Review Gate — Foundation | 0/TBD | Not started | - |
+| 02. Review Gate — Foundation | 1/4 | In Progress|  |
 | 03. Persistence & Domain Models | 0/TBD | Not started | - |
 | 04. Review Gate — Persistence | 0/TBD | Not started | - |
 | 05. GPS & Session Lifecycle | 0/TBD | Not started | - |

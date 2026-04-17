@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 4
+current_plan: 1
 status: executing
-stopped_at: Phase_02_context_gathered
-last_updated: "2026-04-17T17:03:24.762Z"
+stopped_at: Completed 02-01-PLAN.md (scaffold + user-first capture)
+last_updated: "2026-04-17T18:15:16Z"
 last_activity: 2026-04-17
 progress:
   total_phases: 16
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 50
+  total_plans: 8
+  completed_plans: 5
+  percent: 56
 ---
 
 # Project State
@@ -22,18 +22,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 01 — Foundation (pas encore commencée)
+**Current focus:** Phase 02 — Review Gate Foundation (02-01 done, 02-02 audit sub-agents unblocked)
 
 ## Current Position
 
-Phase: 01 of 16 (Foundation)
-Current Plan: 4
+Phase: 02 of 16 (Review Gate — Foundation)
+Current Plan: 1
 Total Plans in Phase: 4
-Plan: 2 of 4 in current phase (01-02 logger + router + debug menu shipped)
+Plan: 1 of 4 in current phase (02-01 scaffold + user-first §1 capture shipped)
 Status: In Progress
 Last Activity: 2026-04-17
 
-Progress: [█████░░░░░] 50%
+Progress: [█████▌░░░░] 56%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [█████░░░░░] 50%
 | Phase 01-foundation P02 | 13 min | 2 tasks | 15 files |
 | Phase 01-foundation P03 | 9 min | 2 tasks | 9 files |
 | Phase 01-foundation P04 | 1h 36m | 2 tasks | 2 files |
+| Phase 02-review-gate-foundation P01 | 2 min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 01-foundation]: Option A for cross-platform Podfile.lock bootstrap — CI detects placeholder (no COCOAPODS: footer), removes it before pod install, does NOT auto-commit the regenerated lockfile back — Windows dev host cannot generate Podfile.lock (no CocoaPods). Option B (CI auto-commit back) was rejected — creates noisy commit history + requires CI write access to main. Option C (seed once on Mac, commit) was rejected — drifts on every transitive pod upgrade, and author primarily works on Windows. Option A keeps CI read-only, makes the pins the single source of truth, and regenerates from scratch every run.
 - [Phase 01-foundation]: Core library desugaring enabled in android/app/build.gradle.kts with pinned desugar_jdk_libs:2.1.4 — flutter_local_notifications 21.0.0 requires java.time APIs at minSdk 24; AGP 8.x needs isCoreLibraryDesugaringEnabled = true + the coreLibraryDesugaring dep. Version 2.1.4 matches the AGP 8.x bundled version as of 2026-04.
 - [Phase 01-foundation]: Forensic-analysis diagnostic step added to android + ios CI jobs with continue-on-error — Runs after flutter pub get, before the build step — dumps runner OS, toolchain, SDK, deps, disk, env. continue-on-error guarantees the diagnostic itself can never break a build. Reusable pattern for Phase 15 release CI and beyond.
+- [Phase 02-review-gate-foundation]: Review-gate protocol operationalized as Plan 02-01 with blocking checkpoint — Encoding CLAUDE.md §Code Review Phases as a structural gate (scaffold + solicit+capture + commit-before-agents) makes it enforceable under time pressure. Future review gates (04, 06, 08, 10, 12, 14, 16) will reuse this 2-task pattern.
+- [Phase 02-review-gate-foundation]: 5-section review artifact contract locked — §1 User-observed / §2 Claude audit / §3 Triage / §4 Adversarial / §5 CI-green. gsd-verifier greps `^## [1-5]\\.` to confirm 5 headings. Reusable across all even-numbered phases.
+- [Phase 02-review-gate-foundation]: GOSL Dart copyright header NOT prepended to .md review artifacts — tool/check_headers.dart scans .dart only; markdown exempt. Consistent with Phase 01 header scanner scope.
 
 ### Pending Todos
 
@@ -105,6 +109,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-17T17:03:24.759Z
-Stopped at: Phase_02_context_gathered
-Resume file: .planning/phases/02-review-gate-foundation/02-CONTEXT.md
+Last session: 2026-04-17T18:15:16Z
+Stopped at: Completed 02-01-PLAN.md (scaffold + user-first §1 capture)
+Resume file: .planning/phases/02-review-gate-foundation/02-02-PLAN.md
