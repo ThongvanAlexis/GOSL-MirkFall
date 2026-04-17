@@ -1,0 +1,4 @@
+# Intentional empty placeholder — seeded on Windows where CocoaPods is not
+# available. The macOS CI job (Plan 01-04) will run `pod install` on its first
+# build and commit the real lockfile. Once CI seeds a real lockfile, replace
+# this file wholesale.

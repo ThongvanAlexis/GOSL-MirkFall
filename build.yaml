@@ -1,0 +1,5 @@
+# Stub config for build_runner. Phase 03 will add Freezed + Drift + Riverpod builders.
+targets:
+  $default:
+    builders:
+      # Placeholder — real builders added in Phase 03.

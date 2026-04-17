@@ -1,0 +1,64 @@
+name: mirkfall
+description: Fog-of-war world map for real-life exploration. GOSL v1.0.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.11.0 <4.0.0"
+  flutter: ">=3.41.0 <3.42.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Default Flutter template icon pack — pinned exactly.
+  cupertino_icons: 1.0.9
+
+  # Phase 01 runtime
+  #
+  # Pinning note: the riverpod + analyzer + custom_lint ecosystem at the time
+  # of Phase 01 execution was split between analyzer ^9.x (riverpod_generator
+  # 4.0.3, riverpod_lint 3.1.3, freezed 3.2.5) and analyzer ^7.x/^8.x (the
+  # versions below). `custom_lint` 0.8.1 targets analyzer ^8.0.0; no
+  # `custom_lint` release yet targets analyzer ^9.0.0, so we hold the whole
+  # stack at analyzer <9 to keep `custom_lint` + `riverpod_lint` usable.
+  # Re-evaluate when `custom_lint` ships an analyzer-^9 release.
+  flutter_riverpod: 3.1.0
+  riverpod_annotation: 4.0.0
+  go_router: 16.0.0
+  logging: 1.3.0
+  path_provider: 2.1.5
+  path: 1.9.1
+  shared_preferences: 2.5.5
+  share_plus: 12.0.2
+
+  # Pinned for later phases (declared day-1 to lock + audit)
+  flutter_map: 8.3.0
+  latlong2: 0.9.1
+  geolocator: 14.0.2
+  permission_handler: 12.0.1
+  flutter_local_notifications: 21.0.0
+  drift: 2.32.1
+  drift_flutter: 0.3.0
+  sqlite3_flutter_libs: 0.6.0+eol
+  image_picker: 1.2.1
+  freezed_annotation: 3.1.0
+  json_annotation: 4.9.0
+  file_picker: 11.0.2
+  collection: 1.19.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 6.0.0
+  build_runner: 2.9.0
+  freezed: 3.2.3
+  json_serializable: 6.11.2
+  riverpod_generator: 4.0.0+1
+  # NOTE Phase 03: `custom_lint` + `riverpod_lint` were deferred from Phase 01
+  # because no compatible trio (custom_lint + riverpod_lint + analyzer) exists
+  # in the current ecosystem. Re-add them in Phase 03 when the Riverpod
+  # codegen actually lands and the ecosystem has converged on analyzer ^9.x.
+
+flutter:
+  uses-material-design: true
