@@ -1,0 +1,197 @@
+// Copyright (c) 2026 THONGVAN Alexis
+// Licensed under the Good Old Software License v1.0
+// See LICENSE file for details
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+import 'package:yaml/yaml.dart';
+
+/// CI gate: scans `pubspec.lock` and resolves the SPDX license of every
+/// non-SDK package via its LICENSE file (or `pubspec.yaml` `license:` field,
+/// or a manual override). Fails (exit 1) if any license is not in the
+/// GOSL-compatible allowlist, or if the LICENSE text carries a known-forbidden
+/// copyleft marker (GPL/AGPL/MPL).
+///
+/// Allowlist is from CLAUDE.md §Licences acceptées: MIT, BSD-2-Clause,
+/// BSD-3-Clause, Apache-2.0, Unlicense, CC0-1.0, ISC, Zlib.
+const Set<String> _allowedSpdx = <String>{'MIT', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', 'Unlicense', 'CC0-1.0', 'ISC', 'Zlib'};
+
+/// Manual SPDX overrides for packages whose LICENSE file defeats the heuristic
+/// (non-standard wording, dual-licensed with unusual wording, etc.).
+/// Every entry MUST carry a comment with a pub.dev URL citing the license.
+const Map<String, String> _manualOverrides = <String, String>{
+  // flutter_plugin_android_lifecycle ships a BSD-3-Clause LICENSE file that
+  // lacks the `Redistributions of source code must retain` prefix in its
+  // first 120 chars (header block has a preamble). Confirmed BSD-3-Clause at
+  // https://pub.dev/packages/flutter_plugin_android_lifecycle/license.
+  'flutter_plugin_android_lifecycle': 'BSD-3-Clause',
+  // Populated during Task 2 as the real-repo run reveals unresolved packages.
+};
+
+/// Forbidden substrings in LICENSE text — automatic fail. MPL is listed as
+/// weak copyleft; flag conservatively and let a human confirm via override
+/// if a specific case is genuinely OK.
+const List<String> _forbiddenSubstrings = <String>[
+  'GNU GENERAL PUBLIC LICENSE',
+  'GNU LESSER GENERAL PUBLIC LICENSE',
+  'GNU AFFERO GENERAL PUBLIC LICENSE',
+  'Mozilla Public License',
+];
+
+/// Runs the license scan at the given repo root (default: current dir).
+/// Returns 0 when every non-SDK package resolves to an allowed SPDX,
+/// 1 on violation or unresolved package, 2 on missing input files.
+Future<int> runCheck(List<String> args) async {
+  final String repoRoot = args.isNotEmpty ? args.first : '.';
+  final String lockPath = p.join(repoRoot, 'pubspec.lock');
+  final String configPath = p.join(repoRoot, '.dart_tool', 'package_config.json');
+
+  final File lockFile = File(lockPath);
+  final File configFile = File(configPath);
+  if (!await lockFile.exists()) {
+    stderr.writeln('check_licenses: pubspec.lock not found at $lockPath');
+    return 2;
+  }
+  if (!await configFile.exists()) {
+    stderr.writeln('check_licenses: .dart_tool/package_config.json not found. Run `flutter pub get` first.');
+    return 2;
+  }
+
+  final YamlMap lock = loadYaml(await lockFile.readAsString()) as YamlMap;
+  final YamlMap packages = (lock['packages'] as YamlMap?) ?? YamlMap();
+
+  final Map<String, Object?> configJson = jsonDecode(await configFile.readAsString()) as Map<String, Object?>;
+  final Map<String, String> rootUriByPackage = <String, String>{};
+  final List<Object?> configPackages = configJson['packages'] as List<Object?>;
+  for (final Object? pkg in configPackages) {
+    if (pkg is Map<String, Object?>) {
+      final String? name = pkg['name'] as String?;
+      final String? rootUri = pkg['rootUri'] as String?;
+      if (name != null && rootUri != null) {
+        rootUriByPackage[name] = rootUri;
+      }
+    }
+  }
+
+  final List<String> violations = <String>[];
+  final List<String> unresolved = <String>[];
+  var ok = 0;
+
+  for (final MapEntry<dynamic, dynamic> entry in packages.entries) {
+    final String name = entry.key as String;
+    final YamlMap meta = entry.value as YamlMap;
+    final String source = meta['source'] as String? ?? 'unknown';
+    // Flutter / Dart SDK bundled packages are BSD-3-Clause by construction and
+    // live outside pub-cache, so we skip them entirely.
+    if (source == 'sdk') continue;
+
+    final String? spdx = _manualOverrides[name] ?? await _resolveSpdx(name, rootUriByPackage[name], configPath);
+
+    if (spdx == null) {
+      unresolved.add(name);
+      continue;
+    }
+
+    // Split compound expressions: "Apache-2.0 OR BSD-3-Clause" passes when
+    // either side is allowed. "AND" compounds would need every side allowed;
+    // we don't currently have any in tree, keep the logic minimal.
+    final List<String> ids = spdx.split(RegExp(r'\s+OR\s+')).map((String s) => s.trim()).toList();
+    final bool allowed = ids.any(_allowedSpdx.contains);
+    if (!allowed) {
+      violations.add('$name: $spdx NOT in allowlist');
+    } else {
+      ok++;
+    }
+  }
+
+  if (violations.isEmpty && unresolved.isEmpty) {
+    stdout.writeln('check_licenses: OK ($ok packages)');
+    return 0;
+  }
+  if (violations.isNotEmpty) {
+    stderr.writeln('check_licenses: ${violations.length} violation(s):');
+    for (final String v in violations) {
+      stderr.writeln('  - $v');
+    }
+  }
+  if (unresolved.isNotEmpty) {
+    stderr.writeln('check_licenses: ${unresolved.length} package(s) could not be resolved.');
+    stderr.writeln('Add to _manualOverrides with a pub.dev source comment:');
+    for (final String n in unresolved) {
+      stderr.writeln('  - $n');
+    }
+  }
+  return 1;
+}
+
+/// Attempts to resolve a package's SPDX identifier by:
+/// 1. reading its `pubspec.yaml` `license:` field when present,
+/// 2. reading LICENSE / LICENSE.md / LICENSE.txt and heuristic-matching
+///    on signature phrases.
+/// Returns `null` when neither method can identify the license.
+Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) async {
+  if (rootUri == null) return null;
+
+  // rootUri is either `file:///...` (absolute) or a relative path such as
+  // `../../pkg_x/` — resolve against the directory of package_config.json
+  // (typically `<repo>/.dart_tool/`).
+  final String configDir = p.dirname(configPath);
+  final Uri uri = Uri.parse(rootUri);
+  final String packageDir = uri.scheme == 'file' ? uri.toFilePath() : p.normalize(p.join(configDir, uri.path));
+
+  // 1. Check pubspec.yaml `license:` field (rare but authoritative).
+  final File pubspecFile = File(p.join(packageDir, 'pubspec.yaml'));
+  if (await pubspecFile.exists()) {
+    final Object? parsed = loadYaml(await pubspecFile.readAsString());
+    if (parsed is YamlMap) {
+      final Object? declared = parsed['license'];
+      if (declared is String && declared.trim().isNotEmpty) return declared.trim();
+    }
+  }
+
+  // 2. Read LICENSE / LICENSE.md / LICENSE.txt with heuristic SPDX match.
+  for (final String candidate in <String>['LICENSE', 'LICENSE.md', 'LICENSE.txt']) {
+    final File f = File(p.join(packageDir, candidate));
+    if (!await f.exists()) continue;
+
+    final String text = await f.readAsString();
+    // Forbidden marker → return a synthetic SPDX so the caller flags it.
+    for (final String bad in _forbiddenSubstrings) {
+      if (text.contains(bad)) {
+        return 'UNKNOWN-FORBIDDEN-MARKER: $bad';
+      }
+    }
+
+    // Heuristic matches — ordered from most distinctive to most generic.
+    if (text.contains('Apache License') && text.contains('Version 2.0')) return 'Apache-2.0';
+
+    final bool bsdMarker = text.contains('Redistributions of source code must retain');
+    final bool mitMarker = text.contains('MIT License') || text.contains('Permission is hereby granted, free of charge,');
+
+    if (mitMarker) {
+      if (bsdMarker) {
+        // BSD families also carry the MIT "Permission is hereby" line sometimes,
+        // so disambiguate on the BSD-specific redistribution clause first.
+        return text.contains('Neither the name of') ? 'BSD-3-Clause' : 'BSD-2-Clause';
+      }
+      return 'MIT';
+    }
+
+    if (bsdMarker) {
+      return text.contains('Neither the name of') ? 'BSD-3-Clause' : 'BSD-2-Clause';
+    }
+    if (text.contains('ISC License') || text.contains('ISC license')) return 'ISC';
+    if (text.contains('Unlicense')) return 'Unlicense';
+    if (text.contains('CC0 1.0 Universal')) return 'CC0-1.0';
+    if (text.contains('zlib License') || text.contains('zlib license')) return 'Zlib';
+  }
+
+  return null;
+}
+
+Future<void> main(List<String> args) async {
+  final int code = await runCheck(args);
+  exitCode = code;
+}

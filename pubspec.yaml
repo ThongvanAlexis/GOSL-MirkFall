@@ -61,6 +61,17 @@ dev_dependencies:
   # we subclass with MockPlatformInterfaceMixin from plugin_platform_interface).
   path_provider_platform_interface: 2.1.2
   plugin_platform_interface: 2.1.8
+
+  # Phase 03 CI tooling — YAML parser used by tool/check_licenses.dart and
+  # tool/check_dependencies_md.dart to read pubspec.lock. Declared directly so
+  # the dev import is explicit + pinned per CLAUDE.md policy (was transitive
+  # through build_runner's analyzer chain before).
+  yaml: 3.1.3
+  # `package:test` is the plain-Dart test runner used by `tool/test/*_test.dart`
+  # (CLI scripts — not widget tests, so flutter_test is overkill). It is
+  # already a transitive of `flutter_test`; we declare it directly so the
+  # imports pass `depend_on_referenced_packages`.
+  test: 1.30.0
   # NOTE Phase 03: `custom_lint` + `riverpod_lint` were deferred from Phase 01
   # because no compatible trio (custom_lint + riverpod_lint + analyzer) exists
   # in the current ecosystem. Re-add them in Phase 03 when the Riverpod
