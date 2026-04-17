@@ -123,12 +123,22 @@ Future<int> runCheck(List<String> args) async {
       continue;
     }
 
-    // Split compound expressions: "Apache-2.0 OR BSD-3-Clause" passes when
-    // either side is allowed. "AND" compounds would need every side allowed;
-    // we don't currently have any in tree, keep the logic minimal.
+    // Parse compound SPDX expressions. Normalise outer parentheses so
+    // `(MIT OR Apache-2.0)` matches identically to `MIT OR Apache-2.0`.
+    // Real SPDX expressions (e.g. `GPL-2.0 AND Classpath-exception-2.0`) need
+    // a proper parser; this tree has none today, so detect AND/WITH up front
+    // and flag them as unresolved — never silently pass a monolithic string
+    // through the allowlist contains check.
+    final String normalized = _stripOuterParens(spdx.trim());
+    if (RegExp(r'\s+AND\s+', caseSensitive: false).hasMatch(normalized) || RegExp(r'\s+WITH\s+', caseSensitive: false).hasMatch(normalized)) {
+      violations.add('$name: $spdx — compound SPDX (AND/WITH) not supported; add a manual override with the effective SPDX.');
+      continue;
+    }
+    // Split compound OR expressions: "Apache-2.0 OR BSD-3-Clause" passes when
+    // either side is allowed.
     // Case-insensitive match: upstream publishers occasionally lowercase the
     // SPDX id (e.g. `license: apache-2.0`); treat them the same as canonical.
-    final List<String> ids = spdx.split(RegExp(r'\s+OR\s+', caseSensitive: false)).map((String s) => s.trim()).toList();
+    final List<String> ids = normalized.split(RegExp(r'\s+OR\s+', caseSensitive: false)).map((String s) => _stripOuterParens(s.trim())).toList();
     final Set<String> allowedLower = _allowedSpdx.map((String s) => s.toLowerCase()).toSet();
     final bool allowed = ids.any((String id) => allowedLower.contains(id.toLowerCase()));
     if (!allowed) {
@@ -221,6 +231,21 @@ Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) as
   }
 
   return null;
+}
+
+/// Strips a single matching pair of outer parentheses from an SPDX expression.
+/// `(MIT)` → `MIT`; `(MIT OR Apache-2.0)` → `MIT OR Apache-2.0`; `(MIT) OR (BSD)`
+/// is left untouched (the outer parens aren't balanced around the whole string).
+String _stripOuterParens(String s) {
+  if (s.length < 2 || !s.startsWith('(') || !s.endsWith(')')) return s;
+  // Verify the parens are actually balanced around the entire string.
+  var depth = 0;
+  for (var i = 0; i < s.length; i++) {
+    if (s[i] == '(') depth++;
+    if (s[i] == ')') depth--;
+    if (depth == 0 && i < s.length - 1) return s;
+  }
+  return s.substring(1, s.length - 1).trim();
 }
 
 Future<void> main(List<String> args) async {
