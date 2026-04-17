@@ -4,19 +4,18 @@
 
 import 'dart:io';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mirkfall/app.dart';
-import 'package:mirkfall/config/constants.dart';
+import 'package:logging/logging.dart';
 import 'package:mirkfall/infrastructure/logging/file_logger.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Fake [PathProviderPlatform] pointing at a test-owned temp directory.
-/// Reused across all Phase 02 widget tests that need `path_provider` to
-/// return something that exists on the host OS.
+/// This test MUST be run with `--dart-define=DEBUG=true`. Without the define,
+/// the body falls back to an informational assertion so the default
+/// `flutter test` run doesn't produce a false-positive claim that the
+/// DEBUG-define path works. Plan 01-04 (CI) adds a dedicated step:
+///   flutter test --dart-define=DEBUG=true test/file_logger_debug_define_test.dart
 class _FakePathProvider extends PathProviderPlatform with MockPlatformInterfaceMixin {
   _FakePathProvider(this._root);
   final Directory _root;
@@ -37,14 +36,10 @@ void main() {
   late Directory tempDir;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('mirkfall_smoke_');
+    tempDir = await Directory.systemTemp.createTemp('mirkfall_debug_define_');
     PathProviderPlatform.instance = _FakePathProvider(tempDir);
+    // Empty prefs so only the DEBUG define can push level to ALL.
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    // MirkFallApp no longer hard-depends on FileLogger (it watches
-    // appRouterProvider only), but the router itself mounts screens that
-    // may trigger FileLogger.readVerbosePref etc. on navigation in later
-    // phases — bootstrap now to keep the smoke test representative.
-    await FileLogger.bootstrap();
   });
 
   tearDown(() async {
@@ -54,11 +49,17 @@ void main() {
     }
   });
 
-  testWidgets('MirkFallApp pumps and renders the Phase 01 placeholder home', (WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MirkFallApp()));
-    await tester.pump();
+  test('with --dart-define=DEBUG=true, bootstrap sets Logger.root.level = Level.ALL', () async {
+    const debugDefine = bool.fromEnvironment('DEBUG');
 
-    expect(find.text('MirkFall — bootstrap OK'), findsOneWidget);
-    expect(find.descendant(of: find.byType(AppBar), matching: find.text(kAppName)), findsOneWidget);
+    await FileLogger.bootstrap();
+
+    if (debugDefine) {
+      expect(Logger.root.level, Level.ALL, reason: 'With --dart-define=DEBUG=true and no verbose prefs, root level must be ALL');
+    } else {
+      // Without the define, the contract is the other direction: level must
+      // stay at INFO (no implicit promotion).
+      expect(Logger.root.level, Level.INFO, reason: 'Without --dart-define=DEBUG=true and no verbose prefs, root level must stay at INFO');
+    }
   });
 }
