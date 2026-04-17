@@ -118,6 +118,20 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      # Windows-dev bootstrap: `ios/Podfile.lock` cannot be generated on
+      # Windows (no CocoaPods), so Plan 01-01 committed a comment-only
+      # placeholder. CocoaPods 1.x rejects an invalid lockfile with
+      # "Invalid Lockfile" instead of overwriting it, so we detect and
+      # remove a placeholder before `pod install`. Real lockfiles contain
+      # a `COCOAPODS:` footer — absence of that marker signals a placeholder.
+      - name: Remove placeholder Podfile.lock (Windows-dev bootstrap)
+        working-directory: ios
+        run: |
+          if [ -f Podfile.lock ] && ! grep -q "^COCOAPODS:" Podfile.lock; then
+            echo "::warning::Placeholder Podfile.lock detected — removing before pod install"
+            rm -f Podfile.lock
+          fi
+
       - name: CocoaPods install
         working-directory: ios
         run: pod install
