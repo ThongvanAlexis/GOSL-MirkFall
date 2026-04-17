@@ -2,6 +2,7 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'dart:convert';
 import 'dart:io';
 
 /// CI gate: scans every non-generated `*.dart` file under the configured roots
@@ -69,7 +70,7 @@ Future<int> runCheck(List<String> args) async {
       if (_excludePatterns.any((RegExp re) => re.hasMatch(normalized))) continue;
 
       scanned++;
-      final String contents = await entity.readAsString();
+      final String contents = await _readWithBomHandling(entity);
       // Strip leading BOM if present — some editors inject it silently.
       final String trimmed = contents.startsWith('\uFEFF') ? contents.substring(1) : contents;
       if (!trimmed.startsWith(_expectedHeader)) {
@@ -106,6 +107,37 @@ Future<int> runCheck(List<String> args) async {
   stderr.writeln('Expected exact header (3 lines, no trailing blank):');
   stderr.writeln(_expectedHeader);
   return 1;
+}
+
+/// Reads [f] and returns its text, handling UTF-8 and UTF-16 LE BOMs.
+///
+/// Windows editors (notepad.exe, PowerShell `Out-File` default) ship UTF-16 LE
+/// with a BOM `0xFF 0xFE`. Dart's default `readAsString` assumes UTF-8 and
+/// fails with a confusing 'Missing extension byte' on those files. Detect
+/// the BOM explicitly and decode with the right codec so the scanner doesn't
+/// silently miss the header match on a file saved by a Windows editor.
+Future<String> _readWithBomHandling(File f) async {
+  final List<int> bytes = await f.readAsBytes();
+  // UTF-16 LE BOM: 0xFF 0xFE
+  if (bytes.length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE) {
+    final List<int> body = bytes.sublist(2);
+    final StringBuffer sb = StringBuffer();
+    for (int i = 0; i + 1 < body.length; i += 2) {
+      sb.writeCharCode(body[i] | (body[i + 1] << 8));
+    }
+    return sb.toString();
+  }
+  // UTF-16 BE BOM: 0xFE 0xFF (rare but well-defined)
+  if (bytes.length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) {
+    final List<int> body = bytes.sublist(2);
+    final StringBuffer sb = StringBuffer();
+    for (int i = 0; i + 1 < body.length; i += 2) {
+      sb.writeCharCode((body[i] << 8) | body[i + 1]);
+    }
+    return sb.toString();
+  }
+  // UTF-8 BOM (handled downstream by startsWith(\uFEFF) strip) or plain UTF-8.
+  return utf8.decode(bytes, allowMalformed: true);
 }
 
 Future<void> main(List<String> args) async {
