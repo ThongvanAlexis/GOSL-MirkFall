@@ -48,7 +48,7 @@ class _AboutPlaceholderScreenState extends State<AboutPlaceholderScreen> {
         onTap: _onTap,
         child: const Center(
           child: Padding(
-            padding: EdgeInsets.all(24),
+            padding: EdgeInsets.all(kScreenBodyPaddingLogicalPx),
             child: Text(
               'MirkFall\n\nPlaceholder À propos. '
               "Phase 15 livrera l'écran complet.",

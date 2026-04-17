@@ -25,6 +25,17 @@ const int kAboutTapTotalWindowMilliseconds = 10000;
 /// CLAUDE.md §Timeouts for native-plugin invocations.
 const int kShareCallTimeoutMilliseconds = 30000;
 
+/// Default screen-body padding for placeholder / full-bleed content screens
+/// (logical pixels). Named so the intent ("breathing room around centered
+/// text") is explicit rather than requiring the reader to guess a pixel
+/// literal's purpose.
+const double kScreenBodyPaddingLogicalPx = 24.0;
+
+/// Default spacing between stacked list rows in Material layouts (logical px).
+/// Aligns with Material Design's 16dp base grid — small enough to feel tight,
+/// large enough to give each row its own focus region.
+const double kListSectionPaddingLogicalPx = 16.0;
+
 // Reserved for later phases (declared here so future callers can import from
 // a stable location):
 //   - kDefaultRevealRadiusMeters  (Phase 09 — fog reveal radius)
