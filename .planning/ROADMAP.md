@@ -12,7 +12,7 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 - Décimales réservées à d'éventuelles insertions urgentes via `/gsd:insert-phase` (pas prévues en V1.0).
 
 - [x] **Phase 01: Foundation** - Projet Flutter scaffolded, GOSL headers, CI Android+iOS, logging fichier, Riverpod bootstrap, licence hygiene (completed 2026-04-17)
-- [ ] **Phase 02: Review Gate — Foundation** - Audit phase 01 (licence scan, headers, CI verte, zéro warning)
+- [x] **Phase 02: Review Gate — Foundation** - Audit phase 01 (licence scan, headers, CI verte, zéro warning) (completed 2026-04-17)
 - [ ] **Phase 03: Persistence & Domain Models** - Drift schema + Freezed models + stores + TileMath + RevealCalculator + JsonMigrator framework
 - [ ] **Phase 04: Review Gate — Persistence** - Audit phase 03 (migrations testées, invariants DB, pureté du domaine)
 - [ ] **Phase 05: GPS & Session Lifecycle** - LocationSource + foreground service Android + iOS background + sessions CRUD + POC battery
@@ -233,7 +233,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 01. Foundation | 4/4 | Complete   | 2026-04-17 |
+| 01. Foundation | 4/4 | Complete    | 2026-04-17 |
 | 02. Review Gate — Foundation | 0/TBD | Not started | - |
 | 03. Persistence & Domain Models | 0/TBD | Not started | - |
 | 04. Review Gate — Persistence | 0/TBD | Not started | - |
