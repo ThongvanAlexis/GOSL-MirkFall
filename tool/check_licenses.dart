@@ -216,7 +216,14 @@ Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) as
     final Object? parsed = loadYaml(await pubspecFile.readAsString());
     if (parsed is YamlMap) {
       final Object? declared = parsed['license'];
-      if (declared is String && declared.trim().isNotEmpty) return declared.trim();
+      if (declared is String) {
+        final String trimmed = declared.trim();
+        // Placeholder values ("See LICENSE file", "unknown", "TBD", etc.) are
+        // NOT real SPDX ids — treat them as unresolved so the caller surfaces
+        // the "manual audit needed" advisory instead of failing the allowlist
+        // check with a confusing literal.
+        if (trimmed.isNotEmpty && !_isPlaceholderLicense(trimmed)) return trimmed;
+      }
     }
   }
 
@@ -259,6 +266,19 @@ Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) as
   }
 
   return null;
+}
+
+/// Returns true when a `license:` field string is a placeholder rather than a
+/// real SPDX id (e.g. `"See LICENSE file"`, `"unknown"`, `"TBD"`, `"n/a"`).
+bool _isPlaceholderLicense(String s) {
+  final String lower = s.toLowerCase().trim();
+  // Exact placeholders the pub ecosystem has been observed to ship.
+  const Set<String> placeholders = <String>{'unknown', 'tbd', 'n/a', 'na', 'none', 'proprietary'};
+  if (placeholders.contains(lower)) return true;
+  // Sentences pointing at the LICENSE file rather than declaring an SPDX id.
+  if (lower.contains('see license') || lower.contains('see the license') || lower.contains('see licen')) return true;
+  if (lower == 'see the accompanying license' || lower.startsWith('see license')) return true;
+  return false;
 }
 
 /// Strips a single matching pair of outer parentheses from an SPDX expression.
