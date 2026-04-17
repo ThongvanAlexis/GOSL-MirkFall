@@ -130,6 +130,19 @@ void main() {
       expect(code, 2);
     });
 
+    test('returns 0 when a package name matches _manualOverrides (override wins over LICENSE heuristic)', () async {
+      // Exercise the manual-override escape hatch: use a package NAME that is
+      // in _manualOverrides (dbus → MPL-2.0-Linux-only), but ship a GPL
+      // LICENSE file. The override MUST short-circuit the LICENSE-text scan,
+      // otherwise the forbidden-substring path would fire and return 1.
+      // If this test ever breaks, the override mechanism has silently stopped
+      // working — which would re-introduce the Linux-transitive MPL blocker.
+      await _writeFixture(tempDir, <String, String>{'dbus': _gplLicense, 'pkg_mit': _mitLicense});
+
+      final int code = await check_licenses.runCheck(<String>[tempDir.path]);
+      expect(code, 0);
+    });
+
     test('returns 1 when a package cannot be resolved (no LICENSE, no pubspec license field)', () async {
       // Build a fixture with one package whose package directory exists but
       // has no LICENSE file and no pubspec license field — exercises the
