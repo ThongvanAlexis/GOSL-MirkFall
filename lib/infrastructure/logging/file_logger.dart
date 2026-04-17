@@ -95,19 +95,26 @@ class FileLogger {
   }
 
   /// Lists all `*_logs.txt` files in the logs directory, sorted newest-first
-  /// by filename (which embeds the timestamp, so alphabetical == chronological).
+  /// by filesystem modification time.
+  ///
+  /// Phase 01 relied on the yyyymmdd_hhmm.ss filename embedding + alphabetical
+  /// sort to produce chronological order. That invariant is fragile: a future
+  /// change to [_formatFilenameTimestamp] would silently break ordering
+  /// without any compile-time signal. Use [FileStat.modified] directly so the
+  /// sort stays correct regardless of the filename format.
   static Future<List<File>> listLogFiles() async {
     final docsDir = await getApplicationDocumentsDirectory();
     final logsDir = Directory(p.join(docsDir.path, 'logs'));
     if (!await logsDir.exists()) return <File>[];
-    final files = <File>[];
+    final entries = <(File, DateTime)>[];
     await for (final entity in logsDir.list()) {
       if (entity is File && entity.path.endsWith('_logs.txt')) {
-        files.add(entity);
+        final stat = await entity.stat();
+        entries.add((entity, stat.modified));
       }
     }
-    files.sort((a, b) => b.path.compareTo(a.path)); // newest first
-    return files;
+    entries.sort((a, b) => b.$2.compareTo(a.$2)); // newest first
+    return entries.map((e) => e.$1).toList();
   }
 
   /// Deletes every log file, closes the active sink, and clears the active
