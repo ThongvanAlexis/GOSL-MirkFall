@@ -56,7 +56,12 @@ Future<int> runCheck(List<String> args) async {
   final Map<String, String> declared = <String, String>{};
   for (final String rawLine in mdText.split('\n')) {
     final String line = rawLine.trimRight();
-    if (!line.startsWith('| ')) continue;
+    // Accept any leading `|` — `| a |` (markdown-conventional, with space)
+    // and `|a|` (collapsed by a markdownlint fix) both describe the same row.
+    // Phase 01's `startsWith('| ')` was fragile: a future markdownlint rule
+    // that removes the space would make every table row invisible and the
+    // gate would flip from green to reporting "everything in lock is missing".
+    if (!line.startsWith('|')) continue;
     final List<String> cells = line.split('|').map((String c) => c.trim()).toList();
     // Expected at minimum: ['', name, version, ..., ''] — 5 cells via 4 pipes.
     if (cells.length < 4) continue;
