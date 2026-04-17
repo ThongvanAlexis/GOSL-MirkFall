@@ -86,6 +86,14 @@ class FileLogger {
     return prefs.getBool(kDebugLoggingPrefsKey) ?? false;
   }
 
+  /// Forces the active sink's internal buffer to disk. No-op when no sink is
+  /// open. Must be awaited before handing the file path to another process
+  /// (share-sheet, external editor) so the shared copy isn't missing the most
+  /// recent records.
+  static Future<void> flush() async {
+    await _sink?.flush();
+  }
+
   /// Lists all `*_logs.txt` files in the logs directory, sorted newest-first
   /// by filename (which embeds the timestamp, so alphabetical == chronological).
   static Future<List<File>> listLogFiles() async {

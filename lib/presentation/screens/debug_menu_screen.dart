@@ -63,6 +63,11 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
   }
 
   Future<void> _onShare(File f) async {
+    // Flush the active sink so the shared copy carries every record written
+    // up to the moment the share was requested. _onRecord flushes per-record
+    // already, but a pending write sitting in the IOSink Stream buffer could
+    // still be lost between write and share if we skip this.
+    await FileLogger.flush();
     // Wrap the plugin call in a bounded timeout per CLAUDE.md §Timeouts —
     // share_plus can hang indefinitely on OS-level dialog failures. Any
     // plugin error (or timeout) is logged and surfaced as a SnackBar so the
