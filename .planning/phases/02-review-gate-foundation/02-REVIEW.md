@@ -268,7 +268,7 @@ Layer READMEs: all 5 exist (`application/`, `config/`, `domain/`, `infrastructur
 
 | # | Finding | Severity | Decision | Rationale |
 |---|---------|----------|----------|-----------|
-| 1 | SPDX matching case-sensitive | Blocker | fix | User blanket "fix all B/S/C" |
+| 1 | SPDX matching case-sensitive | Blocker | fix (done 371dc30) | User blanket "fix all B/S/C" |
 | 2 | Compound-license AND silently wrong | Blocker | fix | User blanket |
 | 3 | Declared `license:` bypasses LICENSE-text scan | Blocker | fix | User blanket |
 | 4 | MPL detection never fires on LICENSE text | Blocker | fix | User blanket |
