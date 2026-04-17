@@ -332,7 +332,22 @@ Layer READMEs: all 5 exist (`application/`, `config/`, `domain/`, `infrastructur
 *Filled by Plan 02-03 Wave 3. One block per guardrail test.*
 
 ### Test 1: License GPL scan
-(pending)
+
+- **Branch:** `adversarial/02-licence-gpl-scan` (deleted 2026-04-17, local + remote)
+- **Poison commit:** `c7f5ec4` — added `multi_dropdown: 3.1.1` (GPL-3.0) to `pubspec.yaml` + regenerated `pubspec.lock` via `flutter pub get`
+- **CI-trigger commit:** `5d59e7f` — one-line change on the same branch expanding `on.push.branches` to include `adversarial/**` (main's trigger stays `[main]`-only; needed because the project's `.github/workflows/ci.yml` on `main` only runs on `push: branches:[main]` / `pull_request: branches:[main]`, so a direct push to an adversarial branch would never trigger CI otherwise)
+- **Run URL:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24581444173
+- **Job:** `Lint / Licence / Headers / Deps` (the `gates` job, conclusion=failure)
+- **Gate step:** `Check licenses (GPL/AGPL/copyleft scan)` — step #8, exit code **1** (policy violation, NOT exit 2 misconfiguration)
+- **Error excerpt (stderr, step #8):**
+  ```
+  [command]dart run tool/check_licenses.dart
+  check_licenses: 1 violation(s):
+    - multi_dropdown: UNKNOWN-FORBIDDEN-MARKER: GNU GENERAL PUBLIC LICENSE NOT in allowlist
+  ##[error]Process completed with exit code 1.
+  ```
+- **Detection path:** **LICENSE substring matched** — voie 2 of `_resolveSpdx` inside `tool/check_licenses.dart`, the `_forbiddenSubstrings` scan at lines 188-194. Stderr contains the literal `UNKNOWN-FORBIDDEN-MARKER: GNU GENERAL PUBLIC LICENSE` prefix, which is the forbidden-substring short-circuit (no `_manualOverrides` for `multi_dropdown` exists, and no pubspec `license:` field declaration bypass fired either — the LICENSE-text heuristic was the catcher).
+- **Confirms:** `check_licenses.dart` catches real pub.dev GPL-3.0 packages at their LICENSE-text level — not just synthetic fixtures. The forbidden-substring path is exercised in production-like conditions against a freshly `pub get`-resolved tree. Plan 02-04 Blockers #1-#4 (case-sensitivity, compound-AND, license-field bypass, MPL-unreachable heuristic) remain for unit-level reinforcement, but the "real GPL package in `pubspec.yaml`" scenario is proven end-to-end green-to-red.
 
 ### Test 2: Missing GOSL header
 (pending)
