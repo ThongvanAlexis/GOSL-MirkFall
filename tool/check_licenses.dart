@@ -69,6 +69,12 @@ const List<String> _forbiddenSubstrings = <String>[
   'Mozilla Public License',
 ];
 
+/// Upper bound on LICENSE bytes we read per package. All the forbidden
+/// markers and heuristic signatures appear in the first few KB of a standard
+/// LICENSE preamble; reading beyond that is only wasted memory on pathological
+/// multi-MB LICENSE files found occasionally in pub-cache.
+const int _kMaxLicenseReadBytes = 64 * 1024;
+
 /// Runs the license scan at the given repo root (default: current dir).
 /// Returns 0 when every non-SDK package resolves to an allowed SPDX,
 /// 1 on violation or unresolved package, 2 on missing input files.
@@ -203,7 +209,7 @@ Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) as
   for (final String candidate in <String>['LICENSE', 'LICENSE.md', 'LICENSE.txt']) {
     final File f = File(p.join(packageDir, candidate));
     if (!await f.exists()) continue;
-    final String text = await f.readAsString();
+    final String text = await _readLicenseHead(f);
     final String textLower = text.toLowerCase();
     for (final String bad in _forbiddenSubstrings) {
       if (textLower.contains(bad.toLowerCase())) {
@@ -243,7 +249,7 @@ Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) as
     final File f = File(p.join(packageDir, candidate));
     if (!await f.exists()) continue;
 
-    final String text = await f.readAsString();
+    final String text = await _readLicenseHead(f);
     // Forbidden marker scan was done above — keep this as a fallback for
     // unusual file orderings. Case-insensitive match for symmetry with step 1.
     final String textLower = text.toLowerCase();
@@ -278,6 +284,23 @@ Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) as
   }
 
   return null;
+}
+
+/// Reads up to [_kMaxLicenseReadBytes] of [f] as UTF-8 — caps memory for
+/// pathologically large LICENSE files in pub-cache. All recognisable markers
+/// (SPDX signatures + forbidden copyleft titles) appear in the first KB of a
+/// normal LICENSE preamble, so truncation has no semantic effect in practice.
+Future<String> _readLicenseHead(File f) async {
+  final RandomAccessFile raf = await f.open();
+  try {
+    final int len = await raf.length();
+    final int toRead = len < _kMaxLicenseReadBytes ? len : _kMaxLicenseReadBytes;
+    final List<int> bytes = await raf.read(toRead);
+    // allowMalformed keeps odd LICENSE encodings from throwing mid-scan.
+    return utf8.decode(bytes, allowMalformed: true);
+  } finally {
+    await raf.close();
+  }
 }
 
 /// Returns true when a `license:` field string is a placeholder rather than a
