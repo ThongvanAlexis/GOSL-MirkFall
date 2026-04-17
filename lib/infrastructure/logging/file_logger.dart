@@ -247,9 +247,16 @@ class FileLogger {
     }
   }
 
+  // ISO-8601 calendar-component widths used by the yyyymmdd_hhmm.ss filename
+  // format. The numbers 4 and 2 are universally understood for year vs
+  // month/day/hour/minute/second widths — extracted here anyway so every
+  // caller references a named constant per CLAUDE.md §Magic numbers.
+  static const int _yearWidth = 4;
+  static const int _calendarComponentWidth = 2;
+
   static String _formatFilenameTimestamp(DateTime dt) {
     String pad(int n, int w) => n.toString().padLeft(w, '0');
-    return '${pad(dt.year, 4)}${pad(dt.month, 2)}${pad(dt.day, 2)}'
-        '_${pad(dt.hour, 2)}${pad(dt.minute, 2)}.${pad(dt.second, 2)}';
+    return '${pad(dt.year, _yearWidth)}${pad(dt.month, _calendarComponentWidth)}${pad(dt.day, _calendarComponentWidth)}'
+        '_${pad(dt.hour, _calendarComponentWidth)}${pad(dt.minute, _calendarComponentWidth)}.${pad(dt.second, _calendarComponentWidth)}';
   }
 }
