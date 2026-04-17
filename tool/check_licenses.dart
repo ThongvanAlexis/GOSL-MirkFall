@@ -196,6 +196,15 @@ Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) as
     final String text = await f.readAsString();
     for (final String bad in _forbiddenSubstrings) {
       if (text.contains(bad)) {
+        // MPL is weak copyleft and CAN ship if the package is a Linux-only
+        // platform transitive (see _manualOverrides). Surface a hint for that
+        // case instead of the same generic message GPL/AGPL/LGPL get.
+        if (bad == 'Mozilla Public License') {
+          return 'UNKNOWN-FORBIDDEN-MARKER: Mozilla Public License — '
+              'add an _manualOverrides entry mapping "$name" to "MPL-2.0-Linux-only" '
+              'if this is a Linux-only transitive (see dbus/geoclue/gsettings precedents); '
+              'otherwise reject the dependency.';
+        }
         return 'UNKNOWN-FORBIDDEN-MARKER: $bad';
       }
     }
