@@ -121,5 +121,13 @@ void main() {
       final int code = await check_licenses.runCheck(<String>[tempDir.path]);
       expect(code, 2);
     });
+
+    test('returns 2 when package_config.json is missing', () async {
+      // pubspec.lock present but .dart_tool/package_config.json absent —
+      // second exit-2 branch that the Phase 01 test suite left uncovered.
+      await File(p.join(tempDir.path, 'pubspec.lock')).writeAsString('packages: {}\nsdks:\n  dart: ">=3.0.0 <4.0.0"\n');
+      final int code = await check_licenses.runCheck(<String>[tempDir.path]);
+      expect(code, 2);
+    });
   });
 }
