@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 2
+current_plan: 3
 status: executing
-stopped_at: Phase_02_plan_02_02_complete
-last_updated: "2026-04-17T18:41:40Z"
+stopped_at: Completed 02-03-PLAN.md (adversarial evidence captured for all 3 gates)
+last_updated: "2026-04-17T19:00:16.830Z"
 last_activity: 2026-04-17
 progress:
   total_phases: 16
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 63
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 02 of 16 (Review Gate — Foundation)
-Current Plan: 2
+Current Plan: 3
 Total Plans in Phase: 4
 Plan: 2 of 4 in current phase (02-02 audit wave + triage shipped — 54 findings, 42 to fix)
 Status: In Progress
@@ -59,6 +59,7 @@ Progress: [██████▎░░░] 63%
 | Phase 01-foundation P04 | 1h 36m | 2 tasks | 2 files |
 | Phase 02-review-gate-foundation P01 | 2 min | 2 tasks | 1 files |
 | Phase 02-review-gate-foundation P02 | 25 min | 3 tasks | 2 files |
+| Phase 02-review-gate-foundation P03 | 10 min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,9 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 02-review-gate-foundation]: Runtime reachability gap — `/ → /about` has no UI link in `PlaceholderHomeScreen`, so the 7-tap debug menu is unreachable on pristine builds. Agent #2 patched the router temporarily to execute the visual walk, then reverted. Plan 02-04 will add a real UI affordance.
 - [Phase 02-review-gate-foundation]: Cross-lens finding overlap handling convention — same-line findings captured by two different audit agents (e.g. `_onToggleVerbose(bool _)` in Agent #2 runtime lens AND Agent #3 style lens) are preserved under BOTH with explicit cross-reference rather than deduplicated. Audit transparency precedent for all future review gates.
 - [Phase 02-review-gate-foundation]: Adversarial poison recipes routed through 02-02-SUMMARY.md rather than inlined into 02-03-PLAN.md — keeps recipe freshness (GPL status of `multi_dropdown` can drift between publisher versions) tied to audit wave and gives Plan 02-03 a single source of truth.
+- [Phase 02-review-gate-foundation]: Adversarial poison branches pushed CI via inline on.push.branches += 'adversarial/**' trigger expansion on each throwaway branch — not on main. Main-branch trigger stays [main]-only after branch deletion; zero cleanup cost.
+- [Phase 02-review-gate-foundation]: Adversarial Test 1 detection path: LICENSE substring match (voie 2 of _resolveSpdx at tool/check_licenses.dart:188-194), NOT _manualOverrides and NOT allowlist-miss — stderr prefix UNKNOWN-FORBIDDEN-MARKER: GNU GENERAL PUBLIC LICENSE uniquely identifies the branch.
+- [Phase 02-review-gate-foundation]: Adversarial wave validated 3 of 4 check_licenses.dart Blockers (case-sensitivity, compound-AND, license-field bypass); Blocker #4 MPL-unreachable heuristic has no adversarial test — Plan 02-04 must add unit coverage.
 
 ### Pending Todos
 
@@ -118,6 +122,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-17T18:41:40Z
-Stopped at: Phase_02_plan_02_02_complete
-Resume file: .planning/phases/02-review-gate-foundation/02-03-PLAN.md
+Last session: 2026-04-17T19:00:16.827Z
+Stopped at: Completed 02-03-PLAN.md (adversarial evidence captured for all 3 gates)
+Resume file: None
