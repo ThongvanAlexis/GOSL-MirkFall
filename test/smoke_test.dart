@@ -54,9 +54,24 @@ void main() {
     }
   });
 
+  // Bounded pump helper aligned with debug_menu_screen_test's settleRefresh:
+  // pumpAndSettle hangs because FileLogger's per-record flush feeds the
+  // microtask queue. A single tester.pump() can be fragile if go_router
+  // adds a transition frame on some engines — iterate with a short bound
+  // and an explicit termination condition.
+  Future<void> settlePumpUntilText(WidgetTester tester, String text) async {
+    for (var attempt = 0; attempt < 40; attempt++) {
+      await tester.runAsync<void>(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      });
+      await tester.pump(const Duration(milliseconds: 20));
+      if (find.text(text).evaluate().isNotEmpty) return;
+    }
+  }
+
   testWidgets('MirkFallApp pumps and renders the Phase 01 placeholder home', (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: MirkFallApp()));
-    await tester.pump();
+    await settlePumpUntilText(tester, 'MirkFall — bootstrap OK');
 
     expect(find.text('MirkFall — bootstrap OK'), findsOneWidget);
     expect(find.descendant(of: find.byType(AppBar), matching: find.text(kAppName)), findsOneWidget);
