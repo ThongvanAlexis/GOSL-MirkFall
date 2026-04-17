@@ -20,6 +20,14 @@ analyzer:
 linter:
   rules:
     avoid_print: true
+    # depend_on_referenced_packages: direct imports MUST declare the package
+    # in pubspec.yaml (not rely on transitive pulls). Inherited via
+    # flutter_lints 6.0.0 → lints 6.1.0 → core.yaml; declared explicitly here
+    # so the Phase 01 decision to promote yaml+test from transitive to direct
+    # dev-deps stays documented at the rule level, and a future
+    # flutter_lints release that drops this rule from "recommended" doesn't
+    # silently relax our import hygiene.
+    depend_on_referenced_packages: true
     prefer_const_constructors: true
     prefer_const_literals_to_create_immutables: true
     prefer_final_locals: true
