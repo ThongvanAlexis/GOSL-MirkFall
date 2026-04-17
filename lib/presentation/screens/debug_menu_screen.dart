@@ -52,14 +52,20 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
     });
   }
 
-  Future<void> _onToggleVerbose(bool _) async {
-    final next = await FileLogger.toggleVerbosePref();
+  Future<void> _onToggleVerbose(bool newValue) async {
+    // Write the switch's new value directly to prefs rather than XOR-ing the
+    // stored value. If the switch UI and prefs ever desync (two taps land
+    // within the same microtask, or a setState races a prefs write), the
+    // XOR would flip the stored value to the opposite of what the user sees.
+    // Using the explicit new value keeps switch and prefs monotonically in
+    // sync.
+    await FileLogger.writeVerbosePref(newValue);
     if (!mounted) return;
     setState(() {
-      _verbose = next;
+      _verbose = newValue;
     });
     // Apply immediately for the current run, not just next launch.
-    Logger.root.level = (_debugDefine || next) ? Level.ALL : Level.INFO;
+    Logger.root.level = (_debugDefine || newValue) ? Level.ALL : Level.INFO;
   }
 
   Future<void> _onShare(File f) async {

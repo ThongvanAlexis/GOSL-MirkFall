@@ -76,12 +76,24 @@ class FileLogger {
   /// Toggles the SharedPreferences flag that controls logging verbosity when
   /// `--dart-define=DEBUG` is not set. Takes effect immediately for the
   /// current run (mutates [Logger.root.level]) and persists for next launch.
-  /// Returns the new flag value.
+  /// Returns the new flag value. Prefer [writeVerbosePref] when the caller
+  /// already knows the desired value — this XOR path is only kept for
+  /// call-sites that want read-modify-write semantics.
   static Future<bool> toggleVerbosePref() async {
     final prefs = await SharedPreferences.getInstance();
     final next = !(prefs.getBool(kDebugLoggingPrefsKey) ?? false);
     await prefs.setBool(kDebugLoggingPrefsKey, next);
     return next;
+  }
+
+  /// Writes an explicit verbose-logging preference value. Preferred over
+  /// [toggleVerbosePref] when the UI already knows the desired value (e.g.
+  /// a SwitchListTile's onChanged callback), so the persisted value stays
+  /// monotonically aligned with the widget state instead of racing through
+  /// a read-modify-write XOR.
+  static Future<void> writeVerbosePref(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kDebugLoggingPrefsKey, value);
   }
 
   /// Reads the current value of the verbose logging preference.
