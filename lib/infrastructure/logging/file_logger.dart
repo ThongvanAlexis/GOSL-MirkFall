@@ -22,6 +22,9 @@ class FileLogger {
   static IOSink? _sink;
   static String? _activeFilename;
   static StreamSubscription<LogRecord>? _subscription;
+  // Counter for the hybrid flush policy (flush-every-N) to amortize the
+  // per-record flush cost at high log rates.
+  static int _unflushedRecordCount = 0;
 
   /// Shared-prefs key for the verbose-logging toggle. Value lives across
   /// launches; `--dart-define=DEBUG=true` overrides to verbose regardless.
@@ -67,6 +70,7 @@ class FileLogger {
 
     _sink = file.openWrite(mode: FileMode.append);
     _subscription = Logger.root.onRecord.listen(_onRecord);
+    _unflushedRecordCount = 0;
   }
 
   /// Toggles the SharedPreferences flag that controls logging verbosity when
@@ -89,9 +93,11 @@ class FileLogger {
   /// Forces the active sink's internal buffer to disk. No-op when no sink is
   /// open. Must be awaited before handing the file path to another process
   /// (share-sheet, external editor) so the shared copy isn't missing the most
-  /// recent records.
+  /// recent records. Resets the hybrid-flush counter so the next flush policy
+  /// check starts from zero.
   static Future<void> flush() async {
     await _sink?.flush();
+    _unflushedRecordCount = 0;
   }
 
   /// Lists all `*_logs.txt` files in the logs directory, sorted newest-first
@@ -166,7 +172,16 @@ class FileLogger {
     // which would itself call Logger.shout → _onRecord → infinite loop.
     try {
       sink.writeln(jsonEncode(entry));
-      await sink.flush();
+      // Hybrid flush: force fsync every N records OR on any SHOUT-level
+      // record (errors must be durable immediately). Amortizes per-record
+      // syscall cost at high-frequency log rates while keeping error
+      // durability tight. Acceptable loss window is kFileLoggerFlushEveryNRecords
+      // INFO/WARNING records on abrupt process termination.
+      _unflushedRecordCount++;
+      if (rec.level >= Level.SHOUT || _unflushedRecordCount >= kFileLoggerFlushEveryNRecords) {
+        await sink.flush();
+        _unflushedRecordCount = 0;
+      }
     } on FileSystemException {
       _sink = null;
     } on StateError {

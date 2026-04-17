@@ -25,6 +25,12 @@ const int kAboutTapTotalWindowMilliseconds = 10000;
 /// CLAUDE.md §Timeouts for native-plugin invocations.
 const int kShareCallTimeoutMilliseconds = 30000;
 
+/// Hybrid flush cadence for the FileLogger sink. A flush is forced every
+/// [kFileLoggerFlushEveryNRecords] records OR whenever a Logger.shout is
+/// emitted (errors always flush immediately). Balances the per-record fsync
+/// cost against acceptable data-loss window on abrupt process termination.
+const int kFileLoggerFlushEveryNRecords = 20;
+
 /// Default screen-body padding for placeholder / full-bleed content screens
 /// (logical pixels). Named so the intent ("breathing room around centered
 /// text") is explicit rather than requiring the reader to guess a pixel
