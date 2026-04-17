@@ -11,6 +11,11 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Core library desugaring is required by `flutter_local_notifications` 21.0.0 at
+        // AGP 8.x: the plugin uses `java.time` APIs that need backporting for minSdk < 26.
+        // See https://pub.dev/packages/flutter_local_notifications#-android-setup.
+        // `desugar_jdk_libs` 2.1.4 is the version bundled with AGP 8.x as of 2026-04.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -41,4 +46,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Required by `isCoreLibraryDesugaringEnabled = true` above. Pinned per
+    // CLAUDE.md §Pin des versions (no `+`, no wildcard).
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
