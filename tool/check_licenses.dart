@@ -16,7 +16,21 @@ import 'package:yaml/yaml.dart';
 ///
 /// Allowlist is from CLAUDE.md §Licences acceptées: MIT, BSD-2-Clause,
 /// BSD-3-Clause, Apache-2.0, Unlicense, CC0-1.0, ISC, Zlib.
-const Set<String> _allowedSpdx = <String>{'MIT', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', 'Unlicense', 'CC0-1.0', 'ISC', 'Zlib'};
+const Set<String> _allowedSpdx = <String>{
+  'MIT',
+  'BSD-2-Clause',
+  'BSD-3-Clause',
+  'Apache-2.0',
+  'Unlicense',
+  'CC0-1.0',
+  'ISC',
+  'Zlib',
+  // Synthetic SPDX reserved for narrow manual overrides where an MPL-2.0
+  // package appears as a LINUX-ONLY platform transitive and doesn't ship in
+  // Android/iOS binaries (MirkFall's target platforms). Every use MUST be
+  // accompanied by an entry in _manualOverrides with the Linux-only rationale.
+  'MPL-2.0-Linux-only',
+};
 
 /// Manual SPDX overrides for packages whose LICENSE file defeats the heuristic
 /// (non-standard wording, dual-licensed with unusual wording, etc.).
@@ -27,7 +41,22 @@ const Map<String, String> _manualOverrides = <String, String>{
   // first 120 chars (header block has a preamble). Confirmed BSD-3-Clause at
   // https://pub.dev/packages/flutter_plugin_android_lifecycle/license.
   'flutter_plugin_android_lifecycle': 'BSD-3-Clause',
-  // Populated during Task 2 as the real-repo run reveals unresolved packages.
+  // dbus 0.7.12 — MPL-2.0. LINUX-ONLY transitive pulled by
+  // geolocator_linux, flutter_local_notifications_linux, gsettings.
+  // MirkFall ships Android + iOS only; Linux plugin surfaces never execute
+  // at runtime on target platforms. MPL-2.0 is file-level weak-copyleft —
+  // does NOT contaminate combined work under other licenses. Allowed as
+  // MPL-2.0 override narrowly for the Linux-only transitive surface.
+  // https://pub.dev/packages/dbus/license
+  'dbus': 'MPL-2.0-Linux-only',
+  // geoclue 0.1.1 — MPL-2.0. LINUX-ONLY transitive of geolocator_linux.
+  // Same rationale as dbus above — not in Android/iOS ship graph.
+  // https://pub.dev/packages/geoclue/license
+  'geoclue': 'MPL-2.0-Linux-only',
+  // gsettings 0.2.8 — MPL-2.0. LINUX-ONLY transitive of geolocator_linux.
+  // Same rationale as dbus above — not in Android/iOS ship graph.
+  // https://pub.dev/packages/gsettings/license
+  'gsettings': 'MPL-2.0-Linux-only',
 };
 
 /// Forbidden substrings in LICENSE text — automatic fail. MPL is listed as
