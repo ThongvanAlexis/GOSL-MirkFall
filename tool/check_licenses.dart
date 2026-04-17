@@ -169,10 +169,12 @@ Future<int> runCheck(List<String> args) async {
 }
 
 /// Attempts to resolve a package's SPDX identifier by:
-/// 1. reading its `pubspec.yaml` `license:` field when present,
-/// 2. reading LICENSE / LICENSE.md / LICENSE.txt and heuristic-matching
-///    on signature phrases.
-/// Returns `null` when neither method can identify the license.
+/// 1. scanning LICENSE for forbidden copyleft markers FIRST (belt-and-braces
+///    against pubspec `license:` field divergence from repo source),
+/// 2. reading the `pubspec.yaml` `license:` field when present,
+/// 3. reading LICENSE / LICENSE.md / LICENSE.txt and heuristic-matching on
+///    signature phrases.
+/// Returns `null` when no method can identify the license.
 Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) async {
   if (rootUri == null) return null;
 
@@ -183,7 +185,23 @@ Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) as
   final Uri uri = Uri.parse(rootUri);
   final String packageDir = uri.scheme == 'file' ? uri.toFilePath() : p.normalize(p.join(configDir, uri.path));
 
-  // 1. Check pubspec.yaml `license:` field (rare but authoritative).
+  // 1. Belt-and-braces: scan LICENSE text for forbidden markers FIRST, even
+  //    when pubspec.yaml declares a benign SPDX. A package declaring
+  //    `license: MIT` in pubspec but shipping a GPL LICENSE file must NOT
+  //    bypass the forbidden-substring scan — CLAUDE.md §Audit obligatoire
+  //    flags exactly this "divergence between pub.dev and repo source" risk.
+  for (final String candidate in <String>['LICENSE', 'LICENSE.md', 'LICENSE.txt']) {
+    final File f = File(p.join(packageDir, candidate));
+    if (!await f.exists()) continue;
+    final String text = await f.readAsString();
+    for (final String bad in _forbiddenSubstrings) {
+      if (text.contains(bad)) {
+        return 'UNKNOWN-FORBIDDEN-MARKER: $bad';
+      }
+    }
+  }
+
+  // 2. Check pubspec.yaml `license:` field (rare but authoritative).
   final File pubspecFile = File(p.join(packageDir, 'pubspec.yaml'));
   if (await pubspecFile.exists()) {
     final Object? parsed = loadYaml(await pubspecFile.readAsString());
@@ -193,13 +211,14 @@ Future<String?> _resolveSpdx(String name, String? rootUri, String configPath) as
     }
   }
 
-  // 2. Read LICENSE / LICENSE.md / LICENSE.txt with heuristic SPDX match.
+  // 3. Read LICENSE / LICENSE.md / LICENSE.txt with heuristic SPDX match.
   for (final String candidate in <String>['LICENSE', 'LICENSE.md', 'LICENSE.txt']) {
     final File f = File(p.join(packageDir, candidate));
     if (!await f.exists()) continue;
 
     final String text = await f.readAsString();
-    // Forbidden marker → return a synthetic SPDX so the caller flags it.
+    // Forbidden marker scan was done above — keep this as a fallback for
+    // unusual file orderings.
     for (final String bad in _forbiddenSubstrings) {
       if (text.contains(bad)) {
         return 'UNKNOWN-FORBIDDEN-MARKER: $bad';
