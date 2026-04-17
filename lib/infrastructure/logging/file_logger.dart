@@ -164,6 +164,15 @@ class FileLogger {
     await sink.flush();
   }
 
+  /// Prunes oldest log files until the directory total stays under
+  /// [kMaxLogsDirBytes].
+  ///
+  /// INVARIANT: assumes a single app instance is writing to the logs
+  /// directory. Two concurrent bootstraps (e.g. two Flutter desktop windows
+  /// open simultaneously) could mis-count bytes and over-delete. This is
+  /// acceptable because MirkFall is a single-window mobile/desktop app by
+  /// design — not a service. If V1.x ever ships a headless/background variant
+  /// that can run alongside the UI, this function needs a file-lock guard.
   static Future<void> _pruneToSizeLimit(Directory logsDir) async {
     final files = <File>[];
     await for (final entity in logsDir.list()) {
@@ -171,20 +180,27 @@ class FileLogger {
         files.add(entity);
       }
     }
-    files.sort((a, b) => a.path.compareTo(b.path)); // oldest first
+    // Sort oldest-first by mtime so we prune the right files regardless of the
+    // filename format (symmetric with listLogFiles using FileStat.modified).
+    final byMtime = <(File, int)>[];
+    for (final f in files) {
+      final s = await f.stat();
+      byMtime.add((f, s.modified.millisecondsSinceEpoch));
+    }
+    byMtime.sort((a, b) => a.$2.compareTo(b.$2));
 
     int totalBytes = 0;
     final sizes = <int>[];
-    for (final f in files) {
-      final s = await f.length();
+    for (final entry in byMtime) {
+      final s = await entry.$1.length();
       sizes.add(s);
       totalBytes += s;
     }
 
     var i = 0;
-    while (totalBytes > kMaxLogsDirBytes && i < files.length) {
+    while (totalBytes > kMaxLogsDirBytes && i < byMtime.length) {
       try {
-        await files[i].delete();
+        await byMtime[i].$1.delete();
         totalBytes -= sizes[i];
       } on FileSystemException {
         // Skip unlinkable file, keep going. Rare edge case (Windows lock).
