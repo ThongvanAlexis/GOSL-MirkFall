@@ -129,5 +129,41 @@ void main() {
       final int code = await check_licenses.runCheck(<String>[tempDir.path]);
       expect(code, 2);
     });
+
+    test('returns 1 when a package cannot be resolved (no LICENSE, no pubspec license field)', () async {
+      // Build a fixture with one package whose package directory exists but
+      // has no LICENSE file and no pubspec license field — exercises the
+      // "unresolved" advisory path (runCheck returns 1, not 2).
+      final StringBuffer lockBuf = StringBuffer()
+        ..writeln('packages:')
+        ..writeln('  pkg_unknown:')
+        ..writeln('    dependency: "direct main"')
+        ..writeln('    description:')
+        ..writeln('      name: pkg_unknown')
+        ..writeln('      url: "https://pub.dev"')
+        ..writeln('    source: hosted')
+        ..writeln('    version: "1.0.0"')
+        ..writeln('sdks:')
+        ..writeln('  dart: ">=3.0.0 <4.0.0"');
+      await File(p.join(tempDir.path, 'pubspec.lock')).writeAsString(lockBuf.toString());
+
+      final Directory dartToolDir = Directory(p.join(tempDir.path, '.dart_tool'));
+      await dartToolDir.create(recursive: true);
+      final Directory pkgDir = Directory(p.join(tempDir.path, 'pkg_unknown'));
+      await pkgDir.create(recursive: true);
+      // No LICENSE, no pubspec.yaml — resolver returns null, caller adds to
+      // unresolved list and returns 1 with the "Add to _manualOverrides" hint.
+      await File(p.join(dartToolDir.path, 'package_config.json')).writeAsString(
+        jsonEncode(<String, Object>{
+          'configVersion': 2,
+          'packages': <Map<String, Object>>[
+            <String, Object>{'name': 'pkg_unknown', 'rootUri': '../pkg_unknown', 'packageUri': 'lib/'},
+          ],
+        }),
+      );
+
+      final int code = await check_licenses.runCheck(<String>[tempDir.path]);
+      expect(code, 1);
+    });
   });
 }
