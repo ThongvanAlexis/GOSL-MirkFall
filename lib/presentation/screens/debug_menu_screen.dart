@@ -133,7 +133,7 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             ),
           const Divider(),
           ListTile(leading: const Icon(Icons.delete_forever), title: const Text('Supprimer tous les logs'), onTap: _onClearAll),
-          const SizedBox(height: 16),
+          const SizedBox(height: kListSectionPaddingLogicalPx),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text('Active: ${FileLogger.activeFilename ?? "(none)"}', style: Theme.of(context).textTheme.bodySmall),
