@@ -175,17 +175,121 @@ Explicitement exclus de la V1.0 et au-delà, sauf décision explicite de l'utili
 
 ## Traceability
 
-Mapping requirement → phase. À remplir par `gsd-roadmapper` pendant la création du roadmap.
+Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase de **code** (phases impaires 01-15). Les Review Gates (phases paires 02-16) vérifient les REQ de la phase de code précédente mais ne les possèdent pas.
+
+**Note :** le compte total précédemment documenté à "77" dans l'en-tête original est une erreur arithmétique ; la somme réelle est **86** v1 requirements (FOUND:8 + SESS:9 + GPS:8 + MIRK:10 + MAP:5 + MARK:10 + CAT:6 + PORT:13 + OPT:7 + ABOUT:5 + QUAL:5 = 86). Corrigé ici.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (Sera peuplé par gsd-roadmapper) | | Pending |
+| FOUND-01 | Phase 01 | Pending |
+| FOUND-02 | Phase 01 | Pending |
+| FOUND-03 | Phase 01 | Pending |
+| FOUND-04 | Phase 01 | Pending |
+| FOUND-05 | Phase 01 | Pending |
+| FOUND-06 | Phase 01 | Pending |
+| FOUND-07 | Phase 01 | Pending |
+| FOUND-08 | Phase 01 | Pending |
+| SESS-01 | Phase 05 | Pending |
+| SESS-02 | Phase 05 | Pending |
+| SESS-03 | Phase 05 | Pending |
+| SESS-04 | Phase 05 | Pending |
+| SESS-05 | Phase 05 | Pending |
+| SESS-06 | Phase 03 | Pending |
+| SESS-07 | Phase 05 | Pending |
+| SESS-08 | Phase 05 | Pending |
+| SESS-09 | Phase 05 | Pending |
+| GPS-01 | Phase 05 | Pending |
+| GPS-02 | Phase 05 | Pending |
+| GPS-03 | Phase 05 | Pending |
+| GPS-04 | Phase 05 | Pending |
+| GPS-05 | Phase 05 | Pending |
+| GPS-06 | Phase 05 | Pending |
+| GPS-07 | Phase 05 | Pending |
+| GPS-08 | Phase 05 | Pending |
+| MIRK-01 | Phase 09 | Pending |
+| MIRK-02 | Phase 09 | Pending |
+| MIRK-03 | Phase 03 | Pending |
+| MIRK-04 | Phase 09 | Pending |
+| MIRK-05 | Phase 09 | Pending |
+| MIRK-06 | Phase 09 | Pending |
+| MIRK-07 | Phase 13 | Pending |
+| MIRK-08 | Phase 13 | Pending |
+| MIRK-09 | Phase 13 | Pending |
+| MIRK-10 | Phase 13 | Pending |
+| MAP-01 | Phase 07 | Pending |
+| MAP-02 | Phase 07 | Pending |
+| MAP-03 | Phase 07 | Pending |
+| MAP-04 | Phase 07 | Pending |
+| MAP-05 | Phase 07 | Pending |
+| MARK-01 | Phase 11 | Pending |
+| MARK-02 | Phase 11 | Pending |
+| MARK-03 | Phase 11 | Pending |
+| MARK-04 | Phase 11 | Pending |
+| MARK-05 | Phase 11 | Pending |
+| MARK-06 | Phase 11 | Pending |
+| MARK-07 | Phase 11 | Pending |
+| MARK-08 | Phase 11 | Pending |
+| MARK-09 | Phase 11 | Pending |
+| MARK-10 | Phase 11 | Pending |
+| CAT-01 | Phase 11 | Pending |
+| CAT-02 | Phase 11 | Pending |
+| CAT-03 | Phase 11 | Pending |
+| CAT-04 | Phase 11 | Pending |
+| CAT-05 | Phase 11 | Pending |
+| CAT-06 | Phase 11 | Pending |
+| PORT-01 | Phase 13 | Pending |
+| PORT-02 | Phase 13 | Pending |
+| PORT-03 | Phase 13 | Pending |
+| PORT-04 | Phase 13 | Pending |
+| PORT-05 | Phase 13 | Pending |
+| PORT-06 | Phase 13 | Pending |
+| PORT-07 | Phase 13 | Pending |
+| PORT-08 | Phase 13 | Pending |
+| PORT-09 | Phase 13 | Pending |
+| PORT-10 | Phase 13 | Pending |
+| PORT-11 | Phase 13 | Pending |
+| PORT-12 | Phase 13 | Pending |
+| PORT-13 | Phase 13 | Pending |
+| OPT-01 | Phase 13 | Pending |
+| OPT-02 | Phase 13 | Pending |
+| OPT-03 | Phase 13 | Pending |
+| OPT-04 | Phase 13 | Pending |
+| OPT-05 | Phase 13 | Pending |
+| OPT-06 | Phase 13 | Pending |
+| OPT-07 | Phase 13 | Pending |
+| ABOUT-01 | Phase 15 | Pending |
+| ABOUT-02 | Phase 15 | Pending |
+| ABOUT-03 | Phase 15 | Pending |
+| ABOUT-04 | Phase 15 | Pending |
+| ABOUT-05 | Phase 15 | Pending |
+| QUAL-01 | Phase 05 | Pending |
+| QUAL-02 | Phase 05 | Pending |
+| QUAL-03 | Phase 05 | Pending |
+| QUAL-04 | Phase 05 | Pending |
+| QUAL-05 | Phase 15 | Pending |
 
 **Coverage:**
-- v1 requirements: **77 total** (FOUND:8, SESS:9, GPS:8, MIRK:10, MAP:5, MARK:10, CAT:6, PORT:13, OPT:7, ABOUT:5, QUAL:5)
-- Mapped to phases: 0 (en attente du roadmap)
-- Unmapped: 77 ⚠️ (normal, avant roadmap)
+- v1 requirements: **86 total** (FOUND:8, SESS:9, GPS:8, MIRK:10, MAP:5, MARK:10, CAT:6, PORT:13, OPT:7, ABOUT:5, QUAL:5)
+- Mapped to phases: **86 / 86 (100%)**
+- Unmapped: 0
+
+**Distribution par phase de code :**
+
+| Phase | Catégorie(s) principale(s) | # REQ |
+|-------|----------------------------|-------|
+| 01 Foundation | FOUND (8) | 8 |
+| 03 Persistence & Domain Models | SESS-06 (DB invariant), MIRK-03 (storage invariant) | 2 |
+| 05 GPS & Session Lifecycle | SESS (8: 01-05, 07-09), GPS (8), QUAL (4: 01-04) | 20 |
+| 07 Map Integration | MAP (5) | 5 |
+| 09 Fog Rendering | MIRK (5: 01, 02, 04, 05, 06) | 5 |
+| 11 Markers & Categories | MARK (10), CAT (6) | 16 |
+| 13 Import/Export, Mirk Styles & Options | PORT (13), MIRK (4: 07-10), OPT (7) | 24 |
+| 15 Polish, About & Release | ABOUT (5), QUAL (1: 05) | 6 |
+| **Total mappé** | | **86 — chaque REQ mappé à exactement une phase** |
+
+*Somme de vérification : 8 + 2 + 20 + 5 + 5 + 16 + 24 + 6 = 86 ✓*
 
 ---
 *Requirements defined: 2026-04-17*
-*Last updated: 2026-04-17 after initial definition*
+*Traceability filled by gsd-roadmapper: 2026-04-17 (also corrected the 77→86 arithmetic)*
+*Last updated: 2026-04-17 after roadmap creation*
