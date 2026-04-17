@@ -233,7 +233,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 01. Foundation | 1/4 | In Progress|  |
+| 01. Foundation | 2/4 | In Progress|  |
 | 02. Review Gate — Foundation | 0/TBD | Not started | - |
 | 03. Persistence & Domain Models | 0/TBD | Not started | - |
 | 04. Review Gate — Persistence | 0/TBD | Not started | - |

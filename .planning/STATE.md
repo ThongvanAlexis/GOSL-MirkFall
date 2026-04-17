@@ -2,16 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
+current_plan: 2
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-04-17T13:10:06.032Z"
-last_activity: 2026-04-17 — Plan 01-01 (scaffold) complete — Flutter 3.41.7 + pinned deps + strict analyzer + lib/ 5-layer + 7 tests green
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-04-17T13:38:38.603Z"
+last_activity: 2026-04-17 — Plan 01-02 (logger + router + debug menu) complete — FileLogger JSONL + 7-tap easter egg + 14 tests green
 progress:
   total_phases: 16
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
-  percent: 25
+  completed_plans: 2
+  percent: 50
 ---
 
 # Project State
@@ -26,11 +27,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 01 of 16 (Foundation)
-Plan: 1 of 4 in current phase (01-01 scaffold shipped)
+Current Plan: 2
+Total Plans in Phase: 4
+Plan: 2 of 4 in current phase (01-02 logger + router + debug menu shipped)
 Status: In Progress
-Last activity: 2026-04-17 — Plan 01-01 (scaffold) complete — Flutter 3.41.7 + pinned deps + strict analyzer + lib/ 5-layer + 7 tests green
+Last Activity: 2026-04-17 — Plan 01-02 (logger + router + debug menu) complete — FileLogger JSONL + 7-tap easter egg + 14 tests green
 
-Progress: [███░░░░░░░] 25%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -51,6 +54,7 @@ Progress: [███░░░░░░░] 25%
 
 *Updated after each plan completion*
 | Phase 01-foundation P01 | 9 min | 1 tasks | 14 files |
+| Phase 01-foundation P02 | 13 min | 2 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -70,6 +74,10 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 01-foundation]: Held analyzer stack at <9.0 for Phase 01 — No compatible custom_lint + riverpod_lint + analyzer trio exists yet; upgrading to analyzer ^9 would force dropping lint tools. Phase 03 will re-evaluate when ecosystem converges.
 - [Phase 01-foundation]: Defer custom_lint + riverpod_lint to Phase 03 — Phase 01 has no @riverpod providers; lint tools add no value until codegen starts.
 - [Phase 01-foundation]: Empty ios/Podfile.lock placeholder on Windows dev host — CocoaPods not available on Windows; macOS CI regenerates on first pod install.
+- [Phase 01-foundation]: FileLogger as static class, not Riverpod provider — owns process-global IOSink + Logger.root subscription — Wrapping process-global singletons in a provider would be cargo-cult DI per CLAUDE.md §Wrappers (no wrappers without added logic)
+- [Phase 01-foundation]: Single DEBUG-define test with runtime branching on bool.fromEnvironment('DEBUG') — One test file asserts Level.ALL when --dart-define=DEBUG=true and Level.INFO otherwise — CI never silently skips the DEBUG-define path
+- [Phase 01-foundation]: cross_file imported via share_plus re-export (not as direct dep) — share_plus_platform_interface re-exports package:cross_file/cross_file.dart — XFile available through share_plus import, no extra audit entry
+- [Phase 01-foundation]: pumpAndSettle() replaced with bounded settleRefresh(tester) in DebugMenuScreen tests — Active FileLogger sink + Logger.root listener feed microtask queue continuously; pump+runAsync helper with bounded iteration avoids timeout
 
 ### Pending Todos
 
@@ -89,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-17T13:09:51.807Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-04-17T13:38:17.594Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
