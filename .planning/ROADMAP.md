@@ -41,7 +41,11 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
   4. Le pipeline GitHub Actions construit un APK Android (ubuntu-latest) et un build iOS non-signé (macos-latest) sur chaque push, et échoue si un scan de licences détecte GPL/AGPL/copyleft fort
   5. Le logger écrit dans `<app_docs>/logs/yyyymmdd_hhmm.ss_logs.txt` et son niveau bascule via `--dart-define=DEBUG=true` ou un toggle debug in-app ; `runZonedGuarded` + `FlutterError.onError` sont armés
   6. `DEPENDENCIES.md` à la racine liste chaque dépendance directe avec licence et résultat d'audit télémétrie (stub peuplé avec les packages déjà dans `pubspec.yaml`)
-**Plans**: TBD
+**Plans** (4 plans, 4 waves):
+- [ ] 01-foundation/01-01-PLAN.md — Wave 1: Flutter project scaffold, pinned pubspec, strict analyzer, lib/ skeleton, platform identity (Android + iOS bundle ID, minSdk 24, Info.plist TODOs)
+- [ ] 01-foundation/01-02-PLAN.md — Wave 2: FileLogger JSONL + debug menu 7-tap + go_router config + MaterialApp.router wiring
+- [ ] 01-foundation/01-03-PLAN.md — Wave 3: tool/check_headers.dart + check_licenses.dart + check_dependencies_md.dart with unit tests + DEPENDENCIES.md filled
+- [ ] 01-foundation/01-04-PLAN.md — Wave 4: .github/workflows/ci.yml with gates/android/ios jobs + checkpoint to verify first CI run green
 
 ### Phase 02: Review Gate — Foundation
 **Goal**: Auditer la phase 01 avant d'investir dans de la persistance. Vérifier que les garde-fous tiennent réellement sous pression, pas seulement qu'ils sont présents.
@@ -229,7 +233,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 01. Foundation | 0/TBD | Not started | - |
+| 01. Foundation | 0/4 | Not started | - |
 | 02. Review Gate — Foundation | 0/TBD | Not started | - |
 | 03. Persistence & Domain Models | 0/TBD | Not started | - |
 | 04. Review Gate — Persistence | 0/TBD | Not started | - |
