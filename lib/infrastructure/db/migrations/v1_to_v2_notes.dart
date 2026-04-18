@@ -25,10 +25,18 @@ class V1ToV2Notes {
 
   /// Applies the V1 -> V2 migration if the version transition matches.
   /// Called from [AppDatabase]'s `MigrationStrategy.onUpgrade`.
+  ///
+  /// SQL shape: `ADD COLUMN "notes" TEXT NULL` — mirrors exactly the
+  /// `CREATE TABLE` clause emitted by Drift's codegen for the V2 schema
+  /// (quoted identifier + explicit `NULL` nullability keyword). The explicit
+  /// match is required so `SchemaVerifier.migrateAndValidate` finds a
+  /// byte-equal column definition between the runtime schema post-migration
+  /// and the frozen `drift_schema_v2.json` snapshot — without it the verifier
+  /// reports `Not equal: NULL (expected) and '' (actual)` on the notes column.
   static Future<void> apply(Migrator m, int from, int to) async {
     if (from < 2 && to >= 2) {
       await m.database.customStatement(
-        'ALTER TABLE t_sessions ADD COLUMN notes TEXT',
+        'ALTER TABLE t_sessions ADD COLUMN "notes" TEXT NULL',
       );
     }
   }

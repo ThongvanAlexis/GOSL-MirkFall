@@ -27,8 +27,18 @@ void main() {
   });
 
   tearDown(() {
-    if (scratchDir.existsSync()) {
-      scratchDir.deleteSync(recursive: true);
+    // Windows is stricter than POSIX about deleting directories that have
+    // just been touched by async `File.copy` — a pending OS-level handle can
+    // still be draining when this tearDown fires, so the recursive delete
+    // throws PathNotFoundException mid-walk (the iterator sees a sibling,
+    // the OS deletes it, the delete call fails). Tolerate that: the scratch
+    // dir is inside `systemTemp` which the OS cleans up eventually anyway.
+    try {
+      if (scratchDir.existsSync()) {
+        scratchDir.deleteSync(recursive: true);
+      }
+    } on FileSystemException {
+      // Leave the scratch dir behind — systemTemp eviction will reclaim it.
     }
   });
 
