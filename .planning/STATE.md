@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 4
+current_plan: 5
 status: executing
-stopped_at: Completed 04-03-PLAN.md (pre-class + 4-agent audit + blanket-approve triage)
-last_updated: "2026-04-18T18:18:29.741Z"
+stopped_at: "Completed 04-04-PLAN.md (adversarial wave — CI Tests #1 #2 + permanent Test #3 regression guard; surprise finding: pre-existing dart format drift on main logged to deferred-items.md for 04-05)"
+last_updated: "2026-04-18T18:39:23.768Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 16
   completed_phases: 3
   total_plans: 19
-  completed_plans: 17
+  completed_plans: 18
   percent: 84
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 04 of 16 (Review Gate — Persistence)
-Current Plan: 4
+Current Plan: 5
 Total Plans in Phase: 5
 Plan: 2 of 5 complete in current phase (04-02 Runtime walk Windows archived verbatim into §1b; surfaced Blocker — Zone mismatch at runApp on flutter run -d windows — escalated to §2 pending user triage; tool/walk_db.dart + tool/inspect_db.sql retained on main)
 Status: In Progress
@@ -69,6 +69,7 @@ Progress: [████████░░] 84%
 | Phase 04-review-gate-persistence P01 | 6min | 2 tasks | 1 files |
 | Phase 04-review-gate-persistence P02 | 45 min | 3 tasks | 3 files |
 | Phase 04-review-gate-persistence PP3 | 30 min | 4 tasks | 2 files |
+| Phase 04-review-gate-persistence P04 | 15 min | 4 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -159,6 +160,9 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 04-review-gate-persistence]: P2 custom_lint state unchanged — Agent #2 re-ran 'dart run custom_lint' at audit time and confirmed identical failure class (Element2/Annotatable/ErrorCode/libraryElement2/resolveFile2 unresolved against analyzer-10.0.1). Stays Noted; re-verify at each deps bump and Phase 15 latest.
 - [Phase 04-review-gate-persistence]: Severity-disagreement pattern across agent lenses — 2 findings (#5 parentZoom 2-way, #7 UTC offset 3-way) had different severities from different lenses. All preserved with explicit attribution; collapsed to 'fix' under blanket Blockers+Shoulds because action target is identical regardless of severity. Meta-observation row (#87) added to §3 as transparency signal. Reusable convention for future review gates.
 - [Phase 04-review-gate-persistence]: 4-sub-agent parallel audit pattern reused successfully on second review gate — single tool-use message with 4 general-purpose Agent calls yielded 86 agent findings in ~10 min wall-clock (bounded by Agent #4 at ~9.7 min). Pre-class 5 entries committed before spawn saved redundant discovery. Pattern stable; reusable for every future review gate (06, 08, 10, 12, 14, 16).
+- [Phase 04-review-gate-persistence]: Adversarial branch-and-CI workflow validated on second review gate — Tests #1 (domain purity double violation) + #2 (drift schema stale) CI-red on exact target gates with exit 1; Test #3 permanent row-loss regression guard green on main; all throwaway branches deleted local+remote
+- [Phase 04-review-gate-persistence]: Pre-existing 61-file dart format drift on main surfaced as SURPRISE BLOCKER during Plan 04-04 adversarial wave — not caused by any poison, logged to deferred-items.md item #1, handed off to Plan 04-05 fix loop (recommended first commit: chore(format) align with CI dart format)
+- [Phase 04-review-gate-persistence]: Permanent adversarial unit test pattern with inline inertness guard — intermediate expect BEFORE throwsA proves the adversary (DELETE) actually ran, so future SQL/fixture refactors can't silently neutralise the test; validated by mutation experiment (DELETE WHERE 1=0 → fails loudly with 'test would be inert'). Reusable for every Phase 05+ production adversarial unit test.
 
 ### Pending Todos
 
@@ -176,9 +180,10 @@ None yet.
 
 **Phase 13 (ZIP archive format):** Format ZIP final (.mirkfall extension, layout manifest/photos/) à confirmer au démarrage de la phase ; audit licence du package `archive` à documenter dans DEPENDENCIES.md (O11).
 - Phase 04 runtime walk (Plan 04-02) surfaced Blocker: Zone mismatch crash at runApp during flutter run -d windows. Build is green (mirkfall.exe produced in 36.5s) but app crashes at main.dart:71 because WidgetsFlutterBinding.ensureInitialized runs in root zone while runApp runs inside runZonedGuarded — debugCheckZone assertion fires. Must be triaged in 04-REVIEW.md Section 3 and fixed in Plan 04-05 (or waived with rationale) before Phase 05 opens.
+- Plan 04-04 surfaced pre-existing dart format drift — 61 files on main do not pass CI dart format step; main CI red since today's docs push. Not caused by adversarial poisons. Details in .planning/phases/04-review-gate-persistence/deferred-items.md item #1. Must be fixed early in Plan 04-05.
 
 ## Session Continuity
 
-Last session: 2026-04-18T18:18:02.684Z
-Stopped at: Completed 04-03-PLAN.md (pre-class + 4-agent audit + blanket-approve triage)
+Last session: 2026-04-18T18:39:13.258Z
+Stopped at: Completed 04-04-PLAN.md (adversarial wave — CI Tests #1 #2 + permanent Test #3 regression guard; surprise finding: pre-existing dart format drift on main logged to deferred-items.md for 04-05)
 Resume file: None
