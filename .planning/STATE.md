@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 4
+current_plan: 5
 status: executing
-stopped_at: "Completed 03-03-PLAN.md (Wave 3: Freezed entities + store ports + Envelope)"
-last_updated: "2026-04-18T10:04:39.851Z"
+stopped_at: "Completed 03-04-PLAN.md (Wave 4 half-closed: Drift AppDatabase schemaVersion=2 + pragmas + V1->V2 migration + SchemaVerifier; 03-05 + 03-06 unblocked)"
+last_updated: "2026-04-18T11:16:19.153Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 16
   completed_phases: 2
   total_plans: 14
-  completed_plans: 11
-  percent: 63
+  completed_plans: 12
+  percent: 86
 ---
 
 # Project State
@@ -22,18 +22,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 03 — Persistence & Domain Models (03-01 + 03-02 + 03-03 done; 03-04 DB schema next in Wave 4)
+**Current focus:** Phase 03 — Persistence & Domain Models (03-01 through 03-04 done; 03-05 + 03-06 unblocked in Wave 4)
 
 ## Current Position
 
 Phase: 03 of 16 (Persistence & Domain Models)
-Current Plan: 4
+Current Plan: 5
 Total Plans in Phase: 6
-Plan: 3 of 6 complete in current phase (03-03 Freezed entities + store ports + Envelope shipped — SC#4 verbatim closed, SC#5 JsonMigrator integration closed, 56 domain tests green)
+Plan: 4 of 6 complete in current phase (03-04 Drift AppDatabase + V1->V2 migration shipped — SC#1 + SESS-06 + MIRK-03 schema-layer closed, 13 DB tests + 82-test pure-Dart suite green)
 Status: In Progress
 Last Activity: 2026-04-18
 
-Progress: [██████▎░░░] 63%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [██████▎░░░] 63%
 | Phase 03-persistence-domain-models P01 | 12 min | 3 tasks | 14 files |
 | Phase 03-persistence-domain-models P02 | 9 min | 3 tasks | 34 files |
 | Phase 03-persistence-domain-models P03 | 19 min | 3 tasks | 41 files |
+| Phase 03-persistence-domain-models P04 | 20 min | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -123,6 +124,11 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 03-persistence-domain-models]: factory (not const factory) on Freezed entities with @Assert — Dart 3.11 rejects method invocation (displayName.trim()) and even getter access (.isNotEmpty) inside const constructor asserts. Affects Session, Marker, MarkerCategory, MirkStyle; PhotoRef + RevealedTile keep const factory (no asserts).
 - [Phase 03-persistence-domain-models]: Extension-type IDs need per-field @JsonKey(fromJson: fn, toJson: fn) with top-level converter functions (id_json_converters.dart) — class-level JsonConverter<SessionId, String> does NOT work because json_serializable collapses extension types to their underlying representation at the declared-type resolution boundary.
 - [Phase 03-persistence-domain-models]: Envelope.fromJson must stay a pure arrow redirect — Freezed 3.2.3 needsJsonSerializable check requires ExpressionFunctionBody (lib/src/models.dart:1346). Validation lives in static Envelope.validateOrThrow; Envelope.parse composes validate + fromJson for the import boundary.
+- [Phase 03-persistence-domain-models]: REVERSED 03-01 analyzer-<9 pin: dependency_overrides analyzer ^10.0.0 + dart_style 3.1.7 forces toolchain onto analyzer-10 because drift_dev 2.32.1 requires it; custom_lint 0.8.1 silently degrades until it ships analyzer-^10 support. Acceptable — no @riverpod targets yet; re-evaluate in 03-06.
+- [Phase 03-persistence-domain-models]: V1ToV2Notes uses raw customStatement('ALTER TABLE ... ADD COLUMN') over m.addColumn — portable across Drift 2.x, no AppDatabase circular import, survives column-accessor renames.
+- [Phase 03-persistence-domain-models]: AppDatabase exposes onBeforeUpgrade: Future<void> Function(OpeningDetails)? constructor hook — fires inside beforeOpen iff details.hadUpgrade BEFORE onUpgrade. 03-05 wires DbBackupService.takeBackup into it; details.hadUpgrade guard prevents bogus backups on first-open (onCreate) paths.
+- [Phase 03-persistence-domain-models]: In-memory SQLite journal_mode always reports 'memory' — WAL requires an on-disk shared-memory region (sqlite.org/wal.html §2.1). Pragma unit test accepts observable; file-backed WAL verification lands in 03-05 integration.
+- [Phase 03-persistence-domain-models]: Fixture reconciliation: v1_baseline.sql sessions 04+07 switched from status='paused' to 'stopped' (SessionStatus enum has only active|stopped). Forward-declared in 03-01-SUMMARY §Handoff as 03-04's responsibility.
 
 ### Pending Todos
 
@@ -142,6 +148,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-18T10:04:39.847Z
-Stopped at: Completed 03-03-PLAN.md (Wave 3: Freezed entities + store ports + Envelope)
+Last session: 2026-04-18T11:15:56.111Z
+Stopped at: Completed 03-04-PLAN.md (Wave 4 half-closed: Drift AppDatabase schemaVersion=2 + pragmas + V1->V2 migration + SchemaVerifier; 03-05 + 03-06 unblocked)
 Resume file: None
