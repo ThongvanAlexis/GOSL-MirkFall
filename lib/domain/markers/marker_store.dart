@@ -13,7 +13,13 @@ import 'marker.dart';
 /// §Stratégie erreurs).
 abstract class MarkerStore {
   /// Returns every marker belonging to [sessionId], ordered by
-  /// `createdAtUtc` ascending.
+  /// `createdAtUtc` descending (most-recent-first).
+  ///
+  /// Typical UX surface is a reverse-chronological timeline where the
+  /// most recent marker appears at the top — the port contract matches
+  /// that to avoid callers sorting on the way back out. Callers that
+  /// want ascending order can `.reversed.toList()` post hoc (cheap for
+  /// the marker-per-session cardinality we expect).
   Future<List<Marker>> listBySession(SessionId sessionId);
 
   /// Returns the marker with [id] or null (find semantic).

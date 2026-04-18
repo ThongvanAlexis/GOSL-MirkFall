@@ -28,10 +28,12 @@ class DriftMarkerStore implements MarkerStore {
 
   @override
   Future<List<Marker>> listBySession(SessionId sessionId) async {
+    // Finding #27 (Batch I) — DESC order (most-recent-first) matches the
+    // port docstring + typical UX timeline expectation.
     final rows =
         await (_db.select(_db.markers)
               ..where((t) => t.sessionId.equals(sessionId.value))
-              ..orderBy([(t) => OrderingTerm(expression: t.createdAtUtc)]))
+              ..orderBy([(t) => OrderingTerm(expression: t.createdAtUtc, mode: OrderingMode.desc)]))
             .get();
     return rows.map(_hydrate).toList(growable: false);
   }

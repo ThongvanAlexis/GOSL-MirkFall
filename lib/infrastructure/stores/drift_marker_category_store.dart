@@ -68,7 +68,12 @@ class DriftMarkerCategoryStore implements MarkerCategoryStore {
       throw CategoryInUseException(id: id, markerCount: countRow.read<int>('c'));
     }
     await _db.transaction(() async {
-      await _db.customStatement('UPDATE t_markers SET category_id = ? WHERE category_id = ?', <Object?>[kCategoryDefaultId.value, id.value]);
+      // Finding #23 (Batch I) — typed DSL instead of raw customStatement.
+      // Survives a future t_markers rename and carries compile-time type
+      // safety on category_id. The raw positional-params path was the only
+      // customStatement call in the store layer and collapsed visibility
+      // on schema changes.
+      await (_db.update(_db.markers)..where((t) => t.categoryId.equals(id.value))).write(MarkersCompanion(categoryId: Value(kCategoryDefaultId.value)));
       await (_db.delete(_db.markerCategories)..where((t) => t.id.equals(id.value))).go();
     });
   }
