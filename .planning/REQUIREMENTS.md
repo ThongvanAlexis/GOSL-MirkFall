@@ -27,7 +27,7 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 - [ ] **SESS-03**: Utilisateur peut supprimer une session (avec confirmation)
 - [ ] **SESS-04**: Utilisateur peut démarrer (Start) une session
 - [ ] **SESS-05**: Utilisateur peut arrêter (Stop) une session active
-- [ ] **SESS-06**: Démarrer une session arrête automatiquement toute autre session en cours (exclusivité enforcée au niveau DB)
+- [x] **SESS-06**: Démarrer une session arrête automatiquement toute autre session en cours (exclusivité enforcée au niveau DB)
 - [ ] **SESS-07**: L'état d'une session (mirk révélé, markers, métadonnées) est persisté localement en continu
 - [ ] **SESS-08**: Utilisateur peut voir la liste de toutes ses sessions avec leur état (active / arrêtée)
 - [ ] **SESS-09**: Utilisateur peut créer un nombre illimité de sessions
@@ -194,7 +194,7 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | SESS-03 | Phase 05 | Pending |
 | SESS-04 | Phase 05 | Pending |
 | SESS-05 | Phase 05 | Pending |
-| SESS-06 | Phase 03 | Pending |
+| SESS-06 | Phase 03 | Complete |
 | SESS-07 | Phase 05 | Pending |
 | SESS-08 | Phase 05 | Pending |
 | SESS-09 | Phase 05 | Pending |

@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 current_plan: 4
 status: executing
-stopped_at: "Completed 03-02-PLAN.md (Wave 2: domain layer + ULID + MIRK-03 algebra)"
-last_updated: "2026-04-18T09:37:58.193Z"
+stopped_at: "Completed 03-03-PLAN.md (Wave 3: Freezed entities + store ports + Envelope)"
+last_updated: "2026-04-18T10:04:39.851Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 16
   completed_phases: 2
   total_plans: 14
-  completed_plans: 10
+  completed_plans: 11
   percent: 63
 ---
 
@@ -22,14 +22,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 02 — Review Gate Foundation (02-01 + 02-02 done; 02-03 adversarial wave unblocked)
+**Current focus:** Phase 03 — Persistence & Domain Models (03-01 + 03-02 + 03-03 done; 03-04 DB schema next in Wave 4)
 
 ## Current Position
 
-Phase: 02 of 16 (Review Gate — Foundation)
+Phase: 03 of 16 (Persistence & Domain Models)
 Current Plan: 4
-Total Plans in Phase: 4
-Plan: 2 of 4 in current phase (02-02 audit wave + triage shipped — 54 findings, 42 to fix)
+Total Plans in Phase: 6
+Plan: 3 of 6 complete in current phase (03-03 Freezed entities + store ports + Envelope shipped — SC#4 verbatim closed, SC#5 JsonMigrator integration closed, 56 domain tests green)
 Status: In Progress
 Last Activity: 2026-04-18
 
@@ -62,6 +62,7 @@ Progress: [██████▎░░░] 63%
 | Phase 02-review-gate-foundation P03 | 10 min | 3 tasks | 1 files |
 | Phase 03-persistence-domain-models P01 | 12 min | 3 tasks | 14 files |
 | Phase 03-persistence-domain-models P02 | 9 min | 3 tasks | 34 files |
+| Phase 03-persistence-domain-models P03 | 19 min | 3 tasks | 41 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,12 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 03-persistence-domain-models]: IdentityMigrationV1.fromVersion = -1 sentinel trick — keeps the class importable + symbolic without ever matching a real version transition; alternative (fromVersion = 1 with conditional) would have double-matched V1ToV2RenameRadius and triggered the duplicate-step failure path
 - [Phase 03-persistence-domain-models]: Defensive .clamp(0, n-1) on slippy-map tile indices (auto-fixed Rule 1 - Bug) — float math near Mercator limit lat=±85.0511° produced y=-1 (north pole) and y=16384 (south pole, == n exactly) before the clamp; both out of valid array range
 - [Phase 03-persistence-domain-models]: Envelope shipped by 03-03 (Freezed per ROADMAP SC#4) — 03-02 stops at the migration framework; the fixture-driven end-to-end JsonMigrator test is also moved to 03-03 since it depends on Envelope.fromJson. 03-03 now depends_on [03-01, 03-02] (Wave 3, not Wave 2)
+- [Phase 03-persistence-domain-models]: Freezed 3.2.3 @Freezed(unionKey: 'rendererType', fallbackUnion: 'unknown') IS supported — RESEARCH Open Question #5 CLOSED. Generator emits dispatching fromJson with UnknownConfig.fromJson fallback.
+- [Phase 03-persistence-domain-models]: UnknownConfig.raw captured via @JsonKey(readValue: _readWholeMap) hook — hands the WHOLE source map to the converter instead of a nested 'raw' key. Hand-written dispatch alternative rejected (breaks variant fromJson generation).
+- [Phase 03-persistence-domain-models]: JSON timestamp shape: split fields (startedAtUtc, startedAtOffsetMinutes) for Phase 03; combined ISO 8601 'startedAt' export deferred to Phase 13 SCHEMA.md. Either shape is round-trip safe; SC#5 JsonMigrator doesn't depend on shape.
+- [Phase 03-persistence-domain-models]: factory (not const factory) on Freezed entities with @Assert — Dart 3.11 rejects method invocation (displayName.trim()) and even getter access (.isNotEmpty) inside const constructor asserts. Affects Session, Marker, MarkerCategory, MirkStyle; PhotoRef + RevealedTile keep const factory (no asserts).
+- [Phase 03-persistence-domain-models]: Extension-type IDs need per-field @JsonKey(fromJson: fn, toJson: fn) with top-level converter functions (id_json_converters.dart) — class-level JsonConverter<SessionId, String> does NOT work because json_serializable collapses extension types to their underlying representation at the declared-type resolution boundary.
+- [Phase 03-persistence-domain-models]: Envelope.fromJson must stay a pure arrow redirect — Freezed 3.2.3 needsJsonSerializable check requires ExpressionFunctionBody (lib/src/models.dart:1346). Validation lives in static Envelope.validateOrThrow; Envelope.parse composes validate + fromJson for the import boundary.
 
 ### Pending Todos
 
@@ -135,6 +142,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-18T09:37:32.848Z
-Stopped at: Completed 03-02-PLAN.md (Wave 2: domain layer + ULID + MIRK-03 algebra)
+Last session: 2026-04-18T10:04:39.847Z
+Stopped at: Completed 03-03-PLAN.md (Wave 3: Freezed entities + store ports + Envelope)
 Resume file: None
