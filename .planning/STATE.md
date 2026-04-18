@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 current_plan: 6
 status: executing
-stopped_at: Phase 04 context gathered
-last_updated: "2026-04-18T14:21:16.528Z"
+stopped_at: Completed 04-01-PLAN.md (scaffold + §1 user-first capture)
+last_updated: "2026-04-18T16:53:45.512Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 16
   completed_phases: 3
-  total_plans: 14
-  completed_plans: 14
+  total_plans: 19
+  completed_plans: 15
   percent: 86
 ---
 
@@ -66,6 +66,7 @@ Progress: [█████████░] 86%
 | Phase 03-persistence-domain-models P04 | 20 min | 3 tasks | 15 files |
 | Phase 03-persistence-domain-models P05 | 8 min | 3 tasks | 8 files |
 | Phase 03-persistence-domain-models P6 | 12 min | 2 tasks | 28 files |
+| Phase 04-review-gate-persistence P01 | 6min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -144,6 +145,8 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 03-persistence-domain-models]: main.dart ProviderScope wiring NOT touched in Phase 03 — CONTEXT.md defers it to Phase 05 where ActiveSessionController is the first productive consumer.
 - [Phase 03-persistence-domain-models]: MirkStyle renderer_type column derived from sealed MirkStyleConfig variant via pattern match at insert/update time (AtmosphericConfig->atmospheric, ShaderConfig->shader, UnknownConfig->unknown). Keeps config+column consistent without a separate writer path.
 - [Phase 03-persistence-domain-models]: Test convention: drift/drift.dart import uses 'hide isNotNull' in every store test — drift re-exports a column matcher with the same name as matcher's value matcher. Consistent idiom across infra test suite, same as 03-05 migration tests.
+- [Phase 04-review-gate-persistence]: 'Aucune observation utilisateur' is valid §1 content — when user has no IDE findings, commit the explicit marker (not silence, not the 'awaiting user input' placeholder) so the grep sanity check passes and the user-first gate is satisfied
+- [Phase 04-review-gate-persistence]: Review-gate Plan 01 template (scaffold + user-first §1 capture) validated on second cycle without modification — stable pattern reusable for Phases 06/08/10/12/14/16
 
 ### Pending Todos
 
@@ -163,6 +166,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-18T14:21:16.524Z
-Stopped at: Phase 04 context gathered
-Resume file: .planning/phases/04-review-gate-persistence/04-CONTEXT.md
+Last session: 2026-04-18T16:53:39.375Z
+Stopped at: Completed 04-01-PLAN.md (scaffold + §1 user-first capture)
+Resume file: None
