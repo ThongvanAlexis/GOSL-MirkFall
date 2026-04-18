@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 3
+current_plan: 4
 status: executing
-stopped_at: Completed 04-02-PLAN.md (runtime walk Windows + findings escalated)
-last_updated: "2026-04-18T17:37:52.196Z"
+stopped_at: Completed 04-03-PLAN.md (pre-class + 4-agent audit + blanket-approve triage)
+last_updated: "2026-04-18T18:18:29.741Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 16
   completed_phases: 3
   total_plans: 19
-  completed_plans: 16
+  completed_plans: 17
   percent: 84
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 04 of 16 (Review Gate — Persistence)
-Current Plan: 3
+Current Plan: 4
 Total Plans in Phase: 5
 Plan: 2 of 5 complete in current phase (04-02 Runtime walk Windows archived verbatim into §1b; surfaced Blocker — Zone mismatch at runApp on flutter run -d windows — escalated to §2 pending user triage; tool/walk_db.dart + tool/inspect_db.sql retained on main)
 Status: In Progress
@@ -68,6 +68,7 @@ Progress: [████████░░] 84%
 | Phase 03-persistence-domain-models P6 | 12 min | 2 tasks | 28 files |
 | Phase 04-review-gate-persistence P01 | 6min | 2 tasks | 1 files |
 | Phase 04-review-gate-persistence P02 | 45 min | 3 tasks | 3 files |
+| Phase 04-review-gate-persistence PP3 | 30 min | 4 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -153,6 +154,11 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 04-review-gate-persistence]: Retain BOTH tool/walk_db.dart (69 lines) and tool/inspect_db.sql (29 lines) on main — zero CI/dep cost, reusable smoke test for Phase 05 ProviderScope wiring, natural home for future walk-tooling pragma-authoritativeness fix
 - [Phase 04-review-gate-persistence]: CMD-compatible tool/inspect_db.sql replaces bash heredoc from plan Task 2 — Windows CMD has no heredoc; .sql script works across CMD, PowerShell, and bash via stdin redirect
 - [Phase 04-review-gate-persistence]: 3 per-connection pragmas (foreign_keys, synchronous, busy_timeout) flagged as 1b CAVEAT and 2 Should finding rather than asserted green — sqlite3 CLI reads library defaults not Drift applied values; Phase 03 in-process unit tests cover the contract, but independent filesystem cross-check is incomplete
+- [Phase 04-review-gate-persistence]: Plan 04-03: user triaged 91 findings via blanket-approve (fix all Blockers + Shoulds; defer Coulds; Noteds stay observations). Pattern reused from Phase 02 but scope narrowed — user said 'let's fix blocker and should' explicitly, so Coulds defer (not fix as in Phase 02 'fix tous').
+- [Phase 04-review-gate-persistence]: P1 flaky backup_test.dart::rotate confirmed as ARCHITECTURAL fragility (not test-only) — production DbBackupService.rotate uses File.statSync().modified at backup.dart:89-90. Paired fix: sort by filename-embedded ISO timestamp with strict lex-sort guarantee (Could #35 Z-trailing-position baked into same fix). Test stabilizes as side effect of production fix.
+- [Phase 04-review-gate-persistence]: P2 custom_lint state unchanged — Agent #2 re-ran 'dart run custom_lint' at audit time and confirmed identical failure class (Element2/Annotatable/ErrorCode/libraryElement2/resolveFile2 unresolved against analyzer-10.0.1). Stays Noted; re-verify at each deps bump and Phase 15 latest.
+- [Phase 04-review-gate-persistence]: Severity-disagreement pattern across agent lenses — 2 findings (#5 parentZoom 2-way, #7 UTC offset 3-way) had different severities from different lenses. All preserved with explicit attribution; collapsed to 'fix' under blanket Blockers+Shoulds because action target is identical regardless of severity. Meta-observation row (#87) added to §3 as transparency signal. Reusable convention for future review gates.
+- [Phase 04-review-gate-persistence]: 4-sub-agent parallel audit pattern reused successfully on second review gate — single tool-use message with 4 general-purpose Agent calls yielded 86 agent findings in ~10 min wall-clock (bounded by Agent #4 at ~9.7 min). Pre-class 5 entries committed before spawn saved redundant discovery. Pattern stable; reusable for every future review gate (06, 08, 10, 12, 14, 16).
 
 ### Pending Todos
 
@@ -173,6 +179,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-18T17:37:47.390Z
-Stopped at: Completed 04-02-PLAN.md (runtime walk Windows + findings escalated)
+Last session: 2026-04-18T18:18:02.684Z
+Stopped at: Completed 04-03-PLAN.md (pre-class + 4-agent audit + blanket-approve triage)
 Resume file: None
