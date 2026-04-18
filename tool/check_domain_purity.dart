@@ -20,13 +20,7 @@ import 'package:path/path.dart' as p;
 ///
 /// CLI contract (Phase 01 convention): exit 0 = clean, 1 = violations
 /// found, 2 = misconfiguration (root missing, unreadable, etc.).
-const List<String> _excludedSuffixes = <String>[
-  '.g.dart',
-  '.freezed.dart',
-  '.gr.dart',
-  '.config.dart',
-  '.mocks.dart',
-];
+const List<String> _excludedSuffixes = <String>['.g.dart', '.freezed.dart', '.gr.dart', '.config.dart', '.mocks.dart'];
 
 /// Forbidden-package matcher. Anchored on `package:flutter/...` and
 /// `package:drift/...` only — `package:drift_dev/` is dev-only codegen
@@ -34,9 +28,7 @@ const List<String> _excludedSuffixes = <String>[
 /// the broader `package:drift` prefix already catches it via the slash
 /// boundary or the closing quote (the alternation `(?:/|['"])` accepts
 /// either a path separator or the import string's terminator).
-final RegExp _forbiddenPattern = RegExp(
-  r"""^\s*import\s+['"]package:(flutter|drift)(?:/|['"])""",
-);
+final RegExp _forbiddenPattern = RegExp(r"""^\s*import\s+['"]package:(flutter|drift)(?:/|['"])""");
 
 /// Runs the scan against [rootPath] (default `lib/domain`).
 ///

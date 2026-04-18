@@ -12,21 +12,14 @@ import 'package:test/test.dart';
 void main() {
   group('MirkStyleConfig.fromJson', () {
     test('rendererType="atmospheric" returns AtmosphericConfig', () {
-      final cfg = MirkStyleConfig.fromJson(<String, Object?>{
-        'rendererType': 'atmospheric',
-        'baseColorArgb': 0xFF123456,
-        'noiseScale': 0.75,
-      });
+      final cfg = MirkStyleConfig.fromJson(<String, Object?>{'rendererType': 'atmospheric', 'baseColorArgb': 0xFF123456, 'noiseScale': 0.75});
       expect(cfg, isA<AtmosphericConfig>());
       expect((cfg as AtmosphericConfig).baseColorArgb, 0xFF123456);
       expect(cfg.noiseScale, closeTo(0.75, 1e-9));
     });
 
     test('rendererType="shader" returns ShaderConfig', () {
-      final cfg = MirkStyleConfig.fromJson(<String, Object?>{
-        'rendererType': 'shader',
-        'shaderAssetPath': 'assets/shaders/fog.frag',
-      });
+      final cfg = MirkStyleConfig.fromJson(<String, Object?>{'rendererType': 'shader', 'shaderAssetPath': 'assets/shaders/fog.frag'});
       expect(cfg, isA<ShaderConfig>());
       expect((cfg as ShaderConfig).shaderAssetPath, 'assets/shaders/fog.frag');
     });
@@ -45,37 +38,25 @@ void main() {
     });
 
     test('missing rendererType returns UnknownConfig (fallback)', () {
-      final cfg = MirkStyleConfig.fromJson(<String, Object?>{
-        'someOtherField': 'value',
-      });
+      final cfg = MirkStyleConfig.fromJson(<String, Object?>{'someOtherField': 'value'});
       expect(cfg, isA<UnknownConfig>());
       final raw = (cfg as UnknownConfig).raw;
       expect(raw['someOtherField'], 'value');
     });
 
-    test(
-      'from fixture payload (mirk_style_unknown_renderer.json) yields UnknownConfig',
-      () {
-        final filename = p.join(
-          Directory.current.path,
-          'test',
-          'fixtures',
-          'json',
-          'mirk_style_unknown_renderer.json',
-        );
-        final raw = jsonDecode(File(filename).readAsStringSync())
-            as Map<String, Object?>;
-        // The fixture wraps the mirk style in an Envelope {schemaVersion,
-        // type, payload}. At the payload level, `rendererType` sits at the
-        // top and marks the unknown renderer.
-        final payload = raw['payload'] as Map<String, Object?>;
-        final cfg = MirkStyleConfig.fromJson(payload);
-        expect(cfg, isA<UnknownConfig>());
-        final preserved = (cfg as UnknownConfig).raw;
-        expect(preserved['rendererType'], 'non-existent-future-renderer-v99');
-        expect(preserved['displayName'], 'Unknown-renderer style');
-      },
-    );
+    test('from fixture payload (mirk_style_unknown_renderer.json) yields UnknownConfig', () {
+      final filename = p.join(Directory.current.path, 'test', 'fixtures', 'json', 'mirk_style_unknown_renderer.json');
+      final raw = jsonDecode(File(filename).readAsStringSync()) as Map<String, Object?>;
+      // The fixture wraps the mirk style in an Envelope {schemaVersion,
+      // type, payload}. At the payload level, `rendererType` sits at the
+      // top and marks the unknown renderer.
+      final payload = raw['payload'] as Map<String, Object?>;
+      final cfg = MirkStyleConfig.fromJson(payload);
+      expect(cfg, isA<UnknownConfig>());
+      final preserved = (cfg as UnknownConfig).raw;
+      expect(preserved['rendererType'], 'non-existent-future-renderer-v99');
+      expect(preserved['displayName'], 'Unknown-renderer style');
+    });
 
     test('exhaustive switch compiles on sealed union', () {
       const MirkStyleConfig cfg = AtmosphericConfig();
@@ -88,10 +69,7 @@ void main() {
     });
 
     test('round-trip: known config toJson fromJson is equal', () {
-      const MirkStyleConfig original = AtmosphericConfig(
-        baseColorArgb: 0xFFAABBCC,
-        noiseScale: 0.33,
-      );
+      const MirkStyleConfig original = AtmosphericConfig(baseColorArgb: 0xFFAABBCC, noiseScale: 0.33);
       final json = original.toJson();
       final restored = MirkStyleConfig.fromJson(json);
       expect(restored, original);

@@ -30,17 +30,10 @@ part 'session.g.dart';
 /// readability. Either representation is round-trip safe.
 @freezed
 abstract class Session with _$Session {
-  @Assert(
-    'displayName.trim().isNotEmpty',
-    'Session.displayName must be non-empty',
-  )
-  @Assert(
-    'startedAtOffsetMinutes >= -720 && startedAtOffsetMinutes <= 840',
-    'Session.startedAtOffsetMinutes out of range (UTC-12 to UTC+14)',
-  )
+  @Assert('displayName.trim().isNotEmpty', 'Session.displayName must be non-empty')
+  @Assert('startedAtOffsetMinutes >= -720 && startedAtOffsetMinutes <= 840', 'Session.startedAtOffsetMinutes out of range (UTC-12 to UTC+14)')
   factory Session({
-    @JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson)
-    required SessionId id,
+    @JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required SessionId id,
     required String displayName,
     required SessionStatus status,
     required DateTime startedAtUtc,
@@ -50,6 +43,5 @@ abstract class Session with _$Session {
     String? notes,
   }) = _Session;
 
-  factory Session.fromJson(Map<String, Object?> json) =>
-      _$SessionFromJson(json);
+  factory Session.fromJson(Map<String, Object?> json) => _$SessionFromJson(json);
 }

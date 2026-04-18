@@ -29,6 +29,5 @@ class CategoryInUseException implements Exception {
   final int markerCount;
 
   @override
-  String toString() =>
-      'CategoryInUseException(id=${id.value}, markerCount=$markerCount)';
+  String toString() => 'CategoryInUseException(id=${id.value}, markerCount=$markerCount)';
 }

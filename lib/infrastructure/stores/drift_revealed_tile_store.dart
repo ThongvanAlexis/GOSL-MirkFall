@@ -33,38 +33,24 @@ class DriftRevealedTileStore implements RevealedTileStore {
 
   @override
   Future<List<RevealedTile>> listBySession(SessionId sessionId) async {
-    final rows = await (_db.select(_db.revealedTiles)
-          ..where((t) => t.sessionId.equals(sessionId.value))
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.parentX),
-            (t) => OrderingTerm(expression: t.parentY),
-          ]))
-        .get();
+    final rows =
+        await (_db.select(_db.revealedTiles)
+              ..where((t) => t.sessionId.equals(sessionId.value))
+              ..orderBy([(t) => OrderingTerm(expression: t.parentX), (t) => OrderingTerm(expression: t.parentY)]))
+            .get();
     return rows.map(_hydrate).toList(growable: false);
   }
 
   @override
-  Future<RevealedTile?> findByParent({
-    required SessionId sessionId,
-    required int parentX,
-    required int parentY,
-  }) async {
-    final row = await (_db.select(_db.revealedTiles)
-          ..where((t) =>
-              t.sessionId.equals(sessionId.value) &
-              t.parentX.equals(parentX) &
-              t.parentY.equals(parentY)))
-        .getSingleOrNull();
+  Future<RevealedTile?> findByParent({required SessionId sessionId, required int parentX, required int parentY}) async {
+    final row = await (_db.select(
+      _db.revealedTiles,
+    )..where((t) => t.sessionId.equals(sessionId.value) & t.parentX.equals(parentX) & t.parentY.equals(parentY))).getSingleOrNull();
     return row == null ? null : _hydrate(row);
   }
 
   @override
-  Future<void> mergeMask({
-    required SessionId sessionId,
-    required int parentX,
-    required int parentY,
-    required Uint8List mask,
-  }) async {
+  Future<void> mergeMask({required SessionId sessionId, required int parentX, required int parentY, required Uint8List mask}) async {
     if (mask.length != kRevealedTileBitmapBytes) {
       throw ArgumentError.value(
         mask,
@@ -74,15 +60,14 @@ class DriftRevealedTileStore implements RevealedTileStore {
       );
     }
     await _db.transaction(() async {
-      final existing = await (_db.select(_db.revealedTiles)
-            ..where((t) =>
-                t.sessionId.equals(sessionId.value) &
-                t.parentX.equals(parentX) &
-                t.parentY.equals(parentY)))
-          .getSingleOrNull();
+      final existing = await (_db.select(
+        _db.revealedTiles,
+      )..where((t) => t.sessionId.equals(sessionId.value) & t.parentX.equals(parentX) & t.parentY.equals(parentY))).getSingleOrNull();
       final now = DateTime.now().toUtc();
       if (existing == null) {
-        await _db.into(_db.revealedTiles).insert(
+        await _db
+            .into(_db.revealedTiles)
+            .insert(
               RevealedTilesCompanion.insert(
                 id: _idGenerator.newId('rvt_'),
                 sessionId: sessionId.value,
@@ -95,14 +80,8 @@ class DriftRevealedTileStore implements RevealedTileStore {
             );
       } else {
         final merged = mergeBitmap(existing.bitmap, mask);
-        await (_db.update(_db.revealedTiles)
-              ..where((t) => t.id.equals(existing.id)))
-            .write(
-          RevealedTilesCompanion(
-            bitmap: Value(merged),
-            setBitCount: Value(popcount(merged)),
-            updatedAtUtc: Value(now),
-          ),
+        await (_db.update(_db.revealedTiles)..where((t) => t.id.equals(existing.id))).write(
+          RevealedTilesCompanion(bitmap: Value(merged), setBitCount: Value(popcount(merged)), updatedAtUtc: Value(now)),
         );
       }
     });
@@ -111,13 +90,13 @@ class DriftRevealedTileStore implements RevealedTileStore {
   // -- hydration ---------------------------------------------------------
 
   RevealedTile _hydrate(RevealedTileRow row) => RevealedTile(
-        id: RevealedTileId(row.id),
-        sessionId: SessionId(row.sessionId),
-        parentX: row.parentX,
-        parentY: row.parentY,
-        parentZoom: row.parentZoom,
-        bitmap: row.bitmap,
-        setBitCount: row.setBitCount,
-        updatedAtUtc: row.updatedAtUtc,
-      );
+    id: RevealedTileId(row.id),
+    sessionId: SessionId(row.sessionId),
+    parentX: row.parentX,
+    parentY: row.parentY,
+    parentZoom: row.parentZoom,
+    bitmap: row.bitmap,
+    setBitCount: row.setBitCount,
+    updatedAtUtc: row.updatedAtUtc,
+  );
 }

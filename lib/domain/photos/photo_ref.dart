@@ -23,10 +23,8 @@ part 'photo_ref.g.dart';
 @freezed
 abstract class PhotoRef with _$PhotoRef {
   const factory PhotoRef({
-    @JsonKey(fromJson: photoRefIdFromJson, toJson: photoRefIdToJson)
-    required PhotoRefId id,
-    @JsonKey(fromJson: markerIdFromJson, toJson: markerIdToJson)
-    required MarkerId markerId,
+    @JsonKey(fromJson: photoRefIdFromJson, toJson: photoRefIdToJson) required PhotoRefId id,
+    @JsonKey(fromJson: markerIdFromJson, toJson: markerIdToJson) required MarkerId markerId,
     required String relativeBasename,
     required int widthPx,
     required int heightPx,
@@ -35,6 +33,5 @@ abstract class PhotoRef with _$PhotoRef {
     required int createdAtOffsetMinutes,
   }) = _PhotoRef;
 
-  factory PhotoRef.fromJson(Map<String, Object?> json) =>
-      _$PhotoRefFromJson(json);
+  factory PhotoRef.fromJson(Map<String, Object?> json) => _$PhotoRefFromJson(json);
 }

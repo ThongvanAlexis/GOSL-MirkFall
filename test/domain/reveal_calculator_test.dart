@@ -17,10 +17,7 @@ void main() {
     });
 
     test('length mismatch throws ArgumentError', () {
-      expect(
-        () => mergeBitmap(Uint8List(2), Uint8List(3)),
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(() => mergeBitmap(Uint8List(2), Uint8List(3)), throwsA(isA<ArgumentError>()));
     });
 
     test('idempotent: mergeBitmap(mergeBitmap(a, b), a) == mergeBitmap(a, b)', () {
@@ -42,11 +39,7 @@ void main() {
       final b = Uint8List.fromList(List.generate(32, (i) => i * 5 & 0xFF));
       final merged = mergeBitmap(a, b);
       for (var i = 0; i < merged.length; i++) {
-        expect(
-          merged[i] | a[i],
-          merged[i],
-          reason: 'byte $i: merged=${merged[i].toRadixString(16)} a=${a[i].toRadixString(16)}',
-        );
+        expect(merged[i] | a[i], merged[i], reason: 'byte $i: merged=${merged[i].toRadixString(16)} a=${a[i].toRadixString(16)}');
         expect(merged[i] | b[i], merged[i]);
       }
     });
@@ -110,17 +103,7 @@ void main() {
 
   group('computeRevealMask', () {
     test('throws UnimplementedError (Phase 09 placeholder)', () {
-      expect(
-        () => computeRevealMask(
-          centerLat: 0,
-          centerLon: 0,
-          radiusMeters: 50,
-          parentX: 0,
-          parentY: 0,
-          parentZoom: 14,
-        ),
-        throwsA(isA<UnimplementedError>()),
-      );
+      expect(() => computeRevealMask(centerLat: 0, centerLon: 0, radiusMeters: 50, parentX: 0, parentY: 0, parentZoom: 14), throwsA(isA<UnimplementedError>()));
     });
   });
 }

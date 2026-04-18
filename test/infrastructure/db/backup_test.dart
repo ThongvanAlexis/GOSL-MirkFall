@@ -43,32 +43,20 @@ void main() {
   });
 
   test('takeBackup creates a file with correctly-formatted name', () async {
-    final svc = DbBackupService(
-      dbFilename: fakeDb.path,
-      backupDir: backupDir,
-      maxBackups: 3,
-      clock: () => DateTime.utc(2026, 4, 18, 12, 30, 45, 123),
-    );
+    final svc = DbBackupService(dbFilename: fakeDb.path, backupDir: backupDir, maxBackups: 3, clock: () => DateTime.utc(2026, 4, 18, 12, 30, 45, 123));
 
     final backup = await svc.takeBackup(fromVersion: 1, toVersion: 2);
 
     expect(backup.existsSync(), isTrue);
     // ISO 8601 UTC, colons replaced with hyphens for cross-platform filename
     // safety (Windows forbids ':' in filenames).
-    expect(
-      p.basename(backup.path),
-      equals('mirkfall.db.backup-v1-to-v2-2026-04-18T12-30-45.123Z'),
-    );
+    expect(p.basename(backup.path), equals('mirkfall.db.backup-v1-to-v2-2026-04-18T12-30-45.123Z'));
     // Byte-equal content — no re-encoding, no compression.
     expect(backup.readAsBytesSync(), fakeDb.readAsBytesSync());
   });
 
   test('rotate keeps the 3 newest when 4 exist', () async {
-    final svc = DbBackupService(
-      dbFilename: fakeDb.path,
-      backupDir: backupDir,
-      maxBackups: 3,
-    );
+    final svc = DbBackupService(dbFilename: fakeDb.path, backupDir: backupDir, maxBackups: 3);
     backupDir.createSync(recursive: true);
 
     // Stagger modified times so mtime ordering is deterministic.
@@ -92,11 +80,7 @@ void main() {
   });
 
   test('rotate is a no-op when fewer backups than maxBackups', () async {
-    final svc = DbBackupService(
-      dbFilename: fakeDb.path,
-      backupDir: backupDir,
-      maxBackups: 3,
-    );
+    final svc = DbBackupService(dbFilename: fakeDb.path, backupDir: backupDir, maxBackups: 3);
     backupDir.createSync(recursive: true);
     File(p.join(backupDir.path, 'only.one')).writeAsBytesSync(<int>[1]);
 
@@ -117,22 +101,13 @@ void main() {
 
   test('takeBackup creates backupDir if absent', () async {
     expect(backupDir.existsSync(), isFalse);
-    final svc = DbBackupService(
-      dbFilename: fakeDb.path,
-      backupDir: backupDir,
-      maxBackups: 3,
-      clock: () => DateTime.utc(2026, 4, 18),
-    );
+    final svc = DbBackupService(dbFilename: fakeDb.path, backupDir: backupDir, maxBackups: 3, clock: () => DateTime.utc(2026, 4, 18));
     await svc.takeBackup(fromVersion: 1, toVersion: 2);
     expect(backupDir.existsSync(), isTrue);
   });
 
   test('consecutive takeBackup calls + rotation keeps at most maxBackups', () async {
-    final svc = DbBackupService(
-      dbFilename: fakeDb.path,
-      backupDir: backupDir,
-      maxBackups: 3,
-    );
+    final svc = DbBackupService(dbFilename: fakeDb.path, backupDir: backupDir, maxBackups: 3);
     // Five backups, spaced a few ms apart so the clock-supplied timestamp
     // guarantees distinct filenames. We only care that rotation caps to 3.
     for (var i = 0; i < 5; i++) {

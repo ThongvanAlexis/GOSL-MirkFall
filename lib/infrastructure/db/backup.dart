@@ -30,12 +30,7 @@ class DbBackupService {
   /// [maxBackups] is the rolling retention limit (typically [kMaxDbBackups]).
   /// [clock] is injectable for deterministic filenames in tests; defaults to
   /// `DateTime.now`.
-  DbBackupService({
-    required this.dbFilename,
-    required this.backupDir,
-    required this.maxBackups,
-    DateTime Function()? clock,
-  }) : _clock = clock ?? DateTime.now;
+  DbBackupService({required this.dbFilename, required this.backupDir, required this.maxBackups, DateTime Function()? clock}) : _clock = clock ?? DateTime.now;
 
   /// Absolute path to the live DB file.
   final String dbFilename;
@@ -62,8 +57,7 @@ class DbBackupService {
       await backupDir.create(recursive: true);
     }
     final timestamp = _clock().toUtc().toIso8601String().replaceAll(':', '-');
-    final backupBasename =
-        'mirkfall.db.backup-v$fromVersion-to-v$toVersion-$timestamp';
+    final backupBasename = 'mirkfall.db.backup-v$fromVersion-to-v$toVersion-$timestamp';
     final backupFilename = p.join(backupDir.path, backupBasename);
 
     final source = File(dbFilename);
@@ -78,16 +72,11 @@ class DbBackupService {
   /// is absent or already at or below the retention limit.
   Future<void> rotate() async {
     if (!await backupDir.exists()) return;
-    final entries = await backupDir
-        .list(followLinks: false)
-        .where((FileSystemEntity e) => e is File)
-        .cast<File>()
-        .toList();
+    final entries = await backupDir.list(followLinks: false).where((FileSystemEntity e) => e is File).cast<File>().toList();
     if (entries.length <= maxBackups) return;
     // Descending mtime → newest first. Skip the first `maxBackups`, delete
     // the tail.
-    entries.sort((File a, File b) =>
-        b.statSync().modified.compareTo(a.statSync().modified));
+    entries.sort((File a, File b) => b.statSync().modified.compareTo(a.statSync().modified));
     for (final file in entries.skip(maxBackups)) {
       await file.delete();
     }

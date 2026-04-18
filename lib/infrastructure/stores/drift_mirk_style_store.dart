@@ -28,17 +28,13 @@ class DriftMirkStyleStore implements MirkStyleStore {
 
   @override
   Future<List<MirkStyle>> listAll() async {
-    final rows = await (_db.select(_db.mirkStyles)
-          ..orderBy([(t) => OrderingTerm(expression: t.displayName)]))
-        .get();
+    final rows = await (_db.select(_db.mirkStyles)..orderBy([(t) => OrderingTerm(expression: t.displayName)])).get();
     return rows.map(_hydrate).toList(growable: false);
   }
 
   @override
   Future<MirkStyle?> findById(MirkStyleId id) async {
-    final row = await (_db.select(_db.mirkStyles)
-          ..where((t) => t.id.equals(id.value)))
-        .getSingleOrNull();
+    final row = await (_db.select(_db.mirkStyles)..where((t) => t.id.equals(id.value))).getSingleOrNull();
     return row == null ? null : _hydrate(row);
   }
 
@@ -63,37 +59,35 @@ class DriftMirkStyleStore implements MirkStyleStore {
 
   @override
   Future<void> delete(MirkStyleId id) async {
-    await (_db.delete(_db.mirkStyles)..where((t) => t.id.equals(id.value)))
-        .go();
+    await (_db.delete(_db.mirkStyles)..where((t) => t.id.equals(id.value))).go();
   }
 
   // -- hydration ---------------------------------------------------------
 
   MirkStyle _hydrate(MirkStyleRow row) => MirkStyle(
-        id: MirkStyleId(row.id),
-        displayName: row.displayName,
-        config: row.config,
-        createdAtUtc: row.createdAtUtc,
-        createdAtOffsetMinutes: row.createdAtOffsetMinutes,
-      );
+    id: MirkStyleId(row.id),
+    displayName: row.displayName,
+    config: row.config,
+    createdAtUtc: row.createdAtUtc,
+    createdAtOffsetMinutes: row.createdAtOffsetMinutes,
+  );
 
   /// Derives the denormalized `renderer_type` column value from the
   /// sealed [MirkStyleConfig] variant. Kept in sync with the Freezed
   /// `unionKey: 'rendererType'` declaration + the `fallbackUnion:
   /// 'unknown'` fallback.
   String _rendererTypeFor(MirkStyleConfig config) => switch (config) {
-        AtmosphericConfig() => 'atmospheric',
-        ShaderConfig() => 'shader',
-        UnknownConfig() => 'unknown',
-      };
+    AtmosphericConfig() => 'atmospheric',
+    ShaderConfig() => 'shader',
+    UnknownConfig() => 'unknown',
+  };
 
-  MirkStylesCompanion _toInsertCompanion(MirkStyle s) =>
-      MirkStylesCompanion.insert(
-        id: s.id.value,
-        displayName: s.displayName,
-        rendererType: _rendererTypeFor(s.config),
-        config: s.config,
-        createdAtUtc: s.createdAtUtc,
-        createdAtOffsetMinutes: s.createdAtOffsetMinutes,
-      );
+  MirkStylesCompanion _toInsertCompanion(MirkStyle s) => MirkStylesCompanion.insert(
+    id: s.id.value,
+    displayName: s.displayName,
+    rendererType: _rendererTypeFor(s.config),
+    config: s.config,
+    createdAtUtc: s.createdAtUtc,
+    createdAtOffsetMinutes: s.createdAtOffsetMinutes,
+  );
 }

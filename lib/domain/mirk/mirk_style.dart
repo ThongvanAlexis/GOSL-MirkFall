@@ -22,19 +22,14 @@ part 'mirk_style.g.dart';
 /// timestamp). See CONTEXT.md §MirkStyle seam for the render-side contract.
 @freezed
 abstract class MirkStyle with _$MirkStyle {
-  @Assert(
-    'displayName.trim().isNotEmpty',
-    'MirkStyle.displayName must be non-empty',
-  )
+  @Assert('displayName.trim().isNotEmpty', 'MirkStyle.displayName must be non-empty')
   factory MirkStyle({
-    @JsonKey(fromJson: mirkStyleIdFromJson, toJson: mirkStyleIdToJson)
-    required MirkStyleId id,
+    @JsonKey(fromJson: mirkStyleIdFromJson, toJson: mirkStyleIdToJson) required MirkStyleId id,
     required String displayName,
     required MirkStyleConfig config,
     required DateTime createdAtUtc,
     required int createdAtOffsetMinutes,
   }) = _MirkStyle;
 
-  factory MirkStyle.fromJson(Map<String, Object?> json) =>
-      _$MirkStyleFromJson(json);
+  factory MirkStyle.fromJson(Map<String, Object?> json) => _$MirkStyleFromJson(json);
 }

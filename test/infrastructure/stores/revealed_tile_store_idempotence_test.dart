@@ -63,58 +63,24 @@ void main() {
   test('applying the same mask twice is idempotent '
       '(byte-equal bitmap, unchanged setBitCount)', () async {
     final mask = _mask([0, 1, 2]);
-    await store.mergeMask(
-      sessionId: sessionId,
-      parentX: 1,
-      parentY: 1,
-      mask: mask,
-    );
-    final first = await store.findByParent(
-      sessionId: sessionId,
-      parentX: 1,
-      parentY: 1,
-    );
+    await store.mergeMask(sessionId: sessionId, parentX: 1, parentY: 1, mask: mask);
+    final first = await store.findByParent(sessionId: sessionId, parentX: 1, parentY: 1);
     expect(first, isNotNull);
     final bitmapFirst = Uint8List.fromList(first!.bitmap);
     final countFirst = first.setBitCount;
 
-    await store.mergeMask(
-      sessionId: sessionId,
-      parentX: 1,
-      parentY: 1,
-      mask: mask,
-    );
-    final second = await store.findByParent(
-      sessionId: sessionId,
-      parentX: 1,
-      parentY: 1,
-    );
-    expect(second!.bitmap, bitmapFirst,
-        reason: 'idempotence: bitmap bytes unchanged after re-applying same mask');
-    expect(second.setBitCount, countFirst,
-        reason: 'idempotence: setBitCount unchanged');
+    await store.mergeMask(sessionId: sessionId, parentX: 1, parentY: 1, mask: mask);
+    final second = await store.findByParent(sessionId: sessionId, parentX: 1, parentY: 1);
+    expect(second!.bitmap, bitmapFirst, reason: 'idempotence: bitmap bytes unchanged after re-applying same mask');
+    expect(second.setBitCount, countFirst, reason: 'idempotence: setBitCount unchanged');
   });
 
   test('applying mask B after mask A merges byte-wise to A | B', () async {
     final a = _mask([0, 1, 2]); // bytes 0..2 full
     final b = _mask([3, 4, 5]); // bytes 3..5 full
-    await store.mergeMask(
-      sessionId: sessionId,
-      parentX: 1,
-      parentY: 1,
-      mask: a,
-    );
-    await store.mergeMask(
-      sessionId: sessionId,
-      parentX: 1,
-      parentY: 1,
-      mask: b,
-    );
-    final row = await store.findByParent(
-      sessionId: sessionId,
-      parentX: 1,
-      parentY: 1,
-    );
+    await store.mergeMask(sessionId: sessionId, parentX: 1, parentY: 1, mask: a);
+    await store.mergeMask(sessionId: sessionId, parentX: 1, parentY: 1, mask: b);
+    final row = await store.findByParent(sessionId: sessionId, parentX: 1, parentY: 1);
     expect(row, isNotNull);
     for (var i = 0; i < kRevealedTileBitmapBytes; i++) {
       expect(row!.bitmap[i], a[i] | b[i], reason: 'byte index $i');
@@ -131,89 +97,32 @@ void main() {
     b[0] = 0x0F; // low nibble complement
     b[1] = 0xF0; // high nibble complement
 
-    await store.mergeMask(
-      sessionId: sessionId,
-      parentX: 2,
-      parentY: 2,
-      mask: a,
-    );
-    await store.mergeMask(
-      sessionId: sessionId,
-      parentX: 2,
-      parentY: 2,
-      mask: b,
-    );
-    final row = await store.findByParent(
-      sessionId: sessionId,
-      parentX: 2,
-      parentY: 2,
-    );
-    expect(row!.bitmap[0], 0xFF,
-        reason: 'byte 0: F0 | 0F == FF');
-    expect(row.bitmap[1], 0xFF,
-        reason: 'byte 1: 0F | F0 == FF');
-    expect(row.setBitCount, 16,
-        reason: 'two bytes fully set = 16 bits');
+    await store.mergeMask(sessionId: sessionId, parentX: 2, parentY: 2, mask: a);
+    await store.mergeMask(sessionId: sessionId, parentX: 2, parentY: 2, mask: b);
+    final row = await store.findByParent(sessionId: sessionId, parentX: 2, parentY: 2);
+    expect(row!.bitmap[0], 0xFF, reason: 'byte 0: F0 | 0F == FF');
+    expect(row.bitmap[1], 0xFF, reason: 'byte 1: 0F | F0 == FF');
+    expect(row.setBitCount, 16, reason: 'two bytes fully set = 16 bits');
   });
 
-  test('monotone: applying an all-zero mask preserves existing set bits',
-      () async {
-    await store.mergeMask(
-      sessionId: sessionId,
-      parentX: 3,
-      parentY: 3,
-      mask: _mask([0, 1, 2]),
-    );
-    await store.mergeMask(
-      sessionId: sessionId,
-      parentX: 3,
-      parentY: 3,
-      mask: Uint8List(kRevealedTileBitmapBytes),
-    );
-    final row = await store.findByParent(
-      sessionId: sessionId,
-      parentX: 3,
-      parentY: 3,
-    );
+  test('monotone: applying an all-zero mask preserves existing set bits', () async {
+    await store.mergeMask(sessionId: sessionId, parentX: 3, parentY: 3, mask: _mask([0, 1, 2]));
+    await store.mergeMask(sessionId: sessionId, parentX: 3, parentY: 3, mask: Uint8List(kRevealedTileBitmapBytes));
+    final row = await store.findByParent(sessionId: sessionId, parentX: 3, parentY: 3);
     expect(row!.setBitCount, 24, reason: '3 bytes * 8 bits = 24 set bits');
   });
 
   test('mergeMask rejects wrong-size masks with ArgumentError', () async {
-    await expectLater(
-      () => store.mergeMask(
-        sessionId: sessionId,
-        parentX: 4,
-        parentY: 4,
-        mask: Uint8List(100),
-      ),
-      throwsA(isA<ArgumentError>()),
-    );
+    await expectLater(() => store.mergeMask(sessionId: sessionId, parentX: 4, parentY: 4, mask: Uint8List(100)), throwsA(isA<ArgumentError>()));
   });
 
   test('repeated merges never introduce a second row for '
       'the same (sessionId, parentX, parentY)', () async {
-    await store.mergeMask(
-      sessionId: sessionId,
-      parentX: 5,
-      parentY: 5,
-      mask: _mask([0]),
-    );
-    await store.mergeMask(
-      sessionId: sessionId,
-      parentX: 5,
-      parentY: 5,
-      mask: _mask([1]),
-    );
-    await store.mergeMask(
-      sessionId: sessionId,
-      parentX: 5,
-      parentY: 5,
-      mask: _mask([2]),
-    );
+    await store.mergeMask(sessionId: sessionId, parentX: 5, parentY: 5, mask: _mask([0]));
+    await store.mergeMask(sessionId: sessionId, parentX: 5, parentY: 5, mask: _mask([1]));
+    await store.mergeMask(sessionId: sessionId, parentX: 5, parentY: 5, mask: _mask([2]));
     final rows = await store.listBySession(sessionId);
-    final atFive = rows
-        .where((r) => r.parentX == 5 && r.parentY == 5)
-        .toList(growable: false);
+    final atFive = rows.where((r) => r.parentX == 5 && r.parentY == 5).toList(growable: false);
     expect(atFive, hasLength(1));
   });
 }

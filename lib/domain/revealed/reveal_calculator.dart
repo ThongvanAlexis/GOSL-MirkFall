@@ -18,11 +18,7 @@ import 'dart:typed_data';
 /// Throws [ArgumentError] if [current] and [mask] have different lengths.
 Uint8List mergeBitmap(Uint8List current, Uint8List mask) {
   if (current.length != mask.length) {
-    throw ArgumentError.value(
-      mask,
-      'mask',
-      'length ${mask.length} != current length ${current.length}',
-    );
+    throw ArgumentError.value(mask, 'mask', 'length ${mask.length} != current length ${current.length}');
   }
   final result = Uint8List(current.length);
   for (var i = 0; i < current.length; i++) {

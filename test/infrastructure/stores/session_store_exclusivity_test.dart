@@ -31,8 +31,7 @@ AppDatabase _newDb() {
 /// Generates a deterministic 26-char sentinel body per numeric [index]
 /// for exclusivity-test session IDs. Uses a fixed pad character ('A')
 /// so IDs remain human-greppable when they leak into logs.
-String _sessId(int index) =>
-    'sess_01HRTESTSESSEXCL${index.toString().padLeft(2, '0')}AAAAAAAA';
+String _sessId(int index) => 'sess_01HRTESTSESSEXCL${index.toString().padLeft(2, '0')}AAAAAAAA';
 
 void main() {
   late AppDatabase db;
@@ -75,20 +74,13 @@ void main() {
     final id0 = SessionId(_sessId(0));
     final id1 = SessionId(_sessId(1));
     await store.activate(id0);
-    await expectLater(
-      () => store.activate(id1),
-      throwsA(
-        isA<ConcurrentActivationException>()
-            .having((e) => e.attemptedId, 'attemptedId', id1),
-      ),
-    );
+    await expectLater(() => store.activate(id1), throwsA(isA<ConcurrentActivationException>().having((e) => e.attemptedId, 'attemptedId', id1)));
     // The first session must still be the only active one.
     final active = await store.findActive();
     expect(active?.id, id0);
   });
 
-  test('deactivating an active session unlocks activation of another',
-      () async {
+  test('deactivating an active session unlocks activation of another', () async {
     final id0 = SessionId(_sessId(0));
     final id1 = SessionId(_sessId(1));
     await store.activate(id0);
@@ -98,36 +90,21 @@ void main() {
     expect(active?.id, id1);
   });
 
-  test('concurrent activation via Future.wait - exactly one succeeds',
-      () async {
+  test('concurrent activation via Future.wait - exactly one succeeds', () async {
     final id0 = SessionId(_sessId(0));
     final id1 = SessionId(_sessId(1));
 
     final results = await Future.wait<Object?>(<Future<Object?>>[
-      store.activate(id0).then<Object?>(
-            (_) => 'ok',
-            onError: (Object e) => e,
-          ),
-      store.activate(id1).then<Object?>(
-            (_) => 'ok',
-            onError: (Object e) => e,
-          ),
+      store.activate(id0).then<Object?>((_) => 'ok', onError: (Object e) => e),
+      store.activate(id1).then<Object?>((_) => 'ok', onError: (Object e) => e),
     ]);
     final successes = results.where((r) => r == 'ok').length;
     final failures = results.whereType<ConcurrentActivationException>().length;
     expect(successes, 1, reason: 'exactly one activate should succeed');
-    expect(
-      failures,
-      1,
-      reason: 'exactly one ConcurrentActivationException should be raised',
-    );
+    expect(failures, 1, reason: 'exactly one ConcurrentActivationException should be raised');
 
     // Exactly one row with status='active' remains.
-    final activeRows = await db
-        .customSelect(
-          "SELECT COUNT(*) AS c FROM t_sessions WHERE status = 'active'",
-        )
-        .getSingle();
+    final activeRows = await db.customSelect("SELECT COUNT(*) AS c FROM t_sessions WHERE status = 'active'").getSingle();
     expect(activeRows.read<int>('c'), 1);
   });
 }

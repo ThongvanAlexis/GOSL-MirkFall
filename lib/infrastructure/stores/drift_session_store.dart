@@ -34,27 +34,17 @@ class DriftSessionStore implements SessionStore {
   // ignore: unused_field — reserved for insert-without-id paths, see docstring.
   final IdGenerator _idGenerator;
 
-  static const SessionStatusStringConverter _statusConv =
-      SessionStatusStringConverter();
+  static const SessionStatusStringConverter _statusConv = SessionStatusStringConverter();
 
   @override
   Future<List<Session>> listAll() async {
-    final rows = await (_db.select(_db.sessions)
-          ..orderBy([
-            (t) => OrderingTerm(
-                  expression: t.startedAtUtc,
-                  mode: OrderingMode.desc,
-                ),
-          ]))
-        .get();
+    final rows = await (_db.select(_db.sessions)..orderBy([(t) => OrderingTerm(expression: t.startedAtUtc, mode: OrderingMode.desc)])).get();
     return rows.map(_hydrate).toList(growable: false);
   }
 
   @override
   Future<Session?> findById(SessionId id) async {
-    final row = await (_db.select(_db.sessions)
-          ..where((t) => t.id.equals(id.value)))
-        .getSingleOrNull();
+    final row = await (_db.select(_db.sessions)..where((t) => t.id.equals(id.value))).getSingleOrNull();
     return row == null ? null : _hydrate(row);
   }
 
@@ -69,9 +59,7 @@ class DriftSessionStore implements SessionStore {
 
   @override
   Future<Session?> findActive() async {
-    final row = await (_db.select(_db.sessions)
-          ..where((t) => t.status.equals('active')))
-        .getSingleOrNull();
+    final row = await (_db.select(_db.sessions)..where((t) => t.status.equals('active'))).getSingleOrNull();
     return row == null ? null : _hydrate(row);
   }
 
@@ -93,8 +81,7 @@ class DriftSessionStore implements SessionStore {
   @override
   Future<void> activate(SessionId id) async {
     try {
-      await (_db.update(_db.sessions)..where((t) => t.id.equals(id.value)))
-          .write(const SessionsCompanion(status: Value('active')));
+      await (_db.update(_db.sessions)..where((t) => t.id.equals(id.value))).write(const SessionsCompanion(status: Value('active')));
     } on SqliteException catch (e) {
       if (e.extendedResultCode == kSqliteConstraintUnique) {
         throw ConcurrentActivationException(attemptedId: id);
@@ -105,31 +92,30 @@ class DriftSessionStore implements SessionStore {
 
   @override
   Future<void> deactivate(SessionId id) async {
-    await (_db.update(_db.sessions)..where((t) => t.id.equals(id.value)))
-        .write(const SessionsCompanion(status: Value('stopped')));
+    await (_db.update(_db.sessions)..where((t) => t.id.equals(id.value))).write(const SessionsCompanion(status: Value('stopped')));
   }
 
   // -- hydration ---------------------------------------------------------
 
   Session _hydrate(SessionRow row) => Session(
-        id: SessionId(row.id),
-        displayName: row.displayName,
-        status: _statusConv.fromSql(row.status),
-        startedAtUtc: row.startedAtUtc,
-        startedAtOffsetMinutes: row.startedAtOffsetMinutes,
-        stoppedAtUtc: row.stoppedAtUtc,
-        stoppedAtOffsetMinutes: row.stoppedAtOffsetMinutes,
-        notes: row.notes,
-      );
+    id: SessionId(row.id),
+    displayName: row.displayName,
+    status: _statusConv.fromSql(row.status),
+    startedAtUtc: row.startedAtUtc,
+    startedAtOffsetMinutes: row.startedAtOffsetMinutes,
+    stoppedAtUtc: row.stoppedAtUtc,
+    stoppedAtOffsetMinutes: row.stoppedAtOffsetMinutes,
+    notes: row.notes,
+  );
 
   SessionsCompanion _toInsertCompanion(Session s) => SessionsCompanion.insert(
-        id: s.id.value,
-        displayName: s.displayName,
-        status: _statusConv.toSql(s.status),
-        startedAtUtc: s.startedAtUtc,
-        startedAtOffsetMinutes: s.startedAtOffsetMinutes,
-        stoppedAtUtc: Value(s.stoppedAtUtc),
-        stoppedAtOffsetMinutes: Value(s.stoppedAtOffsetMinutes),
-        notes: Value(s.notes),
-      );
+    id: s.id.value,
+    displayName: s.displayName,
+    status: _statusConv.toSql(s.status),
+    startedAtUtc: s.startedAtUtc,
+    startedAtOffsetMinutes: s.startedAtOffsetMinutes,
+    stoppedAtUtc: Value(s.stoppedAtUtc),
+    stoppedAtOffsetMinutes: Value(s.stoppedAtOffsetMinutes),
+    notes: Value(s.notes),
+  );
 }

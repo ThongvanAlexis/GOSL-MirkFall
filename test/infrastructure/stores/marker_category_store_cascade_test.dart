@@ -25,28 +25,13 @@ AppDatabase _newDb() {
   );
 }
 
-Future<int> _count(
-  AppDatabase db,
-  String table,
-  String whereClause,
-  List<Object?> args,
-) async {
-  final row = await db
-      .customSelect(
-        'SELECT COUNT(*) AS c FROM $table WHERE $whereClause',
-        variables: [for (final a in args) Variable(a)],
-      )
-      .getSingle();
+Future<int> _count(AppDatabase db, String table, String whereClause, List<Object?> args) async {
+  final row = await db.customSelect('SELECT COUNT(*) AS c FROM $table WHERE $whereClause', variables: [for (final a in args) Variable(a)]).getSingle();
   return row.read<int>('c');
 }
 
 Future<String?> _categoryIdOfMarker(AppDatabase db, String markerId) async {
-  final row = await db
-      .customSelect(
-        'SELECT category_id AS c FROM t_markers WHERE id = ?',
-        variables: [Variable<String>(markerId)],
-      )
-      .getSingleOrNull();
+  final row = await db.customSelect('SELECT category_id AS c FROM t_markers WHERE id = ?', variables: [Variable<String>(markerId)]).getSingleOrNull();
   return row?.read<String>('c');
 }
 
@@ -63,24 +48,12 @@ void main() {
 
     // Seed cat_default via the store's insert.
     await store.insert(
-      MarkerCategory(
-        id: kCategoryDefaultId,
-        displayName: 'Default',
-        iconName: 'pin',
-        createdAtUtc: DateTime.utc(2026, 4, 18, 10),
-        createdAtOffsetMinutes: 120,
-      ),
+      MarkerCategory(id: kCategoryDefaultId, displayName: 'Default', iconName: 'pin', createdAtUtc: DateTime.utc(2026, 4, 18, 10), createdAtOffsetMinutes: 120),
     );
 
     // Seed a custom category.
     await store.insert(
-      MarkerCategory(
-        id: customId,
-        displayName: 'Custom',
-        iconName: 'star',
-        createdAtUtc: DateTime.utc(2026, 4, 18, 11),
-        createdAtOffsetMinutes: 120,
-      ),
+      MarkerCategory(id: customId, displayName: 'Custom', iconName: 'star', createdAtUtc: DateTime.utc(2026, 4, 18, 11), createdAtOffsetMinutes: 120),
     );
 
     // Seed a session (markers FK to session).
@@ -108,15 +81,8 @@ void main() {
   });
 
   test('precondition: 2 markers in custom, 1 in default', () async {
-    expect(
-      await _count(db, 't_markers', 'category_id = ?', <Object?>[customId.value]),
-      2,
-    );
-    expect(
-      await _count(db, 't_markers', 'category_id = ?',
-          <Object?>[kCategoryDefaultId.value]),
-      1,
-    );
+    expect(await _count(db, 't_markers', 'category_id = ?', <Object?>[customId.value]), 2);
+    expect(await _count(db, 't_markers', 'category_id = ?', <Object?>[kCategoryDefaultId.value]), 1);
   });
 
   test('deleting a custom category reassigns its markers to cat_default '
@@ -129,17 +95,9 @@ void main() {
     // Marker already in default is untouched.
     expect(await _categoryIdOfMarker(db, 'mrk_C'), kCategoryDefaultId.value);
     // Custom category row is gone.
-    expect(
-      await _count(db, 't_marker_categories', 'id = ?',
-          <Object?>[customId.value]),
-      0,
-    );
+    expect(await _count(db, 't_marker_categories', 'id = ?', <Object?>[customId.value]), 0);
     // cat_default still exists (required for the reassign target invariant).
-    expect(
-      await _count(db, 't_marker_categories', 'id = ?',
-          <Object?>[kCategoryDefaultId.value]),
-      1,
-    );
+    expect(await _count(db, 't_marker_categories', 'id = ?', <Object?>[kCategoryDefaultId.value]), 1);
   });
 
   test('deleting cat_default throws CategoryInUseException '
@@ -154,16 +112,9 @@ void main() {
       ),
     );
     // Category row survives the failed delete.
-    expect(
-      await _count(db, 't_marker_categories', 'id = ?',
-          <Object?>[kCategoryDefaultId.value]),
-      1,
-    );
+    expect(await _count(db, 't_marker_categories', 'id = ?', <Object?>[kCategoryDefaultId.value]), 1);
     // No markers reassigned.
-    expect(
-      await _categoryIdOfMarker(db, 'mrk_A'),
-      customId.value,
-    );
+    expect(await _categoryIdOfMarker(db, 'mrk_A'), customId.value);
   });
 
   test('delete-reassign is transactional: no window where markers '
@@ -178,7 +129,6 @@ void main() {
           'WHERE c.id = m.category_id)',
         )
         .getSingle();
-    expect(orphanCount.read<int>('c'), 0,
-        reason: 'every marker must reference an existing category after delete');
+    expect(orphanCount.read<int>('c'), 0, reason: 'every marker must reference an existing category after delete');
   });
 }

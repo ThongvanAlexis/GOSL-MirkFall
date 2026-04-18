@@ -18,9 +18,7 @@ import 'package:mirkfall/infrastructure/ids/ulid.dart';
 /// where only prefix safety + uniqueness matter (timestamp drift in those
 /// harnesses is irrelevant).
 class SeededIdGenerator implements IdGenerator {
-  SeededIdGenerator({required int seed, DateTime? fixedNow})
-    : _rng = Random(seed),
-      _fixedNow = fixedNow;
+  SeededIdGenerator({required int seed, DateTime? fixedNow}) : _rng = Random(seed), _fixedNow = fixedNow;
 
   final Random _rng;
   final DateTime? _fixedNow;

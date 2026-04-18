@@ -32,14 +32,10 @@ part 'mirk_style_config.g.dart';
 @Freezed(unionKey: 'rendererType', fallbackUnion: 'unknown')
 sealed class MirkStyleConfig with _$MirkStyleConfig {
   /// Atmospheric fog — base color + procedural noise.
-  const factory MirkStyleConfig.atmospheric({
-    @Default(0xFF000000) int baseColorArgb,
-    @Default(0.5) double noiseScale,
-  }) = AtmosphericConfig;
+  const factory MirkStyleConfig.atmospheric({@Default(0xFF000000) int baseColorArgb, @Default(0.5) double noiseScale}) = AtmosphericConfig;
 
   /// GPU shader-backed fog (Phase 09 advanced renderer).
-  const factory MirkStyleConfig.shader({required String shaderAssetPath}) =
-      ShaderConfig;
+  const factory MirkStyleConfig.shader({required String shaderAssetPath}) = ShaderConfig;
 
   /// Forward-compatibility fallback: preserves the original JSON map verbatim
   /// when the local app version does not recognize `rendererType`. The
@@ -47,17 +43,10 @@ sealed class MirkStyleConfig with _$MirkStyleConfig {
   /// `UnknownConfig.fromJson(json)` capture the WHOLE `json` map into
   /// [raw] instead of looking for a nested `'raw'` key.
   const factory MirkStyleConfig.unknown({
-    @JsonKey(
-      fromJson: _unknownRawFromJson,
-      toJson: _unknownRawToJson,
-      disallowNullValue: true,
-      readValue: _readWholeMap,
-    )
-    required Map<String, Object?> raw,
+    @JsonKey(fromJson: _unknownRawFromJson, toJson: _unknownRawToJson, disallowNullValue: true, readValue: _readWholeMap) required Map<String, Object?> raw,
   }) = UnknownConfig;
 
-  factory MirkStyleConfig.fromJson(Map<String, Object?> json) =>
-      _$MirkStyleConfigFromJson(json);
+  factory MirkStyleConfig.fromJson(Map<String, Object?> json) => _$MirkStyleConfigFromJson(json);
 }
 
 /// `readValue` hook — instructs json_serializable to pass the ENTIRE source

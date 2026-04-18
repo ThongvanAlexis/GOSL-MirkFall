@@ -8,10 +8,7 @@ import 'package:mirkfall/domain/sessions/session_status.dart';
 import 'package:test/test.dart';
 
 void main() {
-  Session buildSession({
-    String displayName = 'Paris 2026',
-    int startedAtOffsetMinutes = 120,
-  }) => Session(
+  Session buildSession({String displayName = 'Paris 2026', int startedAtOffsetMinutes = 120}) => Session(
     id: const SessionId('sess_01HRSESSIONFIXTUREAAAAAAAA'),
     displayName: displayName,
     status: SessionStatus.stopped,
@@ -21,42 +18,24 @@ void main() {
 
   group('Session @Assert invariants', () {
     test('empty displayName throws AssertionError', () {
-      expect(
-        () => buildSession(displayName: ''),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => buildSession(displayName: ''), throwsA(isA<AssertionError>()));
     });
 
     test('whitespace-only displayName throws AssertionError', () {
-      expect(
-        () => buildSession(displayName: '   '),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => buildSession(displayName: '   '), throwsA(isA<AssertionError>()));
     });
 
     test('startedAtOffsetMinutes below -720 throws AssertionError', () {
-      expect(
-        () => buildSession(startedAtOffsetMinutes: -721),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => buildSession(startedAtOffsetMinutes: -721), throwsA(isA<AssertionError>()));
     });
 
     test('startedAtOffsetMinutes above 840 throws AssertionError', () {
-      expect(
-        () => buildSession(startedAtOffsetMinutes: 841),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => buildSession(startedAtOffsetMinutes: 841), throwsA(isA<AssertionError>()));
     });
 
     test('boundary offsets -720 and 840 construct successfully', () {
-      expect(
-        buildSession(startedAtOffsetMinutes: -720).startedAtOffsetMinutes,
-        -720,
-      );
-      expect(
-        buildSession(startedAtOffsetMinutes: 840).startedAtOffsetMinutes,
-        840,
-      );
+      expect(buildSession(startedAtOffsetMinutes: -720).startedAtOffsetMinutes, -720);
+      expect(buildSession(startedAtOffsetMinutes: 840).startedAtOffsetMinutes, 840);
     });
 
     test('happy path constructs without throwing', () {

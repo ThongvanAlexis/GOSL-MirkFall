@@ -48,12 +48,7 @@ void main() {
   /// pointed at the file so Drift's `onCreate` materializes the V1 schema
   /// on disk with `schemaVersion=1`.
   Future<void> seedV1DbFile() async {
-    final seedDb = v1.DatabaseAtV1(
-      DatabaseConnection(
-        NativeDatabase(File(dbFilename)),
-        closeStreamsSynchronously: true,
-      ),
-    );
+    final seedDb = v1.DatabaseAtV1(DatabaseConnection(NativeDatabase(File(dbFilename)), closeStreamsSynchronously: true));
     try {
       await seedDb.customStatement(
         "INSERT INTO t_sessions (id, display_name, status, "
@@ -64,8 +59,7 @@ void main() {
     } finally {
       await seedDb.close();
     }
-    expect(File(dbFilename).existsSync(), isTrue,
-        reason: 'NativeDatabase should have materialized the file on close');
+    expect(File(dbFilename).existsSync(), isTrue, reason: 'NativeDatabase should have materialized the file on close');
   }
 
   test('upgrading V1 → V2 triggers backup BEFORE onUpgrade', () async {
@@ -78,11 +72,7 @@ void main() {
 
     // Open via factory — should fire the onBeforeUpgrade hook (wired to
     // DbBackupService.takeBackup) BEFORE onUpgrade (V1ToV2Notes) runs.
-    final db = buildAppDatabase(
-      dbFilename: dbFilename,
-      backupDir: backupDir,
-      maxBackups: 3,
-    );
+    final db = buildAppDatabase(dbFilename: dbFilename, backupDir: backupDir, maxBackups: 3);
     try {
       // Force open + migration via a lightweight query.
       await db.customStatement('SELECT 1');
@@ -109,26 +99,23 @@ void main() {
 
       // Assertion C: the live DB is now V2 — the previously-seeded session
       // survived AND the new `notes` column is queryable.
-      final row = await db.customSelect(
-        "SELECT notes FROM t_sessions "
-        "WHERE id = 'sess_01HRBACKUPUPGRADEAAAAAAAAA'",
-      ).getSingle();
+      final row = await db
+          .customSelect(
+            "SELECT notes FROM t_sessions "
+            "WHERE id = 'sess_01HRBACKUPUPGRADEAAAAAAAAA'",
+          )
+          .getSingle();
       expect(row.data['notes'], null);
     } finally {
       await db.close();
     }
   });
 
-  test('opening a fresh DB (onCreate, no upgrade) does NOT trigger backup',
-      () async {
+  test('opening a fresh DB (onCreate, no upgrade) does NOT trigger backup', () async {
     expect(File(dbFilename).existsSync(), isFalse);
     expect(backupDir.existsSync(), isFalse);
 
-    final db = buildAppDatabase(
-      dbFilename: dbFilename,
-      backupDir: backupDir,
-      maxBackups: 3,
-    );
+    final db = buildAppDatabase(dbFilename: dbFilename, backupDir: backupDir, maxBackups: 3);
     try {
       await db.customStatement('SELECT 1');
 
@@ -137,12 +124,7 @@ void main() {
       // The details.hadUpgrade guard in AppDatabase.beforeOpen skips the
       // onBeforeUpgrade hook on first-open (onCreate) paths.
       if (backupDir.existsSync()) {
-        expect(
-          backupDir.listSync().whereType<File>(),
-          isEmpty,
-          reason:
-              'onCreate (first open) must not produce a pre-migration backup',
-        );
+        expect(backupDir.listSync().whereType<File>(), isEmpty, reason: 'onCreate (first open) must not produce a pre-migration backup');
       }
     } finally {
       await db.close();
@@ -151,11 +133,7 @@ void main() {
 
   test('opening an already-current DB does NOT trigger backup', () async {
     // First open: create V2 DB at current schema (onCreate path).
-    final db1 = buildAppDatabase(
-      dbFilename: dbFilename,
-      backupDir: backupDir,
-      maxBackups: 3,
-    );
+    final db1 = buildAppDatabase(dbFilename: dbFilename, backupDir: backupDir, maxBackups: 3);
     await db1.customStatement('SELECT 1');
     await db1.close();
 
@@ -169,21 +147,12 @@ void main() {
 
     // Second open: schemaVersion already == 2, no upgrade needed →
     // details.hadUpgrade is false → hook does not fire.
-    final db2 = buildAppDatabase(
-      dbFilename: dbFilename,
-      backupDir: backupDir,
-      maxBackups: 3,
-    );
+    final db2 = buildAppDatabase(dbFilename: dbFilename, backupDir: backupDir, maxBackups: 3);
     try {
       await db2.customStatement('SELECT 1');
 
       if (backupDir.existsSync()) {
-        expect(
-          backupDir.listSync().whereType<File>(),
-          isEmpty,
-          reason:
-              'reopening at current schemaVersion must not produce a backup',
-        );
+        expect(backupDir.listSync().whereType<File>(), isEmpty, reason: 'reopening at current schemaVersion must not produce a backup');
       }
     } finally {
       await db2.close();

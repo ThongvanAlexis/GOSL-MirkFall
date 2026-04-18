@@ -60,29 +60,13 @@ void main() {
     final a = _mask([0]);
     final b = _mask([1]);
     await Future.wait<void>(<Future<void>>[
-      store.mergeMask(
-        sessionId: sessionId,
-        parentX: 7,
-        parentY: 7,
-        mask: a,
-      ),
-      store.mergeMask(
-        sessionId: sessionId,
-        parentX: 7,
-        parentY: 7,
-        mask: b,
-      ),
+      store.mergeMask(sessionId: sessionId, parentX: 7, parentY: 7, mask: a),
+      store.mergeMask(sessionId: sessionId, parentX: 7, parentY: 7, mask: b),
     ]);
-    final row = await store.findByParent(
-      sessionId: sessionId,
-      parentX: 7,
-      parentY: 7,
-    );
+    final row = await store.findByParent(sessionId: sessionId, parentX: 7, parentY: 7);
     expect(row, isNotNull);
-    expect(row!.bitmap[0], 0xFF,
-        reason: 'byte 0 must carry mask A regardless of scheduling');
-    expect(row.bitmap[1], 0xFF,
-        reason: 'byte 1 must carry mask B regardless of scheduling');
+    expect(row!.bitmap[0], 0xFF, reason: 'byte 0 must carry mask A regardless of scheduling');
+    expect(row.bitmap[1], 0xFF, reason: 'byte 1 must carry mask B regardless of scheduling');
     expect(row.setBitCount, 16);
   });
 
@@ -92,24 +76,11 @@ void main() {
     final masks = <Uint8List>[
       for (var i = 0; i < concurrentMerges; i++) _mask([i]),
     ];
-    await Future.wait<void>(<Future<void>>[
-      for (final m in masks)
-        store.mergeMask(
-          sessionId: sessionId,
-          parentX: 9,
-          parentY: 9,
-          mask: m,
-        ),
-    ]);
-    final row = await store.findByParent(
-      sessionId: sessionId,
-      parentX: 9,
-      parentY: 9,
-    );
+    await Future.wait<void>(<Future<void>>[for (final m in masks) store.mergeMask(sessionId: sessionId, parentX: 9, parentY: 9, mask: m)]);
+    final row = await store.findByParent(sessionId: sessionId, parentX: 9, parentY: 9);
     expect(row, isNotNull);
     for (var i = 0; i < concurrentMerges; i++) {
-      expect(row!.bitmap[i], 0xFF,
-          reason: 'byte $i must reflect the corresponding mask');
+      expect(row!.bitmap[i], 0xFF, reason: 'byte $i must reflect the corresponding mask');
     }
     expect(row!.setBitCount, concurrentMerges * 8);
   });

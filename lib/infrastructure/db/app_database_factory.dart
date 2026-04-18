@@ -28,16 +28,8 @@ import 'backup.dart';
 /// isolated AppDatabase behaviour — should instantiate `AppDatabase` directly
 /// with `onBeforeUpgrade: null`. This factory is the production + integration
 /// entry point.
-AppDatabase buildAppDatabase({
-  required String dbFilename,
-  required Directory backupDir,
-  required int maxBackups,
-}) {
-  final backupService = DbBackupService(
-    dbFilename: dbFilename,
-    backupDir: backupDir,
-    maxBackups: maxBackups,
-  );
+AppDatabase buildAppDatabase({required String dbFilename, required Directory backupDir, required int maxBackups}) {
+  final backupService = DbBackupService(dbFilename: dbFilename, backupDir: backupDir, maxBackups: maxBackups);
   // NativeDatabase (synchronous) is used instead of createInBackground because
   // (a) it works identically from a correctness perspective — the backup hook
   // fires from the same isolate the open runs on; (b) it keeps the factory
@@ -58,10 +50,7 @@ AppDatabase buildAppDatabase({
       // but the AppDatabase wrapper only invokes this hook when hadUpgrade is
       // true, which in turn requires a non-null versionBefore. Coerce to 0
       // defensively so a surprise null doesn't blow up the filename.
-      await backupService.takeBackup(
-        fromVersion: details.versionBefore ?? 0,
-        toVersion: details.versionNow,
-      );
+      await backupService.takeBackup(fromVersion: details.versionBefore ?? 0, toVersion: details.versionNow);
     },
   );
 }

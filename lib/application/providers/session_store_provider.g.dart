@@ -27,13 +27,7 @@ final sessionStoreProvider = SessionStoreProvider._();
 /// Consumers that need the store synchronously (Phase 05 controllers)
 /// await `ref.watch(sessionStoreProvider.future)` at construction time.
 
-final class SessionStoreProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<SessionStore>,
-          SessionStore,
-          FutureOr<SessionStore>
-        >
+final class SessionStoreProvider extends $FunctionalProvider<AsyncValue<SessionStore>, SessionStore, FutureOr<SessionStore>>
     with $FutureModifier<SessionStore>, $FutureProvider<SessionStore> {
   /// Production [SessionStore] — wraps [`DriftSessionStore`] around the
   /// app database + production id generator.
@@ -43,24 +37,14 @@ final class SessionStoreProvider
   /// Consumers that need the store synchronously (Phase 05 controllers)
   /// await `ref.watch(sessionStoreProvider.future)` at construction time.
   SessionStoreProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'sessionStoreProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+    : super(from: null, argument: null, retry: null, name: r'sessionStoreProvider', isAutoDispose: false, dependencies: null, $allTransitiveDependencies: null);
 
   @override
   String debugGetCreateSourceHash() => _$sessionStoreHash();
 
   @$internal
   @override
-  $FutureProviderElement<SessionStore> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $FutureProviderElement<SessionStore> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<SessionStore> create(Ref ref) {

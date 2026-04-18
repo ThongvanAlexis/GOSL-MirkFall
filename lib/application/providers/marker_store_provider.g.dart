@@ -21,37 +21,21 @@ final markerStoreProvider = MarkerStoreProvider._();
 /// pre-allocated [MarkerId]; id-minting is a Phase 11 store extension
 /// when the photo-capture flow starts minting markers on the fly.
 
-final class MarkerStoreProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<MarkerStore>,
-          MarkerStore,
-          FutureOr<MarkerStore>
-        >
+final class MarkerStoreProvider extends $FunctionalProvider<AsyncValue<MarkerStore>, MarkerStore, FutureOr<MarkerStore>>
     with $FutureModifier<MarkerStore>, $FutureProvider<MarkerStore> {
   /// Production [MarkerStore] — wraps [`DriftMarkerStore`] around the app
   /// database. No id generator injection here: Phase 03 callers pass a
   /// pre-allocated [MarkerId]; id-minting is a Phase 11 store extension
   /// when the photo-capture flow starts minting markers on the fly.
   MarkerStoreProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'markerStoreProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+    : super(from: null, argument: null, retry: null, name: r'markerStoreProvider', isAutoDispose: false, dependencies: null, $allTransitiveDependencies: null);
 
   @override
   String debugGetCreateSourceHash() => _$markerStoreHash();
 
   @$internal
   @override
-  $FutureProviderElement<MarkerStore> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $FutureProviderElement<MarkerStore> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<MarkerStore> create(Ref ref) {

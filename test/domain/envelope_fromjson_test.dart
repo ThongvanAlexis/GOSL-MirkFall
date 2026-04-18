@@ -25,74 +25,33 @@ void main() {
 
     test('missing schemaVersion throws ImportValidationException', () {
       expect(
-        () => Envelope.parse(<String, Object?>{
-          'type': 'session',
-          'payload': <String, Object?>{},
-        }),
-        throwsA(
-          isA<ImportValidationException>().having(
-            (e) => e.reason,
-            'reason',
-            contains('schemaVersion'),
-          ),
-        ),
+        () => Envelope.parse(<String, Object?>{'type': 'session', 'payload': <String, Object?>{}}),
+        throwsA(isA<ImportValidationException>().having((e) => e.reason, 'reason', contains('schemaVersion'))),
       );
     });
 
-    test(
-      'schemaVersion of wrong type (string) throws ImportValidationException',
-      () {
-        expect(
-          () => Envelope.parse(<String, Object?>{
-            'schemaVersion': 'one',
-            'type': 'session',
-            'payload': <String, Object?>{},
-          }),
-          throwsA(
-            isA<ImportValidationException>().having(
-              (e) => e.reason,
-              'reason',
-              contains('schemaVersion'),
-            ),
-          ),
-        );
-      },
-    );
+    test('schemaVersion of wrong type (string) throws ImportValidationException', () {
+      expect(
+        () => Envelope.parse(<String, Object?>{'schemaVersion': 'one', 'type': 'session', 'payload': <String, Object?>{}}),
+        throwsA(isA<ImportValidationException>().having((e) => e.reason, 'reason', contains('schemaVersion'))),
+      );
+    });
 
     test('empty type throws ImportValidationException', () {
       expect(
-        () => Envelope.parse(<String, Object?>{
-          'schemaVersion': 1,
-          'type': '',
-          'payload': <String, Object?>{},
-        }),
+        () => Envelope.parse(<String, Object?>{'schemaVersion': 1, 'type': '', 'payload': <String, Object?>{}}),
         throwsA(isA<ImportValidationException>()),
       );
     });
 
     test('missing type throws ImportValidationException', () {
-      expect(
-        () => Envelope.parse(<String, Object?>{
-          'schemaVersion': 1,
-          'payload': <String, Object?>{},
-        }),
-        throwsA(isA<ImportValidationException>()),
-      );
+      expect(() => Envelope.parse(<String, Object?>{'schemaVersion': 1, 'payload': <String, Object?>{}}), throwsA(isA<ImportValidationException>()));
     });
 
     test('missing payload throws ImportValidationException', () {
       expect(
-        () => Envelope.parse(<String, Object?>{
-          'schemaVersion': 1,
-          'type': 'session',
-        }),
-        throwsA(
-          isA<ImportValidationException>().having(
-            (e) => e.reason,
-            'reason',
-            contains('payload'),
-          ),
-        ),
+        () => Envelope.parse(<String, Object?>{'schemaVersion': 1, 'type': 'session'}),
+        throwsA(isA<ImportValidationException>().having((e) => e.reason, 'reason', contains('payload'))),
       );
     });
 

@@ -28,8 +28,7 @@ abstract class Envelope with _$Envelope {
   const factory Envelope({
     required int schemaVersion,
     required String type,
-    @JsonKey(fromJson: _payloadFromJson, toJson: _payloadToJson)
-    required Map<String, Object?> payload,
+    @JsonKey(fromJson: _payloadFromJson, toJson: _payloadToJson) required Map<String, Object?> payload,
   }) = _Envelope;
 
   /// Parses [json] into an [Envelope].
@@ -40,8 +39,7 @@ abstract class Envelope with _$Envelope {
   /// lives in the static [validateOrThrow] helper; callers that want
   /// the domain exception (`ImportValidationException`) call
   /// [validateOrThrow] first and then [Envelope.fromJson].
-  factory Envelope.fromJson(Map<String, Object?> json) =>
-      _$EnvelopeFromJson(json);
+  factory Envelope.fromJson(Map<String, Object?> json) => _$EnvelopeFromJson(json);
 
   /// Pre-validates [json] and throws [ImportValidationException] on any
   /// missing or malformed required key. Call before [Envelope.fromJson]
@@ -51,23 +49,15 @@ abstract class Envelope with _$Envelope {
   static void validateOrThrow(Map<String, Object?> json) {
     final Object? rawVersion = json['schemaVersion'];
     if (rawVersion is! int) {
-      throw ImportValidationException(
-        reason:
-            'envelope: schemaVersion must be an int, got ${rawVersion?.runtimeType ?? 'missing'}',
-      );
+      throw ImportValidationException(reason: 'envelope: schemaVersion must be an int, got ${rawVersion?.runtimeType ?? 'missing'}');
     }
     final Object? rawType = json['type'];
     if (rawType is! String || rawType.isEmpty) {
-      throw const ImportValidationException(
-        reason: 'envelope: type must be a non-empty string',
-      );
+      throw const ImportValidationException(reason: 'envelope: type must be a non-empty string');
     }
     final Object? rawPayload = json['payload'];
     if (rawPayload is! Map) {
-      throw ImportValidationException(
-        reason:
-            'envelope: payload must be an object, got ${rawPayload?.runtimeType ?? 'missing'}',
-      );
+      throw ImportValidationException(reason: 'envelope: payload must be an object, got ${rawPayload?.runtimeType ?? 'missing'}');
     }
   }
 
@@ -87,12 +77,10 @@ abstract class Envelope with _$Envelope {
 /// representation); we upgrade it to the strictly typed domain form so
 /// the rest of the codebase works with `Object?` values under
 /// `strict-casts`.
-Map<String, Object?> _payloadFromJson(Map<String, dynamic> raw) =>
-    Map<String, Object?>.from(raw);
+Map<String, Object?> _payloadFromJson(Map<String, dynamic> raw) => Map<String, Object?>.from(raw);
 
 /// Converter from `Map<String, Object?>` → JSON for [Envelope.payload].
 ///
 /// Returns a fresh `Map<String, dynamic>` so the caller cannot mutate the
 /// envelope's internal state by editing the returned reference.
-Map<String, dynamic> _payloadToJson(Map<String, Object?> payload) =>
-    Map<String, dynamic>.from(payload);
+Map<String, dynamic> _payloadToJson(Map<String, Object?> payload) => Map<String, dynamic>.from(payload);

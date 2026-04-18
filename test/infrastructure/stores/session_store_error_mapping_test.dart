@@ -49,13 +49,7 @@ void main() {
     const id1 = SessionId('sess_01HRERRORMAPPING01AAAAAAAAAAAA');
     for (final id in <SessionId>[id0, id1]) {
       await store.insert(
-        Session(
-          id: id,
-          displayName: id.value,
-          status: SessionStatus.stopped,
-          startedAtUtc: DateTime.utc(2026, 4, 18, 10),
-          startedAtOffsetMinutes: 120,
-        ),
+        Session(id: id, displayName: id.value, status: SessionStatus.stopped, startedAtUtc: DateTime.utc(2026, 4, 18, 10), startedAtOffsetMinutes: 120),
       );
     }
 
@@ -73,8 +67,7 @@ void main() {
       thrown = e;
     }
     expect(thrown, isA<ConcurrentActivationException>());
-    expect(thrown, isNot(isA<SqliteException>()),
-        reason: 'store layer must NOT leak the raw driver type');
+    expect(thrown, isNot(isA<SqliteException>()), reason: 'store layer must NOT leak the raw driver type');
     expect((thrown as ConcurrentActivationException).attemptedId, id1);
   });
 
@@ -93,13 +86,7 @@ void main() {
         "INSERT INTO t_sessions (id, display_name, status, started_at_utc, "
         "started_at_offset_minutes) VALUES ('sess_RAW2', 'A2', 'active', 2000, 120)",
       ),
-      throwsA(
-        isA<SqliteException>().having(
-          (e) => e.extendedResultCode,
-          'extendedResultCode',
-          kSqliteConstraintUnique,
-        ),
-      ),
+      throwsA(isA<SqliteException>().having((e) => e.extendedResultCode, 'extendedResultCode', kSqliteConstraintUnique)),
     );
   });
 
@@ -110,9 +97,7 @@ void main() {
     // exception must surface unchanged.
     late Object thrown;
     try {
-      await db.customStatement(
-        'INSERT INTO t_does_not_exist (x) VALUES (1)',
-      );
+      await db.customStatement('INSERT INTO t_does_not_exist (x) VALUES (1)');
       fail('expected SqliteException for a missing table insert');
     } on Object catch (e) {
       thrown = e;

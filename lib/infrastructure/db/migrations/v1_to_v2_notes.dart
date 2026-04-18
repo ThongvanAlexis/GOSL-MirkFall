@@ -35,9 +35,7 @@ class V1ToV2Notes {
   /// reports `Not equal: NULL (expected) and '' (actual)` on the notes column.
   static Future<void> apply(Migrator m, int from, int to) async {
     if (from < 2 && to >= 2) {
-      await m.database.customStatement(
-        'ALTER TABLE t_sessions ADD COLUMN "notes" TEXT NULL',
-      );
+      await m.database.customStatement('ALTER TABLE t_sessions ADD COLUMN "notes" TEXT NULL');
     }
   }
 }

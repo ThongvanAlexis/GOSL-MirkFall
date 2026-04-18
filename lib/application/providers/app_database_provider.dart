@@ -40,11 +40,7 @@ Future<AppDatabase> appDatabase(Ref ref) async {
   final supportDir = await getApplicationSupportDirectory();
   final dbFilename = p.join(supportDir.path, kDbFilename);
   final backupDir = Directory(p.join(supportDir.path, kDbBackupDirName));
-  final db = buildAppDatabase(
-    dbFilename: dbFilename,
-    backupDir: backupDir,
-    maxBackups: kMaxDbBackups,
-  );
+  final db = buildAppDatabase(dbFilename: dbFilename, backupDir: backupDir, maxBackups: kMaxDbBackups);
   ref.onDispose(() async {
     await db.close();
   });

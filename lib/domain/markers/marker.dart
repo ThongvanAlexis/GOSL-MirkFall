@@ -27,12 +27,9 @@ part 'marker.g.dart';
 abstract class Marker with _$Marker {
   @Assert('title.trim().isNotEmpty', 'Marker.title must be non-empty')
   factory Marker({
-    @JsonKey(fromJson: markerIdFromJson, toJson: markerIdToJson)
-    required MarkerId id,
-    @JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson)
-    required SessionId sessionId,
-    @JsonKey(fromJson: categoryIdFromJson, toJson: categoryIdToJson)
-    required CategoryId categoryId,
+    @JsonKey(fromJson: markerIdFromJson, toJson: markerIdToJson) required MarkerId id,
+    @JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required SessionId sessionId,
+    @JsonKey(fromJson: categoryIdFromJson, toJson: categoryIdToJson) required CategoryId categoryId,
     required double lat,
     required double lon,
     required String title,

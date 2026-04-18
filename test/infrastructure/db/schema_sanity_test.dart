@@ -38,18 +38,10 @@ void main() {
     final checker = SchemaSanityChecker(db.executor);
 
     final counts = await checker.captureRowCounts();
-    expect(counts.keys, containsAll(<String>[
-      't_sessions',
-      't_markers',
-      't_revealed_tiles',
-      't_marker_categories',
-      't_mirk_styles',
-      't_photos',
-    ]));
+    expect(counts.keys, containsAll(<String>['t_sessions', 't_markers', 't_revealed_tiles', 't_marker_categories', 't_mirk_styles', 't_photos']));
     // Fresh DB — every table empty.
     for (final entry in counts.entries) {
-      expect(entry.value, 0,
-          reason: '${entry.key} should be empty on fresh DB');
+      expect(entry.value, 0, reason: '${entry.key} should be empty on fresh DB');
     }
   });
 
@@ -93,21 +85,20 @@ void main() {
     final after = <String, int>{'t_sessions': 9};
     expect(
       () => checker.assertNoLoss(before, after),
-      throwsA(isA<MigrationFailureException>()
-          .having((MigrationFailureException e) => e.reason, 'reason',
-              allOf(contains('t_sessions'), contains('10'), contains('9')))),
+      throwsA(
+        isA<MigrationFailureException>().having(
+          (MigrationFailureException e) => e.reason,
+          'reason',
+          allOf(contains('t_sessions'), contains('10'), contains('9')),
+        ),
+      ),
     );
   });
 
-  test(
-      'assertNoLoss: missing table key → treated as 0 → throws if before was non-zero',
-      () {
+  test('assertNoLoss: missing table key → treated as 0 → throws if before was non-zero', () {
     final checker = SchemaSanityChecker(db.executor);
     final before = <String, int>{'t_markers': 50};
     final after = <String, int>{}; // no entry
-    expect(
-      () => checker.assertNoLoss(before, after),
-      throwsA(isA<MigrationFailureException>()),
-    );
+    expect(() => checker.assertNoLoss(before, after), throwsA(isA<MigrationFailureException>()));
   });
 }

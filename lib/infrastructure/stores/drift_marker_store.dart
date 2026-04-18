@@ -28,18 +28,17 @@ class DriftMarkerStore implements MarkerStore {
 
   @override
   Future<List<Marker>> listBySession(SessionId sessionId) async {
-    final rows = await (_db.select(_db.markers)
-          ..where((t) => t.sessionId.equals(sessionId.value))
-          ..orderBy([(t) => OrderingTerm(expression: t.createdAtUtc)]))
-        .get();
+    final rows =
+        await (_db.select(_db.markers)
+              ..where((t) => t.sessionId.equals(sessionId.value))
+              ..orderBy([(t) => OrderingTerm(expression: t.createdAtUtc)]))
+            .get();
     return rows.map(_hydrate).toList(growable: false);
   }
 
   @override
   Future<Marker?> findById(MarkerId id) async {
-    final row = await (_db.select(_db.markers)
-          ..where((t) => t.id.equals(id.value)))
-        .getSingleOrNull();
+    final row = await (_db.select(_db.markers)..where((t) => t.id.equals(id.value))).getSingleOrNull();
     return row == null ? null : _hydrate(row);
   }
 
@@ -70,26 +69,26 @@ class DriftMarkerStore implements MarkerStore {
   // -- hydration ---------------------------------------------------------
 
   Marker _hydrate(MarkerRow row) => Marker(
-        id: MarkerId(row.id),
-        sessionId: SessionId(row.sessionId),
-        categoryId: CategoryId(row.categoryId),
-        lat: row.lat,
-        lon: row.lon,
-        title: row.title,
-        createdAtUtc: row.createdAtUtc,
-        createdAtOffsetMinutes: row.createdAtOffsetMinutes,
-        notes: row.notes,
-      );
+    id: MarkerId(row.id),
+    sessionId: SessionId(row.sessionId),
+    categoryId: CategoryId(row.categoryId),
+    lat: row.lat,
+    lon: row.lon,
+    title: row.title,
+    createdAtUtc: row.createdAtUtc,
+    createdAtOffsetMinutes: row.createdAtOffsetMinutes,
+    notes: row.notes,
+  );
 
   MarkersCompanion _toInsertCompanion(Marker m) => MarkersCompanion.insert(
-        id: m.id.value,
-        sessionId: m.sessionId.value,
-        categoryId: m.categoryId.value,
-        lat: m.lat,
-        lon: m.lon,
-        title: m.title,
-        notes: Value(m.notes),
-        createdAtUtc: m.createdAtUtc,
-        createdAtOffsetMinutes: m.createdAtOffsetMinutes,
-      );
+    id: m.id.value,
+    sessionId: m.sessionId.value,
+    categoryId: m.categoryId.value,
+    lat: m.lat,
+    lon: m.lon,
+    title: m.title,
+    notes: Value(m.notes),
+    createdAtUtc: m.createdAtUtc,
+    createdAtOffsetMinutes: m.createdAtOffsetMinutes,
+  );
 }

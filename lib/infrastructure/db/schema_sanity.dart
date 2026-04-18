@@ -27,14 +27,7 @@ class SchemaSanityChecker {
 
   /// MirkFall's six tables, queried in a fixed order so `captureRowCounts`
   /// always returns a stable key set.
-  static const List<String> _tables = <String>[
-    't_sessions',
-    't_markers',
-    't_revealed_tiles',
-    't_marker_categories',
-    't_mirk_styles',
-    't_photos',
-  ];
+  static const List<String> _tables = <String>['t_sessions', 't_markers', 't_revealed_tiles', 't_marker_categories', 't_mirk_styles', 't_photos'];
 
   /// Returns row-count per MirkFall table.
   ///
@@ -45,10 +38,7 @@ class SchemaSanityChecker {
   Future<Map<String, int>> captureRowCounts() async {
     final result = <String, int>{};
     for (final table in _tables) {
-      final row = await _executor.runSelect(
-        'SELECT COUNT(*) AS c FROM $table',
-        const <Object?>[],
-      );
+      final row = await _executor.runSelect('SELECT COUNT(*) AS c FROM $table', const <Object?>[]);
       result[table] = row.first['c']! as int;
     }
     return result;
@@ -66,7 +56,8 @@ class SchemaSanityChecker {
       final afterCount = after[entry.key] ?? 0;
       if (afterCount < entry.value) {
         throw MigrationFailureException(
-          reason: 'row count decreased on ${entry.key}: '
+          reason:
+              'row count decreased on ${entry.key}: '
               '${entry.value} → $afterCount (migration likely dropped data)',
         );
       }

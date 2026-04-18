@@ -15,8 +15,7 @@ class TilePosition {
   final int zoom;
 
   @override
-  bool operator ==(Object other) =>
-      other is TilePosition && other.x == x && other.y == y && other.zoom == zoom;
+  bool operator ==(Object other) => other is TilePosition && other.x == x && other.y == y && other.zoom == zoom;
 
   @override
   int get hashCode => Object.hash(x, y, zoom);
@@ -42,11 +41,7 @@ class TileMath {
   /// Converts a (lat, lon) pair to a tile position at [zoom]. Polar inputs
   /// (|lat| > [maxLatMercator]) are clamped to the Mercator-valid range
   /// before projection so the result is always in `[0, 2^zoom)`.
-  static TilePosition latLonToTile({
-    required double lat,
-    required double lon,
-    required int zoom,
-  }) {
+  static TilePosition latLonToTile({required double lat, required double lon, required int zoom}) {
     final clampedLat = lat.clamp(-maxLatMercator, maxLatMercator);
     final n = pow(2.0, zoom).toDouble();
     final maxIndex = n.toInt() - 1;
@@ -61,11 +56,7 @@ class TileMath {
 
   /// Returns the NW corner of tile ([x], [y], [zoom]) as a `(lat, lon)`
   /// record. Inverse of [latLonToTile] within floor-rounding tolerance.
-  static ({double lat, double lon}) tileToLatLon({
-    required int x,
-    required int y,
-    required int zoom,
-  }) {
+  static ({double lat, double lon}) tileToLatLon({required int x, required int y, required int zoom}) {
     final n = pow(2.0, zoom).toDouble();
     final lon = x / n * 360.0 - 180.0;
     final latRad = atan(_sinh(pi * (1.0 - 2.0 * y / n)));

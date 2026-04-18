@@ -21,19 +21,14 @@ part 'marker_category.g.dart';
 /// seeded by Phase 11; Phase 03 only reserves the ID slot.
 @freezed
 abstract class MarkerCategory with _$MarkerCategory {
-  @Assert(
-    'displayName.trim().isNotEmpty',
-    'MarkerCategory.displayName must be non-empty',
-  )
+  @Assert('displayName.trim().isNotEmpty', 'MarkerCategory.displayName must be non-empty')
   factory MarkerCategory({
-    @JsonKey(fromJson: categoryIdFromJson, toJson: categoryIdToJson)
-    required CategoryId id,
+    @JsonKey(fromJson: categoryIdFromJson, toJson: categoryIdToJson) required CategoryId id,
     required String displayName,
     required String iconName,
     required DateTime createdAtUtc,
     required int createdAtOffsetMinutes,
   }) = _MarkerCategory;
 
-  factory MarkerCategory.fromJson(Map<String, Object?> json) =>
-      _$MarkerCategoryFromJson(json);
+  factory MarkerCategory.fromJson(Map<String, Object?> json) => _$MarkerCategoryFromJson(json);
 }

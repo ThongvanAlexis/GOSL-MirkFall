@@ -33,8 +33,7 @@ void main() {
   });
 
   group('V1→V2 migration (notes column)', () {
-    test(
-        'single session row preserved, notes defaults to NULL, column is '
+    test('single session row preserved, notes defaults to NULL, column is '
         'writeable', () async {
       // Setup: open the schema at V1 + insert a session row in V1 shape
       // (DatabaseAtV1 has schemaVersion=1 so opening it does not trigger
@@ -60,11 +59,13 @@ void main() {
         await verifier.migrateAndValidate(prodDb, 2);
 
         // Assert: row survived + notes is NULL + notes is writeable.
-        final rows = await prodDb.customSelect(
-          "SELECT id, display_name, status, started_at_utc, "
-          "started_at_offset_minutes, notes "
-          "FROM t_sessions WHERE id = 'sess_01HRMIGRATIONTESTAAAAAAAAA'",
-        ).get();
+        final rows = await prodDb
+            .customSelect(
+              "SELECT id, display_name, status, started_at_utc, "
+              "started_at_offset_minutes, notes "
+              "FROM t_sessions WHERE id = 'sess_01HRMIGRATIONTESTAAAAAAAAA'",
+            )
+            .get();
         expect(rows, hasLength(1));
         final row = rows.single;
         expect(row.read<String>('id'), 'sess_01HRMIGRATIONTESTAAAAAAAAA');
@@ -81,20 +82,20 @@ void main() {
           "UPDATE t_sessions SET notes = 'Added after migration' "
           "WHERE id = 'sess_01HRMIGRATIONTESTAAAAAAAAA'",
         );
-        final reread = await prodDb.customSelect(
-          "SELECT notes FROM t_sessions "
-          "WHERE id = 'sess_01HRMIGRATIONTESTAAAAAAAAA'",
-        ).getSingle();
+        final reread = await prodDb
+            .customSelect(
+              "SELECT notes FROM t_sessions "
+              "WHERE id = 'sess_01HRMIGRATIONTESTAAAAAAAAA'",
+            )
+            .getSingle();
         expect(reread.read<String>('notes'), 'Added after migration');
       } finally {
         await prodDb.close();
       }
     });
 
-    test(
-        'full v1_baseline.sql fixture (70 rows) survives V1→V2 migration '
-        'with row counts preserved end-to-end (SchemaSanityChecker)',
-        () async {
+    test('full v1_baseline.sql fixture (70 rows) survives V1→V2 migration '
+        'with row counts preserved end-to-end (SchemaSanityChecker)', () async {
       // Load the 03-01 fixture into a V1 schema, migrate to V2, prove row
       // counts preserved via SchemaSanityChecker (the exact integration path
       // Phase 05 AppDatabaseProvider will run: capture → migrate → capture →
@@ -103,13 +104,7 @@ void main() {
       final seedDb = v1.DatabaseAtV1(schema.newConnection());
       final Map<String, int> before;
       try {
-        final sqlFilename = p.join(
-          Directory.current.path,
-          'test',
-          'fixtures',
-          'db_seed',
-          'v1_baseline.sql',
-        );
+        final sqlFilename = p.join(Directory.current.path, 'test', 'fixtures', 'db_seed', 'v1_baseline.sql');
         final sqlSeed = File(sqlFilename).readAsStringSync();
 
         // Strip SQL line comments BEFORE splitting on `;` — some comment
@@ -126,10 +121,7 @@ void main() {
             })
             .join('\n');
 
-        for (final stmt in stripped
-            .split(';')
-            .map((String s) => s.trim())
-            .where((String s) => s.isNotEmpty)) {
+        for (final stmt in stripped.split(';').map((String s) => s.trim()).where((String s) => s.isNotEmpty)) {
           await seedDb.customStatement(stmt);
         }
 

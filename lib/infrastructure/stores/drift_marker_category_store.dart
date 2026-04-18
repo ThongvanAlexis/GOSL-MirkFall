@@ -32,17 +32,13 @@ class DriftMarkerCategoryStore implements MarkerCategoryStore {
 
   @override
   Future<List<MarkerCategory>> listAll() async {
-    final rows = await (_db.select(_db.markerCategories)
-          ..orderBy([(t) => OrderingTerm(expression: t.displayName)]))
-        .get();
+    final rows = await (_db.select(_db.markerCategories)..orderBy([(t) => OrderingTerm(expression: t.displayName)])).get();
     return rows.map(_hydrate).toList(growable: false);
   }
 
   @override
   Future<MarkerCategory?> findById(CategoryId id) async {
-    final row = await (_db.select(_db.markerCategories)
-          ..where((t) => t.id.equals(id.value)))
-        .getSingleOrNull();
+    final row = await (_db.select(_db.markerCategories)..where((t) => t.id.equals(id.value))).getSingleOrNull();
     return row == null ? null : _hydrate(row);
   }
 
@@ -57,9 +53,7 @@ class DriftMarkerCategoryStore implements MarkerCategoryStore {
 
   @override
   Future<void> insert(MarkerCategory category) async {
-    await _db
-        .into(_db.markerCategories)
-        .insert(_toInsertCompanion(category));
+    await _db.into(_db.markerCategories).insert(_toInsertCompanion(category));
   }
 
   @override
@@ -70,44 +64,30 @@ class DriftMarkerCategoryStore implements MarkerCategoryStore {
   @override
   Future<void> delete(CategoryId id) async {
     if (id == kCategoryDefaultId) {
-      final countRow = await _db
-          .customSelect(
-            'SELECT COUNT(*) AS c FROM t_markers WHERE category_id = ?',
-            variables: [Variable<String>(id.value)],
-          )
-          .getSingle();
-      throw CategoryInUseException(
-        id: id,
-        markerCount: countRow.read<int>('c'),
-      );
+      final countRow = await _db.customSelect('SELECT COUNT(*) AS c FROM t_markers WHERE category_id = ?', variables: [Variable<String>(id.value)]).getSingle();
+      throw CategoryInUseException(id: id, markerCount: countRow.read<int>('c'));
     }
     await _db.transaction(() async {
-      await _db.customStatement(
-        'UPDATE t_markers SET category_id = ? WHERE category_id = ?',
-        <Object?>[kCategoryDefaultId.value, id.value],
-      );
-      await (_db.delete(_db.markerCategories)
-            ..where((t) => t.id.equals(id.value)))
-          .go();
+      await _db.customStatement('UPDATE t_markers SET category_id = ? WHERE category_id = ?', <Object?>[kCategoryDefaultId.value, id.value]);
+      await (_db.delete(_db.markerCategories)..where((t) => t.id.equals(id.value))).go();
     });
   }
 
   // -- hydration ---------------------------------------------------------
 
   MarkerCategory _hydrate(MarkerCategoryRow row) => MarkerCategory(
-        id: CategoryId(row.id),
-        displayName: row.displayName,
-        iconName: row.iconName,
-        createdAtUtc: row.createdAtUtc,
-        createdAtOffsetMinutes: row.createdAtOffsetMinutes,
-      );
+    id: CategoryId(row.id),
+    displayName: row.displayName,
+    iconName: row.iconName,
+    createdAtUtc: row.createdAtUtc,
+    createdAtOffsetMinutes: row.createdAtOffsetMinutes,
+  );
 
-  MarkerCategoriesCompanion _toInsertCompanion(MarkerCategory c) =>
-      MarkerCategoriesCompanion.insert(
-        id: c.id.value,
-        displayName: c.displayName,
-        iconName: c.iconName,
-        createdAtUtc: c.createdAtUtc,
-        createdAtOffsetMinutes: c.createdAtOffsetMinutes,
-      );
+  MarkerCategoriesCompanion _toInsertCompanion(MarkerCategory c) => MarkerCategoriesCompanion.insert(
+    id: c.id.value,
+    displayName: c.displayName,
+    iconName: c.iconName,
+    createdAtUtc: c.createdAtUtc,
+    createdAtOffsetMinutes: c.createdAtOffsetMinutes,
+  );
 }

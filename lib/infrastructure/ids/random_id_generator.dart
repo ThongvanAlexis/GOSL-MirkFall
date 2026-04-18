@@ -19,6 +19,5 @@ class RandomIdGenerator implements IdGenerator {
   final Random _rng;
 
   @override
-  String newId(String prefix) =>
-      '$prefix${Ulid.generate(now: DateTime.now().toUtc(), rng: _rng)}';
+  String newId(String prefix) => '$prefix${Ulid.generate(now: DateTime.now().toUtc(), rng: _rng)}';
 }

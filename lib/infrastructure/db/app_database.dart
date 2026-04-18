@@ -40,8 +40,7 @@ class Sessions extends Table {
   TextColumn get id => text()();
   TextColumn get displayName => text()();
   TextColumn get status => text()();
-  IntColumn get startedAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get startedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   // Drift's `check()` takes an `Expression<bool>` that references the column
   // itself — the self-reference is the documented pattern (see
   // https://drift.simonbinder.eu/docs/getting-started/advanced_dart_tables/
@@ -52,8 +51,7 @@ class Sessions extends Table {
   IntColumn get startedAtOffsetMinutes =>
       // ignore: recursive_getters
       integer().check(startedAtOffsetMinutes.isBetweenValues(-720, 840))();
-  IntColumn get stoppedAtUtc =>
-      integer().nullable().map(const UnixMsToDateTimeConverter())();
+  IntColumn get stoppedAtUtc => integer().nullable().map(const UnixMsToDateTimeConverter())();
   IntColumn get stoppedAtOffsetMinutes => integer().nullable()();
 
   // V2: fictive notes column — see migrations/v1_to_v2_notes.dart for
@@ -77,8 +75,7 @@ class MarkerCategories extends Table {
   TextColumn get id => text()();
   TextColumn get displayName => text()();
   TextColumn get iconName => text()();
-  IntColumn get createdAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   IntColumn get createdAtOffsetMinutes => integer()();
 
   @override
@@ -94,26 +91,20 @@ class MarkerCategories extends Table {
 ///   `MarkerCategoryStore.delete` impl (03-06) reassigns markers to
 ///   `kCategoryDefaultId` inside a transaction before deleting the category.
 @DataClassName('MarkerRow')
-@TableIndex.sql(
-  'CREATE INDEX idx_t_markers_session_id ON t_markers(session_id);',
-)
-@TableIndex.sql(
-  'CREATE INDEX idx_t_markers_category_id ON t_markers(category_id);',
-)
+@TableIndex.sql('CREATE INDEX idx_t_markers_session_id ON t_markers(session_id);')
+@TableIndex.sql('CREATE INDEX idx_t_markers_category_id ON t_markers(category_id);')
 class Markers extends Table {
   @override
   String get tableName => 't_markers';
 
   TextColumn get id => text()();
-  TextColumn get sessionId =>
-      text().references(Sessions, #id, onDelete: KeyAction.cascade)();
+  TextColumn get sessionId => text().references(Sessions, #id, onDelete: KeyAction.cascade)();
   TextColumn get categoryId => text().references(MarkerCategories, #id)();
   RealColumn get lat => real()();
   RealColumn get lon => real()();
   TextColumn get title => text()();
   TextColumn get notes => text().nullable()();
-  IntColumn get createdAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   IntColumn get createdAtOffsetMinutes => integer()();
 
   @override
@@ -134,23 +125,21 @@ class RevealedTiles extends Table {
   String get tableName => 't_revealed_tiles';
 
   TextColumn get id => text()();
-  TextColumn get sessionId =>
-      text().references(Sessions, #id, onDelete: KeyAction.cascade)();
+  TextColumn get sessionId => text().references(Sessions, #id, onDelete: KeyAction.cascade)();
   IntColumn get parentX => integer()();
   IntColumn get parentY => integer()();
   IntColumn get parentZoom => integer().withDefault(const Constant(14))();
   BlobColumn get bitmap => blob()();
   IntColumn get setBitCount => integer().withDefault(const Constant(0))();
-  IntColumn get updatedAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get updatedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
 
   @override
   List<Set<Column<Object>>> get uniqueKeys => [
-        {sessionId, parentX, parentY, parentZoom},
-      ];
+    {sessionId, parentX, parentY, parentZoom},
+  ];
 }
 
 /// `t_mirk_styles` — renderer configurations. `renderer_type` is a denormalized
@@ -164,10 +153,8 @@ class MirkStyles extends Table {
   TextColumn get id => text()();
   TextColumn get displayName => text()();
   TextColumn get rendererType => text()();
-  TextColumn get config =>
-      text().map(const MirkStyleConfigJsonConverter())();
-  IntColumn get createdAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
+  TextColumn get config => text().map(const MirkStyleConfigJsonConverter())();
+  IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   IntColumn get createdAtOffsetMinutes => integer()();
 
   @override
@@ -184,14 +171,12 @@ class Photos extends Table {
   String get tableName => 't_photos';
 
   TextColumn get id => text()();
-  TextColumn get markerId =>
-      text().references(Markers, #id, onDelete: KeyAction.cascade)();
+  TextColumn get markerId => text().references(Markers, #id, onDelete: KeyAction.cascade)();
   TextColumn get relativeBasename => text()();
   IntColumn get widthPx => integer()();
   IntColumn get heightPx => integer()();
   IntColumn get fileSizeBytes => integer()();
-  IntColumn get createdAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   IntColumn get createdAtOffsetMinutes => integer()();
 
   @override
@@ -218,9 +203,7 @@ class Photos extends Table {
 /// 2. `MigrationStrategy.beforeOpen` calls [applyRuntimePragmas] to set the
 ///    other three pragmas (synchronous, busy_timeout, foreign_keys) on every
 ///    cold + warm open.
-@DriftDatabase(
-  tables: [Sessions, MarkerCategories, Markers, RevealedTiles, MirkStyles, Photos],
-)
+@DriftDatabase(tables: [Sessions, MarkerCategories, Markers, RevealedTiles, MirkStyles, Photos])
 class AppDatabase extends _$AppDatabase {
   /// Creates an [AppDatabase] backed by [executor].
   ///
@@ -228,10 +211,7 @@ class AppDatabase extends _$AppDatabase {
   /// true`, BEFORE `onUpgrade` runs. Kept nullable so tests + first-open
   /// (`onCreate`) paths don't need to provide one. 03-05 injects the real
   /// backup hook at the factory level.
-  AppDatabase(
-    super.executor, {
-    this.onBeforeUpgrade,
-  });
+  AppDatabase(super.executor, {this.onBeforeUpgrade});
 
   /// Pre-upgrade hook — see constructor docstring.
   final Future<void> Function(OpeningDetails details)? onBeforeUpgrade;
@@ -241,15 +221,15 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (Migrator m) => m.createAll(),
-        onUpgrade: (Migrator m, int from, int to) async {
-          await V1ToV2Notes.apply(m, from, to);
-        },
-        beforeOpen: (OpeningDetails details) async {
-          if (details.hadUpgrade && onBeforeUpgrade != null) {
-            await onBeforeUpgrade!(details);
-          }
-          await applyRuntimePragmas(this);
-        },
-      );
+    onCreate: (Migrator m) => m.createAll(),
+    onUpgrade: (Migrator m, int from, int to) async {
+      await V1ToV2Notes.apply(m, from, to);
+    },
+    beforeOpen: (OpeningDetails details) async {
+      if (details.hadUpgrade && onBeforeUpgrade != null) {
+        await onBeforeUpgrade!(details);
+      }
+      await applyRuntimePragmas(this);
+    },
+  );
 }

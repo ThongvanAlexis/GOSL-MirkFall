@@ -20,11 +20,7 @@ abstract class RevealedTileStore {
 
   /// Returns the revealed tile at `(parentX, parentY)` for [sessionId],
   /// or null if no row has been written yet.
-  Future<RevealedTile?> findByParent({
-    required SessionId sessionId,
-    required int parentX,
-    required int parentY,
-  });
+  Future<RevealedTile?> findByParent({required SessionId sessionId, required int parentX, required int parentY});
 
   /// Merges [mask] into the bitmap for `(sessionId, parentX, parentY)` at
   /// the default parent zoom (`kRevealedTileParentZoom` = 14).
@@ -37,10 +33,5 @@ abstract class RevealedTileStore {
   ///
   /// [mask] MUST be exactly `kRevealedTileBitmapBytes` long (512 bytes).
   /// Implementations throw `ArgumentError` on a mask of wrong length.
-  Future<void> mergeMask({
-    required SessionId sessionId,
-    required int parentX,
-    required int parentY,
-    required Uint8List mask,
-  });
+  Future<void> mergeMask({required SessionId sessionId, required int parentX, required int parentY, required Uint8List mask});
 }

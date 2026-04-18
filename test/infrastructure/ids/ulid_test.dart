@@ -30,11 +30,7 @@ void main() {
       final later = Ulid.generate(now: DateTime(2026, 5, 18), rng: Random(42));
       // Time part = first 10 chars; random tail identical due to same seed.
       expect(earlier.compareTo(later), lessThan(0));
-      expect(
-        earlier.substring(10),
-        later.substring(10),
-        reason: 'random tail should be identical with fixed seed',
-      );
+      expect(earlier.substring(10), later.substring(10), reason: 'random tail should be identical with fixed seed');
     });
 
     test('same seed and same timestamp produce identical IDs (reproducibility)', () {

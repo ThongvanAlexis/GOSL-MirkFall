@@ -23,11 +23,7 @@ void main() {
 
     test('v1 to v2 rename applies and preserves other keys', () {
       final mig = JsonMigrator([V1ToV2RenameRadius()]);
-      final out = mig.migrate(
-        fromVersion: 1,
-        toVersion: 2,
-        payload: {'mirk_radius_m': 50, 'displayName': 'Paris', 'other': 3.14},
-      );
+      final out = mig.migrate(fromVersion: 1, toVersion: 2, payload: {'mirk_radius_m': 50, 'displayName': 'Paris', 'other': 3.14});
       expect(out, {'reveal_radius_m': 50, 'displayName': 'Paris', 'other': 3.14});
     });
 
@@ -35,55 +31,35 @@ void main() {
       // Other keys still pass through; the rename is conditional on the
       // source key being present.
       final mig = JsonMigrator([V1ToV2RenameRadius()]);
-      final out = mig.migrate(
-        fromVersion: 1,
-        toVersion: 2,
-        payload: {'displayName': 'Paris'},
-      );
+      final out = mig.migrate(fromVersion: 1, toVersion: 2, payload: {'displayName': 'Paris'});
       expect(out, {'displayName': 'Paris'});
       expect(out.containsKey('reveal_radius_m'), isFalse);
     });
 
     test('no matching migrator throws MigrationFailureException', () {
       final mig = JsonMigrator(<V1ToV2RenameRadius>[]);
-      expect(
-        () => mig.migrate(fromVersion: 1, toVersion: 2, payload: <String, Object?>{}),
-        throwsA(isA<MigrationFailureException>()),
-      );
+      expect(() => mig.migrate(fromVersion: 1, toVersion: 2, payload: <String, Object?>{}), throwsA(isA<MigrationFailureException>()));
     });
 
     test('v1 to v3 with only v1 to v2 registered throws MigrationFailureException', () {
       final mig = JsonMigrator([V1ToV2RenameRadius()]);
-      expect(
-        () => mig.migrate(fromVersion: 1, toVersion: 3, payload: <String, Object?>{}),
-        throwsA(isA<MigrationFailureException>()),
-      );
+      expect(() => mig.migrate(fromVersion: 1, toVersion: 3, payload: <String, Object?>{}), throwsA(isA<MigrationFailureException>()));
     });
 
     test('downgrade rejected with MigrationFailureException', () {
       final mig = JsonMigrator([V1ToV2RenameRadius()]);
-      expect(
-        () => mig.migrate(fromVersion: 2, toVersion: 1, payload: <String, Object?>{}),
-        throwsA(isA<MigrationFailureException>()),
-      );
+      expect(() => mig.migrate(fromVersion: 2, toVersion: 1, payload: <String, Object?>{}), throwsA(isA<MigrationFailureException>()));
     });
 
     test('V1ToV2RenameRadius does not mutate input map', () {
       final input = <String, Object?>{'mirk_radius_m': 50};
       V1ToV2RenameRadius().apply(input);
-      expect(
-        input,
-        {'mirk_radius_m': 50},
-        reason: 'input was mutated — immutability contract violated',
-      );
+      expect(input, {'mirk_radius_m': 50}, reason: 'input was mutated — immutability contract violated');
     });
 
     test('IdentityMigrationV1 sentinel never matches a real version transition', () {
       final mig = JsonMigrator([IdentityMigrationV1()]);
-      expect(
-        () => mig.migrate(fromVersion: 1, toVersion: 2, payload: <String, Object?>{}),
-        throwsA(isA<MigrationFailureException>()),
-      );
+      expect(() => mig.migrate(fromVersion: 1, toVersion: 2, payload: <String, Object?>{}), throwsA(isA<MigrationFailureException>()));
     });
 
     test('IdentityMigrationV1 alongside V1ToV2RenameRadius does not double-match', () {
@@ -91,24 +67,13 @@ void main() {
       // it to the migration list must not trigger the "multiple migrators"
       // failure path on the v1 to v2 transition.
       final mig = JsonMigrator([IdentityMigrationV1(), V1ToV2RenameRadius()]);
-      final out = mig.migrate(
-        fromVersion: 1,
-        toVersion: 2,
-        payload: {'mirk_radius_m': 7},
-      );
+      final out = mig.migrate(fromVersion: 1, toVersion: 2, payload: {'mirk_radius_m': 7});
       expect(out, {'reveal_radius_m': 7});
     });
 
     test('multiple migrators registered for the same step throws', () {
       final mig = JsonMigrator([V1ToV2RenameRadius(), V1ToV2RenameRadius()]);
-      expect(
-        () => mig.migrate(
-          fromVersion: 1,
-          toVersion: 2,
-          payload: <String, Object?>{'mirk_radius_m': 1},
-        ),
-        throwsA(isA<MigrationFailureException>()),
-      );
+      expect(() => mig.migrate(fromVersion: 1, toVersion: 2, payload: <String, Object?>{'mirk_radius_m': 1}), throwsA(isA<MigrationFailureException>()));
     });
   });
 }

@@ -48,24 +48,16 @@ void main() {
         )
         .get();
     final names = rows.map((r) => r.read<String>('name')).toList();
-    expect(
-      names,
-      containsAll(<String>[
-        't_marker_categories',
-        't_markers',
-        't_mirk_styles',
-        't_photos',
-        't_revealed_tiles',
-        't_sessions',
-      ]),
-    );
+    expect(names, containsAll(<String>['t_marker_categories', 't_markers', 't_mirk_styles', 't_photos', 't_revealed_tiles', 't_sessions']));
   });
 
   test('SESS-06: idx_t_sessions_status_active partial unique index exists', () async {
-    final rows = await db.customSelect(
-      "SELECT name, sql FROM sqlite_master "
-      "WHERE type='index' AND name='idx_t_sessions_status_active'",
-    ).get();
+    final rows = await db
+        .customSelect(
+          "SELECT name, sql FROM sqlite_master "
+          "WHERE type='index' AND name='idx_t_sessions_status_active'",
+        )
+        .get();
     expect(rows, hasLength(1));
     final sql = rows.single.read<String>('sql').toLowerCase();
     expect(sql, contains('where'));
@@ -73,9 +65,7 @@ void main() {
     expect(sql, contains("'active'"));
   });
 
-  test(
-      'SESS-06: partial unique index blocks second active, allows multiple stopped',
-      () async {
+  test('SESS-06: partial unique index blocks second active, allows multiple stopped', () async {
     await db.customStatement(
       "INSERT INTO t_sessions (id, display_name, status, started_at_utc, "
       "started_at_offset_minutes) VALUES ('sess_S1', 'S1', 'stopped', 1000, 120)",
@@ -93,18 +83,11 @@ void main() {
         "INSERT INTO t_sessions (id, display_name, status, started_at_utc, "
         "started_at_offset_minutes) VALUES ('sess_A2', 'A2', 'active', 4000, 120)",
       ),
-      throwsA(
-        isA<SqliteException>().having(
-          (e) => e.extendedResultCode,
-          'extendedResultCode',
-          _sqliteConstraintUnique,
-        ),
-      ),
+      throwsA(isA<SqliteException>().having((e) => e.extendedResultCode, 'extendedResultCode', _sqliteConstraintUnique)),
     );
   });
 
-  test('MIRK-03: t_revealed_tiles composite unique key enforces idempotence',
-      () async {
+  test('MIRK-03: t_revealed_tiles composite unique key enforces idempotence', () async {
     await db.customStatement(
       "INSERT INTO t_sessions (id, display_name, status, started_at_utc, "
       "started_at_offset_minutes) VALUES ('sess_T', 'T', 'stopped', 1000, 120)",
@@ -120,18 +103,11 @@ void main() {
         "parent_zoom, bitmap, set_bit_count, updated_at_utc) "
         "VALUES ('rvt_2', 'sess_T', 10, 20, 14, zeroblob(512), 0, 1000)",
       ),
-      throwsA(
-        isA<SqliteException>().having(
-          (e) => e.extendedResultCode,
-          'extendedResultCode',
-          _sqliteConstraintUnique,
-        ),
-      ),
+      throwsA(isA<SqliteException>().having((e) => e.extendedResultCode, 'extendedResultCode', _sqliteConstraintUnique)),
     );
   });
 
-  test('CASCADE: deleting a session removes its markers + revealed_tiles',
-      () async {
+  test('CASCADE: deleting a session removes its markers + revealed_tiles', () async {
     await db.customStatement("SELECT 1");
     await db.customStatement(
       "INSERT INTO t_marker_categories (id, display_name, icon_name, "
@@ -155,11 +131,7 @@ void main() {
 
     await db.customStatement("DELETE FROM t_sessions WHERE id = 'sess_C'");
 
-    final markerCount = await db
-        .customSelect(
-          "SELECT COUNT(*) AS c FROM t_markers WHERE session_id = 'sess_C'",
-        )
-        .getSingle();
+    final markerCount = await db.customSelect("SELECT COUNT(*) AS c FROM t_markers WHERE session_id = 'sess_C'").getSingle();
     expect(markerCount.read<int>('c'), 0, reason: 'CASCADE should remove markers');
 
     final tileCount = await db
@@ -171,13 +143,8 @@ void main() {
     expect(tileCount.read<int>('c'), 0, reason: 'CASCADE should remove revealed_tiles');
 
     // Category stays — marker.category_id is NOT cascade (reassign transactional).
-    final catCount = await db
-        .customSelect(
-          "SELECT COUNT(*) AS c FROM t_marker_categories WHERE id = 'cat_default'",
-        )
-        .getSingle();
-    expect(catCount.read<int>('c'), 1,
-        reason: 'category deletion is transactional-reassign, not cascade');
+    final catCount = await db.customSelect("SELECT COUNT(*) AS c FROM t_marker_categories WHERE id = 'cat_default'").getSingle();
+    expect(catCount.read<int>('c'), 1, reason: 'category deletion is transactional-reassign, not cascade');
   });
 
   test('schemaVersion is 2 (V2 — notes column shipped)', () async {
@@ -185,15 +152,9 @@ void main() {
   });
 
   test('t_sessions.notes column exists (V2 shape)', () async {
-    final rows = await db
-        .customSelect("PRAGMA table_info('t_sessions')")
-        .get();
-    final notesCol = rows
-        .where((r) => r.read<String>('name') == 'notes')
-        .toList();
-    expect(notesCol, hasLength(1),
-        reason: 'V2 schema must include the notes column');
-    expect(notesCol.single.read<int>('notnull'), 0,
-        reason: 'notes must be nullable');
+    final rows = await db.customSelect("PRAGMA table_info('t_sessions')").get();
+    final notesCol = rows.where((r) => r.read<String>('name') == 'notes').toList();
+    expect(notesCol, hasLength(1), reason: 'V2 schema must include the notes column');
+    expect(notesCol.single.read<int>('notnull'), 0, reason: 'notes must be nullable');
   });
 }
