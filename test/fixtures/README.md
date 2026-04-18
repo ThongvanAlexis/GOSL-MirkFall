@@ -9,8 +9,12 @@ not build artifacts — commit every change.
   `MirkStyleConfig.fromJson` (03-03).
 - `db_seed/` — hand-written SQL INSERT scripts seeding `NativeDatabase.memory()`
   in migration + identity tests (03-04, 03-05).
-- `drift_schemas/` — produced by `dart run drift_dev schema dump` (populated
-  by 03-04 once `lib/infrastructure/db/app_database.dart` exists).
+
+Frozen Drift schema dumps live in the repo root at `drift_schemas/`
+(outside `test/fixtures/`), alongside the `lib/infrastructure/db/` source
+they mirror. Finding #33 (Batch J) — earlier drafts of this README
+pointed to `test/fixtures/drift_schemas/`, which never existed; the
+reference is corrected here.
 
 ## Conventions
 

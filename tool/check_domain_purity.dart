@@ -22,13 +22,23 @@ import 'package:path/path.dart' as p;
 /// found, 2 = misconfiguration (root missing, unreadable, etc.).
 const List<String> _excludedSuffixes = <String>['.g.dart', '.freezed.dart', '.gr.dart', '.config.dart', '.mocks.dart'];
 
-/// Forbidden-package matcher. Anchored on `package:flutter/...` and
-/// `package:drift/...` only — `package:drift_dev/` is dev-only codegen
-/// and would never appear at runtime under `lib/`, but if it ever did
-/// the broader `package:drift` prefix already catches it via the slash
+/// Forbidden-package matcher. Anchored on `package:flutter/...`,
+/// `package:drift/...`, and `package:drift_flutter/...` (finding #31 /
+/// Batch J — the latter transitively pulls `package:flutter/material.dart`
+/// and exposes `driftDatabase(...)`, either of which would sneak a
+/// Flutter dependency into domain purity). `package:drift_dev/` is
+/// dev-only codegen and would never appear under `lib/`, but if it ever
+/// did the broader `package:drift` prefix catches it via the slash
 /// boundary or the closing quote (the alternation `(?:/|['"])` accepts
 /// either a path separator or the import string's terminator).
-final RegExp _forbiddenPattern = RegExp(r"""^\s*import\s+['"]package:(flutter|drift)(?:/|['"])""");
+///
+/// Note on prefix overlap: `drift_flutter` would already match the
+/// `drift` prefix WITHOUT the slash-or-quote anchor (no separator for
+/// `drift_f...`). Without the explicit `drift_flutter` arm, the regex
+/// would NOT match `package:drift_flutter/` because the character after
+/// `drift` is `_`, which is neither `/` nor a quote. Adding
+/// `drift_flutter` as its own alternation arm closes that loophole.
+final RegExp _forbiddenPattern = RegExp(r"""^\s*import\s+['"]package:(flutter|drift_flutter|drift)(?:/|['"])""");
 
 /// Runs the scan against [rootPath] (default `lib/domain`).
 ///

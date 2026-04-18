@@ -61,6 +61,16 @@ void main() {
       expect(code, 1);
     });
 
+    test('returns 1 when a domain file imports package:drift_flutter '
+        '(finding #31 / Batch J — drift_flutter is Flutter-coupled)', () async {
+      await File(
+        p.join(domainRoot, 'bad_drift_flutter.dart'),
+      ).writeAsString('$_gosl\nimport \'package:drift_flutter/drift_flutter.dart\';\n\nclass DomainWithDriftFlutter {}\n');
+
+      final int code = await check_domain_purity.runCheck(rootPath: domainRoot);
+      expect(code, 1);
+    });
+
     test('returns 2 when lib/domain/ does not exist (misconfiguration)', () async {
       final int code = await check_domain_purity.runCheck(rootPath: p.join(tempDir.path, 'nonexistent_domain'));
       expect(code, 2);

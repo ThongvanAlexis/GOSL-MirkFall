@@ -2,6 +2,12 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+// Finding #6 (Batch J) — migration tag discipline restored.
+// SchemaVerifier is slow; tag pins this test to `dart test -t migration`
+// just like migration_v1_to_v2_test.dart.
+@Tags(<String>['migration'])
+library;
+
 import 'dart:io';
 
 import 'package:drift_dev/api/migrations_native.dart';
@@ -26,11 +32,20 @@ void main() {
       final sqlFilename = p.join(Directory.current.path, 'test', 'fixtures', 'db_seed', 'v1_baseline.sql');
       final sqlSeed = File(sqlFilename).readAsStringSync();
 
-      // Strip SQL line comments BEFORE splitting on ';' — some comments
-      // contain ';' in the prose (e.g. "'stopped'; partial unique index...")
-      // and a naive split-then-filter would execute the post-';' prose
-      // fragment as SQL.
-      final stripped = sqlSeed
+      // Strip SQL line comments AND block comments BEFORE splitting on ';' —
+      // some comments contain ';' in the prose (e.g. "'stopped'; partial
+      // unique index...") and a naive split-then-filter would execute the
+      // post-';' prose fragment as SQL.
+      //
+      // Finding #30 (Batch J) — previously only line comments (`-- ...`)
+      // were stripped; `/* block comments */` fell through and similarly
+      // risked containing `;`. The block-comment pass is minimal: a
+      // non-greedy regex `/\* ... \*/` over the multiline source (dotAll
+      // so it crosses line boundaries). SQL string literals containing
+      // `/*` are rare in our fixtures; if that changes, upgrade to a
+      // proper tokenizer.
+      final blockCommentStripped = sqlSeed.replaceAll(RegExp(r'/\*.*?\*/', dotAll: true), '');
+      final stripped = blockCommentStripped
           .split('\n')
           .map((line) {
             final trimmed = line.trimLeft();

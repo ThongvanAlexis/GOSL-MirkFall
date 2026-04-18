@@ -51,7 +51,11 @@ void main() {
         final sqlFilename = p.join(Directory.current.path, 'test', 'fixtures', 'db_seed', 'v1_baseline.sql');
         final sqlSeed = File(sqlFilename).readAsStringSync();
 
-        final stripped = sqlSeed
+        // Block-comment strip added by finding #30 (Batch J) so this test
+        // shares the same tokenization contract as the two Phase 03 SQL
+        // loaders.
+        final blockCommentStripped = sqlSeed.replaceAll(RegExp(r'/\*.*?\*/', dotAll: true), '');
+        final stripped = blockCommentStripped
             .split('\n')
             .map((String line) {
               final trimmed = line.trimLeft();

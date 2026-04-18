@@ -107,12 +107,14 @@ void main() {
         final sqlFilename = p.join(Directory.current.path, 'test', 'fixtures', 'db_seed', 'v1_baseline.sql');
         final sqlSeed = File(sqlFilename).readAsStringSync();
 
-        // Strip SQL line comments BEFORE splitting on `;` — some comment
-        // prose contains `;` (e.g. "'stopped'; partial unique index...") and
-        // a naive split would execute the post-`;` fragment as SQL. This is
-        // the same pattern used by v1_identity_fixture_test.dart (Task 3 of
-        // 03-04).
-        final stripped = sqlSeed
+        // Strip SQL line AND block comments BEFORE splitting on `;` — some
+        // comment prose contains `;` (e.g. "'stopped'; partial unique
+        // index...") and a naive split would execute the post-`;` fragment
+        // as SQL. This is the same pattern used by
+        // v1_identity_fixture_test.dart (Task 3 of 03-04), now extended for
+        // finding #30 (Batch J) to cover `/* block comments */` too.
+        final blockCommentStripped = sqlSeed.replaceAll(RegExp(r'/\*.*?\*/', dotAll: true), '');
+        final stripped = blockCommentStripped
             .split('\n')
             .map((String line) {
               final trimmed = line.trimLeft();

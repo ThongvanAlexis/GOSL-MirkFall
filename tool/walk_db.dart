@@ -59,6 +59,26 @@ Future<void> main() async {
   // Force the lazy open so WAL + pragma setup actually fire before we
   // inspect the filesystem.
   await db.customSelect('SELECT 1').get();
+
+  // Finding P5 (Batch J) — probe the 5 pragmas authoritatively through the
+  // live Drift connection BEFORE db.close(). The sqlite3 CLI reads library
+  // defaults on fresh connection open, so it can NOT observe the per-
+  // connection pragmas Drift set via applyRuntimePragmas. Printing them
+  // here via the same in-process connection that served `SELECT 1` proves
+  // Drift applied them for real.
+  //
+  // The 5 pragmas correspond to the CONTEXT.md runtime walk contract:
+  // journal_mode (WAL) + synchronous + busy_timeout + foreign_keys +
+  // user_version. `page_size` is a DB-level pragma and already visible
+  // via the CLI; the CLI-authoritative triple of db-level pragmas stays
+  // in tool/inspect_db.sql (journal_mode, user_version, page_size).
+  for (final pragma in <String>['journal_mode', 'synchronous', 'busy_timeout', 'foreign_keys', 'user_version']) {
+    final row = await db.customSelect('PRAGMA $pragma').getSingle();
+    final value = row.data.values.first;
+    // ignore: avoid_print
+    print('PRAGMA $pragma = $value (authoritative — read through live Drift connection)');
+  }
+
   await db.close();
 
   for (final basename in <String>[kDbFilename, '$kDbFilename-wal', '$kDbFilename-shm']) {
