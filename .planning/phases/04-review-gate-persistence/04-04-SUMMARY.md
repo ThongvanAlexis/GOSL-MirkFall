@@ -220,6 +220,16 @@ Key-links checks:
 
 **Overall: Self-Check PASSED.** All 7 `must_haves.truths` met, all artifacts present, all key-links verified. `deferred-items.md` explicitly carries the surprise finding forward.
 
+## Self-Check: PASSED
+
+Executed after writing this SUMMARY — verifies claims against disk state:
+
+- File existence: `04-04-SUMMARY.md` FOUND; `migration_v1_to_v2_data_loss_test.dart` FOUND; `deferred-items.md` FOUND.
+- Commit hashes on `main`: `2931ef5` (Test 1 evidence) FOUND; `8a3edf6` (Test 2 evidence) FOUND; `9c32eb1` (Test 3 file) FOUND; `4548ff0` (Test 3 evidence) FOUND; `f0b7899` (final metadata) FOUND.
+- §4 evidence heading count: 3 (Test 1 / Test 2 / Test 3 — matches spec).
+- Adversarial branches: 0 local, 0 remote.
+- `ci.yml` main trigger: `[main]`-only on lines 5 + 7 (push + pull_request).
+
 ---
 *Phase: 04-review-gate-persistence*
 *Plan: 04*
