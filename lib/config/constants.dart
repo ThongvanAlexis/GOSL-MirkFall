@@ -84,6 +84,24 @@ const int kRevealedTileSubgridSize = 64;
 /// budgets, fixture seeders) reference the same number without re-deriving.
 const int kRevealedTileBitmapBytes = (kRevealedTileSubgridSize * kRevealedTileSubgridSize) ~/ 8;
 
+/// Lower bound on UTC-offset-minutes for Session + timestamp columns.
+/// -720 min = UTC-12 (Baker Island / US Minor Outlying — the westernmost
+/// IANA zone still in use).
+///
+/// NOTE on `@Assert` carve-out — Freezed `@Assert('expr', 'msg')` evaluates
+/// the expression STRING at compile-time; Dart annotation bodies cannot
+/// reference top-level `const int` identifiers inside the string. Callers
+/// that live inside `@Assert` therefore keep the literal `-720` and pair
+/// with a test-level guard that references this constant so any future
+/// change propagates to a single source of truth.
+const int kMinUtcOffsetMinutes = -720;
+
+/// Upper bound on UTC-offset-minutes for Session + timestamp columns.
+/// 840 min = UTC+14 (Kiribati Line Islands — the easternmost zone).
+///
+/// See [kMinUtcOffsetMinutes] for the `@Assert` carve-out rationale.
+const int kMaxUtcOffsetMinutes = 840;
+
 // Reserved for later phases (declared here so future callers can import from
 // a stable location):
 //   - kDefaultRevealRadiusMeters  (Phase 09 — fog reveal radius)

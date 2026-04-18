@@ -81,7 +81,17 @@
                         "lexeme": "startedAtOffsetMinutes",
                         "tag": "startedAtOffsetMinutes"
                       },
-                      ").isBetweenValues(-720,840)"
+                      ").isBetweenValues(",
+                      {
+                        "lexeme": "kMinUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ",",
+                      {
+                        "lexeme": "kMaxUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ")"
                     ]
                   }
                 }

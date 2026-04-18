@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 // references `MirkStyleConfig` and `SessionStatus` directly, so the
 // enclosing library must import them even though the converters file
 // already does.
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 // ignore: unused_import
 import 'package:mirkfall/domain/sessions/session_status.dart';
@@ -50,7 +51,7 @@ class Sessions extends Table {
   // ignore: recursive_getters
   IntColumn get startedAtOffsetMinutes =>
       // ignore: recursive_getters
-      integer().check(startedAtOffsetMinutes.isBetweenValues(-720, 840))();
+      integer().check(startedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
   IntColumn get stoppedAtUtc => integer().nullable().map(const UnixMsToDateTimeConverter())();
   IntColumn get stoppedAtOffsetMinutes => integer().nullable()();
 

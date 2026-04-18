@@ -37,7 +37,7 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, SessionRow>
     'started_at_offset_minutes',
     aliasedName,
     false,
-    check: () => ComparableExpr(startedAtOffsetMinutes).isBetweenValues(-720, 840),
+    check: () => ComparableExpr(startedAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
