@@ -1,8 +1,8 @@
 # Phase 02: Review Gate — Foundation Review
 
 **Opened:** 2026-04-17
-**Status:** open
-**Closed:** (pending)
+**Status:** closed
+**Closed:** 2026-04-18
 
 ## 1. User-observed findings (IDE review)
 
@@ -269,47 +269,47 @@ Layer READMEs: all 5 exist (`application/`, `config/`, `domain/`, `infrastructur
 | # | Finding | Severity | Decision | Rationale |
 |---|---------|----------|----------|-----------|
 | 1 | SPDX matching case-sensitive | Blocker | fix (done 371dc30) | User blanket "fix all B/S/C" |
-| 2 | Compound-license AND silently wrong | Blocker | fix | User blanket |
-| 3 | Declared `license:` bypasses LICENSE-text scan | Blocker | fix | User blanket |
-| 4 | MPL detection never fires on LICENSE text | Blocker | fix | User blanket |
-| 5 | `PlatformDispatcher.onError` not wired | Blocker | fix | User blanket |
-| 6 | Whitespace/empty license field not unresolved | Should | fix | User blanket |
-| 7 | `LicenseRef-*` / SPDX-WITH-exception not handled | Should | fix | User blanket |
-| 8 | Exit-2 coverage for check_licenses weak | Should | fix | User blanket |
-| 9 | No exit-1 test for unresolved-package advisory | Should | fix | User blanket |
-| 10 | No test for `_manualOverrides` path | Should | fix | User blanket |
-| 11 | Header check no trailing-newline validation | Should | fix | User blanket |
-| 12 | Header exclude patterns miss codegen suffixes | Should | fix | User blanket |
-| 13 | Header scan doesn't exclude ios/android example/ | Should | fix | User blanket |
-| 14 | check_dependencies_md `line.startsWith('\| ')` fragile | Should | fix | User blanket |
-| 15 | check_dependencies_md tooling filter loose | Should | fix | User blanket |
-| 16 | check_dependencies_md column-count guard weak | Should | fix | User blanket |
-| 17 | No exit-2 test for pubspec.lock missing | Should | fix | User blanket |
-| 18 | No test for dual-licensing OR passes | Should | fix | User blanket |
-| 19 | runZonedGuarded wraps ensureInitialized+runApp | Should | fix | User blanket |
-| 20 | `_onShare` no try/catch no timeout | Should | fix | User blanket |
-| 21 | `_onShare` doesn't flush sink before share | Should | fix | User blanket |
-| 22 | `FileLogger.clearAll()` leaves logger silent no-op | Should | fix | User blanket |
-| 23 | No UI path from / to /about (7-tap unreachable) | Should | fix | User blanket |
-| 24 | listLogFiles() sort relies on filename invariant | Should | fix | User blanket |
-| 25 | Prune races with concurrent launches | Should | fix | User blanket |
-| 26 | `_onRecord` no write-failure handling | Should | fix | User blanket |
-| 27 | Magic `EdgeInsets.all(24)` | Should | fix | User blanket |
-| 28 | Magic `SizedBox(height: 16)` | Should | fix | User blanket |
-| 29 | Magic `EdgeInsets.all(16)` | Should | fix | User blanket |
-| 30 | Forbidden-marker detection case-sensitive | Could | fix | User blanket |
-| 31 | `_resolveSpdx` reads full LICENSE into memory | Could | fix | User blanket |
-| 32 | BOM detection UTF-8 only (no UTF-16 LE) | Could | fix | User blanket |
-| 33 | `runCheck(List<String>)` no CLI parser layer | Could | fix | User blanket |
-| 34 | `_defaultRoots` missing `integration_test/` | Could | fix | User blanket |
-| 35 | `_onRecord` flush after every record | Could | fix | User blanket |
-| 36 | 7-tap window inter-tap not total | Could | fix | User blanket |
-| 37 | `_onToggleVerbose(bool _)` ignores new value | Could | fix | User blanket |
-| 38 | `pad(…, 4)` / `pad(…, 2)` width literals | Could | fix | User blanket |
-| 39 | `main()` lacks docstring | Could | fix | User blanket |
-| 40 | `depend_on_referenced_packages` implicit inherit | Could | fix | User blanket |
-| 41 | `smoke_test.dart` single `pump()` fragile | Could | fix | User blanket |
-| 42 | CI fail-fast scope-sheet artifact (N/A) | Could | fix | User blanket (marks as reviewed + documents N/A outcome) |
+| 2 | Compound-license AND silently wrong | Blocker | fix (done a9f45db) | User blanket |
+| 3 | Declared `license:` bypasses LICENSE-text scan | Blocker | fix (done a56d8cd) | User blanket |
+| 4 | MPL detection never fires on LICENSE text | Blocker | fix (done f4bfd32) | User blanket |
+| 5 | `PlatformDispatcher.onError` not wired | Blocker | fix (done c88b903) | User blanket |
+| 6 | Whitespace/empty license field not unresolved | Should | fix (done 4d9fc73) | User blanket |
+| 7 | `LicenseRef-*` / SPDX-WITH-exception not handled | Should | fix (done 74b8d22) | User blanket |
+| 8 | Exit-2 coverage for check_licenses weak | Should | fix (done 36ef707) | User blanket |
+| 9 | No exit-1 test for unresolved-package advisory | Should | fix (done 984b8a4) | User blanket |
+| 10 | No test for `_manualOverrides` path | Should | fix (done c57c598) | User blanket |
+| 11 | Header check no trailing-newline validation | Should | fix (done fea471f) | User blanket |
+| 12 | Header exclude patterns miss codegen suffixes | Should | fix (done 169f98d) | User blanket |
+| 13 | Header scan doesn't exclude ios/android example/ | Should | fix (done 998dc87) | User blanket |
+| 14 | check_dependencies_md `line.startsWith('\| ')` fragile | Should | fix (done c3ba89a) | User blanket |
+| 15 | check_dependencies_md tooling filter loose | Should | fix (done f79c5bb) | User blanket |
+| 16 | check_dependencies_md column-count guard weak | Should | fix (done 3d5165c) | User blanket |
+| 17 | No exit-2 test for pubspec.lock missing | Should | fix (done 510e59d) | User blanket |
+| 18 | No test for dual-licensing OR passes | Should | fix (done 111f9ae) | User blanket |
+| 19 | runZonedGuarded wraps ensureInitialized+runApp | Should | fix (done 80cb22b) | User blanket |
+| 20 | `_onShare` no try/catch no timeout | Should | fix (done 13f0c73) | User blanket |
+| 21 | `_onShare` doesn't flush sink before share | Should | fix (done 7d963c8) | User blanket |
+| 22 | `FileLogger.clearAll()` leaves logger silent no-op | Should | fix (done 75f5e92) | User blanket |
+| 23 | No UI path from / to /about (7-tap unreachable) | Should | fix (done cfd323f) | User blanket |
+| 24 | listLogFiles() sort relies on filename invariant | Should | fix (done 23ec717) | User blanket |
+| 25 | Prune races with concurrent launches | Should | fix (done a11e6d6) | User blanket |
+| 26 | `_onRecord` no write-failure handling | Should | fix (done 567e1ef) | User blanket |
+| 27 | Magic `EdgeInsets.all(24)` | Should | fix (done ef6dc16) | User blanket |
+| 28 | Magic `SizedBox(height: 16)` | Should | fix (done 69b216d) | User blanket |
+| 29 | Magic `EdgeInsets.all(16)` | Should | fix (done 217898f) | User blanket |
+| 30 | Forbidden-marker detection case-sensitive | Could | fix (done 25ecb1c) | User blanket |
+| 31 | `_resolveSpdx` reads full LICENSE into memory | Could | fix (done 799e770) | User blanket |
+| 32 | BOM detection UTF-8 only (no UTF-16 LE) | Could | fix (done 9a3e3d4) | User blanket |
+| 33 | `runCheck(List<String>)` no CLI parser layer | Could | fix (done 7ae8f79) | User blanket |
+| 34 | `_defaultRoots` missing `integration_test/` | Could | fix (done ba5fd3c) | User blanket |
+| 35 | `_onRecord` flush after every record | Could | fix (done f0848e4) | User blanket |
+| 36 | 7-tap window inter-tap not total | Could | fix (done 887069b) | User blanket |
+| 37 | `_onToggleVerbose(bool _)` ignores new value | Could | fix (done edaf2b9) | User blanket |
+| 38 | `pad(…, 4)` / `pad(…, 2)` width literals | Could | fix (done b1a6e67) | User blanket |
+| 39 | `main()` lacks docstring | Could | fix (done ec41f5a) | User blanket |
+| 40 | `depend_on_referenced_packages` implicit inherit | Could | fix (done 26824c9) | User blanket |
+| 41 | `smoke_test.dart` single `pump()` fragile | Could | fix (done 1b9735a) | User blanket |
+| 42 | CI fail-fast scope-sheet artifact (N/A) | Could | fix (done 82a56cd) | User blanket (marks as reviewed + documents N/A outcome) |
 | 43 | Override `flutter_plugin_android_lifecycle` mixed rationale | Noted | noted | Observation only |
 | 44 | `MPL-2.0-Linux-only` synthetic SPDX non-standard | Noted | noted | Observation only |
 | 45 | MPL overrides stay narrow | Noted | noted | Observation only |
@@ -385,11 +385,11 @@ Layer READMEs: all 5 exist (`application/`, `config/`, `domain/`, `infrastructur
 
 *Filled by Plan 02-04 Wave 4 after all Blocker + non-waived Should fixes are applied.*
 
-- **Final commit on main:** (pending)
-- **CI run URL:** (pending)
-- **Status:** (pending)
-- **Date:** (pending)
+- **Final commit on main:** `82a56cd`
+- **CI run URL:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24591921968
+- **Status:** All 3 jobs green (gates / android / ios)
+- **Date:** 2026-04-18
 
 ---
-_Phase 02 closed: (pending)_
+_Phase 02 closed: 2026-04-18_
 _Phase 03 unblocked._
