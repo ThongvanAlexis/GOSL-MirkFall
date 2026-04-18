@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 3
+current_plan: 4
 status: executing
-stopped_at: Phase 03 context gathered
-last_updated: "2026-04-18T07:57:54.065Z"
-last_activity: 2026-04-17
+stopped_at: Completed 03-01-PLAN.md (Wave 0 bootstrap)
+last_updated: "2026-04-18T09:23:12.101Z"
+last_activity: 2026-04-18
 progress:
   total_phases: 16
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 14
+  completed_plans: 9
   percent: 63
 ---
 
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 02 of 16 (Review Gate — Foundation)
-Current Plan: 3
+Current Plan: 4
 Total Plans in Phase: 4
 Plan: 2 of 4 in current phase (02-02 audit wave + triage shipped — 54 findings, 42 to fix)
 Status: In Progress
-Last Activity: 2026-04-17
+Last Activity: 2026-04-18
 
 Progress: [██████▎░░░] 63%
 
@@ -60,6 +60,7 @@ Progress: [██████▎░░░] 63%
 | Phase 02-review-gate-foundation P01 | 2 min | 2 tasks | 1 files |
 | Phase 02-review-gate-foundation P02 | 25 min | 3 tasks | 2 files |
 | Phase 02-review-gate-foundation P03 | 10 min | 3 tasks | 1 files |
+| Phase 03-persistence-domain-models P01 | 12 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,10 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 02-review-gate-foundation]: Adversarial poison branches pushed CI via inline on.push.branches += 'adversarial/**' trigger expansion on each throwaway branch — not on main. Main-branch trigger stays [main]-only after branch deletion; zero cleanup cost.
 - [Phase 02-review-gate-foundation]: Adversarial Test 1 detection path: LICENSE substring match (voie 2 of _resolveSpdx at tool/check_licenses.dart:188-194), NOT _manualOverrides and NOT allowlist-miss — stderr prefix UNKNOWN-FORBIDDEN-MARKER: GNU GENERAL PUBLIC LICENSE uniquely identifies the branch.
 - [Phase 02-review-gate-foundation]: Adversarial wave validated 3 of 4 check_licenses.dart Blockers (case-sensitivity, compound-AND, license-field bypass); Blocker #4 MPL-unreachable heuristic has no adversarial test — Plan 02-04 must add unit coverage.
+- [Phase 03-persistence-domain-models]: Pin custom_lint 0.8.1 + riverpod_lint 3.1.0 — highest pair compatible with analyzer<9 stack — Closes Phase 01 deferred Open Question #1. flutter_lints 6.0.0 + riverpod_generator 4.0.0+1 both gate analyzer at <9; riverpod_lint 3.1.1+ requires analyzer ^9 which breaks custom_lint 0.8.1.
+- [Phase 03-persistence-domain-models]: custom_lint family is Apache-2.0, not MIT (plan correction) — Verified by inspecting LICENSE preambles in pub cache — custom_lint, custom_lint_core, custom_lint_visitor are all Apache-2.0; only riverpod_lint is MIT. Apache-2.0 is on CLAUDE.md allowlist; no GOSL incompatibility. Correction documented in DEPENDENCIES.md row.
+- [Phase 03-persistence-domain-models]: CI plain-Dart test step scoped to test/domain/ + test/infrastructure/ subdirs (not catch-all test/) — Existing test/*.dart at the repo root all import package:flutter_test and would crash under the plain-Dart runner. Scoping to subdirs that don't yet exist keeps the step inert until 03-02+ lands pure-Dart suites there. Plan's catch-all interpretation was unsafe.
+- [Phase 03-persistence-domain-models]: Drift schema CI guard: drift_schema_current.json is rolling, drift_schema_v{1,2}.json are FROZEN — Dumping into the schemas directory (which the plan's first sketch implied) would overwrite the V1 fixture after a V2 bump and break SchemaVerifier round-trip tests forever. Guard rule: CI re-dumps the rolling current.json and git diff --exit-code proves it is fresh; version-specific snapshots are produced once and never touched.
 
 ### Pending Todos
 
@@ -122,6 +127,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-18T07:57:54.062Z
-Stopped at: Phase 03 context gathered
-Resume file: .planning/phases/03-persistence-domain-models/03-CONTEXT.md
+Last session: 2026-04-18T09:23:12.087Z
+Stopped at: Completed 03-01-PLAN.md (Wave 0 bootstrap)
+Resume file: None
