@@ -14,7 +14,13 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$RevealedTile {
 
- RevealedTileId get id; SessionId get sessionId; int get parentX; int get parentY; int get parentZoom; Uint8List get bitmap; int get setBitCount; DateTime get updatedAtUtc;
+ RevealedTileId get id; SessionId get sessionId; int get parentX; int get parentY;// Finding #5/#13 (Batch C) — replace the magic `14` with
+// `kRevealedTileParentZoom` from constants.dart. `@Default` takes any
+// compile-time constant expression including top-level const
+// identifiers. The `@Assert('parentZoom == 14', ...)` body keeps the
+// literal because the assert string is compile-time-parsed by Freezed
+// without access to project-level consts (see note in constants.dart).
+ int get parentZoom; Uint8List get bitmap; int get setBitCount; DateTime get updatedAtUtc;
 /// Create a copy of RevealedTile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -213,13 +219,19 @@ return $default(_that.id,_that.sessionId,_that.parentX,_that.parentY,_that.paren
 
 
 class _RevealedTile implements RevealedTile {
-  const _RevealedTile({required this.id, required this.sessionId, required this.parentX, required this.parentY, this.parentZoom = 14, required this.bitmap, required this.setBitCount, required this.updatedAtUtc}): assert(parentX >= 0, 'RevealedTile.parentX must be >= 0'),assert(parentY >= 0, 'RevealedTile.parentY must be >= 0'),assert(parentZoom == 14, 'RevealedTile.parentZoom must equal kRevealedTileParentZoom (14)'),assert(bitmap.length == 512, 'RevealedTile.bitmap must be exactly 512 bytes (64x64 sub-grid)'),assert(setBitCount >= 0 && setBitCount <= 4096, 'RevealedTile.setBitCount must be in [0..4096] (64x64 bits)');
+  const _RevealedTile({required this.id, required this.sessionId, required this.parentX, required this.parentY, this.parentZoom = kRevealedTileParentZoom, required this.bitmap, required this.setBitCount, required this.updatedAtUtc}): assert(parentX >= 0, 'RevealedTile.parentX must be >= 0'),assert(parentY >= 0, 'RevealedTile.parentY must be >= 0'),assert(parentZoom == 14, 'RevealedTile.parentZoom must equal kRevealedTileParentZoom (14)'),assert(bitmap.length == 512, 'RevealedTile.bitmap must be exactly 512 bytes (64x64 sub-grid)'),assert(setBitCount >= 0 && setBitCount <= 4096, 'RevealedTile.setBitCount must be in [0..4096] (64x64 bits)');
   
 
 @override final  RevealedTileId id;
 @override final  SessionId sessionId;
 @override final  int parentX;
 @override final  int parentY;
+// Finding #5/#13 (Batch C) — replace the magic `14` with
+// `kRevealedTileParentZoom` from constants.dart. `@Default` takes any
+// compile-time constant expression including top-level const
+// identifiers. The `@Assert('parentZoom == 14', ...)` body keeps the
+// literal because the assert string is compile-time-parsed by Freezed
+// without access to project-level consts (see note in constants.dart).
 @override@JsonKey() final  int parentZoom;
 @override final  Uint8List bitmap;
 @override final  int setBitCount;

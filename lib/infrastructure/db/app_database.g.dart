@@ -1198,7 +1198,7 @@ class $RevealedTilesTable extends RevealedTiles with TableInfo<$RevealedTilesTab
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultValue: const Constant(14),
+    defaultValue: const Constant(kRevealedTileParentZoom),
   );
   static const VerificationMeta _bitmapMeta = const VerificationMeta('bitmap');
   @override

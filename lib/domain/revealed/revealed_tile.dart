@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mirkfall/config/constants.dart';
 
 import '../ids/revealed_tile_id.dart';
 import '../ids/session_id.dart';
@@ -36,7 +37,13 @@ abstract class RevealedTile with _$RevealedTile {
     required SessionId sessionId,
     required int parentX,
     required int parentY,
-    @Default(14) int parentZoom,
+    // Finding #5/#13 (Batch C) — replace the magic `14` with
+    // `kRevealedTileParentZoom` from constants.dart. `@Default` takes any
+    // compile-time constant expression including top-level const
+    // identifiers. The `@Assert('parentZoom == 14', ...)` body keeps the
+    // literal because the assert string is compile-time-parsed by Freezed
+    // without access to project-level consts (see note in constants.dart).
+    @Default(kRevealedTileParentZoom) int parentZoom,
     required Uint8List bitmap,
     required int setBitCount,
     required DateTime updatedAtUtc,

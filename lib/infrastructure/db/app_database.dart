@@ -150,7 +150,9 @@ class RevealedTiles extends Table {
   TextColumn get sessionId => text().references(Sessions, #id, onDelete: KeyAction.cascade)();
   IntColumn get parentX => integer()();
   IntColumn get parentY => integer()();
-  IntColumn get parentZoom => integer().withDefault(const Constant(14))();
+  // Finding #5/#13 (Batch C) — replace the magic `14` with
+  // `kRevealedTileParentZoom` (source of truth in `lib/config/constants.dart`).
+  IntColumn get parentZoom => integer().withDefault(const Constant(kRevealedTileParentZoom))();
   // Finding #14 (Batch B) — DB-level defense on the 512-byte bitmap
   // invariant already guarded by the store. `length(bitmap) = 512` refuses
   // any SQL-level write that bypasses the store path.
