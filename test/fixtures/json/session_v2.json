@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 2,
+  "type": "session",
+  "payload": {
+    "id": "sess_01HRSESSIONFIXTUREV1AAAAAA",
+    "displayName": "Fixture session v1",
+    "status": "stopped",
+    "startedAt": "2026-04-01T10:00:00+02:00",
+    "stoppedAt": "2026-04-01T14:30:00+02:00",
+    "reveal_radius_m": 50
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "type": "mirk_style",
+  "payload": {
+    "id": "mst_01HRSTYLEUNKNOWNAAAAAAAAAA",
+    "displayName": "Unknown-renderer style",
+    "rendererType": "non-existent-future-renderer-v99",
+    "config": {
+      "arbitraryField": "arbitraryValue",
+      "nested": { "foo": 42 }
+    }
+  }
+}

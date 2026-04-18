@@ -1,0 +1,9 @@
+# Tag slow migration tests so developers can `dart test -x migration` for the
+# fast feedback path during TDD, and `dart test -t migration` for the
+# heavyweight SchemaVerifier-based suite before committing.
+#
+# Phase 03 ships the tag declaration up front; 03-05 (migration plan) adds
+# `tags: [migration]` to its test files as they land.
+tags:
+  migration:
+    timeout: 2x

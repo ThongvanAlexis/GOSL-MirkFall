@@ -42,6 +42,48 @@ const double kScreenBodyPaddingLogicalPx = 24.0;
 /// large enough to give each row its own focus region.
 const double kListSectionPaddingLogicalPx = 16.0;
 
+// ---------------------------------------------------------------------------
+// Phase 03 (Persistence & Domain Models) — constants consumed across DB
+// wiring (03-04, 03-05), migration/backup infra (03-05), and stores (03-06).
+// ---------------------------------------------------------------------------
+
+/// SQLite database filename inside `<app_support>/`. Single-file DB; the
+/// directory itself is created lazily by `path_provider` on first access.
+const String kDbFilename = 'mirkfall.db';
+
+/// Directory (inside `<app_support>/`) where pre-migration backups land.
+/// Backups are named with the schema version they were captured AT (i.e.
+/// the version BEFORE the upgrade ran), so a corrupted upgrade can roll
+/// back to the matching bytes-on-disk snapshot.
+const String kDbBackupDirName = 'db_backups';
+
+/// Rolling cap on kept pre-migration backups (oldest evicted FIFO).
+/// Three is enough to cover "ran the migration twice in a row by accident"
+/// without unbounded disk growth on devices with tight storage.
+const int kMaxDbBackups = 3;
+
+/// SQLite `busy_timeout` PRAGMA value (ms). Retry window before
+/// `SQLITE_BUSY` propagates to the caller. 5 s is conservative on mobile —
+/// the only contender for the writer lock is the foreground service writing
+/// revealed-tile bitmaps (Phase 09), and even a flushed batch finishes in
+/// well under one second.
+const int kDbBusyTimeoutMs = 5000;
+
+/// Zoom level at which "parent tiles" carry a 64×64 bitmap in
+/// `t_revealed_tiles`. Revealed-mirk storage unit (decision D3 — see
+/// PROJECT.md Key Decisions: zoom-14 parent tiles + 64×64 sub-tile grid).
+const int kRevealedTileParentZoom = 14;
+
+/// Sub-grid resolution per parent tile. 64×64 = 4096 bits = 512 bytes per
+/// row. Smaller than 64 wastes per-row overhead; larger inflates per-tile
+/// memory residency without improving reveal granularity at zoom 14+4.
+const int kRevealedTileSubgridSize = 64;
+
+/// Convenience: bytes per stored bitmap, derived from [kRevealedTileSubgridSize].
+/// 64 * 64 / 8 = 512. Hoisted as a constant so callers (DB schema, perf
+/// budgets, fixture seeders) reference the same number without re-deriving.
+const int kRevealedTileBitmapBytes = (kRevealedTileSubgridSize * kRevealedTileSubgridSize) ~/ 8;
+
 // Reserved for later phases (declared here so future callers can import from
 // a stable location):
 //   - kDefaultRevealRadiusMeters  (Phase 09 — fog reveal radius)
