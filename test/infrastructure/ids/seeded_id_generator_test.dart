@@ -8,7 +8,7 @@ import 'package:test/test.dart';
 void main() {
   group('SeededIdGenerator', () {
     test('same seed + same fixedNow produces same sequence across runs', () {
-      final fixedNow = DateTime.utc(2026, 4, 18, 9, 0, 0);
+      final fixedNow = DateTime.utc(2026, 4, 18, 9);
       final gen1 = SeededIdGenerator(seed: 42, fixedNow: fixedNow);
       final gen2 = SeededIdGenerator(seed: 42, fixedNow: fixedNow);
       final seq1 = [for (var i = 0; i < 5; i++) gen1.newId('sess_')];
