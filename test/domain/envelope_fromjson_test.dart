@@ -25,7 +25,7 @@ void main() {
 
     test('missing schemaVersion throws ImportValidationException', () {
       expect(
-        () => Envelope.fromJson(<String, Object?>{
+        () => Envelope.parse(<String, Object?>{
           'type': 'session',
           'payload': <String, Object?>{},
         }),
@@ -43,7 +43,7 @@ void main() {
       'schemaVersion of wrong type (string) throws ImportValidationException',
       () {
         expect(
-          () => Envelope.fromJson(<String, Object?>{
+          () => Envelope.parse(<String, Object?>{
             'schemaVersion': 'one',
             'type': 'session',
             'payload': <String, Object?>{},
@@ -61,7 +61,7 @@ void main() {
 
     test('empty type throws ImportValidationException', () {
       expect(
-        () => Envelope.fromJson(<String, Object?>{
+        () => Envelope.parse(<String, Object?>{
           'schemaVersion': 1,
           'type': '',
           'payload': <String, Object?>{},
@@ -72,7 +72,7 @@ void main() {
 
     test('missing type throws ImportValidationException', () {
       expect(
-        () => Envelope.fromJson(<String, Object?>{
+        () => Envelope.parse(<String, Object?>{
           'schemaVersion': 1,
           'payload': <String, Object?>{},
         }),
@@ -82,7 +82,7 @@ void main() {
 
     test('missing payload throws ImportValidationException', () {
       expect(
-        () => Envelope.fromJson(<String, Object?>{
+        () => Envelope.parse(<String, Object?>{
           'schemaVersion': 1,
           'type': 'session',
         }),

@@ -31,7 +31,7 @@ void main() {
     final v2Raw =
         jsonDecode(File(v2Filename).readAsStringSync()) as Map<String, Object?>;
 
-    final v1Envelope = Envelope.fromJson(v1Raw);
+    final v1Envelope = Envelope.parse(v1Raw);
     expect(v1Envelope.schemaVersion, 1);
     expect(v1Envelope.type, 'session');
 
@@ -42,7 +42,7 @@ void main() {
       payload: v1Envelope.payload,
     );
 
-    final v2Envelope = Envelope.fromJson(v2Raw);
+    final v2Envelope = Envelope.parse(v2Raw);
     expect(migratedPayload, v2Envelope.payload);
   });
 }
