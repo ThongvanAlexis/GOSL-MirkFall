@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 5
-status: executing
-stopped_at: "Completed 04-04-PLAN.md (adversarial wave — CI Tests #1 #2 + permanent Test #3 regression guard; surprise finding: pre-existing dart format drift on main logged to deferred-items.md for 04-05)"
-last_updated: "2026-04-18T18:39:23.768Z"
-last_activity: 2026-04-18
+current_plan: 1
+status: ready_for_next_phase
+stopped_at: "Completed 04-05-PLAN.md (review loop closed — all Blocker + Should fixes landed CI-green in 10 atomic batches, 04-REVIEW.md status=closed, Phase 05 unblocked)"
+last_updated: "2026-04-19T12:00:00.000Z"
+last_activity: 2026-04-19
 progress:
   total_phases: 16
-  completed_phases: 3
-  total_plans: 19
-  completed_plans: 18
-  percent: 84
+  completed_phases: 4
+  total_plans: 24
+  completed_plans: 23
+  percent: 96
 ---
 
 # Project State
@@ -22,18 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 04 — Review Gate Persistence (04-01 scaffold + §1 user-first done; 04-02 runtime walk Windows done; 04-03 four-agent audit wave + 04-04 adversarial + 04-05 fix loop remaining)
+**Current focus:** Phase 04 CLOSED (review gate persistence signed off, CI green on 26f3d99) — Phase 05 GPS background POC next up (risque #1 projet).
 
 ## Current Position
 
-Phase: 04 of 16 (Review Gate — Persistence)
-Current Plan: 5
-Total Plans in Phase: 5
-Plan: 2 of 5 complete in current phase (04-02 Runtime walk Windows archived verbatim into §1b; surfaced Blocker — Zone mismatch at runApp on flutter run -d windows — escalated to §2 pending user triage; tool/walk_db.dart + tool/inspect_db.sql retained on main)
-Status: In Progress
-Last Activity: 2026-04-18
+Phase: 04 of 16 (Review Gate — Persistence) COMPLETE — ready to open Phase 05
+Current Plan: Phase 05 not started (waiting for user kickoff)
+Total Plans in Phase 04: 5 / 5 done
+Status: Ready for next phase
+Last Activity: 2026-04-19
 
-Progress: [████████░░] 84%
+Progress: [██████████] ~96% of plans across 4 completed phases (4/16 phases, 23/24 plans executed so far — Phase 05 adds plans as the POC scope is scoped)
 
 ## Performance Metrics
 
@@ -70,6 +69,7 @@ Progress: [████████░░] 84%
 | Phase 04-review-gate-persistence P02 | 45 min | 3 tasks | 3 files |
 | Phase 04-review-gate-persistence PP3 | 30 min | 4 tasks | 2 files |
 | Phase 04-review-gate-persistence P04 | 15 min | 4 tasks | 4 files |
+| Phase 04-review-gate-persistence P05 | ~3h (batched strategy) | 2 tasks (1 fix loop + 1 closure checkpoint) | 30+ files across 10 fix batches + 11 docs markers + closure |
 
 ## Accumulated Context
 
@@ -164,6 +164,9 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 04-review-gate-persistence]: Pre-existing 61-file dart format drift on main surfaced as SURPRISE BLOCKER during Plan 04-04 adversarial wave — not caused by any poison, logged to deferred-items.md item #1, handed off to Plan 04-05 fix loop (recommended first commit: chore(format) align with CI dart format)
 - [Phase 04-review-gate-persistence]: Permanent adversarial unit test pattern with inline inertness guard — intermediate expect BEFORE throwsA proves the adversary (DELETE) actually ran, so future SQL/fixture refactors can't silently neutralise the test; validated by mutation experiment (DELETE WHERE 1=0 → fails loudly with 'test would be inert'). Reusable for every Phase 05+ production adversarial unit test.
 - [Phase 04-review-gate-persistence]: `custom_lint` silently-degraded (analyzer-10 API break) formally accepted as Noted in REVIEW.md §3 — no operational impact (`flutter analyze --fatal-infos --fatal-warnings` green via analyzer-10 stack). Re-verify at each deps bump and Phase 15 polish at the latest. Promotes the Phase 03 STATE.md decision to a Phase 04 review-gate-signed-off status.
+- [Phase 04-review-gate-persistence]: Plan 04-05 strategy deviation — user approved BATCHED fix loop (10 batches × ~10 min CI gate) over the plan's literal per-finding protocol. Trade-off: batch-granularity bisectability (git bisect locates the batch, not the individual finding) vs wall-clock parallelism (31+ CI rounds collapses to 15 sequential fix commits + 11 docs markers). `.fixes-expected=31` snapshot preserved for the historic record; the verify assertion was accepted as deliberately looser at batch scope.
+- [Phase 04-review-gate-persistence]: P4 Zone mismatch resolved via option-b (WidgetsFlutterBinding.ensureInitialized + runApp BOTH inside runZonedGuarded) after option-a (both outside, runZonedGuarded wraps logger only) failed the user walk. Architectural lesson: Flutter 3.41+'s `debugCheckZone` in `_runWidget` asserts zone identity at runApp time; the "canonical pattern" IS to wrap the whole bootstrap in one guarded zone, contra the Phase 01 RESEARCH pitfall document's stricter reading. Retained verbatim in 04-05-SUMMARY.md + main.dart comments for future maintainers.
+- [Phase 04-review-gate-persistence]: Phase 04 review gate CLOSED 2026-04-19 — 04-REVIEW.md §§1-5 complete, all 31 fix-triaged findings marked done, CI green on commit 26f3d99, all 3 jobs (gates/android/ios) succeeded. Phase 05 unblocked.
 
 ### Pending Todos
 
@@ -180,11 +183,12 @@ None yet.
 **Phase 11 (EXIF strip):** `image_picker` ne strippe pas EXIF nativement ; approche lightweight à évaluer en début de Phase 11.
 
 **Phase 13 (ZIP archive format):** Format ZIP final (.mirkfall extension, layout manifest/photos/) à confirmer au démarrage de la phase ; audit licence du package `archive` à documenter dans DEPENDENCIES.md (O11).
-- Phase 04 runtime walk (Plan 04-02) surfaced Blocker: Zone mismatch crash at runApp during flutter run -d windows. Build is green (mirkfall.exe produced in 36.5s) but app crashes at main.dart:71 because WidgetsFlutterBinding.ensureInitialized runs in root zone while runApp runs inside runZonedGuarded — debugCheckZone assertion fires. Must be triaged in 04-REVIEW.md Section 3 and fixed in Plan 04-05 (or waived with rationale) before Phase 05 opens.
-- Plan 04-04 surfaced pre-existing dart format drift — 61 files on main do not pass CI dart format step; main CI red since today's docs push. Not caused by adversarial poisons. Details in .planning/phases/04-review-gate-persistence/deferred-items.md item #1. Must be fixed early in Plan 04-05.
+**Phase 04 blockers — ALL RESOLVED in Plan 04-05 (2026-04-19):**
+- ~~Zone mismatch crash (P4)~~ — fixed in commit e45339f (option b: both binding init + runApp inside runZonedGuarded). Re-walk confirmed clean by user.
+- ~~Pre-existing dart format drift (61 files)~~ — fixed in commit 35152e5 (chore(format) align with CI).
 
 ## Session Continuity
 
-Last session: 2026-04-18T18:39:13.258Z
-Stopped at: Completed 04-04-PLAN.md (adversarial wave — CI Tests #1 #2 + permanent Test #3 regression guard; surprise finding: pre-existing dart format drift on main logged to deferred-items.md for 04-05)
+Last session: 2026-04-19T12:00:00.000Z
+Stopped at: Completed 04-05-PLAN.md (review loop closed — all Blocker + Should fixes landed CI-green in 10 atomic batches, 04-REVIEW.md status=closed, Phase 05 unblocked)
 Resume file: None
