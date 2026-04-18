@@ -21,7 +21,7 @@ class PlaceholderHomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(kAppName),
-        actions: <Widget>[IconButton(icon: const Icon(Icons.info_outline), tooltip: 'À propos', onPressed: () => context.go('/about'))],
+        actions: <Widget>[IconButton(icon: const Icon(Icons.info_outline), tooltip: 'À propos', onPressed: () => context.push('/about'))],
       ),
       body: const Center(child: Text('MirkFall — bootstrap OK')),
     );

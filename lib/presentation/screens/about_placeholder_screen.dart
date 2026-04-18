@@ -42,7 +42,7 @@ class _AboutPlaceholderScreenState extends State<AboutPlaceholderScreen> {
     _lastTap = now;
     if (_tapCount >= kAboutTapsToTriggerDebugMenu) {
       _tapCount = 0;
-      context.go('/debug');
+      context.push('/debug');
     }
   }
 
