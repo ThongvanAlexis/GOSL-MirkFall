@@ -33,18 +33,18 @@ Initial audit date: **2026-04-17**. Re-audit required whenever
 | file_picker | 11.0.2 | MIT | https://pub.dev/packages/file_picker | OS file picker bridge. No network. | 2026-04-17 |
 | flutter_local_notifications | 21.0.0 | BSD-3-Clause | https://pub.dev/packages/flutter_local_notifications | Local OS notifications. No network. | 2026-04-17 |
 | flutter_map | 8.3.0 | BSD-3-Clause | https://pub.dev/packages/flutter_map | Tile fetcher; User-Agent policy enforced by caller in Phase 07. No telemetry SDK. | 2026-04-17 |
-| flutter_riverpod | 3.1.0 | MIT | https://pub.dev/packages/flutter_riverpod | Pure DI/state container. No network. | 2026-04-17 |
+| flutter_riverpod | 3.3.1 | MIT | https://pub.dev/packages/flutter_riverpod | Pure DI/state container. No network. Bumped 2026-04-18 from 3.1.0 to align with riverpod 3.2.1 chain required by riverpod_lint 3.1.3 + riverpod_generator 4.0.3 (see 03-04). | 2026-04-18 |
 | freezed_annotation | 3.1.0 | MIT | https://pub.dev/packages/freezed_annotation | Annotations-only, no runtime. | 2026-04-17 |
 | geolocator | 14.0.2 | MIT | https://pub.dev/packages/geolocator | Wraps OS GPS API. No network. | 2026-04-17 |
 | go_router | 16.0.0 | BSD-3-Clause | https://pub.dev/packages/go_router | Pure routing, no network. | 2026-04-17 |
 | image_picker | 1.2.1 | Apache-2.0 | https://pub.dev/packages/image_picker | Camera/gallery bridge. No network. | 2026-04-17 |
-| json_annotation | 4.9.0 | BSD-3-Clause | https://pub.dev/packages/json_annotation | Annotations-only. | 2026-04-17 |
+| json_annotation | 4.11.0 | BSD-3-Clause | https://pub.dev/packages/json_annotation | Annotations-only. Bumped 2026-04-18 from 4.9.0 — json_serializable 6.13.1 requires json_annotation >=4.11.0. | 2026-04-18 |
 | latlong2 | 0.9.1 | Apache-2.0 | https://pub.dev/packages/latlong2 | Pure math. No network. | 2026-04-17 |
 | logging | 1.3.0 | BSD-3-Clause | https://pub.dev/packages/logging | No outbound HTTP. Sinks defined by user. | 2026-04-17 |
 | path | 1.9.1 | BSD-3-Clause | https://pub.dev/packages/path | Path manipulation. No network. | 2026-04-17 |
 | path_provider | 2.1.5 | BSD-3-Clause | https://pub.dev/packages/path_provider | Wraps native path APIs. No network. | 2026-04-17 |
 | permission_handler | 12.0.1 | MIT | https://pub.dev/packages/permission_handler | OS permissions bridge. No network. | 2026-04-17 |
-| riverpod_annotation | 4.0.0 | MIT | https://pub.dev/packages/riverpod_annotation | Annotations-only, no runtime. | 2026-04-17 |
+| riverpod_annotation | 4.0.2 | MIT | https://pub.dev/packages/riverpod_annotation | Annotations-only, no runtime. Bumped 2026-04-18 from 4.0.0 to match riverpod 3.2.1 chain required by riverpod_generator 4.0.3. | 2026-04-18 |
 | share_plus | 12.0.2 | BSD-3-Clause | https://pub.dev/packages/share_plus | OS share intent; no network itself. | 2026-04-17 |
 | shared_preferences | 2.5.5 | BSD-3-Clause | https://pub.dev/packages/shared_preferences | Wraps OS key-value store. No network. | 2026-04-17 |
 | sqlite3_flutter_libs | 0.6.0+eol | MIT | https://pub.dev/packages/sqlite3_flutter_libs | Bundles sqlite3 native. No network. | 2026-04-17 |
@@ -53,15 +53,16 @@ Initial audit date: **2026-04-17**. Re-audit required whenever
 
 | Package | Version | License | Source | Telemetry audit | Date |
 |---------|---------|---------|--------|-----------------|------|
-| build_runner | 2.9.0 | BSD-3-Clause | https://pub.dev/packages/build_runner | Dev codegen only. No app runtime. | 2026-04-17 |
-| custom_lint | 0.8.1 | Apache-2.0 | https://pub.dev/packages/custom_lint | Phase 03 — analyzer-plugin host for riverpod_lint rules. Audit 2026-04-18: source github.com/invertase/dart_custom_lint inspected — analyzer-plugin runtime only, zero outbound HTTP, only opens a local IPC channel to the analyzer. License preamble in pub cache is Apache-2.0 (plan stated MIT — corrected here). | 2026-04-18 |
+| build_runner | 2.13.1 | BSD-3-Clause | https://pub.dev/packages/build_runner | Dev codegen only. No app runtime. Bumped 2026-04-18 from 2.9.0 — 2.9.0 uses analyzer APIs removed in analyzer 10; 2.13.1 supports analyzer >=8.0.0 <13.0.0. | 2026-04-18 |
+| custom_lint | 0.8.1 | Apache-2.0 | https://pub.dev/packages/custom_lint | Phase 03 — analyzer-plugin host for riverpod_lint rules. Audit 2026-04-18: source github.com/invertase/dart_custom_lint inspected — analyzer-plugin runtime only, zero outbound HTTP, only opens a local IPC channel to the analyzer. License preamble in pub cache is Apache-2.0 (plan stated MIT — corrected here). NOTE: under the analyzer-10 override (added in 03-04 for drift_dev), this version cannot load its plugin — silently degrades until custom_lint ships analyzer-^10 support. | 2026-04-18 |
+| drift_dev | 2.32.1 | MIT | https://pub.dev/packages/drift_dev | Phase 03 — Drift codegen (AppDatabase, schema dumps, SchemaVerifier migration helpers). Audit 2026-04-18: source github.com/simolus3/drift inspected — pure build_runner generator + schema dump CLI; zero runtime code; no network access; reads .dart source, writes .g.dart and JSON artefacts. Same author as `drift` + `sqlparser` (Simon Binder). | 2026-04-18 |
 | flutter_lints | 6.0.0 | BSD-3-Clause | https://pub.dev/packages/flutter_lints | Analyzer config, no runtime. | 2026-04-17 |
-| freezed | 3.2.3 | MIT | https://pub.dev/packages/freezed | Dev codegen. No app runtime. | 2026-04-17 |
-| json_serializable | 6.11.2 | BSD-3-Clause | https://pub.dev/packages/json_serializable | Dev codegen. | 2026-04-17 |
+| freezed | 3.2.5 | MIT | https://pub.dev/packages/freezed | Dev codegen. No app runtime. Bumped 2026-04-18 from 3.2.3 — 3.2.5 supports analyzer >=9 <11, needed under the analyzer-10 override added for drift_dev 2.32.1. | 2026-04-18 |
+| json_serializable | 6.13.1 | BSD-3-Clause | https://pub.dev/packages/json_serializable | Dev codegen. Bumped 2026-04-18 from 6.11.2 — 6.13.1 requires analyzer >=10 <13, needed under the analyzer-10 override. | 2026-04-18 |
 | path_provider_platform_interface | 2.1.2 | BSD-3-Clause | https://pub.dev/packages/path_provider_platform_interface | Test-mock contract. No network. | 2026-04-17 |
 | plugin_platform_interface | 2.1.8 | BSD-3-Clause | https://pub.dev/packages/plugin_platform_interface | MockPlatformInterfaceMixin for tests. No runtime. | 2026-04-17 |
-| riverpod_generator | 4.0.0+1 | MIT | https://pub.dev/packages/riverpod_generator | Dev codegen. | 2026-04-17 |
-| riverpod_lint | 3.1.0 | MIT | https://pub.dev/packages/riverpod_lint | Phase 03 — Riverpod misuse detection (`@riverpod` provider rules). Audit 2026-04-18: source github.com/rrousselGit/riverpod inspected — pure analyzer-plugin rule definitions, zero outbound HTTP, runs only inside custom_lint's plugin host. | 2026-04-18 |
+| riverpod_generator | 4.0.3 | MIT | https://pub.dev/packages/riverpod_generator | Dev codegen. Bumped 2026-04-18 from 4.0.0+1 — 4.0.3 declares analyzer ^9.0.0 but runs under the analyzer-10 override and pulls riverpod_analyzer_utils 1.0.0-dev.9 which matches riverpod_lint 3.1.3. | 2026-04-18 |
+| riverpod_lint | 3.1.3 | MIT | https://pub.dev/packages/riverpod_lint | Phase 03 — Riverpod misuse detection (`@riverpod` provider rules). Bumped 2026-04-18 from 3.1.0 to align with riverpod 3.2.1 chain. Source re-inspected (github.com/rrousselGit/riverpod v3.1.3 tag): still pure analyzer-plugin rule definitions, zero outbound HTTP. NOTE: under analyzer-10 override, `custom_lint` 0.8.1 host cannot load the analyzer plugin — riverpod_lint silently degrades until custom_lint ships an analyzer-^10 compatible release. | 2026-04-18 |
 | test | 1.30.0 | BSD-3-Clause | https://pub.dev/packages/test | Dart test runner used by tool/test/. No app runtime. | 2026-04-17 |
 | yaml | 3.1.3 | MIT | https://pub.dev/packages/yaml | YAML parser used by tool/check_*.dart. No network. | 2026-04-17 |
 
@@ -72,21 +73,22 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 
 | Package | Version | License | Pulled in by | Notes | Date |
 |---------|---------|---------|--------------|-------|------|
-| _fe_analyzer_shared | 91.0.0 | BSD-3-Clause | analyzer | Dev-only. | 2026-04-17 |
+| _fe_analyzer_shared | 93.0.0 | BSD-3-Clause | analyzer | Dev-only. Bumped 2026-04-18 from 91.0.0 alongside analyzer 10.0.1. | 2026-04-18 |
 | analysis_server_plugin | 0.3.3 | BSD-3-Clause | custom_lint | Dev-only. Dart-team package providing the analysis-server plugin host API. | 2026-04-18 |
-| analyzer | 8.4.0 | BSD-3-Clause | build_runner, riverpod_generator, custom_lint | Dev-only. Phase 03 added custom_lint as a third constraint and the resolver converged on 8.4.0 (was 8.4.1). | 2026-04-18 |
-| analyzer_buffer | 0.1.11 | MIT | riverpod_analyzer_utils | Dev-only. | 2026-04-17 |
+| analyzer | 10.0.1 | BSD-3-Clause | drift_dev, build_runner, riverpod_generator, custom_lint, json_serializable, freezed | Dev-only. Bumped 2026-04-18 from 8.4.0 via `dependency_overrides: analyzer: ^10.0.0` — drift_dev 2.32.1 requires analyzer ^10.0.0. Supersedes the 03-01 analyzer-<9 pin decision. custom_lint 0.8.1 cannot load its plugin under analyzer 10 and silently degrades (no @riverpod targets yet). | 2026-04-18 |
+| analyzer_buffer | 0.3.1 | MIT | riverpod_analyzer_utils | Dev-only. Bumped 2026-04-18 from 0.1.11 alongside analyzer 10.0.1. | 2026-04-18 |
 | analyzer_plugin | 0.13.10 | BSD-3-Clause | custom_lint | Dev-only. Dart-team package: analyzer plugin protocol implementation. | 2026-04-18 |
 | archive | 4.0.9 | MIT | build_runner | Dev-only. | 2026-04-17 |
 | args | 2.7.0 | BSD-3-Clause | build_runner, test | Dev-only. | 2026-04-17 |
 | async | 2.13.1 | BSD-3-Clause | multiple | Pure async utilities. | 2026-04-17 |
 | boolean_selector | 2.1.2 | BSD-3-Clause | test | Dev-only. | 2026-04-17 |
 | build | 4.0.5 | BSD-3-Clause | build_runner | Dev-only. | 2026-04-17 |
-| build_config | 1.2.0 | BSD-3-Clause | build_runner | Dev-only. | 2026-04-17 |
+| build_config | 1.3.0 | BSD-3-Clause | build_runner | Dev-only. Bumped 2026-04-18 from 1.2.0. | 2026-04-18 |
 | build_daemon | 4.1.1 | BSD-3-Clause | build_runner | Dev-only. | 2026-04-17 |
 | built_collection | 5.1.1 | BSD-3-Clause | code_builder | Dev-only. | 2026-04-17 |
 | built_value | 8.12.5 | BSD-3-Clause | code_builder | Dev-only. | 2026-04-17 |
 | characters | 1.4.1 | BSD-3-Clause | flutter | Grapheme clusters. | 2026-04-17 |
+| charcode | 1.4.0 | BSD-3-Clause | drift_dev | Dev-only. Pulled transitively by drift_dev. Dart-team package for ASCII char-code constants. License file: "Copyright 2014, the Dart project authors" + standard Google 3-clause preamble. No network. Added 2026-04-18. | 2026-04-18 |
 | checked_yaml | 2.0.4 | BSD-3-Clause | json_serializable | Dev-only. | 2026-04-17 |
 | ci | 0.1.0 | Apache-2.0 | custom_lint | Dev-only. Detects CI environment for plugin output formatting. | 2026-04-18 |
 | cli_config | 0.2.0 | BSD-3-Clause | native_toolchain_c | Dev-only. | 2026-04-17 |
@@ -102,7 +104,7 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | custom_lint_visitor | 1.0.0+8.4.0 | Apache-2.0 | custom_lint | Dev-only. AST visitor helpers pinned to analyzer 8.4.x compatibility. | 2026-04-18 |
 | dart_earcut | 1.2.0 | MIT | flutter_map | Polygon triangulation. | 2026-04-17 |
 | dart_polylabel2 | 1.0.0 | BSD-3-Clause | flutter_map | Pure geometry. | 2026-04-17 |
-| dart_style | 3.1.3 | BSD-3-Clause | build_runner | Dev-only formatter. | 2026-04-17 |
+| dart_style | 3.1.7 | BSD-3-Clause | build_runner | Dev-only formatter. Bumped 2026-04-18 from 3.1.3 via `dependency_overrides` — 3.1.8 requires analyzer ^12, but our override holds analyzer at ^10, so 3.1.7 (supports analyzer >=10 <12) is the ceiling. | 2026-04-18 |
 | dbus | 0.7.12 | MPL-2.0-Linux-only | flutter_local_notifications_linux, geolocator_linux, gsettings | Linux-only transitive; does not ship on Android/iOS. MPL-2.0 is file-level weak-copyleft, does not contaminate combined work. Override in tool/check_licenses.dart. | 2026-04-17 |
 | fake_async | 1.3.3 | Apache-2.0 | flutter_test | Testing utility. | 2026-04-17 |
 | ffi | 2.2.0 | BSD-3-Clause | native plugins | FFI bindings. | 2026-04-17 |
@@ -174,8 +176,9 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | proj4dart | 3.0.0 | MIT | flutter_map | Pure geo projections. | 2026-04-17 |
 | pub_semver | 2.2.0 | BSD-3-Clause | build_runner, pubspec_parse | Pure semver. | 2026-04-17 |
 | pubspec_parse | 1.5.0 | BSD-3-Clause | build_runner | Dev-only. | 2026-04-17 |
-| riverpod | 3.1.0 | MIT | flutter_riverpod | Core DI/state container. | 2026-04-17 |
-| riverpod_analyzer_utils | 1.0.0-dev.8 | MIT | riverpod_generator | Dev-only. | 2026-04-17 |
+| recase | 4.1.0 | BSD-2-Clause | drift_dev | Dev-only. Pulled transitively by drift_dev. Pure-Dart string case conversion (camelCase <-> snake_case). License file: "Copyright 2017 Keith Elliott" + standard BSD 2-clause "Redistribution and use..." preamble. No network. Added 2026-04-18. | 2026-04-18 |
+| riverpod | 3.2.1 | MIT | flutter_riverpod | Core DI/state container. Bumped 2026-04-18 from 3.1.0 alongside flutter_riverpod 3.3.1 + riverpod_lint 3.1.3 + riverpod_generator 4.0.3. | 2026-04-18 |
+| riverpod_analyzer_utils | 1.0.0-dev.9 | MIT | riverpod_generator | Dev-only. Bumped 2026-04-18 from 1.0.0-dev.8 with riverpod_generator 4.0.3. | 2026-04-18 |
 | rxdart | 0.28.0 | Apache-2.0 | riverpod_lint | Dev-only. Reactive extensions used internally by riverpod_lint rule engine. | 2026-04-18 |
 | share_plus_platform_interface | 6.1.0 | BSD-3-Clause | share_plus | Platform interface. | 2026-04-17 |
 | shared_preferences_android | 2.4.23 | BSD-3-Clause | shared_preferences | Android surface. | 2026-04-17 |
@@ -190,12 +193,13 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | shelf_web_socket | 3.0.0 | BSD-3-Clause | test | Dev-only. | 2026-04-17 |
 | simple_sparse_list | 0.1.4 | BSD-3-Clause | flutter_map | Pure data structure. | 2026-04-17 |
 | source_gen | 4.2.2 | BSD-3-Clause | riverpod_generator | Dev-only. | 2026-04-17 |
-| source_helper | 1.3.8 | Apache-2.0 | json_serializable | Dev-only. | 2026-04-17 |
+| source_helper | 1.3.11 | Apache-2.0 | json_serializable | Dev-only. Bumped 2026-04-18 from 1.3.8 with json_serializable 6.13.1. | 2026-04-18 |
 | source_map_stack_trace | 2.1.2 | BSD-3-Clause | test | Dev-only. | 2026-04-17 |
 | source_maps | 0.10.13 | BSD-3-Clause | test | Dev-only. | 2026-04-17 |
 | source_span | 1.10.2 | BSD-3-Clause | yaml, analyzer | Pure Dart. | 2026-04-17 |
 | sqlcipher_flutter_libs | 0.7.0+eol | Apache-2.0 | drift_flutter (optional) | Optional cipher bundle. Not enabled by default. | 2026-04-17 |
 | sqlite3 | 3.3.1 | MIT | drift_flutter | Pure-Dart sqlite bindings. | 2026-04-17 |
+| sqlparser | 0.44.3 | MIT | drift_dev | Dev-only. Pulled transitively by drift_dev. Pure-Dart SQL parser used by drift codegen to verify query AST. Same author as drift + drift_dev (Simon Binder). MIT license preamble in pub cache. No network. Added 2026-04-18. | 2026-04-18 |
 | stack_trace | 1.12.1 | BSD-3-Clause | multiple | Pure Dart. | 2026-04-17 |
 | state_notifier | 1.0.0 | MIT | riverpod | Core DI. | 2026-04-17 |
 | stream_channel | 2.1.4 | BSD-3-Clause | test | Pure Dart. | 2026-04-17 |

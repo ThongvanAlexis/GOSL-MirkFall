@@ -16,15 +16,22 @@ dependencies:
 
   # Phase 01 runtime
   #
-  # Pinning note: the riverpod + analyzer + custom_lint ecosystem at the time
-  # of Phase 01 execution was split between analyzer ^9.x (riverpod_generator
-  # 4.0.3, riverpod_lint 3.1.3, freezed 3.2.5) and analyzer ^7.x/^8.x (the
-  # versions below). `custom_lint` 0.8.1 targets analyzer ^8.0.0; no
-  # `custom_lint` release yet targets analyzer ^9.0.0, so we hold the whole
-  # stack at analyzer <9 to keep `custom_lint` + `riverpod_lint` usable.
-  # Re-evaluate when `custom_lint` ships an analyzer-^9 release.
-  flutter_riverpod: 3.1.0
-  riverpod_annotation: 4.0.0
+  # Pinning note (updated 2026-04-18 during Phase 03 plan 03-04): drift_dev
+  # 2.32.1 requires analyzer `^10.0.0`, which is incompatible with the
+  # previous Phase 01 / 03-01 pinning strategy of analyzer `<9`. Reversed:
+  # analyzer override bumped to `^10.0.0` (see `dependency_overrides` below),
+  # codegen tools bumped to analyzer-10-compatible versions where available.
+  # `custom_lint` 0.8.1 + `riverpod_lint` 3.1.0 are KEPT at their old pins and
+  # silently degrade (analyzer-plugin no longer loads under analyzer 10). This
+  # is acceptable for now — there are no `@riverpod` targets to lint until
+  # Phase 03 plan 03-06. Re-evaluate `custom_lint` when a release targeting
+  # analyzer ^10 lands.
+  # Phase 03 plan 03-04: bumped to 3.3.1 (uses riverpod 3.2.1) to stay in sync
+  # with riverpod_lint 3.1.3 / riverpod_annotation 4.0.2 / riverpod_generator
+  # 4.0.3, all of which chain through riverpod 3.2.1.
+  flutter_riverpod: 3.3.1
+  # Matches the riverpod 3.2.1 chain used by the codegen + lint packages.
+  riverpod_annotation: 4.0.2
   go_router: 16.0.0
   logging: 1.3.0
   path_provider: 2.1.5
@@ -43,7 +50,9 @@ dependencies:
   sqlite3_flutter_libs: 0.6.0+eol
   image_picker: 1.2.1
   freezed_annotation: 3.1.0
-  json_annotation: 4.9.0
+  # Phase 03 plan 03-04: bumped from 4.9.0 — json_serializable 6.13.1 requires
+  # json_annotation >=4.11.0 <4.12.0. 4.11.0 is the current latest on pub.dev.
+  json_annotation: 4.11.0
   file_picker: 11.0.2
   collection: 1.19.1
 
@@ -51,10 +60,22 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: 6.0.0
-  build_runner: 2.9.0
-  freezed: 3.2.3
-  json_serializable: 6.11.2
-  riverpod_generator: 4.0.0+1
+  # Phase 03 plan 03-04: bumped from 2.9.0 — 2.9.0 uses analyzer APIs removed
+  # in analyzer 10 (`LibraryElement2`, `Element2`, `element2` getter).
+  # 2.13.1 supports analyzer >=8.0.0 <13.0.0.
+  build_runner: 2.13.1
+  # Phase 03 plan 03-04: bumped to analyzer-10-compatible releases. freezed
+  # 3.2.5 supports analyzer >=9 <11; json_serializable 6.13.1 requires
+  # analyzer >=10 <13; riverpod_generator 4.0.3 declares analyzer ^9.0.0 but
+  # runs under the analyzer-10 dependency override, and its pinned
+  # riverpod_analyzer_utils 1.0.0-dev.9 matches riverpod_lint 3.1.3.
+  freezed: 3.2.5
+  json_serializable: 6.13.1
+  riverpod_generator: 4.0.3
+
+  # Phase 03 plan 03-04: drift codegen toolchain. Pinned exactly, produces
+  # `app_database.g.dart`, schema dumps, and SchemaVerifier helpers for 03-05.
+  drift_dev: 2.32.1
 
   # Phase 02 test mocks — declared directly so test imports are explicit
   # (path_provider_platform_interface ships a PathProviderPlatform contract
@@ -86,8 +107,30 @@ dev_dependencies:
   #   custom_lint 0.8.1: see resolution trace in 03-01-SUMMARY.md).
   # - See .planning/phases/03-persistence-domain-models/03-01-SUMMARY.md for
   #   the resolution trace (probe command + pubspec.lock excerpt).
+  # Phase 03 plan 03-04: riverpod_lint bumped to 3.1.3 (latest) to align with
+  # the riverpod 3.2.1 / riverpod_analyzer_utils 1.0.0-dev.9 chain required by
+  # riverpod_generator 4.0.3. custom_lint stays at 0.8.1 (no newer release
+  # targets analyzer ^10 yet) — both will silently degrade under the
+  # analyzer-10 override because the custom_lint analyzer plugin cannot load.
+  # No `@riverpod` targets exist yet, so this is acceptable for now.
   custom_lint: 0.8.1
-  riverpod_lint: 3.1.0
+  riverpod_lint: 3.1.3
+
+# Phase 03 plan 03-04: drift_dev 2.32.1 requires analyzer ^10.0.0. Other
+# codegen packages (freezed, json_serializable, riverpod_generator) declare
+# mixed analyzer caps from ^7 up to ^12; pinning analyzer here forces the
+# whole toolchain to resolve against 10.x so drift_dev codegen unblocks. Side
+# effect: `custom_lint` 0.8.1 and `riverpod_lint` 3.1.0 cannot load their
+# analyzer plugin under analyzer 10 and silently degrade — acceptable
+# because there are no `@riverpod` provider targets yet (added in 03-06).
+# Re-evaluate override when `custom_lint` ships analyzer-^10 support.
+dependency_overrides:
+  analyzer: ^10.0.0
+  # dart_style 3.1.8 (pulled transitively by json_serializable 6.13.1 and
+  # others) requires analyzer ^12.0.0, which the analyzer override forbids.
+  # 3.1.7 spans analyzer >=10 <12 — the highest point that matches the
+  # analyzer-10 override without dragging in analyzer 12.
+  dart_style: 3.1.7
 
 flutter:
   uses-material-design: true

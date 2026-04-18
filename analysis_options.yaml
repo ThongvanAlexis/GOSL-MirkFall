@@ -1,11 +1,15 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
-  # Phase 03: activate custom_lint plugin so riverpod_lint rules execute on
-  # @riverpod-annotated providers. The plugin runs alongside the standard
-  # analyzer; rules surface as analyzer warnings/info messages.
-  plugins:
-    - custom_lint
+  # Phase 03 plan 03-04: `custom_lint` plugin activation temporarily removed.
+  # `drift_dev` 2.32.1 requires analyzer ^10.0.0 (pubspec `dependency_overrides`);
+  # `custom_lint` 0.8.1 targets analyzer ^8.0.0 and cannot load its plugin
+  # under analyzer 10. Since there are no `@riverpod`-annotated providers
+  # yet (first ones land in plan 03-06), silently degrading the lint plugin
+  # is acceptable. Re-enable the block when `custom_lint` ships an
+  # analyzer-^10 release (or when we drop the analyzer override).
+  #   plugins:
+  #     - custom_lint
   language:
     strict-casts: true
     strict-inference: true
