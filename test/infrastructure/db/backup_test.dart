@@ -55,28 +55,56 @@ void main() {
     expect(backup.readAsBytesSync(), fakeDb.readAsBytesSync());
   });
 
-  test('rotate keeps the 3 newest when 4 exist', () async {
+  test('rotate keeps the 3 newest by filename-embedded ISO timestamp when 4 exist', () async {
     final svc = DbBackupService(dbFilename: fakeDb.path, backupDir: backupDir, maxBackups: 3);
     backupDir.createSync(recursive: true);
 
-    // Stagger modified times so mtime ordering is deterministic.
-    final now = DateTime.now();
-    for (var i = 0; i < 4; i++) {
-      final f = File(p.join(backupDir.path, 'mirkfall.db.backup-v1-to-v2-fake-$i'));
-      f.writeAsBytesSync(<int>[i]);
-      f.setLastModifiedSync(now.subtract(Duration(hours: 4 - i)));
+    // Four backups with ISO timestamps embedded in the filename — the ONLY
+    // ordering signal the rotator uses after finding #1 / P1 (deterministic
+    // filename sort, no dependence on filesystem mtime precision). Write
+    // order is intentionally shuffled vs. timestamp order so a lingering
+    // mtime-sort regression would flip the expected result.
+    const orderedTimestamps = <String>[
+      '2026-04-18T08-00-00.000Z', // oldest — should be deleted
+      '2026-04-18T09-00-00.000Z',
+      '2026-04-18T10-00-00.000Z',
+      '2026-04-18T11-00-00.000Z', // newest — should survive
+    ];
+    final writeOrder = <int>[2, 0, 3, 1];
+    for (final i in writeOrder) {
+      File(p.join(backupDir.path, 'mirkfall.db.backup-v1-to-v2-${orderedTimestamps[i]}')).writeAsBytesSync(<int>[i]);
     }
 
     await svc.rotate();
 
     final remaining = backupDir.listSync().whereType<File>().toList();
     expect(remaining.length, 3);
-    // The one with the oldest mtime ("fake-0") must have been deleted.
+    // Filename whose embedded timestamp is oldest must be deleted.
     final names = remaining.map((File f) => p.basename(f.path)).toSet();
-    expect(names.contains('mirkfall.db.backup-v1-to-v2-fake-0'), isFalse);
-    expect(names.contains('mirkfall.db.backup-v1-to-v2-fake-1'), isTrue);
-    expect(names.contains('mirkfall.db.backup-v1-to-v2-fake-2'), isTrue);
-    expect(names.contains('mirkfall.db.backup-v1-to-v2-fake-3'), isTrue);
+    expect(names.contains('mirkfall.db.backup-v1-to-v2-${orderedTimestamps[0]}'), isFalse);
+    expect(names.contains('mirkfall.db.backup-v1-to-v2-${orderedTimestamps[1]}'), isTrue);
+    expect(names.contains('mirkfall.db.backup-v1-to-v2-${orderedTimestamps[2]}'), isTrue);
+    expect(names.contains('mirkfall.db.backup-v1-to-v2-${orderedTimestamps[3]}'), isTrue);
+  });
+
+  test('rotate drops orphan files without parseable timestamp first', () async {
+    final svc = DbBackupService(dbFilename: fakeDb.path, backupDir: backupDir, maxBackups: 2);
+    backupDir.createSync(recursive: true);
+
+    // Mix: 2 real backups + 2 orphans. maxBackups=2 → orphans must go.
+    File(p.join(backupDir.path, 'mirkfall.db.backup-v1-to-v2-2026-04-18T10-00-00.000Z')).writeAsBytesSync(<int>[1]);
+    File(p.join(backupDir.path, 'mirkfall.db.backup-v1-to-v2-2026-04-18T11-00-00.000Z')).writeAsBytesSync(<int>[2]);
+    File(p.join(backupDir.path, 'orphan.txt')).writeAsBytesSync(<int>[3]);
+    File(p.join(backupDir.path, 'random.bin')).writeAsBytesSync(<int>[4]);
+
+    await svc.rotate();
+
+    final names = backupDir.listSync().whereType<File>().map((File f) => p.basename(f.path)).toSet();
+    expect(names.length, 2);
+    expect(names.contains('mirkfall.db.backup-v1-to-v2-2026-04-18T10-00-00.000Z'), isTrue);
+    expect(names.contains('mirkfall.db.backup-v1-to-v2-2026-04-18T11-00-00.000Z'), isTrue);
+    expect(names.contains('orphan.txt'), isFalse);
+    expect(names.contains('random.bin'), isFalse);
   });
 
   test('rotate is a no-op when fewer backups than maxBackups', () async {
@@ -106,15 +134,24 @@ void main() {
     expect(backupDir.existsSync(), isTrue);
   });
 
-  test('consecutive takeBackup calls + rotation keeps at most maxBackups', () async {
-    final svc = DbBackupService(dbFilename: fakeDb.path, backupDir: backupDir, maxBackups: 3);
-    // Five backups, spaced a few ms apart so the clock-supplied timestamp
-    // guarantees distinct filenames. We only care that rotation caps to 3.
+  test('consecutive takeBackup calls + rotation keeps at most maxBackups (deterministic clock)', () async {
+    // Inject a monotonic clock so each takeBackup call gets a distinct,
+    // deterministic timestamp — no reliance on wall-clock or `Future.delayed`
+    // ms-precision, which was the P1 flakiness family (04-REVIEW.md §3).
+    var tick = 0;
+    DateTime clock() => DateTime.utc(2026, 4, 18, 12, 0, tick++);
+    final svc = DbBackupService(dbFilename: fakeDb.path, backupDir: backupDir, maxBackups: 3, clock: clock);
+
     for (var i = 0; i < 5; i++) {
       await svc.takeBackup(fromVersion: 1, toVersion: 2);
-      await Future<void>.delayed(const Duration(milliseconds: 5));
     }
-    final remaining = backupDir.listSync().whereType<File>().toList();
+
+    final remaining = backupDir.listSync().whereType<File>().map((File f) => p.basename(f.path)).toList()..sort();
     expect(remaining.length, 3);
+    // The 3 newest filenames (by embedded timestamp seconds 2/3/4) survive.
+    // Sorted ascending, the first element is the 3rd-oldest kept (seconds=2),
+    // and the last is the newest (seconds=4).
+    expect(remaining.first, contains('12-00-02'));
+    expect(remaining.last, contains('12-00-04'));
   });
 }

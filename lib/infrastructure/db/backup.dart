@@ -17,9 +17,12 @@ import 'package:path/path.dart' as p;
 /// Phase 15 use: optional "Backup DB now" button in the debug menu.
 ///
 /// Rotation semantics: after every successful [takeBackup], [rotate] deletes
-/// the oldest files (by mtime) until at most [maxBackups] remain. Orphan files
-/// left in [backupDir] (e.g. a manual user copy) are counted the same as real
-/// backups — the service owns the whole directory.
+/// the oldest files until at most [maxBackups] remain. "Oldest" is decided by
+/// the ISO-8601 timestamp embedded in the filename (not the filesystem mtime,
+/// which is fragile on Windows — see finding #1 / P1 in 04-REVIEW.md §3).
+/// Orphan files left in [backupDir] (e.g. a manual user copy) without a
+/// parseable timestamp suffix are treated as the oldest possible entries and
+/// rotated first — the service owns the whole directory.
 class DbBackupService {
   /// Creates the service.
   ///
@@ -68,17 +71,50 @@ class DbBackupService {
 
   /// Deletes the oldest files in [backupDir] so at most [maxBackups] remain.
   ///
-  /// "Oldest" = lowest `File.statSync().modified`. Silent no-op when the dir
-  /// is absent or already at or below the retention limit.
+  /// "Oldest" = lowest ISO-8601 timestamp extracted from the filename via
+  /// [_extractBackupSortKey]. Files without a parseable timestamp sort
+  /// BEFORE any timestamped file (empty string compares lowest), so orphans
+  /// are rotated out first. Silent no-op when the dir is absent or already
+  /// at or below the retention limit.
+  ///
+  /// Filename-based sort is deterministic and immune to the Windows NTFS mtime
+  /// resolution / antivirus / parallel-run fragility that made finding #1 /
+  /// P1 a Blocker (04-REVIEW.md §3).
   Future<void> rotate() async {
     if (!await backupDir.exists()) return;
     final entries = await backupDir.list(followLinks: false).where((FileSystemEntity e) => e is File).cast<File>().toList();
     if (entries.length <= maxBackups) return;
-    // Descending mtime → newest first. Skip the first `maxBackups`, delete
-    // the tail.
-    entries.sort((File a, File b) => b.statSync().modified.compareTo(a.statSync().modified));
+    // Descending filename-sort-key → newest first. Skip the first `maxBackups`,
+    // delete the tail. Files whose basename does not carry a parseable
+    // `yyyy-MM-ddTHH-mm-ss.sssZ` suffix get empty sort key and rotate first.
+    entries.sort((File a, File b) => _extractBackupSortKey(p.basename(b.path)).compareTo(_extractBackupSortKey(p.basename(a.path))));
     for (final file in entries.skip(maxBackups)) {
       await file.delete();
     }
   }
+
+  /// Extracts the ISO-8601 sort key from [basename].
+  ///
+  /// Expected shape: `mirkfall.db.backup-v{from}-to-v{to}-{iso}` where `{iso}`
+  /// is produced by [takeBackup] as
+  /// `DateTime.toUtc().toIso8601String().replaceAll(':', '-')` — e.g.
+  /// `2026-04-18T12-30-45.123Z`.
+  ///
+  /// Returns the `{iso}` segment when the shape matches, or the empty string
+  /// otherwise. Empty strings lex-sort before any non-empty string, so malformed
+  /// or orphan files rotate out first — the desired behaviour for directory
+  /// cleanup.
+  ///
+  /// The regex anchors on the `mirkfall.db.backup-v{int}-to-v{int}-` prefix and
+  /// captures everything up to end-of-string. That remainder is a sortable ISO
+  /// timestamp by construction of [takeBackup]; lex comparison of two such
+  /// timestamps is equivalent to chronological comparison (ISO-8601 property).
+  static String _extractBackupSortKey(String basename) {
+    final match = _backupFilenamePattern.firstMatch(basename);
+    return match?.group(1) ?? '';
+  }
+
+  /// Matches `mirkfall.db.backup-v<int>-to-v<int>-<iso timestamp>` filenames.
+  /// Capture group 1 is the ISO-8601 timestamp suffix (sort key).
+  static final RegExp _backupFilenamePattern = RegExp(r'^mirkfall\.db\.backup-v\d+-to-v\d+-(.+)$');
 }
