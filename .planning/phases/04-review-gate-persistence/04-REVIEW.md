@@ -8,7 +8,7 @@
 
 *Captured verbatim at phase start, BEFORE Claude's audit.*
 
-(awaiting user input — Task 2 of this plan fills this section)
+*Aucune observation utilisateur — l'user n'a pas identifié de point à revoir dans son IDE.*
 
 ### 1b. Runtime walk Windows
 
