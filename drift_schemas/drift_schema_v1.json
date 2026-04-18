@@ -1,0 +1,844 @@
+{
+  "_meta": {
+    "description": "This file contains a serialized version of schema entities for drift.",
+    "version": "1.3.0"
+  },
+  "options": {
+    "store_date_time_values_as_text": false
+  },
+  "entities": [
+    {
+      "id": 0,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "t_sessions",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "display_name",
+            "getter_name": "displayName",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "status",
+            "getter_name": "status",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "started_at_utc",
+            "getter_name": "startedAtUtc",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const UnixMsToDateTimeConverter()",
+              "dart_type_name": "DateTime"
+            }
+          },
+          {
+            "name": "started_at_offset_minutes",
+            "getter_name": "startedAtOffsetMinutes",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "startedAtOffsetMinutes",
+                        "tag": "startedAtOffsetMinutes"
+                      },
+                      ").isBetweenValues(-720,840)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "stopped_at_utc",
+            "getter_name": "stoppedAtUtc",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const UnixMsToDateTimeConverter()",
+              "dart_type_name": "DateTime"
+            }
+          },
+          {
+            "name": "stopped_at_offset_minutes",
+            "getter_name": "stoppedAtOffsetMinutes",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 1,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "t_marker_categories",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "display_name",
+            "getter_name": "displayName",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "icon_name",
+            "getter_name": "iconName",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_utc",
+            "getter_name": "createdAtUtc",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const UnixMsToDateTimeConverter()",
+              "dart_type_name": "DateTime"
+            }
+          },
+          {
+            "name": "created_at_offset_minutes",
+            "getter_name": "createdAtOffsetMinutes",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "references": [
+        0,
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "t_markers",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "session_id",
+            "getter_name": "sessionId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES t_sessions (id) ON DELETE CASCADE",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES t_sessions (id) ON DELETE CASCADE"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "t_sessions",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "cascade"
+                }
+              }
+            ]
+          },
+          {
+            "name": "category_id",
+            "getter_name": "categoryId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES t_marker_categories (id)",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES t_marker_categories (id)"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "t_marker_categories",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": null
+                }
+              }
+            ]
+          },
+          {
+            "name": "lat",
+            "getter_name": "lat",
+            "moor_type": "double",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "lon",
+            "getter_name": "lon",
+            "moor_type": "double",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "title",
+            "getter_name": "title",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "notes",
+            "getter_name": "notes",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_utc",
+            "getter_name": "createdAtUtc",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const UnixMsToDateTimeConverter()",
+              "dart_type_name": "DateTime"
+            }
+          },
+          {
+            "name": "created_at_offset_minutes",
+            "getter_name": "createdAtOffsetMinutes",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "references": [
+        0
+      ],
+      "type": "table",
+      "data": {
+        "name": "t_revealed_tiles",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "session_id",
+            "getter_name": "sessionId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES t_sessions (id) ON DELETE CASCADE",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES t_sessions (id) ON DELETE CASCADE"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "t_sessions",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "cascade"
+                }
+              }
+            ]
+          },
+          {
+            "name": "parent_x",
+            "getter_name": "parentX",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "parent_y",
+            "getter_name": "parentY",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "parent_zoom",
+            "getter_name": "parentZoom",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('14')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "bitmap",
+            "getter_name": "bitmap",
+            "moor_type": "blob",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "set_bit_count",
+            "getter_name": "setBitCount",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at_utc",
+            "getter_name": "updatedAtUtc",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const UnixMsToDateTimeConverter()",
+              "dart_type_name": "DateTime"
+            }
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ],
+        "unique_keys": [
+          [
+            "session_id",
+            "parent_x",
+            "parent_y",
+            "parent_zoom"
+          ]
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "t_mirk_styles",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "display_name",
+            "getter_name": "displayName",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "renderer_type",
+            "getter_name": "rendererType",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "config",
+            "getter_name": "config",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const MirkStyleConfigJsonConverter()",
+              "dart_type_name": "MirkStyleConfig"
+            }
+          },
+          {
+            "name": "created_at_utc",
+            "getter_name": "createdAtUtc",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const UnixMsToDateTimeConverter()",
+              "dart_type_name": "DateTime"
+            }
+          },
+          {
+            "name": "created_at_offset_minutes",
+            "getter_name": "createdAtOffsetMinutes",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "references": [
+        2
+      ],
+      "type": "table",
+      "data": {
+        "name": "t_photos",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "marker_id",
+            "getter_name": "markerId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES t_markers (id) ON DELETE CASCADE",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES t_markers (id) ON DELETE CASCADE"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "t_markers",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "cascade"
+                }
+              }
+            ]
+          },
+          {
+            "name": "relative_basename",
+            "getter_name": "relativeBasename",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "width_px",
+            "getter_name": "widthPx",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "height_px",
+            "getter_name": "heightPx",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "file_size_bytes",
+            "getter_name": "fileSizeBytes",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_utc",
+            "getter_name": "createdAtUtc",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const UnixMsToDateTimeConverter()",
+              "dart_type_name": "DateTime"
+            }
+          },
+          {
+            "name": "created_at_offset_minutes",
+            "getter_name": "createdAtOffsetMinutes",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "references": [
+        0
+      ],
+      "type": "index",
+      "data": {
+        "on": 0,
+        "name": "idx_t_sessions_status_active",
+        "sql": "  CREATE UNIQUE INDEX idx_t_sessions_status_active\n    ON t_sessions(status)\n    WHERE status = 'active';\n",
+        "unique": true,
+        "columns": []
+      }
+    },
+    {
+      "id": 7,
+      "references": [
+        2
+      ],
+      "type": "index",
+      "data": {
+        "on": 2,
+        "name": "idx_t_markers_session_id",
+        "sql": "CREATE INDEX idx_t_markers_session_id ON t_markers(session_id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 8,
+      "references": [
+        2
+      ],
+      "type": "index",
+      "data": {
+        "on": 2,
+        "name": "idx_t_markers_category_id",
+        "sql": "CREATE INDEX idx_t_markers_category_id ON t_markers(category_id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 9,
+      "references": [
+        3
+      ],
+      "type": "index",
+      "data": {
+        "on": 3,
+        "name": "idx_t_revealed_tiles_session_id_parent_key",
+        "sql": "CREATE INDEX idx_t_revealed_tiles_session_id_parent_key ON t_revealed_tiles(session_id, parent_x, parent_y);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 10,
+      "references": [
+        5
+      ],
+      "type": "index",
+      "data": {
+        "on": 5,
+        "name": "idx_t_photos_marker_id",
+        "sql": "CREATE INDEX idx_t_photos_marker_id ON t_photos(marker_id);",
+        "unique": false,
+        "columns": []
+      }
+    }
+  ],
+  "fixed_sql": [
+    {
+      "name": "t_sessions",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_sessions\" (\"id\" TEXT NOT NULL, \"display_name\" TEXT NOT NULL, \"status\" TEXT NOT NULL, \"started_at_utc\" INTEGER NOT NULL, \"started_at_offset_minutes\" INTEGER NOT NULL CHECK(\"started_at_offset_minutes\" BETWEEN -720 AND 840), \"stopped_at_utc\" INTEGER NULL, \"stopped_at_offset_minutes\" INTEGER NULL, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "t_marker_categories",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_marker_categories\" (\"id\" TEXT NOT NULL, \"display_name\" TEXT NOT NULL, \"icon_name\" TEXT NOT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "t_markers",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_markers\" (\"id\" TEXT NOT NULL, \"session_id\" TEXT NOT NULL REFERENCES t_sessions (id) ON DELETE CASCADE, \"category_id\" TEXT NOT NULL REFERENCES t_marker_categories (id), \"lat\" REAL NOT NULL, \"lon\" REAL NOT NULL, \"title\" TEXT NOT NULL, \"notes\" TEXT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "t_revealed_tiles",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_revealed_tiles\" (\"id\" TEXT NOT NULL, \"session_id\" TEXT NOT NULL REFERENCES t_sessions (id) ON DELETE CASCADE, \"parent_x\" INTEGER NOT NULL, \"parent_y\" INTEGER NOT NULL, \"parent_zoom\" INTEGER NOT NULL DEFAULT 14, \"bitmap\" BLOB NOT NULL, \"set_bit_count\" INTEGER NOT NULL DEFAULT 0, \"updated_at_utc\" INTEGER NOT NULL, PRIMARY KEY (\"id\"), UNIQUE (\"session_id\", \"parent_x\", \"parent_y\", \"parent_zoom\"));"
+        }
+      ]
+    },
+    {
+      "name": "t_mirk_styles",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_mirk_styles\" (\"id\" TEXT NOT NULL, \"display_name\" TEXT NOT NULL, \"renderer_type\" TEXT NOT NULL, \"config\" TEXT NOT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "t_photos",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_photos\" (\"id\" TEXT NOT NULL, \"marker_id\" TEXT NOT NULL REFERENCES t_markers (id) ON DELETE CASCADE, \"relative_basename\" TEXT NOT NULL, \"width_px\" INTEGER NOT NULL, \"height_px\" INTEGER NOT NULL, \"file_size_bytes\" INTEGER NOT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "idx_t_sessions_status_active",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE UNIQUE INDEX idx_t_sessions_status_active ON t_sessions (status) WHERE status = 'active'"
+        }
+      ]
+    },
+    {
+      "name": "idx_t_markers_session_id",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX idx_t_markers_session_id ON t_markers (session_id)"
+        }
+      ]
+    },
+    {
+      "name": "idx_t_markers_category_id",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX idx_t_markers_category_id ON t_markers (category_id)"
+        }
+      ]
+    },
+    {
+      "name": "idx_t_revealed_tiles_session_id_parent_key",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX idx_t_revealed_tiles_session_id_parent_key ON t_revealed_tiles (session_id, parent_x, parent_y)"
+        }
+      ]
+    },
+    {
+      "name": "idx_t_photos_marker_id",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX idx_t_photos_marker_id ON t_photos (marker_id)"
+        }
+      ]
+    }
+  ]
+}

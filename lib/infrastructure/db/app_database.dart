@@ -1,0 +1,245 @@
+// Copyright (c) 2026 THONGVAN Alexis
+// Licensed under the Good Old Software License v1.0
+// See LICENSE file for details
+
+import 'package:drift/drift.dart';
+
+import 'pragma_setup.dart';
+import 'type_converters.dart';
+
+part 'app_database.g.dart';
+
+// ---------------------------------------------------------------------------
+// Tables
+// ---------------------------------------------------------------------------
+
+/// `t_sessions` — one row per tracking session.
+///
+/// SESS-06 invariant: at most one row with `status='active'`. Enforced by
+/// the partial unique index `idx_t_sessions_status_active` (declared via
+/// `@TableIndex.sql` below — Drift emits the exact `WHERE status='active'`
+/// partial-index syntax since 2.30.x).
+@DataClassName('SessionRow')
+@TableIndex.sql('''
+  CREATE UNIQUE INDEX idx_t_sessions_status_active
+    ON t_sessions(status)
+    WHERE status = 'active';
+''')
+class Sessions extends Table {
+  @override
+  String get tableName => 't_sessions';
+
+  TextColumn get id => text()();
+  TextColumn get displayName => text()();
+  TextColumn get status => text()();
+  IntColumn get startedAtUtc =>
+      integer().map(const UnixMsToDateTimeConverter())();
+  // Drift's `check()` takes an `Expression<bool>` that references the column
+  // itself — the self-reference is the documented pattern (see
+  // https://drift.simonbinder.eu/docs/getting-started/advanced_dart_tables/
+  // and the package doc example). `recursive_getters` is a false positive
+  // here because the body is rewritten by the build_runner builder; the
+  // actual runtime path never enters the getter recursively.
+  // ignore: recursive_getters
+  IntColumn get startedAtOffsetMinutes =>
+      // ignore: recursive_getters
+      integer().check(startedAtOffsetMinutes.isBetweenValues(-720, 840))();
+  IntColumn get stoppedAtUtc =>
+      integer().nullable().map(const UnixMsToDateTimeConverter())();
+  IntColumn get stoppedAtOffsetMinutes => integer().nullable()();
+
+  // V1 shape: NO `notes` column. Task 2 adds it + the V1->V2 migration.
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// `t_marker_categories` — user-defined marker taxonomies. Includes the
+/// reserved `cat_default` sentinel row seeded by 03-06 migrations; that row
+/// is the reassignment target for markers whose category gets deleted
+/// (CONTEXT.md §cascade — marker_category deletion does NOT cascade).
+@DataClassName('MarkerCategoryRow')
+class MarkerCategories extends Table {
+  @override
+  String get tableName => 't_marker_categories';
+
+  TextColumn get id => text()();
+  TextColumn get displayName => text()();
+  TextColumn get iconName => text()();
+  IntColumn get createdAtUtc =>
+      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get createdAtOffsetMinutes => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// `t_markers` — points of interest captured during a session.
+///
+/// FK policy:
+/// - `session_id` references `t_sessions.id` with ON DELETE CASCADE — deleting
+///   a session drops its markers (CONTEXT.md §cascade).
+/// - `category_id` references `t_marker_categories.id` WITHOUT cascade. The
+///   `MarkerCategoryStore.delete` impl (03-06) reassigns markers to
+///   `kCategoryDefaultId` inside a transaction before deleting the category.
+@DataClassName('MarkerRow')
+@TableIndex.sql(
+  'CREATE INDEX idx_t_markers_session_id ON t_markers(session_id);',
+)
+@TableIndex.sql(
+  'CREATE INDEX idx_t_markers_category_id ON t_markers(category_id);',
+)
+class Markers extends Table {
+  @override
+  String get tableName => 't_markers';
+
+  TextColumn get id => text()();
+  TextColumn get sessionId =>
+      text().references(Sessions, #id, onDelete: KeyAction.cascade)();
+  TextColumn get categoryId => text().references(MarkerCategories, #id)();
+  RealColumn get lat => real()();
+  RealColumn get lon => real()();
+  TextColumn get title => text()();
+  TextColumn get notes => text().nullable()();
+  IntColumn get createdAtUtc =>
+      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get createdAtOffsetMinutes => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// `t_revealed_tiles` — MIRK-03 storage unit: a 512-byte (64x64 bit) bitmap
+/// per parent tile. Composite unique key `(session_id, parent_x, parent_y,
+/// parent_zoom)` ensures per-session idempotence (re-reveal merges into the
+/// existing row via `mergeBitmap`).
+@DataClassName('RevealedTileRow')
+@TableIndex.sql(
+  'CREATE INDEX idx_t_revealed_tiles_session_id_parent_key '
+  'ON t_revealed_tiles(session_id, parent_x, parent_y);',
+)
+class RevealedTiles extends Table {
+  @override
+  String get tableName => 't_revealed_tiles';
+
+  TextColumn get id => text()();
+  TextColumn get sessionId =>
+      text().references(Sessions, #id, onDelete: KeyAction.cascade)();
+  IntColumn get parentX => integer()();
+  IntColumn get parentY => integer()();
+  IntColumn get parentZoom => integer().withDefault(const Constant(14))();
+  BlobColumn get bitmap => blob()();
+  IntColumn get setBitCount => integer().withDefault(const Constant(0))();
+  IntColumn get updatedAtUtc =>
+      integer().map(const UnixMsToDateTimeConverter())();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+        {sessionId, parentX, parentY, parentZoom},
+      ];
+}
+
+/// `t_mirk_styles` — renderer configurations. `renderer_type` is a denormalized
+/// top-level copy of `config.rendererType` for fast SELECT-WHERE without a
+/// JSON scan.
+@DataClassName('MirkStyleRow')
+class MirkStyles extends Table {
+  @override
+  String get tableName => 't_mirk_styles';
+
+  TextColumn get id => text()();
+  TextColumn get displayName => text()();
+  TextColumn get rendererType => text()();
+  TextColumn get config =>
+      text().map(const MirkStyleConfigJsonConverter())();
+  IntColumn get createdAtUtc =>
+      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get createdAtOffsetMinutes => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// `t_photos` — photo attachments for markers. Deleting the parent marker
+/// cascades here (CONTEXT.md §cascade — marker deletion drops attached
+/// photos; orphan file cleanup on disk is the PhotoService's job, Phase 11).
+@DataClassName('PhotoRow')
+@TableIndex.sql('CREATE INDEX idx_t_photos_marker_id ON t_photos(marker_id);')
+class Photos extends Table {
+  @override
+  String get tableName => 't_photos';
+
+  TextColumn get id => text()();
+  TextColumn get markerId =>
+      text().references(Markers, #id, onDelete: KeyAction.cascade)();
+  TextColumn get relativeBasename => text()();
+  IntColumn get widthPx => integer()();
+  IntColumn get heightPx => integer()();
+  IntColumn get fileSizeBytes => integer()();
+  IntColumn get createdAtUtc =>
+      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get createdAtOffsetMinutes => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+// ---------------------------------------------------------------------------
+// Database
+// ---------------------------------------------------------------------------
+
+/// MirkFall's single SQLite store (CONTEXT.md §Stockage DB, decision D4).
+///
+/// Construction: `AppDatabase(executor, onBeforeUpgrade: hook)` — the
+/// optional `onBeforeUpgrade` fires inside `MigrationStrategy.beforeOpen`
+/// when `details.hadUpgrade == true`, BEFORE `onUpgrade` runs. 03-05 wires
+/// `DbBackupService.takeBackup` into it so a pre-migration snapshot exists
+/// if the upgrade corrupts data.
+///
+/// Pragma application order (RESEARCH §Pattern 1):
+/// 1. `NativeDatabase.memory(setup:)` / `createInBackground(setup:)` applies
+///    `PRAGMA journal_mode = WAL` to the raw sqlite3 handle BEFORE Drift's
+///    first query (pitfall #2 — journal_mode read after open freezes the
+///    journal mode).
+/// 2. `MigrationStrategy.beforeOpen` calls [applyRuntimePragmas] to set the
+///    other three pragmas (synchronous, busy_timeout, foreign_keys) on every
+///    cold + warm open.
+@DriftDatabase(
+  tables: [Sessions, MarkerCategories, Markers, RevealedTiles, MirkStyles, Photos],
+)
+class AppDatabase extends _$AppDatabase {
+  /// Creates an [AppDatabase] backed by [executor].
+  ///
+  /// [onBeforeUpgrade] fires from `beforeOpen` when `details.hadUpgrade ==
+  /// true`, BEFORE `onUpgrade` runs. Kept nullable so tests + first-open
+  /// (`onCreate`) paths don't need to provide one. 03-05 injects the real
+  /// backup hook at the factory level.
+  AppDatabase(
+    super.executor, {
+    this.onBeforeUpgrade,
+  });
+
+  /// Pre-upgrade hook — see constructor docstring.
+  final Future<void> Function(OpeningDetails details)? onBeforeUpgrade;
+
+  // V1 shape. Task 2 bumps to 2 and wires V1ToV2Notes in `onUpgrade`.
+  @override
+  int get schemaVersion => 1;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (Migrator m) => m.createAll(),
+        onUpgrade: (Migrator m, int from, int to) async {
+          // V1 has no upgrades. Task 2 wires V1ToV2Notes here.
+        },
+        beforeOpen: (OpeningDetails details) async {
+          if (details.hadUpgrade && onBeforeUpgrade != null) {
+            await onBeforeUpgrade!(details);
+          }
+          await applyRuntimePragmas(this);
+        },
+      );
+}
