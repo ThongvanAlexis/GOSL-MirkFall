@@ -9,7 +9,9 @@
 --
 -- Inventory:
 --   3  marker_categories
---   10 sessions  (none status='active' — partial unique index tolerates 0)
+--   10 sessions  (all status='stopped' — SessionStatus enum has only
+--                 'active' | 'stopped'; partial unique index tolerates zero
+--                 actives, which keeps the fixture collision-free)
 --   50 markers   (5 per session, distributed across the 10 fixtures)
 --   5  revealed_tiles  (3 on sess_..A + 2 on sess_..B)
 --   2  mirk_styles  (one well-known renderer, one unknown-renderer blob)
@@ -37,10 +39,10 @@ INSERT INTO t_sessions (id, display_name, status, started_at_utc, started_at_off
   ('sess_01HRFIX0000000000000000A', 'Fixture session 01',  'stopped', 1712001000000, 120, 1712010000000, 120),
   ('sess_01HRFIX0000000000000000B', 'Fixture session 02',  'stopped', 1712002000000, 120, 1712011000000, 120),
   ('sess_01HRFIX0000000000000000C', 'Fixture session 03',  'stopped', 1712003000000, 120, 1712012000000, 120),
-  ('sess_01HRFIX0000000000000000D', 'Fixture session 04',  'paused',  1712004000000, 120, NULL,          NULL),
+  ('sess_01HRFIX0000000000000000D', 'Fixture session 04',  'stopped', 1712004000000, 120, 1712013000000, 120),
   ('sess_01HRFIX0000000000000000E', 'Fixture session 05',  'stopped', 1712005000000, 120, 1712014000000, 120),
   ('sess_01HRFIX0000000000000000F', 'Fixture session 06',  'stopped', 1712006000000, 120, 1712015000000, 120),
-  ('sess_01HRFIX0000000000000000G', 'Fixture session 07',  'paused',  1712007000000, 120, NULL,          NULL),
+  ('sess_01HRFIX0000000000000000G', 'Fixture session 07',  'stopped', 1712007000000, 120, 1712016000000, 120),
   ('sess_01HRFIX0000000000000000H', 'Fixture session 08',  'stopped', 1712008000000, 120, 1712017000000, 120),
   ('sess_01HRFIX0000000000000000J', 'Fixture session 09',  'stopped', 1712009000000, 120, 1712018000000, 120),
   ('sess_01HRFIX0000000000000000K', 'Fixture session 10',  'stopped', 1712010500000, 120, 1712019000000, 120);
