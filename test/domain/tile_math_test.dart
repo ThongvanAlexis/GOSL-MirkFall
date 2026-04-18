@@ -7,10 +7,13 @@ import 'package:test/test.dart';
 
 void main() {
   group('TileMath.latLonToTile at zoom 14', () {
-    test('Paris (48.8566, 2.3522) maps to tile around (8294, 5635)', () {
+    test('Paris (48.8566, 2.3522) maps to tile around (8299, 5635)', () {
+      // Reference: OSM Slippy Map calculator at lon=2.3522, lat=48.8566, z=14:
+      //   x = floor((182.3522 / 360) * 16384) = floor(8299.06) = 8299
+      //   y = floor((1 - asinh(tan(48.8566 deg)) / pi) / 2 * 16384) ≈ 5635
       final t = TileMath.latLonToTile(lat: 48.8566, lon: 2.3522, zoom: 14);
       expect(t.zoom, 14);
-      expect(t.x, inInclusiveRange(8293, 8295));
+      expect(t.x, inInclusiveRange(8298, 8300));
       expect(t.y, inInclusiveRange(5634, 5636));
     });
 
