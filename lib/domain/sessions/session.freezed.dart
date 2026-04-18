@@ -216,7 +216,7 @@ return $default(_that.id,_that.displayName,_that.status,_that.startedAtUtc,_that
 @JsonSerializable()
 
 class _Session implements Session {
-   _Session({@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required this.id, required this.displayName, required this.status, required this.startedAtUtc, required this.startedAtOffsetMinutes, this.stoppedAtUtc, this.stoppedAtOffsetMinutes, this.notes}): assert(displayName.trim().isNotEmpty, 'Session.displayName must be non-empty'),assert(startedAtOffsetMinutes >= -720 && startedAtOffsetMinutes <= 840, 'Session.startedAtOffsetMinutes out of range (UTC-12 to UTC+14)');
+   _Session({@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required this.id, required this.displayName, required this.status, required this.startedAtUtc, required this.startedAtOffsetMinutes, this.stoppedAtUtc, this.stoppedAtOffsetMinutes, this.notes}): assert(displayName.trim().isNotEmpty, 'Session.displayName must be non-empty'),assert(startedAtOffsetMinutes >= -720 && startedAtOffsetMinutes <= 840, 'Session.startedAtOffsetMinutes out of range (UTC-12 to UTC+14)'),assert(stoppedAtOffsetMinutes == null || (stoppedAtOffsetMinutes >= -720 && stoppedAtOffsetMinutes <= 840), 'Session.stoppedAtOffsetMinutes out of range (UTC-12 to UTC+14)');
   factory _Session.fromJson(Map<String, dynamic> json) => _$SessionFromJson(json);
 
 @override@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) final  SessionId id;

@@ -216,7 +216,7 @@ return $default(_that.id,_that.markerId,_that.relativeBasename,_that.widthPx,_th
 @JsonSerializable()
 
 class _PhotoRef implements PhotoRef {
-  const _PhotoRef({@JsonKey(fromJson: photoRefIdFromJson, toJson: photoRefIdToJson) required this.id, @JsonKey(fromJson: markerIdFromJson, toJson: markerIdToJson) required this.markerId, required this.relativeBasename, required this.widthPx, required this.heightPx, required this.fileSizeBytes, required this.createdAtUtc, required this.createdAtOffsetMinutes});
+  const _PhotoRef({@JsonKey(fromJson: photoRefIdFromJson, toJson: photoRefIdToJson) required this.id, @JsonKey(fromJson: markerIdFromJson, toJson: markerIdToJson) required this.markerId, required this.relativeBasename, required this.widthPx, required this.heightPx, required this.fileSizeBytes, required this.createdAtUtc, required this.createdAtOffsetMinutes}): assert(widthPx > 0, 'PhotoRef.widthPx must be > 0'),assert(heightPx > 0, 'PhotoRef.heightPx must be > 0'),assert(fileSizeBytes > 0, 'PhotoRef.fileSizeBytes must be > 0'),assert(createdAtOffsetMinutes >= -720 && createdAtOffsetMinutes <= 840, 'PhotoRef.createdAtOffsetMinutes out of range (UTC-12 to UTC+14)');
   factory _PhotoRef.fromJson(Map<String, dynamic> json) => _$PhotoRefFromJson(json);
 
 @override@JsonKey(fromJson: photoRefIdFromJson, toJson: photoRefIdToJson) final  PhotoRefId id;

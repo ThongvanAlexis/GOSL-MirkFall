@@ -48,6 +48,20 @@ void main() {
       expect(() => Envelope.parse(<String, Object?>{'schemaVersion': 1, 'payload': <String, Object?>{}}), throwsA(isA<ImportValidationException>()));
     });
 
+    test('schemaVersion of 0 throws ImportValidationException (must be >= 1)', () {
+      expect(
+        () => Envelope.parse(<String, Object?>{'schemaVersion': 0, 'type': 'session', 'payload': <String, Object?>{}}),
+        throwsA(isA<ImportValidationException>().having((e) => e.reason, 'reason', contains('>= 1'))),
+      );
+    });
+
+    test('negative schemaVersion throws ImportValidationException', () {
+      expect(
+        () => Envelope.parse(<String, Object?>{'schemaVersion': -1, 'type': 'session', 'payload': <String, Object?>{}}),
+        throwsA(isA<ImportValidationException>().having((e) => e.reason, 'reason', contains('>= 1'))),
+      );
+    });
+
     test('missing payload throws ImportValidationException', () {
       expect(
         () => Envelope.parse(<String, Object?>{'schemaVersion': 1, 'type': 'session'}),

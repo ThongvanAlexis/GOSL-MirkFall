@@ -22,6 +22,10 @@ part 'photo_ref.g.dart';
 /// friendliness). The filesystem-backed implementation arrives in Phase 11.
 @freezed
 abstract class PhotoRef with _$PhotoRef {
+  @Assert('widthPx > 0', 'PhotoRef.widthPx must be > 0')
+  @Assert('heightPx > 0', 'PhotoRef.heightPx must be > 0')
+  @Assert('fileSizeBytes > 0', 'PhotoRef.fileSizeBytes must be > 0')
+  @Assert('createdAtOffsetMinutes >= -720 && createdAtOffsetMinutes <= 840', 'PhotoRef.createdAtOffsetMinutes out of range (UTC-12 to UTC+14)')
   const factory PhotoRef({
     @JsonKey(fromJson: photoRefIdFromJson, toJson: photoRefIdToJson) required PhotoRefId id,
     @JsonKey(fromJson: markerIdFromJson, toJson: markerIdToJson) required MarkerId markerId,

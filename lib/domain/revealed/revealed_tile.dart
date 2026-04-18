@@ -26,6 +26,11 @@ part 'revealed_tile.freezed.dart';
 /// exclusively through the Drift store (Phase 03-06).
 @freezed
 abstract class RevealedTile with _$RevealedTile {
+  @Assert('parentX >= 0', 'RevealedTile.parentX must be >= 0')
+  @Assert('parentY >= 0', 'RevealedTile.parentY must be >= 0')
+  @Assert('parentZoom == 14', 'RevealedTile.parentZoom must equal kRevealedTileParentZoom (14)')
+  @Assert('bitmap.length == 512', 'RevealedTile.bitmap must be exactly 512 bytes (64x64 sub-grid)')
+  @Assert('setBitCount >= 0 && setBitCount <= 4096', 'RevealedTile.setBitCount must be in [0..4096] (64x64 bits)')
   const factory RevealedTile({
     required RevealedTileId id,
     required SessionId sessionId,

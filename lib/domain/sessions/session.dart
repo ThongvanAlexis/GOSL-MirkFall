@@ -32,6 +32,10 @@ part 'session.g.dart';
 abstract class Session with _$Session {
   @Assert('displayName.trim().isNotEmpty', 'Session.displayName must be non-empty')
   @Assert('startedAtOffsetMinutes >= -720 && startedAtOffsetMinutes <= 840', 'Session.startedAtOffsetMinutes out of range (UTC-12 to UTC+14)')
+  @Assert(
+    'stoppedAtOffsetMinutes == null || (stoppedAtOffsetMinutes >= -720 && stoppedAtOffsetMinutes <= 840)',
+    'Session.stoppedAtOffsetMinutes out of range (UTC-12 to UTC+14)',
+  )
   factory Session({
     @JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required SessionId id,
     required String displayName,

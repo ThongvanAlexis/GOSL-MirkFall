@@ -26,6 +26,9 @@ part 'marker.g.dart';
 @freezed
 abstract class Marker with _$Marker {
   @Assert('title.trim().isNotEmpty', 'Marker.title must be non-empty')
+  @Assert('lat >= -90.0 && lat <= 90.0', 'Marker.lat out of range (-90..+90)')
+  @Assert('lon >= -180.0 && lon <= 180.0', 'Marker.lon out of range (-180..+180)')
+  @Assert('createdAtOffsetMinutes >= -720 && createdAtOffsetMinutes <= 840', 'Marker.createdAtOffsetMinutes out of range (UTC-12 to UTC+14)')
   factory Marker({
     @JsonKey(fromJson: markerIdFromJson, toJson: markerIdToJson) required MarkerId id,
     @JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required SessionId sessionId,

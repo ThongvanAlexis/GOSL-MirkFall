@@ -9,12 +9,13 @@ import 'package:mirkfall/domain/sessions/session_status.dart';
 import 'package:test/test.dart';
 
 void main() {
-  Session buildSession({String displayName = 'Paris 2026', int startedAtOffsetMinutes = 120}) => Session(
+  Session buildSession({String displayName = 'Paris 2026', int startedAtOffsetMinutes = 120, int? stoppedAtOffsetMinutes}) => Session(
     id: const SessionId('sess_01HRSESSIONFIXTUREAAAAAAAA'),
     displayName: displayName,
     status: SessionStatus.stopped,
     startedAtUtc: DateTime.utc(2026, 4, 1, 8),
     startedAtOffsetMinutes: startedAtOffsetMinutes,
+    stoppedAtOffsetMinutes: stoppedAtOffsetMinutes,
   );
 
   group('Session @Assert invariants', () {
@@ -54,6 +55,24 @@ void main() {
       expect(s.displayName, 'Paris 2026');
       expect(s.status, SessionStatus.stopped);
       expect(s.startedAtOffsetMinutes, 120);
+    });
+
+    test('null stoppedAtOffsetMinutes is allowed (active sessions)', () {
+      final s = buildSession();
+      expect(s.stoppedAtOffsetMinutes, isNull);
+    });
+
+    test('stoppedAtOffsetMinutes below kMinUtcOffsetMinutes throws AssertionError', () {
+      expect(() => buildSession(stoppedAtOffsetMinutes: kMinUtcOffsetMinutes - 1), throwsA(isA<AssertionError>()));
+    });
+
+    test('stoppedAtOffsetMinutes above kMaxUtcOffsetMinutes throws AssertionError', () {
+      expect(() => buildSession(stoppedAtOffsetMinutes: kMaxUtcOffsetMinutes + 1), throwsA(isA<AssertionError>()));
+    });
+
+    test('boundary stoppedAtOffsetMinutes values construct successfully', () {
+      expect(buildSession(stoppedAtOffsetMinutes: kMinUtcOffsetMinutes).stoppedAtOffsetMinutes, kMinUtcOffsetMinutes);
+      expect(buildSession(stoppedAtOffsetMinutes: kMaxUtcOffsetMinutes).stoppedAtOffsetMinutes, kMaxUtcOffsetMinutes);
     });
   });
 }

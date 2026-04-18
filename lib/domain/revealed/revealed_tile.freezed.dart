@@ -213,7 +213,7 @@ return $default(_that.id,_that.sessionId,_that.parentX,_that.parentY,_that.paren
 
 
 class _RevealedTile implements RevealedTile {
-  const _RevealedTile({required this.id, required this.sessionId, required this.parentX, required this.parentY, this.parentZoom = 14, required this.bitmap, required this.setBitCount, required this.updatedAtUtc});
+  const _RevealedTile({required this.id, required this.sessionId, required this.parentX, required this.parentY, this.parentZoom = 14, required this.bitmap, required this.setBitCount, required this.updatedAtUtc}): assert(parentX >= 0, 'RevealedTile.parentX must be >= 0'),assert(parentY >= 0, 'RevealedTile.parentY must be >= 0'),assert(parentZoom == 14, 'RevealedTile.parentZoom must equal kRevealedTileParentZoom (14)'),assert(bitmap.length == 512, 'RevealedTile.bitmap must be exactly 512 bytes (64x64 sub-grid)'),assert(setBitCount >= 0 && setBitCount <= 4096, 'RevealedTile.setBitCount must be in [0..4096] (64x64 bits)');
   
 
 @override final  RevealedTileId id;

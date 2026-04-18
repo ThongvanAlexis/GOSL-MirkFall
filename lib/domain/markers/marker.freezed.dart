@@ -218,7 +218,7 @@ return $default(_that.id,_that.sessionId,_that.categoryId,_that.lat,_that.lon,_t
 @JsonSerializable()
 
 class _Marker implements Marker {
-   _Marker({@JsonKey(fromJson: markerIdFromJson, toJson: markerIdToJson) required this.id, @JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required this.sessionId, @JsonKey(fromJson: categoryIdFromJson, toJson: categoryIdToJson) required this.categoryId, required this.lat, required this.lon, required this.title, required this.createdAtUtc, required this.createdAtOffsetMinutes, this.notes, final  List<PhotoRef> photos = const <PhotoRef>[]}): assert(title.trim().isNotEmpty, 'Marker.title must be non-empty'),_photos = photos;
+   _Marker({@JsonKey(fromJson: markerIdFromJson, toJson: markerIdToJson) required this.id, @JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required this.sessionId, @JsonKey(fromJson: categoryIdFromJson, toJson: categoryIdToJson) required this.categoryId, required this.lat, required this.lon, required this.title, required this.createdAtUtc, required this.createdAtOffsetMinutes, this.notes, final  List<PhotoRef> photos = const <PhotoRef>[]}): assert(title.trim().isNotEmpty, 'Marker.title must be non-empty'),assert(lat >= -90.0 && lat <= 90.0, 'Marker.lat out of range (-90..+90)'),assert(lon >= -180.0 && lon <= 180.0, 'Marker.lon out of range (-180..+180)'),assert(createdAtOffsetMinutes >= -720 && createdAtOffsetMinutes <= 840, 'Marker.createdAtOffsetMinutes out of range (UTC-12 to UTC+14)'),_photos = photos;
   factory _Marker.fromJson(Map<String, dynamic> json) => _$MarkerFromJson(json);
 
 @override@JsonKey(fromJson: markerIdFromJson, toJson: markerIdToJson) final  MarkerId id;

@@ -51,6 +51,9 @@ abstract class Envelope with _$Envelope {
     if (rawVersion is! int) {
       throw ImportValidationException(reason: 'envelope: schemaVersion must be an int, got ${rawVersion?.runtimeType ?? 'missing'}');
     }
+    if (rawVersion < 1) {
+      throw ImportValidationException(reason: 'envelope: schemaVersion must be >= 1, got $rawVersion');
+    }
     final Object? rawType = json['type'];
     if (rawType is! String || rawType.isEmpty) {
       throw const ImportValidationException(reason: 'envelope: type must be a non-empty string');
