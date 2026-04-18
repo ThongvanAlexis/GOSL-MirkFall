@@ -595,7 +595,31 @@ Observations only. No action taken under blanket-approve; these stay as document
 ### Test 2: Drift schema dump stale
 *Branch `adversarial/04-schema-drift-stale`: add a column to `t_sessions` in `app_database.dart`, run `build_runner build` (mandatory — otherwise `flutter analyze` fails first per RESEARCH Pitfall 1), do NOT run `drift_dev schema dump`. CI step `Check drift schema (current) is committed and fresh` must fail with `git diff --exit-code` showing stale `drift_schemas/drift_schema_current.json`.*
 
-(pending)
+- **Branch:** `adversarial/04-schema-drift-stale` (deleted 2026-04-18, local + remote)
+- **Poison commit:** `890851a` — `test(adversarial): add notesExtra column without re-dumping drift schema`. Added `TextColumn get notesExtra => text().nullable()();` to `Sessions extends Table` in `lib/infrastructure/db/app_database.dart` (between the existing `notes` column and the `primaryKey` override). `dart run build_runner build --delete-conflicting-outputs` was run locally so `app_database.g.dart` regenerated cleanly (78 outputs written) — without this prerequisite, `flutter analyze` would have failed first on stale `.g.dart` (RESEARCH Pitfall 1). `dart run drift_dev schema dump` DELIBERATELY NOT RUN — the rolling `drift_schemas/drift_schema_current.json` stays frozen at its pre-poison content, which is the whole point of the poison.
+- **CI-trigger commit:** `890851a` — same commit; Option B (poison + trigger together). Branch ci.yml temporarily had `on.push.branches: [main, 'adversarial/**']`; main ci.yml stays `[main]`-only.
+- **Run URL:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24611132558
+- **Job:** `Lint / Licence / Headers / Deps` (the `gates` job, conclusion=failure)
+- **Gate step:** `Check drift schema (current) is committed and fresh` — exit code **1** (policy violation, NOT exit 2 / misconfiguration). All prior steps green: `Dart format check`, `Flutter analyze`, `Check GOSL headers`, `Check licenses`, `Check DEPENDENCIES.md is up to date`, `Check domain purity (lib/domain/ imports)`, `Tool scripts unit tests`.
+- **Error excerpt (stderr from `gh run view 24611132558 --log-failed`):**
+  ```
+  Run dart run drift_dev schema dump lib/infrastructure/db/app_database.dart drift_schemas/drift_schema_current.json
+      git diff --exit-code drift_schemas/drift_schema_current.json || {
+        echo "::error::drift_schemas/drift_schema_current.json is stale.";
+        echo "Run: dart run drift_dev schema dump lib/infrastructure/db/app_database.dart drift_schemas/drift_schema_current.json";
+        exit 1;
+      }
+  Wrote to drift_schemas/drift_schema_current.json
+  diff --git a/drift_schemas/drift_schema_current.json b/drift_schemas/drift_schema_current.json
+  index a37d016..928a9ee 100644
+  --- a/drift_schemas/drift_schema_current.json
+  +++ b/drift_schemas/drift_schema_current.json
+  ##[error]drift_schemas/drift_schema_current.json is stale.
+  Run: dart run drift_dev schema dump lib/infrastructure/db/app_database.dart drift_schemas/drift_schema_current.json
+  Process completed with exit code 1.
+  ```
+- **Confirms:** Gate detects real schema-source-of-truth drift — `t_sessions` gained a column in `app_database.dart` + its `.g.dart` but the frozen `drift_schema_current.json` stayed behind. CI's re-run of `drift_dev schema dump` produces divergent content, `git diff --exit-code` non-zero, the conditional shell block fires `::error::` annotation and `exit 1`. build_runner prerequisite honored (Pitfall 1 avoided — no `flutter analyze` false-first failure). This is the full end-to-end check: the gate is not a dry-run lint, it actually re-dumps and compares.
+- **Note on branch format scope:** Like Test 1, this branch also included the 61-file pre-existing format reflow alongside the poison so CI could reach the target step. Same root cause, same deferred-items.md item #1. Net effect on `main`: zero — branch deleted, format drift on main unchanged.
 
 ### Test 3: SchemaSanityChecker row-loss detection (permanent unit test)
 *NOT a throwaway branch. Permanent test `test/infrastructure/db/migration_v1_to_v2_data_loss_test.dart` on `main`. Injects V1 fixture (70 rows), runs adversarial migration with `ALTER TABLE` + `DELETE FROM t_sessions WHERE rowid % 2 = 0`, asserts `SchemaSanityChecker.assertNoLoss` throws `MigrationFailureException` with exact row-count diff. Evidence = commit hash + green `dart test` output.*
