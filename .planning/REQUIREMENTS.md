@@ -47,7 +47,7 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 
 - [ ] **MIRK-01**: Un rayon de révélation circulaire est effacé autour de la position actuelle au fil du déplacement
 - [ ] **MIRK-02**: Le rayon de révélation est configurable dans les options globales (défaut à fixer en Phase Fog, proposition 25-50 m)
-- [ ] **MIRK-03**: Le mirk effacé reste effacé pour toute la durée de vie de la session (pas de re-brumage)
+- [x] **MIRK-03**: Le mirk effacé reste effacé pour toute la durée de vie de la session (pas de re-brumage)
 - [ ] **MIRK-04**: Le mirk a un rendu vivant / atmosphérique (nuageux, mouvant, animé) — pas un simple aplat noir
 - [ ] **MIRK-05**: L'architecture de rendu expose une interface `MirkRenderer` abstraite : ajouter un style ne demande qu'un nouveau fichier, zéro modification du cœur
 - [ ] **MIRK-06**: L'app fournit au moins un style de mirk par défaut (atmosphérique)
@@ -208,7 +208,7 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | GPS-08 | Phase 05 | Pending |
 | MIRK-01 | Phase 09 | Pending |
 | MIRK-02 | Phase 09 | Pending |
-| MIRK-03 | Phase 03 | Pending |
+| MIRK-03 | Phase 03 | Complete |
 | MIRK-04 | Phase 09 | Pending |
 | MIRK-05 | Phase 09 | Pending |
 | MIRK-06 | Phase 09 | Pending |

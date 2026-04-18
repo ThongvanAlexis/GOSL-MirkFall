@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 current_plan: 4
 status: executing
-stopped_at: Completed 03-01-PLAN.md (Wave 0 bootstrap)
-last_updated: "2026-04-18T09:23:12.101Z"
+stopped_at: "Completed 03-02-PLAN.md (Wave 2: domain layer + ULID + MIRK-03 algebra)"
+last_updated: "2026-04-18T09:37:58.193Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 16
   completed_phases: 2
   total_plans: 14
-  completed_plans: 9
+  completed_plans: 10
   percent: 63
 ---
 
@@ -61,6 +61,7 @@ Progress: [██████▎░░░] 63%
 | Phase 02-review-gate-foundation P02 | 25 min | 3 tasks | 2 files |
 | Phase 02-review-gate-foundation P03 | 10 min | 3 tasks | 1 files |
 | Phase 03-persistence-domain-models P01 | 12 min | 3 tasks | 14 files |
+| Phase 03-persistence-domain-models P02 | 9 min | 3 tasks | 34 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,13 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 03-persistence-domain-models]: custom_lint family is Apache-2.0, not MIT (plan correction) — Verified by inspecting LICENSE preambles in pub cache — custom_lint, custom_lint_core, custom_lint_visitor are all Apache-2.0; only riverpod_lint is MIT. Apache-2.0 is on CLAUDE.md allowlist; no GOSL incompatibility. Correction documented in DEPENDENCIES.md row.
 - [Phase 03-persistence-domain-models]: CI plain-Dart test step scoped to test/domain/ + test/infrastructure/ subdirs (not catch-all test/) — Existing test/*.dart at the repo root all import package:flutter_test and would crash under the plain-Dart runner. Scoping to subdirs that don't yet exist keeps the step inert until 03-02+ lands pure-Dart suites there. Plan's catch-all interpretation was unsafe.
 - [Phase 03-persistence-domain-models]: Drift schema CI guard: drift_schema_current.json is rolling, drift_schema_v{1,2}.json are FROZEN — Dumping into the schemas directory (which the plan's first sketch implied) would overwrite the V1 fixture after a V2 bump and break SchemaVerifier round-trip tests forever. Guard rule: CI re-dumps the rolling current.json and git diff --exit-code proves it is fresh; version-specific snapshots are produced once and never touched.
+- [Phase 03-persistence-domain-models]: Hand-rolled ULID in 91 lines (Crockford base32, 48-bit ms timestamp + 80-bit random tail) — zero new dep, k-sortable + reproducible-with-seed, matches CONTEXT.md commitment
+- [Phase 03-persistence-domain-models]: All 6 ID wrappers as Dart 3 extension type const — zero runtime cost vs. plain String, compile-time rejects cross-type assignment (a class of bug SQLite cannot catch since both columns are TEXT)
+- [Phase 03-persistence-domain-models]: ID prefix stored in the wrapped value (sess_<26 ULID chars>) rather than appended at JSON serialization — copy-pasted IDs are self-describing in logs / SQL inspector / bug reports
+- [Phase 03-persistence-domain-models]: All 7 domain exceptions implement Exception (never extends Error) per CLAUDE.md §Error handling — Exception is recoverable, Error is for programming bugs
+- [Phase 03-persistence-domain-models]: IdentityMigrationV1.fromVersion = -1 sentinel trick — keeps the class importable + symbolic without ever matching a real version transition; alternative (fromVersion = 1 with conditional) would have double-matched V1ToV2RenameRadius and triggered the duplicate-step failure path
+- [Phase 03-persistence-domain-models]: Defensive .clamp(0, n-1) on slippy-map tile indices (auto-fixed Rule 1 - Bug) — float math near Mercator limit lat=±85.0511° produced y=-1 (north pole) and y=16384 (south pole, == n exactly) before the clamp; both out of valid array range
+- [Phase 03-persistence-domain-models]: Envelope shipped by 03-03 (Freezed per ROADMAP SC#4) — 03-02 stops at the migration framework; the fixture-driven end-to-end JsonMigrator test is also moved to 03-03 since it depends on Envelope.fromJson. 03-03 now depends_on [03-01, 03-02] (Wave 3, not Wave 2)
 
 ### Pending Todos
 
@@ -127,6 +135,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-18T09:23:12.087Z
-Stopped at: Completed 03-01-PLAN.md (Wave 0 bootstrap)
+Last session: 2026-04-18T09:37:32.848Z
+Stopped at: Completed 03-02-PLAN.md (Wave 2: domain layer + ULID + MIRK-03 algebra)
 Resume file: None
