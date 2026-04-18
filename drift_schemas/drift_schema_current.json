@@ -43,7 +43,26 @@
             "customConstraints": null,
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": []
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "status",
+                        "tag": "status"
+                      },
+                      ".isIn(const <",
+                      {
+                        "lexeme": "String",
+                        "import_uri": "dart:core"
+                      },
+                      ">['active','stopped'])"
+                    ]
+                  }
+                }
+              }
+            ]
           },
           {
             "name": "started_at_utc",
@@ -120,7 +139,36 @@
             "customConstraints": null,
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": []
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "stoppedAtOffsetMinutes",
+                        "tag": "stoppedAtOffsetMinutes"
+                      },
+                      ").isBetweenValues(",
+                      {
+                        "lexeme": "kMinUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ",",
+                      {
+                        "lexeme": "kMaxUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ")"
+                    ]
+                  }
+                }
+              }
+            ]
           },
           {
             "name": "notes",
@@ -201,7 +249,36 @@
             "customConstraints": null,
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": []
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "createdAtOffsetMinutes",
+                        "tag": "createdAtOffsetMinutes"
+                      },
+                      ").isBetweenValues(",
+                      {
+                        "lexeme": "kMinUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ",",
+                      {
+                        "lexeme": "kMaxUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ")"
+                    ]
+                  }
+                }
+              }
+            ]
           }
         ],
         "is_virtual": false,
@@ -347,7 +424,36 @@
             "customConstraints": null,
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": []
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "createdAtOffsetMinutes",
+                        "tag": "createdAtOffsetMinutes"
+                      },
+                      ").isBetweenValues(",
+                      {
+                        "lexeme": "kMinUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ",",
+                      {
+                        "lexeme": "kMaxUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ")"
+                    ]
+                  }
+                }
+              }
+            ]
           }
         ],
         "is_virtual": false,
@@ -442,7 +548,27 @@
             "customConstraints": null,
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": []
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      "const ",
+                      {
+                        "lexeme": "CustomExpression",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "<",
+                      {
+                        "lexeme": "bool",
+                        "import_uri": "dart:core"
+                      },
+                      ">('length(bitmap) = 512')"
+                    ]
+                  }
+                }
+              }
+            ]
           },
           {
             "name": "set_bit_count",
@@ -559,7 +685,36 @@
             "customConstraints": null,
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": []
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "createdAtOffsetMinutes",
+                        "tag": "createdAtOffsetMinutes"
+                      },
+                      ").isBetweenValues(",
+                      {
+                        "lexeme": "kMinUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ",",
+                      {
+                        "lexeme": "kMaxUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ")"
+                    ]
+                  }
+                }
+              }
+            ]
           }
         ],
         "is_virtual": false,
@@ -678,7 +833,36 @@
             "customConstraints": null,
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": []
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "createdAtOffsetMinutes",
+                        "tag": "createdAtOffsetMinutes"
+                      },
+                      ").isBetweenValues(",
+                      {
+                        "lexeme": "kMinUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ",",
+                      {
+                        "lexeme": "kMaxUtcOffsetMinutes",
+                        "import_uri": "package:mirkfall/config/constants.dart"
+                      },
+                      ")"
+                    ]
+                  }
+                }
+              }
+            ]
           }
         ],
         "is_virtual": false,
@@ -766,7 +950,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"t_sessions\" (\"id\" TEXT NOT NULL, \"display_name\" TEXT NOT NULL, \"status\" TEXT NOT NULL, \"started_at_utc\" INTEGER NOT NULL, \"started_at_offset_minutes\" INTEGER NOT NULL CHECK(\"started_at_offset_minutes\" BETWEEN -720 AND 840), \"stopped_at_utc\" INTEGER NULL, \"stopped_at_offset_minutes\" INTEGER NULL, \"notes\" TEXT NULL, PRIMARY KEY (\"id\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_sessions\" (\"id\" TEXT NOT NULL, \"display_name\" TEXT NOT NULL, \"status\" TEXT NOT NULL CHECK(\"status\" IN ('active', 'stopped')), \"started_at_utc\" INTEGER NOT NULL, \"started_at_offset_minutes\" INTEGER NOT NULL CHECK(\"started_at_offset_minutes\" BETWEEN -720 AND 840), \"stopped_at_utc\" INTEGER NULL, \"stopped_at_offset_minutes\" INTEGER NULL CHECK(\"stopped_at_offset_minutes\" BETWEEN -720 AND 840), \"notes\" TEXT NULL, PRIMARY KEY (\"id\"));"
         }
       ]
     },
@@ -775,7 +959,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"t_marker_categories\" (\"id\" TEXT NOT NULL, \"display_name\" TEXT NOT NULL, \"icon_name\" TEXT NOT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_marker_categories\" (\"id\" TEXT NOT NULL, \"display_name\" TEXT NOT NULL, \"icon_name\" TEXT NOT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL CHECK(\"created_at_offset_minutes\" BETWEEN -720 AND 840), PRIMARY KEY (\"id\"));"
         }
       ]
     },
@@ -784,7 +968,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"t_markers\" (\"id\" TEXT NOT NULL, \"session_id\" TEXT NOT NULL REFERENCES t_sessions (id) ON DELETE CASCADE, \"category_id\" TEXT NOT NULL REFERENCES t_marker_categories (id), \"lat\" REAL NOT NULL, \"lon\" REAL NOT NULL, \"title\" TEXT NOT NULL, \"notes\" TEXT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_markers\" (\"id\" TEXT NOT NULL, \"session_id\" TEXT NOT NULL REFERENCES t_sessions (id) ON DELETE CASCADE, \"category_id\" TEXT NOT NULL REFERENCES t_marker_categories (id), \"lat\" REAL NOT NULL, \"lon\" REAL NOT NULL, \"title\" TEXT NOT NULL, \"notes\" TEXT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL CHECK(\"created_at_offset_minutes\" BETWEEN -720 AND 840), PRIMARY KEY (\"id\"));"
         }
       ]
     },
@@ -793,7 +977,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"t_revealed_tiles\" (\"id\" TEXT NOT NULL, \"session_id\" TEXT NOT NULL REFERENCES t_sessions (id) ON DELETE CASCADE, \"parent_x\" INTEGER NOT NULL, \"parent_y\" INTEGER NOT NULL, \"parent_zoom\" INTEGER NOT NULL DEFAULT 14, \"bitmap\" BLOB NOT NULL, \"set_bit_count\" INTEGER NOT NULL DEFAULT 0, \"updated_at_utc\" INTEGER NOT NULL, PRIMARY KEY (\"id\"), UNIQUE (\"session_id\", \"parent_x\", \"parent_y\", \"parent_zoom\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_revealed_tiles\" (\"id\" TEXT NOT NULL, \"session_id\" TEXT NOT NULL REFERENCES t_sessions (id) ON DELETE CASCADE, \"parent_x\" INTEGER NOT NULL, \"parent_y\" INTEGER NOT NULL, \"parent_zoom\" INTEGER NOT NULL DEFAULT 14, \"bitmap\" BLOB NOT NULL CHECK(length(bitmap) = 512), \"set_bit_count\" INTEGER NOT NULL DEFAULT 0, \"updated_at_utc\" INTEGER NOT NULL, PRIMARY KEY (\"id\"), UNIQUE (\"session_id\", \"parent_x\", \"parent_y\", \"parent_zoom\"));"
         }
       ]
     },
@@ -802,7 +986,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"t_mirk_styles\" (\"id\" TEXT NOT NULL, \"display_name\" TEXT NOT NULL, \"renderer_type\" TEXT NOT NULL, \"config\" TEXT NOT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_mirk_styles\" (\"id\" TEXT NOT NULL, \"display_name\" TEXT NOT NULL, \"renderer_type\" TEXT NOT NULL, \"config\" TEXT NOT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL CHECK(\"created_at_offset_minutes\" BETWEEN -720 AND 840), PRIMARY KEY (\"id\"));"
         }
       ]
     },
@@ -811,7 +995,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"t_photos\" (\"id\" TEXT NOT NULL, \"marker_id\" TEXT NOT NULL REFERENCES t_markers (id) ON DELETE CASCADE, \"relative_basename\" TEXT NOT NULL, \"width_px\" INTEGER NOT NULL, \"height_px\" INTEGER NOT NULL, \"file_size_bytes\" INTEGER NOT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"t_photos\" (\"id\" TEXT NOT NULL, \"marker_id\" TEXT NOT NULL REFERENCES t_markers (id) ON DELETE CASCADE, \"relative_basename\" TEXT NOT NULL, \"width_px\" INTEGER NOT NULL, \"height_px\" INTEGER NOT NULL, \"file_size_bytes\" INTEGER NOT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL CHECK(\"created_at_offset_minutes\" BETWEEN -720 AND 840), PRIMARY KEY (\"id\"));"
         }
       ]
     },

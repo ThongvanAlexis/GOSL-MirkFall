@@ -40,7 +40,11 @@ class Sessions extends Table {
 
   TextColumn get id => text()();
   TextColumn get displayName => text()();
-  TextColumn get status => text()();
+  // DB-level CHECK constraint (finding #10, Batch B) — defense-in-depth on
+  // top of the `SessionStatusStringConverter` contract. Raw SQL inserts that
+  // bypass the converter will now be refused by SQLite itself.
+  // ignore: recursive_getters
+  TextColumn get status => text().check(status.isIn(const <String>['active', 'stopped']))();
   IntColumn get startedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   // Drift's `check()` takes an `Expression<bool>` that references the column
   // itself — the self-reference is the documented pattern (see
@@ -53,7 +57,16 @@ class Sessions extends Table {
       // ignore: recursive_getters
       integer().check(startedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
   IntColumn get stoppedAtUtc => integer().nullable().map(const UnixMsToDateTimeConverter())();
-  IntColumn get stoppedAtOffsetMinutes => integer().nullable()();
+  // Finding #12 (Batch B) — offset-CHECK asymmetry: extend `[-720, 840]`
+  // bound to `stoppedAtOffsetMinutes` parity with `startedAtOffsetMinutes`.
+  // SQLite CHECK evaluates to UNKNOWN on NULL and does NOT fail, so null
+  // rows (in-flight sessions) remain allowed; only out-of-range non-null
+  // values are rejected.
+  // ignore: recursive_getters
+  IntColumn get stoppedAtOffsetMinutes =>
+      integer().nullable()
+      // ignore: recursive_getters
+      .check(stoppedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   // V2: fictive notes column — see migrations/v1_to_v2_notes.dart for
   // rationale. Ships nullable to match the V1->V2 `ALTER TABLE ... ADD
@@ -77,7 +90,11 @@ class MarkerCategories extends Table {
   TextColumn get displayName => text()();
   TextColumn get iconName => text()();
   IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
-  IntColumn get createdAtOffsetMinutes => integer()();
+  // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
+  // ignore: recursive_getters
+  IntColumn get createdAtOffsetMinutes =>
+      // ignore: recursive_getters
+      integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -106,7 +123,11 @@ class Markers extends Table {
   TextColumn get title => text()();
   TextColumn get notes => text().nullable()();
   IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
-  IntColumn get createdAtOffsetMinutes => integer()();
+  // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
+  // ignore: recursive_getters
+  IntColumn get createdAtOffsetMinutes =>
+      // ignore: recursive_getters
+      integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -130,7 +151,22 @@ class RevealedTiles extends Table {
   IntColumn get parentX => integer()();
   IntColumn get parentY => integer()();
   IntColumn get parentZoom => integer().withDefault(const Constant(14))();
-  BlobColumn get bitmap => blob()();
+  // Finding #14 (Batch B) — DB-level defense on the 512-byte bitmap
+  // invariant already guarded by the store. `length(bitmap) = 512` refuses
+  // any SQL-level write that bypasses the store path.
+  //
+  // Drift's `BlobColumn` does not expose a `.length` getter (that is a
+  // `StringExpressionOperators` method only). We compose the CHECK through
+  // a raw `CustomExpression<bool>` that references the unqualified column
+  // name `bitmap` — the expression is emitted as the literal SQL
+  // `CHECK (length(bitmap) = 512)` inside the `t_revealed_tiles` CREATE
+  // TABLE statement, which is exactly the SQLite form we want.
+  //
+  // `kRevealedTileBitmapBytes` cannot be referenced inside a Drift `check()`
+  // generator (the expression is emitted as literal SQL at build time), so
+  // the literal 512 is paired with a unit-test-level guard referencing the
+  // constant.
+  BlobColumn get bitmap => blob().check(const CustomExpression<bool>('length(bitmap) = 512'))();
   IntColumn get setBitCount => integer().withDefault(const Constant(0))();
   IntColumn get updatedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
 
@@ -156,7 +192,11 @@ class MirkStyles extends Table {
   TextColumn get rendererType => text()();
   TextColumn get config => text().map(const MirkStyleConfigJsonConverter())();
   IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
-  IntColumn get createdAtOffsetMinutes => integer()();
+  // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
+  // ignore: recursive_getters
+  IntColumn get createdAtOffsetMinutes =>
+      // ignore: recursive_getters
+      integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -178,7 +218,11 @@ class Photos extends Table {
   IntColumn get heightPx => integer()();
   IntColumn get fileSizeBytes => integer()();
   IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
-  IntColumn get createdAtOffsetMinutes => integer()();
+  // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
+  // ignore: recursive_getters
+  IntColumn get createdAtOffsetMinutes =>
+      // ignore: recursive_getters
+      integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

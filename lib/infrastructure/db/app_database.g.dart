@@ -22,7 +22,14 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, SessionRow>
   );
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
-  late final GeneratedColumn<String> status = GeneratedColumn<String>('status', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: true);
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    check: () => status.isIn(const <String>['active', 'stopped']),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   @override
   late final GeneratedColumnWithTypeConverter<DateTime, int> startedAtUtc = GeneratedColumn<int>(
     'started_at_utc',
@@ -55,6 +62,7 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, SessionRow>
     'stopped_at_offset_minutes',
     aliasedName,
     true,
+    check: () => ComparableExpr(stoppedAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
@@ -451,6 +459,7 @@ class $MarkerCategoriesTable extends MarkerCategories with TableInfo<$MarkerCate
     'created_at_offset_minutes',
     aliasedName,
     false,
+    check: () => ComparableExpr(createdAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
@@ -770,6 +779,7 @@ class $MarkersTable extends Markers with TableInfo<$MarkersTable, MarkerRow> {
     'created_at_offset_minutes',
     aliasedName,
     false,
+    check: () => ComparableExpr(createdAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
@@ -1192,7 +1202,14 @@ class $RevealedTilesTable extends RevealedTiles with TableInfo<$RevealedTilesTab
   );
   static const VerificationMeta _bitmapMeta = const VerificationMeta('bitmap');
   @override
-  late final GeneratedColumn<Uint8List> bitmap = GeneratedColumn<Uint8List>('bitmap', aliasedName, false, type: DriftSqlType.blob, requiredDuringInsert: true);
+  late final GeneratedColumn<Uint8List> bitmap = GeneratedColumn<Uint8List>(
+    'bitmap',
+    aliasedName,
+    false,
+    check: () => const CustomExpression<bool>('length(bitmap) = 512'),
+    type: DriftSqlType.blob,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _setBitCountMeta = const VerificationMeta('setBitCount');
   @override
   late final GeneratedColumn<int> setBitCount = GeneratedColumn<int>(
@@ -1609,6 +1626,7 @@ class $MirkStylesTable extends MirkStyles with TableInfo<$MirkStylesTable, MirkS
     'created_at_offset_minutes',
     aliasedName,
     false,
+    check: () => ComparableExpr(createdAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
@@ -1963,6 +1981,7 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, PhotoRow> {
     'created_at_offset_minutes',
     aliasedName,
     false,
+    check: () => ComparableExpr(createdAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
