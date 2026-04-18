@@ -168,20 +168,265 @@ Format: `[severity] Title — 1-line explanation — file:line`. Severities: Blo
 - **[Should | Runtime walk | sqlite3 CLI pragmas non-authoritative for 3 per-connection settings | `tool/walk_db.dart` + `tool/inspect_db.sql`]** — The runtime walk reports `foreign_keys=0`, `synchronous=2 FULL`, `busy_timeout=0` from the sqlite3 CLI, but these three PRAGMAs are per-connection in SQLite (not persisted to the DB file — see sqlite.org/pragma.html). Each new `sqlite3 <path>` invocation starts fresh with SQLite's library defaults; Drift's `applyRuntimePragmas` (fired in `beforeOpen`) applies them IN-PROCESS on the Drift connection only. The walk AS DESIGNED cannot independently verify Drift sets these values at production connection-open — only the 3 DB-level pragmas (`user_version`, `journal_mode`, `page_size`) persist across connections and so are reliably observed by the CLI. Phase 03 Plan 03-04 pragma unit tests DO assert these values apply in-process (via Drift's `customSelect('PRAGMA ...')`), so the CONTRACT holds — but the runtime walk's claim to be an independent cross-check on the live filesystem is incomplete. Cheap remediation: extend `tool/walk_db.dart` to print the 5 mandatory PRAGMAs via `db.customSelect('PRAGMA ...').get()` BEFORE `db.close()`, archive that output into §1b as the authoritative reading. ~15 lines added. Triage status: `pending-user-decision` — (fix-now in Phase 04 via 04-05) | (defer to future validation phase) | (waive: rely on Phase 03 in-process unit tests). Decision belongs in §3.
 
 ### Agent #1 — Schema + migrations + backup
-(pending)
+
+[Blocker] P1 escalation confirmed — `DbBackupService.rotate` architecturally depends on `File.statSync().modified` (mtime) ordering; mtime is fragile on Windows (NTFS 15ms–1s resolution, antivirus/indexer side-effects, parallel-run interleave); dedicated fix owner required: sort by filename-embedded ISO timestamp (deterministic, clock-injected) or monotonic counter suffix — `lib/infrastructure/db/backup.dart:89-90` — Cross-ref: same family as Agent #4 [Should] `backup_test.dart::takeBackup+rotation` Windows-flaky (5ms throttle test-side) — together form the P1 runtime+test escalation
+
+[Blocker] `cat_default` sentinel is never seeded in any migration or `onCreate` — `onCreate: (m) => m.createAll()` has no seed, combined with `drift_marker_category_store.dart:84-92` reassign target; deletes of populated non-default categories throw `SQLITE_CONSTRAINT_FOREIGNKEY` in a fresh DB — `lib/infrastructure/db/app_database.dart:244`
+
+[Should] Docstring inconsistency for `cat_default` seed owner — `app_database.dart:69` claims "seeded by 03-06 migrations"; `lib/domain/ids/default_ids.dart:13-14` says "seeded by Phase 11"; current code seeds in neither — `lib/infrastructure/db/app_database.dart:69`
+
+[Should] Misleading `// ignore: unused_import` on `session_status.dart` — `app_database.g.dart` has zero `SessionStatus` references; import is truly dead — `lib/infrastructure/db/app_database.dart:11-12`
+
+[Should] `t_sessions.status` has no DB-level CHECK constraint — raw SQL `status='garbage'` accepted silently — `lib/infrastructure/db/app_database.dart:42` — Cross-ref: also flagged by Agent #3 cross-lens Noted (same line)
+
+[Should] UTC-offset magic numbers `-720, 840` duplicated across layers — violates CLAUDE.md §Magic numbers — `lib/infrastructure/db/app_database.dart:54`, `lib/domain/sessions/session.dart:38`, `session.freezed.dart:219` — Cross-ref: also flagged by Agent #2 as Noted (compile-time `@Assert` carve-out) and by Agent #4 as [Blocker] (severity disagreement — `lib/config/constants.dart` DOES allow top-level const reference; carve-out argument weak)
+
+[Should] Offset-CHECK asymmetry — only `startedAtOffsetMinutes` has `-720..840` CHECK; `stoppedAtOffsetMinutes` (app_database.dart:57), `createdAtOffsetMinutes` on 4 other tables have no CHECK — `lib/infrastructure/db/app_database.dart:57`
+
+[Should] Zoom default `14` magic number in schema — uses `Constant(14)`; `kRevealedTileParentZoom=14` exists in `lib/config/constants.dart:75` but not referenced — `lib/infrastructure/db/app_database.dart:141` — Cross-ref: also flagged by Agent #4 as [Blocker] (severity disagreement — Agent #1 says Could since schema default is isolated, Agent #4 escalates because two-site duplication with constants.dart third party)
+
+[Should] BLOB `bitmap` size not enforced at DB level — `CHECK(length(bitmap)=512)` would catch paths bypassing the store guard — `lib/infrastructure/db/app_database.dart:142`
+
+[Could] `onBeforeUpgrade` nullable hook is called through `!` — local capture avoids bang — `lib/infrastructure/db/app_database.dart:250`
+
+[Could] Backup filename format lacks strict lex-sort guarantees — `Z` trailing position issue; matters for P1 fix — `lib/infrastructure/db/backup.dart:64-67`
+
+[Could] `SchemaSanityChecker.captureRowCounts` queries tables serially — single `UNION ALL` would collapse round-trips — `lib/infrastructure/db/schema_sanity.dart:45-55`
+
+[Could] `v1_to_v2_notes.dart::apply` uses raw `ALTER TABLE` — portability rationale OK, future rename silently de-syncs — `lib/infrastructure/db/migrations/v1_to_v2_notes.dart`
+
+[Noted] PRAGMA wiring split across 2 sites — correct but no single-source-of-truth docstring — `lib/infrastructure/db/app_database_factory.dart:50-52` + `lib/infrastructure/db/pragma_setup.dart:25-28`
+
+[Noted] `cat_default` docstring + 03-05-SUMMARY.md disagree (Phase 11 vs 03-06 vs may-be-seeded) — `lib/domain/ids/default_ids.dart:13-14`
+
+[Noted] `drift_schema_v2.json == drift_schema_current.json` byte-equal — freshness guardrail green — `drift_schemas/`
+
+[Noted] No composite `(session_id, category_id)` index on `t_markers` — `lib/infrastructure/db/app_database.dart` markers table
+
+[Noted] `SchemaSanityChecker.assertNoLoss` only compares against before-keyset — new migration-added tables never evaluated — `lib/infrastructure/db/schema_sanity.dart`
+
+[Noted] GOSL headers present on all 7 `lib/infrastructure/db/*.dart` + 7 `test/infrastructure/db/*.dart` + migrations — `lib/infrastructure/db/**`
+
+**Adversarial poison verifications (consumed by Plan 04-04):**
+
+**Test #1 `adversarial/04-domain-import-flutter-and-drift`:**
+- `lib/domain/sessions/session.dart` exists: YES (1512 bytes, GOSL header present)
+- `lib/domain/markers/marker.dart` exists: YES (GOSL header present)
+- Imports section stable at top: YES — GOSL header (1-3), `// ignore_for_file` (5-7), imports from line 9. Zero `package:flutter/` or `package:drift` imports across `lib/domain/**`. Grep `-E "^import 'package:(flutter|drift)"` anchored to `lib/domain/` would catch a poison injection at line 9.
+
+**Test #2 `adversarial/04-schema-drift-stale`:**
+- `lib/infrastructure/db/app_database.dart` still has `t_sessions`: YES — line 36 `class Sessions extends Table` with `tableName => 't_sessions'` at line 38.
+- Column-addition stress point stable: YES — `Sessions` class body spans lines 36-66; clean insertion point at line 63 (before `@override primaryKey` on line 65). The `fixed_sql` block in `drift_schema_v2.json:759` would need regeneration; CI gate fails diff.
+- Drift from CONTEXT: no material drift. Minor callout: partial unique index is declared at `app_database.dart:31-35` via `@TableIndex.sql` (multi-line triple-quoted with indentation and trailing `;`). Grep for `idx_t_sessions_status_active` OR `CREATE UNIQUE INDEX idx_t_sessions_status_active` both hit. No adversarial-guardrail impact.
 
 ### Agent #2 — Domain models + pureté
-(pending)
+
+[Should] `stoppedAtOffsetMinutes` not bounded — Session asserts startedAt in `[-720, 840]`; nullable sibling has no range assertion — `lib/domain/sessions/session.dart:37-49`
+
+[Should] `Marker.lat` / `Marker.lon` lack range invariants — `TileMath.latLonToTile` silently clamps to Mercator envelope, nonsense coords round-trip — `lib/domain/markers/marker.dart:36-37`
+
+[Should] `RevealedTile.bitmap` length invariant not enforced in entity — store contract says 512 bytes but entity accepts any `Uint8List`; paired with missing `parentZoom==14` / `setBitCount==popcount(bitmap)` / `parentX,Y >= 0` guards, corrupted row round-trips — `lib/domain/revealed/revealed_tile.dart:29-38`
+
+[Should] `Envelope.schemaVersion` accepts any int including negative/zero — `validateOrThrow` only checks `is int`, not `>=1` — `lib/domain/envelope/envelope.dart:52-58`
+
+[Should] `PhotoRef` width/height/fileSize have no positivity invariant — `lib/domain/photos/photo_ref.dart:25-36`
+
+[Could] `IdentityMigrationV1` sentinel `fromVersion: -1` is fragile — future caller passing (-1, 0) silently "migrates" — `lib/domain/envelope/identity_migration_v1.dart:20-26`
+
+[Could] `MirkStyleStore.requireById` / `PhotoStore.requireById` throw unspecified exception — asymmetry with `SessionStore`/`MarkerStore`/`MarkerCategoryStore` — `lib/domain/mirk/mirk_style_store.dart:21-24`, `lib/domain/photos/photo_store.dart:27-30`
+
+[Could] `CategoryId.isValid` returns false for `kCategoryDefaultId` — no affirmative `isReserved` getter — `lib/domain/ids/category_id.dart:11-21`
+
+[Could] `Envelope._payloadFromJson/toJson` take `Map<String, dynamic>` — only undocumented `dynamic` in hand-written domain code — `lib/domain/envelope/envelope.dart:90-98`
+
+[Could] `UnknownConfig.fromJson` silently accepts shapes with nested `'raw'` key — no unit test — `lib/domain/mirk/mirk_style_config.dart:63-67`
+
+[Could] `V1ToV2RenameRadius` drops old key even when new key is already present — edge case, no test — `lib/domain/envelope/v1_to_v2_rename_radius.dart:22-29`
+
+[Could] `computeRevealMask` signature has no bounds validation — even as stub, `radiusMeters<0`/`parentZoom<0`/NaN lat/lon survive — `lib/domain/revealed/reveal_calculator.dart:61-74`
+
+[Noted] `SessionStatus` transitions not encoded in type system — `InvalidSessionTransition` carries raw strings not enum — `lib/domain/errors/session_errors.dart:19-33`
+
+[Noted] `-720`/`840` in `@Assert` string: compile-time carve-out (can't reference `const int` in annotation body) — `lib/domain/sessions/session.dart:38` — Cross-ref: also flagged by Agent #1 as [Should] and Agent #4 as [Blocker] (severity disagreement across three lenses)
+
+[Noted] `Session` uses bare `factory` (not `const factory`) due to method-calling `@Assert` — Phase 03 decision correctly implemented; Marker/MarkerCategory/MirkStyle same; PhotoRef/RevealedTile/Envelope/UnknownConfig use `const factory` correctly — `lib/domain/**`
+
+[Noted] `Envelope.fromJson` is pure arrow redirect — SC#4 respected — `lib/domain/envelope/envelope.dart`
+
+[Noted] Extension-type `@JsonKey` per-field pattern verified — 20+ sites across 5 entities — `lib/domain/**`
+
+[Noted] Zero `flutter/` or `drift/` imports in `lib/domain/**` — SC#2 pureté passes — `lib/domain/**`
+
+[Noted] Sealed `MirkStyleConfig` dispatch via pattern-match — no `is`-chain — `lib/domain/mirk/mirk_style_config.dart`
+
+[Noted] **P2 confirmed unchanged** — `dart run custom_lint` still fails against `analyzer-10.0.1` (same `Element2`, `ErrorCode`, `ErrorType`, `ErrorSeverity`, `ElementKind`, `Annotatable`, `ElementAnnotation`, `libraryElement2`, `resolveFile2` unresolved); P2 stays Noted — source: `dart run custom_lint` at repo root
+
+[Noted] Cross-lens flag for Agent #4: no test asserts `MirkStyleConfig.fromJson` when `rendererType` key is absent + negative-path Envelope.parse for wrong-magnitude schemaVersion — `test/domain/**`
+
+[Noted] Cross-lens flag for Agent #3: `Marker.photos` `@Default(const <PhotoRef>[])` — generated `_Marker` constructor NOT `const` (factory not const due to `.trim()` assert) → every Marker allocates — `lib/domain/markers/marker.dart`
 
 ### Agent #3 — Store layer + factory + providers
-(pending)
+
+[Blocker] `activate()` silently succeeds on non-existent/already-stopped sessions — unconditional `UPDATE ... WHERE id=?`, 0 rows affected returns success — `lib/infrastructure/stores/drift_session_store.dart:94-104`
+
+[Blocker] `SqliteException` 2067 wrap scope too narrow — `insert(Session with status=active)` and `update(status=active)` hit the SAME partial unique index but are NOT wrapped; create-and-activate-one-shot or status-replace leaks `SqliteException` to upper layers — `lib/infrastructure/stores/drift_session_store.dart:79-86`
+
+[Should] `mergeMask` transaction can lose race on INSERT branch — two concurrent cold-start mergeMask on same `(sessionId, parentX, parentY)`, both see no existing row, both INSERT, second hits unique key violation uncaught — `lib/infrastructure/stores/drift_revealed_tile_store.dart:76-108` — Cross-ref: also flagged by Agent #4 as [Should] (NativeDatabase.createInBackground escalation — single-connection serialization assumption breaks under background isolate)
+
+[Should] `_idGenerator` injected but unused in `DriftSessionStore` — `// ignore: unused_field` for speculative future insert-without-id path — `lib/infrastructure/stores/drift_session_store.dart:31-35`
+
+[Should] Magic prefix `'rvt_'` duplicates `RevealedTileId.prefix` — `mergeMask` mints `_idGenerator.newId('rvt_')`, typed constant exists — `lib/infrastructure/stores/drift_revealed_tile_store.dart:87`
+
+[Should] `MarkerCategoryStore.delete` uses raw `customStatement` + positional params — inconsistent with typed DSL; `t_markers` rename silently de-syncs — `lib/infrastructure/stores/drift_marker_category_store.dart:85-88`
+
+[Should] Raw `'active'`/`'stopped'` literals bypass `SessionStatusStringConverter` — `findActive`, `activate`, `deactivate` — `lib/infrastructure/stores/drift_session_store.dart:73,97,109`
+
+[Should] `activate`/`deactivate` do not verify session exists or prior state — silent no-op on state transition — `lib/infrastructure/stores/drift_session_store.dart:94-110`
+
+[Should] `session_store_exclusivity_test.dart` does not cover `insert(active)+insert(active)` collision — only `activate()` exercised — `test/infrastructure/stores/session_store_exclusivity_test.dart`
+
+[Should] Marker listing ordered by `createdAtUtc` ASC may not match UX expectation — port docstring says ascending; typical UI shows most-recent first — `lib/infrastructure/stores/drift_marker_store.dart:33`
+
+[Could] `Future<SessionStore>` return type on every provider forces downstream `.future await` virality — `lib/application/providers/*_store_provider.dart`
+
+[Could] `ConcurrentActivationException` carries only `attemptedId` — adding `activeId` improves logs — `lib/domain/errors/concurrent_errors.dart:17-24`
+
+[Could] `CategoryInUseException` branch computes `markerCount` even when unused — wasteful COUNT(*) — `lib/infrastructure/stores/drift_marker_category_store.dart:73-83`
+
+[Could] `DriftMirkStyleStore.requireById` throws `StateError` — inconsistent with `NotFoundException` pattern — `lib/infrastructure/stores/drift_mirk_style_store.dart:49`
+
+[Could] `Ulid._encodeRandom` pad/truncate defense is unreachable given fixed 10→16 ratio — documented future-proof but silent — `lib/infrastructure/ids/ulid.dart:84-90`
+
+[Could] `_newDb` helper duplicated across 6 store test files — `test/infrastructure/stores/*.dart`
+
+[Noted] `ref.onDispose(() async { await db.close(); })` wraps close in unnecessary async closure — `lib/application/providers/app_database_provider.dart:48-50`
+
+[Noted] `_statusConv` static const declared in `DriftSessionStore` but bypassed on `activate`/`deactivate` string-literal paths — `lib/infrastructure/stores/drift_session_store.dart:37-38`
+
+[Noted] `listBySession` orders by `(parentX, parentY)` but composite unique key includes `parentZoom` — single zoom today per D3 — `lib/infrastructure/stores/drift_revealed_tile_store.dart:37-42`
+
+[Noted] Marker-category cascade test doesn't assert `customStatement` reassign ran in same transaction — end-state consistency only — `test/infrastructure/stores/marker_category_store_cascade_test.dart:169-183`
+
+[Noted] 7 providers `keepAlive=true` — `ProviderContainer().dispose()` is only teardown path; README note would help — `lib/application/providers/*.dart`
+
+[Noted] Photo-join deferral makes `Marker.photos` always `[]` — loud `UnimplementedError` at hydration site better than silent empty list — `lib/infrastructure/stores/drift_marker_store.dart:70-82` — Cross-ref: also flagged by Agent #2 as cross-lens concern (every Marker allocates because `_Marker` constructor not `const`)
+
+[Noted] `RandomIdGenerator` accepts optional `Random` — `SeededIdGenerator` nearly redundant — `lib/infrastructure/ids/random_id_generator.dart:17` vs `lib/infrastructure/ids/seeded_id_generator.dart`
+
+[Noted] Cross-lens for Agent #1: `t_sessions.status` no CHECK + `-720/840` literal — `lib/infrastructure/db/app_database.dart:42,54` — Cross-ref: already flagged by Agent #1 as [Should] (both)
 
 ### Agent #4 — Tests + fixtures + tooling + CLAUDE.md sweep
-(pending)
+
+[Blocker] Magic `parentZoom` default `14` duplicated outside `constants.dart` — `kRevealedTileParentZoom=14` exists in constants.dart but NOT referenced; both sites hardcode — `lib/infrastructure/db/app_database.dart:141` (`withDefault(const Constant(14))`) + `lib/domain/revealed/revealed_tile.dart:34` (`@Default(14) int parentZoom`) — Cross-ref: also flagged by Agent #1 as [Should] (severity disagreement — Agent #1 says Could/Should since schema default is isolated, Agent #4 escalates because two-site duplication with constants.dart third party violates CLAUDE.md §Magic numbers strictly)
+
+[Blocker] `v1_identity_fixture_test.dart` uses `SchemaVerifier` but is NOT tagged `@Tags(['migration'])` — defeats dart_test.yaml tag discipline; pollutes fast path — `test/infrastructure/db/v1_identity_fixture_test.dart:1-13`
+
+[Blocker] UTC-offset bounds `-720`/`840` duplicated in 4 places — `lib/domain/sessions/session.dart:38` (@Assert), `lib/infrastructure/db/app_database.dart:54` (.check), `test/domain/session_invariants_test.dart:39,46,51-54`; tightening or adding Nepal UTC+5:45 = 4 hunt sites — Cross-ref: also flagged by Agent #1 as [Should] and Agent #2 as [Noted] (severity disagreement — Agent #2 argues `@Assert` can't reference `const int`, Agent #4 argues `lib/config/constants.dart` DOES allow top-level const via plain Dart reference and carve-out argument is weak)
+
+[Should] `pubspec_pinned_test.dart` skips `dependency_overrides:` — test scans only `dependencies:` + `dev_dependencies:`; won't catch drift in overrides — `test/pubspec_pinned_test.dart:22-23`
+
+[Should] `backup_test.dart::takeBackup+rotation` Windows-flaky (same family as P1) — 5 backups 5ms apart; filename carries ISO millisecond precision; QueryPerformanceCounter VM jitter → same-millisecond collision — `test/infrastructure/db/backup_test.dart:130-144` — Cross-ref: same family as Agent #1 [Blocker] P1 runtime escalation and pre-class P1
+
+[Should] Fixture `db_seed` loader's naive SQL split on `;` fragile — strips line comments but NOT block comments `/* ... */` — `test/infrastructure/db/v1_identity_fixture_test.dart:40-54` + `test/infrastructure/db/migration_v1_to_v2_test.dart:119-134`
+
+[Should] `tool/check_domain_purity.dart` regex missing `package:drift_flutter/` — `drift_flutter` pulls `package:flutter/material.dart` transitively and exposes `driftDatabase(...)`; import slip past gate — `tool/check_domain_purity.dart:37-39`
+
+[Should] `DriftRevealedTileStore.mergeMask` SELECT→INSERT race under `NativeDatabase.createInBackground` — in-process transaction serializes on single-connection, but factory doc says "can switch to createInBackground"; under background isolate, race no longer atomic; blind switch in Phase 05 reintroduces UNIQUE CONSTRAINT violation — `lib/infrastructure/stores/drift_revealed_tile_store.dart:76-108` + `lib/infrastructure/db/app_database_factory.dart:41-47` — Cross-ref: also flagged by Agent #3 as [Should] (cold-start race on same code path)
+
+[Should] `test/fixtures/README.md` documents non-existent `drift_schemas/` sub-dir — README says `test/fixtures/drift_schemas/`; actual is repo-root `drift_schemas/` — `test/fixtures/README.md:11-13`
+
+[Could] ULID body length `26` duplicated in 6 ID `.isValid` getters — `lib/domain/ids/category_id.dart:20`, `session_id.dart:20`, `mirk_style_id.dart:15`, `photo_ref_id.dart:15`, `revealed_tile_id.dart:15`, `marker_id.dart:15`
+
+[Could] `seeded_id_generator_test.dart` asserts lengths `31`/`30` without naming — `test/infrastructure/ids/seeded_id_generator_test.dart:27,43`
+
+[Could] `constants_test.dart` never asserts any Phase 03 constant — only Phase 01 — `test/constants_test.dart`
+
+[Could] `tool/check_dependencies_md.dart` doesn't verify "no duplicate rows per package" — `declared[name]=version` clobbers — `tool/check_dependencies_md.dart:88`
+
+[Could] `pubspec.yaml:88-95` pins `test: 1.30.0` against `flutter_test`-bundled version — future SDK bump transitively upgrades `test` → resolver silent absorption — `pubspec.yaml:88-95`
+
+[Noted] `custom_lint.log` (29KB stack traces) in working tree — gitignored but evidence P2 actively generates noise, not just theoretical — `custom_lint.log`
+
+[Noted] `DriftRevealedTileStore` uses `_idGenerator` actively; `DriftSessionStore` uses `// ignore: unused_field` — inconsistency — `lib/infrastructure/stores/drift_session_store.dart` vs `lib/infrastructure/stores/drift_revealed_tile_store.dart`
+
+[Noted] `ImportValidationException`/`MigrationFailureException` use `reason` not `message` — Dart convention favors `message` for log-parsing ease — `lib/domain/errors/**`
+
+[Noted] `NativeDatabase.memory` in tests sets `PRAGMA journal_mode=WAL` but in-memory backend IGNORES WAL (returns `memory`) — cargo-culted across 7 test files; only `app_database_pragma_test.dart:46-58` documents the no-op; others should remove or explain — `test/infrastructure/db/*.dart`
+
+[Noted] Additional investigation: no additional `UnimplementedError` throws beyond P3 (`reveal_calculator.dart:69`) — `lib/**`
+
+[Noted] Additional investigation: flaky Windows test candidates beyond P1 — `session_store_exclusivity_test.dart:101-132` (concurrent activation relies on NativeDatabase.memory single-connection serialization; fragile if executor swapped), `file_logger_test.dart:75-76` + `file_logger_prune_test.dart` (Phase 01 `Future<void>.delayed` async drain), `backup_on_upgrade_test.dart:39-44` (tearDown swallows `FileSystemException` on Windows) — `test/infrastructure/stores/` + `test/`
+
+[Noted] Additional investigation: no analyzer-plugin silent-degrade analogues beyond P2 in `analysis_options.yaml`; adjacent risk: `tool/check_*.dart` scripts fail silently on pubspec shape drift (section rename invisible) — `analysis_options.yaml` + `tool/check_*.dart`
 
 <details>
 <summary>Audit Notes (narrative appendix, per agent)</summary>
-(pending)
+
+#### Agent #1 Narrative
+
+Schema-and-migration surface is well-organized. Drift 2.30 partial-index patterns used correctly. V1→V2 notes migration + verifier round-trip test is a model of "exercise the framework." `SchemaSanityChecker` correctly targets RESEARCH pitfall #7.
+
+P1 (flaky rotate) escalates: core issue is architectural, not test-harness quirk. `File.statSync().modified` is the sort key in production — Windows mtime granularity + antivirus side effects make unstable sort non-deterministic retention. Fix must live in production code (filename-based ordering via ISO-8601-hyphenated segment, w/ strict lex-sortability guarantee).
+
+The unseeded `cat_default` Blocker is latent: schema's FK asymmetry (markers cascade on session delete but reassign-on-category-delete) creates implicit contract that `cat_default` must pre-exist. No one seeds it.
+
+P5 adjacency: production code applies 4 pragmas correctly (WAL via `setup:`, synchronous/busy_timeout/FK via `applyRuntimePragmas` in `beforeOpen`). `app_database_pragma_test.dart` verifies via Drift's `customSelect('PRAGMA ...')` — IS authoritative. P5 concerns CLI-based walk assertion, which opens its own connection. Recommend replacing CLI pragma checks with Drift-instance `customSelect` probe in any future walk.
+
+`SessionStatus` converter is quirky: declared but not column-bound; applied manually in `drift_session_store.dart`. The `ignore: unused_import` is factually wrong.
+
+#### Agent #2 Narrative
+
+Domain layer solid: zero `flutter/`/`drift/` imports, generated code pure-Dart, extension-type IDs correctly wired, `@Assert`/`const factory` distinction handled across all entities. Sealed dispatch works via Freezed 3.2.3 `unionKey + fallbackUnion`. `Envelope.fromJson` arrow-redirect preserved.
+
+10 test files exercise: Session invariants boundary cases, JSON round-trip across UTC offsets, MirkStyleConfig known/unknown/missing rendererType, JsonMigrator chain behavior, Envelope.fromJson round-trip, TileMath slippy conversions + polar clamping, mergeBitmap algebra (idempotence/commutativity/monotonicity/length mismatch/512-byte) and popcount. Real assertions, not placebo.
+
+Main gap: invariant-robustness coverage for non-id fields (lat/lon, bitmap length, photo dimensions, stoppedAtOffset range). All 5 [Should] findings share same shape: entity deliberately refuses to duplicate DB-level validation, but DB also has no constraint.
+
+`custom_lint` raw output (P2 verification): run `dart run custom_lint` at repo root. Plugin fails to build against analyzer-10.0.1, exit non-zero. Root cause unchanged: `custom_lint_core 0.8.1` was built against pre-Element2 API. Cascade: `Annotatable`, `Element2`, `ElementAnnotation`, `ElementKind`, `libraryElement2`, `resolveFile2` all unresolved across `type_checker.dart`, `lint_codes.dart`, `assist.dart`, `fixes.dart`. P2 stays Noted.
+
+Latent regression risk: per-field `@JsonKey` spread across ~20 call sites. Missing one = json_serializable emits garbage. Custom-lint was the enforcement tool; non-functional → guardrail relies on code review + round-trip test reactive. Agent #4 concern.
+
+#### Agent #3 Narrative
+
+Structural shape good: narrow public methods in pure domain types, no Drift Companion/DataClass leakage. GOSL headers present on all audited files. Line lengths well under 160. All providers `keepAlive=true` with documented rationale.
+
+Main concern — activate path fragility: SqliteException 2067 wrap is a single site (`activate`), but SESS-06 is ALSO enforceable via `insert(status=active)` and `update(status=active)`. The "domain never sees SqliteException" invariant structurally not upheld at other write paths. Either port contract says "insert/update with active is UB" OR those paths must also wrap 2067. Also: `activate()` silently succeeds on nonexistent — should throw.
+
+mergeMask: concurrent test exercises UPDATE branch (both futures hit same existing row). Cold-start race (both SELECT branch, both INSERT) not tested — Drift single-writer queue may save in practice but contract not explicit.
+
+MarkerCategoryStore.delete reassign: correct but stylistically inconsistent. customStatement string literals vs typed DSL. Refactor target must search SQL strings too.
+
+IdGenerator asymmetry: Session + RevealedTile get it; Marker/MarkerCategory/MirkStyle don't. RevealedTile need genuine (mergeMask INSERT branch mints rvt_ IDs); Session need speculative (unused_field lint suppression + test wiring overhead).
+
+Extension-type ID usage: clean across every store. MarkerRow.sessionId raw String correctly wrapped into SessionId() at hydration.
+
+Tests: solid SESS-06, MIRK-03, concurrent merges, error-mapping scope, exclusivity. Missing: insert(active) collision, activate(nonExistent), cold-start mergeMask race. `_newDb` duplicated 6x.
+
+ULID: correct, k-sortable, Crockford. Pad/truncate branch unreachable given 10×8/5=16; `assert(encoded.length == 16)` would make drift loud.
+
+#### Agent #4 Narrative
+
+Test coverage depth: genuine assertions not placebos. Real DB state, real fixtures, real cascade/exclusivity/error-mapping/idempotence coverage. `v1_baseline.sql` = 68 non-comment INSERTs (70 rows counting VALUES rows — matches plan spec).
+
+Tooling: `check_domain_purity.dart` + test cover exit codes 0/1/2. Generated file exclusion works for `.g.dart`/`.freezed.dart`. Only gap: regex fallback missing `drift_flutter`.
+
+Pubspec discipline: all direct deps exact-pinned. `dependency_overrides` uses `analyzer: ^10.0.0` (caret — rationale acceptable per spec as override narrows range) + `dart_style: 3.1.7` (exact). pubspec.lock committed.
+
+DEPENDENCIES.md discipline: every Phase 03 addition has license + telemetry audit + "No network" + audit date. GOSL-compatible licenses (MIT/BSD-3/Apache-2.0). 2026-04-18 json_annotation 4.11.0 bump documented.
+
+Analyzer plugin degrade (P2): confirmed by custom_lint.log. No other analyzer plugin → no analogues. But risk: commented-out `plugins: - custom_lint` block is the ONLY record it's disabled. Someone uncommenting without dropping `analyzer: ^10.0.0` override = silent degrade re-enabled. No guard.
+
+UnimplementedError scan: 1 site — `reveal_calculator.dart:69` (= P3). Matching test `reveal_calculator_test.dart:122` asserts throw. No additional placeholders.
+
+Naming conventions: clean. `xxxs` for lists (markers, sessions, photos), singulars for values, no stale `valueByKey` or `xxxSet`. Path naming: `dbFilename` absolute throughout (matches convention), `backupBasename` filename w/ ext (matches `xxxBasename`), `backupFilename` joined absolute (matches `xxxFilename`). Good discipline.
+
+GOSL headers: 68 hand-written `lib/` + 31 hand-written `test/` + 9 `tool/` all carry header. Generated files correctly exempt.
+
+Additional investigation results:
+- UnimplementedError throws beyond P3: None. Only `reveal_calculator.dart:69` (= P3).
+- Flaky Windows test candidates beyond P1: `backup_test.dart:130-144` (consecutive takeBackup+rotation, same family as P1), `backup_test.dart:75-91` (P1 itself), `session_store_exclusivity_test.dart:101-132` (concurrent activation relies on NativeDatabase.memory single-connection serialization; fragile if executor swapped), `file_logger_test.dart:75-76` + `file_logger_prune_test.dart` (Phase 01 `Future<void>.delayed` async drain; Windows scheduling jitter; same anti-pattern), `backup_on_upgrade_test.dart:39-44` (tearDown swallows `FileSystemException` on Windows; leaves artifacts).
+- Analyzer plugin silent-degrade analogues beyond P2: None in analysis_options.yaml. Adjacent risk: `tool/check_*.dart` scripts fail silently on pubspec shape drift (e.g., section rename to `## Runtime dependencies` invisible — not analyzer-plugin but same "silent-because-nothing-scanned" mode).
+
 </details>
 
 ## 3. Triage decisions
