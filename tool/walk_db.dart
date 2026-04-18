@@ -9,9 +9,19 @@
 ///
 /// Wiring mirrors `lib/application/providers/app_database_provider.dart`
 /// exactly — `buildAppDatabase` requires `dbFilename`, `backupDir`, and
-/// `maxBackups`; resolution of `<app_support>/` via `path_provider` is the
-/// caller's job (same contract as the Riverpod provider). This replicates
-/// what Phase 05's first consumer will do, minus Riverpod plumbing.
+/// `maxBackups`. Path resolution normally goes through `path_provider`, but
+/// that package transitively imports `dart:ui` and therefore cannot load
+/// under a vanilla `dart run` — it requires the Flutter engine binding.
+///
+/// Workaround: resolve the app-support directory manually from
+/// `Platform.environment['APPDATA']` + `<CompanyName>\<ProductName>` as
+/// declared in `windows/runner/Runner.rc` (CompanyName="app.gosl",
+/// ProductName="mirkfall"). This matches exactly what `path_provider`'s
+/// Windows implementation yields (`%APPDATA%\app.gosl\mirkfall\`), so the
+/// DB file ends up at the same path the production app will open.
+///
+/// Platform scope: Windows-only. Fails loud on other hosts rather than
+/// silently resolving to a bogus path.
 library;
 
 import 'dart:io';
@@ -19,12 +29,26 @@ import 'dart:io';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/infrastructure/db/app_database_factory.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 Future<void> main() async {
-  final supportDir = await getApplicationSupportDirectory();
-  final dbFilename = p.join(supportDir.path, kDbFilename);
-  final backupDir = Directory(p.join(supportDir.path, kDbBackupDirName));
+  if (!Platform.isWindows) {
+    stderr.writeln('walk_db: this tool currently targets Windows only.');
+    exit(1);
+  }
+  final appData = Platform.environment['APPDATA'];
+  if (appData == null || appData.isEmpty) {
+    stderr.writeln('walk_db: APPDATA env var not set.');
+    exit(1);
+  }
+
+  // Mirrors path_provider's Windows resolution:
+  //   SHGetKnownFolderPath(RoamingAppData) \ CompanyName \ ProductName
+  // CompanyName + ProductName come from windows/runner/Runner.rc.
+  final supportDir = p.join(appData, 'app.gosl', 'mirkfall');
+  Directory(supportDir).createSync(recursive: true);
+
+  final dbFilename = p.join(supportDir, kDbFilename);
+  final backupDir = Directory(p.join(supportDir, kDbBackupDirName));
   // ignore: avoid_print
   print('DB path: $dbFilename');
 
@@ -38,7 +62,7 @@ Future<void> main() async {
   await db.close();
 
   for (final basename in <String>[kDbFilename, '$kDbFilename-wal', '$kDbFilename-shm']) {
-    final file = File(p.join(supportDir.path, basename));
+    final file = File(p.join(supportDir, basename));
     // ignore: avoid_print
     print('$basename exists=${file.existsSync()} size=${file.existsSync() ? file.lengthSync() : "N/A"}');
   }
