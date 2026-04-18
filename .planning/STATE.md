@@ -163,6 +163,7 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 04-review-gate-persistence]: Adversarial branch-and-CI workflow validated on second review gate — Tests #1 (domain purity double violation) + #2 (drift schema stale) CI-red on exact target gates with exit 1; Test #3 permanent row-loss regression guard green on main; all throwaway branches deleted local+remote
 - [Phase 04-review-gate-persistence]: Pre-existing 61-file dart format drift on main surfaced as SURPRISE BLOCKER during Plan 04-04 adversarial wave — not caused by any poison, logged to deferred-items.md item #1, handed off to Plan 04-05 fix loop (recommended first commit: chore(format) align with CI dart format)
 - [Phase 04-review-gate-persistence]: Permanent adversarial unit test pattern with inline inertness guard — intermediate expect BEFORE throwsA proves the adversary (DELETE) actually ran, so future SQL/fixture refactors can't silently neutralise the test; validated by mutation experiment (DELETE WHERE 1=0 → fails loudly with 'test would be inert'). Reusable for every Phase 05+ production adversarial unit test.
+- [Phase 04-review-gate-persistence]: `custom_lint` silently-degraded (analyzer-10 API break) formally accepted as Noted in REVIEW.md §3 — no operational impact (`flutter analyze --fatal-infos --fatal-warnings` green via analyzer-10 stack). Re-verify at each deps bump and Phase 15 polish at the latest. Promotes the Phase 03 STATE.md decision to a Phase 04 review-gate-signed-off status.
 
 ### Pending Todos
 
