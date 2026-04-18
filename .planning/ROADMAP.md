@@ -73,7 +73,13 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
   4. Tous les modèles de domaine (`Session`, `Marker`, `MarkerCategory`, `MirkStyle`, `RevealedTile`, `PhotoRef`, `Envelope`) sont générés par Freezed, immuables, et le dossier `lib/domain/` ne contient aucun `import 'package:flutter/...'` ni `import 'package:drift/...'`
   5. `tile_math.dart` et `reveal_calculator.dart` sont purement Dart, sans I/O, et leurs tests unitaires tournent sous `dart test` (pas `flutter test`) ; le framework `JsonMigrator` existe avec une chaîne identity pour v1 et un slot prêt à recevoir v2
   6. Un backup DB pré-migration est produit automatiquement et un sanity check post-migration (row-count) échoue hard si la migration a perdu des lignes
-**Plans**: TBD
+**Plans** (6 plans, 4 waves):
+- [ ] 03-persistence-domain-models/03-01-PLAN.md — Wave 1: Wave 0 bootstrap — pin custom_lint + riverpod_lint (Phase 01 deferred), libsqlite3 CI dep, drift-schema-drift guard, Phase 03 constants, JSON + SQL fixtures, tool/check_domain_purity.dart
+- [ ] 03-persistence-domain-models/03-02-PLAN.md — Wave 2: Pure-Dart domain — IDs (6 extension types + IdGenerator + ULID), domain errors (7 exceptions), tile_math + reveal_calculator (MIRK-03 algebra: mergeBitmap + popcount), Envelope + JsonMigrator + V1→V2 rename-radius fictive
+- [ ] 03-persistence-domain-models/03-03-PLAN.md — Wave 2: Freezed entities (Session + Marker + MarkerCategory + MirkStyle + sealed MirkStyleConfig + RevealedTile + PhotoRef) + 6 store ports + UnknownConfig fallback test
+- [ ] 03-persistence-domain-models/03-04-PLAN.md — Wave 3: AppDatabase V1+V2 schema (6 tables + SESS-06 partial unique index + MIRK-03 bitmap BLOB + FK CASCADE), pragmas, type converters, V1ToV2Notes migration, drift_schemas/ dumps, pragma + schema + V1 identity fixture tests
+- [ ] 03-persistence-domain-models/03-05-PLAN.md — Wave 4: DbBackupService (3-rolling) + SchemaSanityChecker + V1→V2 SchemaVerifier data-preservation test (SC#6)
+- [ ] 03-persistence-domain-models/03-06-PLAN.md — Wave 4: Five Drift stores (SESS-06 runtime via SqliteException 2067 → ConcurrentActivationException, MIRK-03 transactional mergeMask) + Riverpod providers + SESS-06/MIRK-03/cascade tests
 
 ### Phase 04: Review Gate — Persistence
 **Goal**: Auditer la phase 03 avant que le GPS ne commence à écrire. Une erreur de modèle rattrapée ici coûte une semaine ; rattrapée en phase 09 elle coûte un mois.
@@ -239,7 +245,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 |-------|----------------|--------|-----------|
 | 01. Foundation | 4/4 | Complete    | 2026-04-17 |
 | 02. Review Gate — Foundation | 3/4 | In Progress|  |
-| 03. Persistence & Domain Models | 0/TBD | Not started | - |
+| 03. Persistence & Domain Models | 0/6 | Planned | - |
 | 04. Review Gate — Persistence | 0/TBD | Not started | - |
 | 05. GPS & Session Lifecycle | 0/TBD | Not started | - |
 | 06. Review Gate — GPS | 0/TBD | Not started | - |
