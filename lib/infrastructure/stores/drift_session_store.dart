@@ -6,9 +6,9 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart' show SqliteException;
 import 'package:mirkfall/domain/errors/concurrent_errors.dart';
 import 'package:mirkfall/domain/errors/session_errors.dart';
-import 'package:mirkfall/domain/ids/id_generator.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
+import 'package:mirkfall/domain/sessions/session_status.dart';
 import 'package:mirkfall/domain/sessions/session_store.dart';
 import 'package:mirkfall/infrastructure/db/app_database.dart';
 import 'package:mirkfall/infrastructure/db/type_converters.dart';
@@ -16,23 +16,22 @@ import 'package:mirkfall/infrastructure/stores/sqlite_error_mapper.dart';
 
 /// Drift-backed [SessionStore] implementation.
 ///
-/// SESS-06 runtime enforcement: [activate] catches `SqliteException` with
-/// `extendedResultCode == kSqliteConstraintUnique` (2067) raised by the
-/// partial unique index `idx_t_sessions_status_active` and rewraps it in
-/// [ConcurrentActivationException]. Every other `SqliteException` code is
-/// rethrown unchanged per RESEARCH §pitfall #4 (never wide-catch driver
-/// errors — a FK violation is a different bug class than a concurrent
-/// activation race).
+/// SESS-06 runtime enforcement: [activate], [insert], and [update] catch
+/// `SqliteException` with `extendedResultCode == kSqliteConstraintUnique`
+/// (2067) raised by the partial unique index `idx_t_sessions_status_active`
+/// and rewrap it in [ConcurrentActivationException]. Every other
+/// `SqliteException` code is rethrown unchanged per RESEARCH §pitfall #4
+/// (never wide-catch driver errors — a FK violation is a different bug class
+/// than a concurrent activation race).
 ///
-/// [IdGenerator] is accepted by constructor for future insert-without-id
-/// paths and for symmetry with the other stores; Phase 03 callers always
-/// pass a pre-allocated id in the [Session] they [insert].
+/// State-transition signaling (findings #3 + #25, Batch G): [activate] and
+/// [deactivate] throw [SessionNotFoundException] when the UPDATE affects 0
+/// rows (the session id is not present). Silent no-op on state transitions
+/// was an invariant violation — the contract now holds for every caller.
 class DriftSessionStore implements SessionStore {
-  DriftSessionStore(this._db, this._idGenerator);
+  DriftSessionStore(this._db);
 
   final AppDatabase _db;
-  // ignore: unused_field — reserved for insert-without-id paths, see docstring.
-  final IdGenerator _idGenerator;
 
   static const SessionStatusStringConverter _statusConv = SessionStatusStringConverter();
 
@@ -59,18 +58,40 @@ class DriftSessionStore implements SessionStore {
 
   @override
   Future<Session?> findActive() async {
-    final row = await (_db.select(_db.sessions)..where((t) => t.status.equals('active'))).getSingleOrNull();
+    final row = await (_db.select(_db.sessions)..where((t) => t.status.equals(_statusConv.toSql(SessionStatus.active)))).getSingleOrNull();
     return row == null ? null : _hydrate(row);
   }
 
   @override
   Future<void> insert(Session session) async {
-    await _db.into(_db.sessions).insert(_toInsertCompanion(session));
+    // Finding #4 (Batch G) — SqliteException 2067 wrap scope extended to
+    // the insert path: insert(Session with status=active) hits the same
+    // partial unique index as activate() would, and the invariant "domain
+    // never sees SqliteException" must hold at every write site.
+    try {
+      await _db.into(_db.sessions).insert(_toInsertCompanion(session));
+    } on SqliteException catch (e) {
+      if (e.extendedResultCode == kSqliteConstraintUnique) {
+        throw ConcurrentActivationException(attemptedId: session.id);
+      }
+      rethrow;
+    }
   }
 
   @override
   Future<void> update(Session session) async {
-    await _db.update(_db.sessions).replace(_toInsertCompanion(session));
+    // Finding #4 (Batch G) — SqliteException 2067 wrap scope extended to
+    // update() for the same reason as insert(): update(status=active) can
+    // collide with the partial unique index when a concurrent actor has
+    // already flipped another row to active.
+    try {
+      await _db.update(_db.sessions).replace(_toInsertCompanion(session));
+    } on SqliteException catch (e) {
+      if (e.extendedResultCode == kSqliteConstraintUnique) {
+        throw ConcurrentActivationException(attemptedId: session.id);
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -80,8 +101,27 @@ class DriftSessionStore implements SessionStore {
 
   @override
   Future<void> activate(SessionId id) async {
+    // Finding #3 + #25 (Batch G) — throw on 0 rows affected. Pre-Batch-G,
+    // activate() silently succeeded on nonexistent/already-stopped ids
+    // because the UPDATE simply matched zero rows. The contract now: if
+    // the session id does not exist, the caller gets a clear
+    // SessionNotFoundException.
+    //
+    // Finding #24 (Batch G) — use the converter instead of raw 'active'.
+    final rowsAffected = await _activateOrThrow(id);
+    if (rowsAffected == 0) {
+      throw SessionNotFoundException(id: id);
+    }
+  }
+
+  /// Performs the `status = 'active'` UPDATE and returns `rowsAffected`.
+  /// Rewraps SqliteException 2067 into [ConcurrentActivationException]
+  /// (finding #4 still holds on the activate path).
+  Future<int> _activateOrThrow(SessionId id) async {
     try {
-      await (_db.update(_db.sessions)..where((t) => t.id.equals(id.value))).write(const SessionsCompanion(status: Value('active')));
+      return await (_db.update(
+        _db.sessions,
+      )..where((t) => t.id.equals(id.value))).write(SessionsCompanion(status: Value(_statusConv.toSql(SessionStatus.active))));
     } on SqliteException catch (e) {
       if (e.extendedResultCode == kSqliteConstraintUnique) {
         throw ConcurrentActivationException(attemptedId: id);
@@ -92,7 +132,14 @@ class DriftSessionStore implements SessionStore {
 
   @override
   Future<void> deactivate(SessionId id) async {
-    await (_db.update(_db.sessions)..where((t) => t.id.equals(id.value))).write(const SessionsCompanion(status: Value('stopped')));
+    // Finding #3 + #25 (Batch G) — symmetric throw-on-0-rows with activate.
+    // Finding #24 — use the converter instead of raw 'stopped'.
+    final rowsAffected = await (_db.update(
+      _db.sessions,
+    )..where((t) => t.id.equals(id.value))).write(SessionsCompanion(status: Value(_statusConv.toSql(SessionStatus.stopped))));
+    if (rowsAffected == 0) {
+      throw SessionNotFoundException(id: id);
+    }
   }
 
   // -- hydration ---------------------------------------------------------

@@ -10,8 +10,8 @@ import 'package:mirkfall/domain/errors/concurrent_errors.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
+import 'package:mirkfall/domain/errors/session_errors.dart';
 import 'package:mirkfall/infrastructure/db/app_database.dart';
-import 'package:mirkfall/infrastructure/ids/seeded_id_generator.dart';
 import 'package:mirkfall/infrastructure/stores/drift_session_store.dart';
 import 'package:test/test.dart';
 
@@ -39,7 +39,7 @@ void main() {
 
   setUp(() async {
     db = _newDb();
-    store = DriftSessionStore(db, SeededIdGenerator(seed: 1));
+    store = DriftSessionStore(db);
     // Open + apply pragmas so the first INSERT doesn't race the migration.
     await db.customStatement('SELECT 1');
 
@@ -106,5 +106,53 @@ void main() {
     // Exactly one row with status='active' remains.
     final activeRows = await db.customSelect("SELECT COUNT(*) AS c FROM t_sessions WHERE status = 'active'").getSingle();
     expect(activeRows.read<int>('c'), 1);
+  });
+
+  // Finding #3 + #25 (Batch G) — activate/deactivate now fail loudly on
+  // nonexistent ids instead of silently succeeding.
+
+  test('activate(nonExistent) -> SessionNotFoundException', () async {
+    const nonExistent = SessionId('sess_01HRGHOSTSESSIONAAAAAAAAAAA');
+    await expectLater(() => store.activate(nonExistent), throwsA(isA<SessionNotFoundException>().having((e) => e.id, 'id', nonExistent)));
+  });
+
+  test('deactivate(nonExistent) -> SessionNotFoundException', () async {
+    const nonExistent = SessionId('sess_01HRGHOSTSESSIONAAAAAAAAAAA');
+    await expectLater(() => store.deactivate(nonExistent), throwsA(isA<SessionNotFoundException>().having((e) => e.id, 'id', nonExistent)));
+  });
+
+  // Finding #4 + #26 (Batch G) — SqliteException 2067 wrap now covers the
+  // insert(active) path too. Exercising it proves no raw SqliteException
+  // leaks to the caller when a second active session is inserted.
+
+  test('insert(active) + insert(active) -> second throws ConcurrentActivationException', () async {
+    final id4 = SessionId(_sessId(4));
+    final id5 = SessionId(_sessId(5));
+    final now = DateTime.utc(2026, 4, 18, 12);
+
+    await store.insert(Session(id: id4, displayName: 'S4', status: SessionStatus.active, startedAtUtc: now, startedAtOffsetMinutes: 120));
+    await expectLater(
+      () => store.insert(Session(id: id5, displayName: 'S5', status: SessionStatus.active, startedAtUtc: now, startedAtOffsetMinutes: 120)),
+      throwsA(isA<ConcurrentActivationException>().having((e) => e.attemptedId, 'attemptedId', id5)),
+    );
+
+    // Only one active row remains — the first one.
+    final activeRows = await db.customSelect("SELECT COUNT(*) AS c FROM t_sessions WHERE status = 'active'").getSingle();
+    expect(activeRows.read<int>('c'), 1);
+  });
+
+  test('update(active) on a stopped row while another is active -> ConcurrentActivationException', () async {
+    final id0 = SessionId(_sessId(0));
+    final id1 = SessionId(_sessId(1));
+    final now = DateTime.utc(2026, 4, 18, 12);
+
+    await store.activate(id0);
+    // Build a new Session(id=id1) carrying status=active and try to update.
+    final conflict = Session(id: id1, displayName: 'Session 1', status: SessionStatus.active, startedAtUtc: now, startedAtOffsetMinutes: 120);
+    await expectLater(() => store.update(conflict), throwsA(isA<ConcurrentActivationException>().having((e) => e.attemptedId, 'attemptedId', id1)));
+
+    // The only active row is still id0.
+    final active = await store.findActive();
+    expect(active?.id, id0);
   });
 }

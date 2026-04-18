@@ -11,7 +11,6 @@ import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
 import 'package:mirkfall/infrastructure/db/app_database.dart';
-import 'package:mirkfall/infrastructure/ids/seeded_id_generator.dart';
 import 'package:mirkfall/infrastructure/stores/drift_session_store.dart';
 import 'package:mirkfall/infrastructure/stores/sqlite_error_mapper.dart';
 import 'package:test/test.dart';
@@ -35,7 +34,7 @@ void main() {
 
   setUp(() async {
     db = _newDb();
-    store = DriftSessionStore(db, SeededIdGenerator(seed: 7));
+    store = DriftSessionStore(db);
     await db.customStatement('SELECT 1');
   });
 

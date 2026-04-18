@@ -4,13 +4,12 @@
 
 import 'package:drift/drift.dart';
 // Re-exported through `part 'app_database.g.dart'` — the generated code
-// references `MirkStyleConfig` and `SessionStatus` directly, so the
-// enclosing library must import them even though the converters file
-// already does.
+// references `MirkStyleConfig` directly, so the enclosing library must
+// import it even though the converters file already does. The session-
+// status import (finding #9 / Batch G) is no longer needed: generated
+// code has zero references, confirmed by grep of app_database.g.dart.
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
-// ignore: unused_import
-import 'package:mirkfall/domain/sessions/session_status.dart';
 
 import 'migrations/v1_to_v2_notes.dart';
 import 'pragma_setup.dart';

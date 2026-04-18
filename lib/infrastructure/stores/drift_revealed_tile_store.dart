@@ -69,7 +69,9 @@ class DriftRevealedTileStore implements RevealedTileStore {
             .into(_db.revealedTiles)
             .insert(
               RevealedTilesCompanion.insert(
-                id: _idGenerator.newId('rvt_'),
+                // Finding #22 (Batch G) — use the typed constant rather
+                // than the raw 'rvt_' literal; survives any future rename.
+                id: _idGenerator.newId(RevealedTileId.prefix),
                 sessionId: sessionId.value,
                 parentX: parentX,
                 parentY: parentY,
