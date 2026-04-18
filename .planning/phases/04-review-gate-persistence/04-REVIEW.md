@@ -1,8 +1,8 @@
 # Phase 04: Review Gate — Persistence Review
 
 **Opened:** 2026-04-18
-**Status:** open
-**Closed:** (pending)
+**Status:** closed
+**Closed:** 2026-04-19
 
 ## 1. User-observed findings (IDE review)
 
@@ -642,13 +642,52 @@ Observations only. No action taken under blanket-approve; these stay as document
 
 ## 5. CI-green confirmation
 
-*Filled by Plan 04-05 Task 2 after all Blocker + non-waived Should fixes are applied and CI is green.*
+### Per-batch landing evidence (Plan 04-05 fix loop)
 
-- **Final commit on main:** (pending)
-- **CI run URL:** (pending)
-- **Status:** (pending)
-- **Date:** (pending)
+Plan 04-05 executed in 10 atomic fix batches + 1 docs batch. Each `fix(04-rev):` / `refactor(04-rev):` / `test(04-rev):` commit was followed by a `docs(04-rev):` row-marker commit in §3. CI gated between every push; strategy deviation from the per-finding protocol to batched granularity was user-approved during execution (see 04-05-SUMMARY.md §Strategy deviation).
+
+| Batch | Scope                                                             | Fix commit | Docs marker | Findings marked |
+| ----- | ----------------------------------------------------------------- | ---------- | ----------- | --------------- |
+| pre-A | UTC offsets extraction                                            | `74f1bb2`  | `571ffd7`   | #7, #11         |
+| chore | dart format align with CI (pre-existing drift)                    | `35152e5`  | —           | (deferred-items #1) |
+| A     | Domain @Assert invariants (off-range + non-negative)              | `e307ace` → `82a0ee7` (CI fix) | `a155e79` | #15, #16, #17, #18, #19 |
+| B     | DB-level CHECK constraints (status / offsets / bitmap)            | `b042a1c`  | `c47575b`   | #10, #12, #14   |
+| C     | parentZoom magic → kRevealedTileParentZoom                        | `54313ce`  | `82b59e7`   | #5, #13         |
+| D     | P4 Zone mismatch option-a pivot to option-b                       | `56b164f` → `e45339f` | — | P4 |
+| E     | DbBackup filename-ISO sort                                        | `72da162`  | `88904b0`   | #1, #29, #35, P1 |
+| F     | cat_default seed + docstring reconciliation                       | `2e528df`  | `6069951`   | #2, #8          |
+| G     | Session store hardening (error signaling + converter + cleanup)   | `6425889`  | `c4d72f7`   | #3, #4, #9, #21, #22, #24, #25, #26 |
+| H     | mergeMask cold-start race (INSERT OR IGNORE)                      | `daed232`  | `ea14978`   | #20, #32        |
+| I     | MarkerCategory typed DSL + Marker DESC ordering                   | `5ee9838`  | `3862a31`   | #23, #27        |
+| J     | Tooling guards + P3 no-callers + P5 pragma probe                  | `676bcb8`  | `b7d6b6f`   | #6, #28, #30, #31, #33, P3, P5 |
+| K     | Custom_lint silent-degrade documentation (NOT in fix tally)       | —          | `4e1cb3c` + `26f3d99` | P2 (docs-only) |
+
+SchemaSanityChecker row-loss regression guard from Plan 04-04 carries over at `9c32eb1` (`test(04-rev):`).
+
+Each batch's CI run was gated before proceeding to the next — no red CI was ever stepped over.
+
+### P4 Zone mismatch re-walk confirmation (user)
+
+After Batch D landed (`e45339f` — option b: WidgetsFlutterBinding.ensureInitialized + runApp BOTH inside runZonedGuarded), user re-ran `flutter run -d windows`:
+
+```
+flutter run -d windows
+Building Windows application... 24.2s
+✓ Built build\windows\x64\runner\Debug\mirkfall.exe
+(no Zone mismatch exception)
+A Dart VM Service on Windows is available at: http://127.0.0.1:54033/
+Lost connection to device. (user closed window)
+```
+
+No exception output. App boots clean. P4 resolved.
+
+### Final main HEAD
+
+- **Final commit on main:** `26f3d99`
+- **CI run URL:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24616052442
+- **Status:** All 3 jobs green (gates / android / ios)
+- **Date:** 2026-04-19
 
 ---
-_Phase 04 closed: (pending)_
+_Phase 04 closed: 2026-04-19_
 _Phase 05 unblocked._
