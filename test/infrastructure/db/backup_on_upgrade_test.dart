@@ -9,7 +9,6 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:mirkfall/infrastructure/db/app_database.dart';
 import 'package:mirkfall/infrastructure/db/app_database_factory.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
