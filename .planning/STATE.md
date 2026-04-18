@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 5
+current_plan: 6
 status: executing
-stopped_at: "Completed 03-04-PLAN.md (Wave 4 half-closed: Drift AppDatabase schemaVersion=2 + pragmas + V1->V2 migration + SchemaVerifier; 03-05 + 03-06 unblocked)"
-last_updated: "2026-04-18T11:16:19.153Z"
+stopped_at: "Completed 03-05-PLAN.md (Wave 5 mid-point: DbBackupService + SchemaSanityChecker + buildAppDatabase factory — SC#6 closed at runtime; 03-06 remains parallel last plan)"
+last_updated: "2026-04-18T11:30:55.804Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 16
   completed_phases: 2
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 13
   percent: 86
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 03 of 16 (Persistence & Domain Models)
-Current Plan: 5
+Current Plan: 6
 Total Plans in Phase: 6
 Plan: 4 of 6 complete in current phase (03-04 Drift AppDatabase + V1->V2 migration shipped — SC#1 + SESS-06 + MIRK-03 schema-layer closed, 13 DB tests + 82-test pure-Dart suite green)
 Status: In Progress
@@ -64,6 +64,7 @@ Progress: [█████████░] 86%
 | Phase 03-persistence-domain-models P02 | 9 min | 3 tasks | 34 files |
 | Phase 03-persistence-domain-models P03 | 19 min | 3 tasks | 41 files |
 | Phase 03-persistence-domain-models P04 | 20 min | 3 tasks | 15 files |
+| Phase 03-persistence-domain-models P05 | 8 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -129,6 +130,11 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 03-persistence-domain-models]: AppDatabase exposes onBeforeUpgrade: Future<void> Function(OpeningDetails)? constructor hook — fires inside beforeOpen iff details.hadUpgrade BEFORE onUpgrade. 03-05 wires DbBackupService.takeBackup into it; details.hadUpgrade guard prevents bogus backups on first-open (onCreate) paths.
 - [Phase 03-persistence-domain-models]: In-memory SQLite journal_mode always reports 'memory' — WAL requires an on-disk shared-memory region (sqlite.org/wal.html §2.1). Pragma unit test accepts observable; file-backed WAL verification lands in 03-05 integration.
 - [Phase 03-persistence-domain-models]: Fixture reconciliation: v1_baseline.sql sessions 04+07 switched from status='paused' to 'stopped' (SessionStatus enum has only active|stopped). Forward-declared in 03-01-SUMMARY §Handoff as 03-04's responsibility.
+- [Phase 03-persistence-domain-models]: V1ToV2Notes ALTER SQL locked to frozen V2 dump shape ('ADD COLUMN "notes" TEXT NULL' — quoted identifier + explicit NULL keyword) so SchemaVerifier.migrateAndValidate shape check passes. Retroactively ratifies the 03-04 migration framework.
+- [Phase 03-persistence-domain-models]: Byte-count ordering proof for backup-before-onUpgrade — backup.lengthSync() == pre-open DB file size. Robust across Windows/ext4/APFS filesystem timestamp precisions; replaces mtime-based ordering proofs that were considered and rejected as flaky.
+- [Phase 03-persistence-domain-models]: SchemaSanityChecker accepts growth silently (only throws on decrease) — CLAUDE.md error-handling level distinction preserves room for future onUpgrade seed-row patterns (e.g. Phase 15 default marker category).
+- [Phase 03-persistence-domain-models]: buildAppDatabase uses NativeDatabase (sync) not createInBackground (isolate) — backup hook must run in same isolate as open; Phase 05 can swap to isolate variant if open-path profiling demands it.
+- [Phase 03-persistence-domain-models]: Migration tests tagged @Tags(['migration']) — dart test -t migration isolates slow SchemaVerifier suite from fast domain suite; follows 03-01 dart_test.yaml convention.
 
 ### Pending Todos
 
@@ -148,6 +154,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-18T11:15:56.111Z
-Stopped at: Completed 03-04-PLAN.md (Wave 4 half-closed: Drift AppDatabase schemaVersion=2 + pragmas + V1->V2 migration + SchemaVerifier; 03-05 + 03-06 unblocked)
+Last session: 2026-04-18T11:30:55.800Z
+Stopped at: Completed 03-05-PLAN.md (Wave 5 mid-point: DbBackupService + SchemaSanityChecker + buildAppDatabase factory — SC#6 closed at runtime; 03-06 remains parallel last plan)
 Resume file: None
