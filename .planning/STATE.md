@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 current_plan: 6
 status: executing
-stopped_at: "Completed 03-05-PLAN.md (Wave 5 mid-point: DbBackupService + SchemaSanityChecker + buildAppDatabase factory — SC#6 closed at runtime; 03-06 remains parallel last plan)"
-last_updated: "2026-04-18T11:30:55.804Z"
+stopped_at: Completed 03-06-PLAN.md (FINAL plan of Phase 03) — Drift stores + Riverpod providers shipped; SESS-06 + MIRK-03 runtime proofs green; ready for Phase 04 review gate
+last_updated: "2026-04-18T11:51:56.688Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 16
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 14
-  completed_plans: 13
+  completed_plans: 14
   percent: 86
 ---
 
@@ -65,6 +65,7 @@ Progress: [█████████░] 86%
 | Phase 03-persistence-domain-models P03 | 19 min | 3 tasks | 41 files |
 | Phase 03-persistence-domain-models P04 | 20 min | 3 tasks | 15 files |
 | Phase 03-persistence-domain-models P05 | 8 min | 3 tasks | 8 files |
+| Phase 03-persistence-domain-models P6 | 12 min | 2 tasks | 28 files |
 
 ## Accumulated Context
 
@@ -135,6 +136,14 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 03-persistence-domain-models]: SchemaSanityChecker accepts growth silently (only throws on decrease) — CLAUDE.md error-handling level distinction preserves room for future onUpgrade seed-row patterns (e.g. Phase 15 default marker category).
 - [Phase 03-persistence-domain-models]: buildAppDatabase uses NativeDatabase (sync) not createInBackground (isolate) — backup hook must run in same isolate as open; Phase 05 can swap to isolate variant if open-path profiling demands it.
 - [Phase 03-persistence-domain-models]: Migration tests tagged @Tags(['migration']) — dart test -t migration isolates slow SchemaVerifier suite from fast domain suite; follows 03-01 dart_test.yaml convention.
+- [Phase 03-persistence-domain-models]: SqliteException wrapping scope: only extendedResultCode == 2067 on DriftSessionStore.activate is rewrapped into ConcurrentActivationException. All other codes rethrown unchanged (RESEARCH pitfall #4 — never wide-catch driver errors).
+- [Phase 03-persistence-domain-models]: DriftMarkerCategoryStore.delete protects kCategoryDefaultId by counting affected markers then throwing CategoryInUseException without touching the DB. markerCount carried in the exception for log reproducibility.
+- [Phase 03-persistence-domain-models]: DriftRevealedTileStore takes IdGenerator but DriftMarkerStore does not — tile inserts happen inside mergeMask and mint ids on first write, while marker inserts carry pre-allocated MarkerIds. DriftSessionStore keeps IdGenerator in its constructor for forward-compat (Phase 05 may add SessionStore.create(displayName)).
+- [Phase 03-persistence-domain-models]: Marker.photos hydrated as const <PhotoRef>[] in Phase 03 — photo join belongs with FilesystemPhotoStore (Phase 11, decision D8: photos on disk not SQLite BLOB).
+- [Phase 03-persistence-domain-models]: All 7 @Riverpod providers use keepAlive: true — DB is a process singleton (re-opening thrashes WAL), and store providers keep the flag for symmetry/invalidate-storm avoidance.
+- [Phase 03-persistence-domain-models]: main.dart ProviderScope wiring NOT touched in Phase 03 — CONTEXT.md defers it to Phase 05 where ActiveSessionController is the first productive consumer.
+- [Phase 03-persistence-domain-models]: MirkStyle renderer_type column derived from sealed MirkStyleConfig variant via pattern match at insert/update time (AtmosphericConfig->atmospheric, ShaderConfig->shader, UnknownConfig->unknown). Keeps config+column consistent without a separate writer path.
+- [Phase 03-persistence-domain-models]: Test convention: drift/drift.dart import uses 'hide isNotNull' in every store test — drift re-exports a column matcher with the same name as matcher's value matcher. Consistent idiom across infra test suite, same as 03-05 migration tests.
 
 ### Pending Todos
 
@@ -154,6 +163,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-18T11:30:55.800Z
-Stopped at: Completed 03-05-PLAN.md (Wave 5 mid-point: DbBackupService + SchemaSanityChecker + buildAppDatabase factory — SC#6 closed at runtime; 03-06 remains parallel last plan)
+Last session: 2026-04-18T11:51:03.880Z
+Stopped at: Completed 03-06-PLAN.md (FINAL plan of Phase 03) — Drift stores + Riverpod providers shipped; SESS-06 + MIRK-03 runtime proofs green; ready for Phase 04 review gate
 Resume file: None
