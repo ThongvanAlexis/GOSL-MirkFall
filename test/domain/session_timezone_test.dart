@@ -29,20 +29,23 @@ void main() {
     expect(restored.stoppedAtOffsetMinutes, 120);
   });
 
-  test('local wall-clock reconstructs correctly from UTC + offset (CEST +120)', () {
-    final session = Session(
-      id: const SessionId('sess_01HRTZTESTAAAAAAAAAAAAAAAB'),
-      displayName: 'Berlin',
-      status: SessionStatus.active,
-      startedAtUtc: DateTime.utc(2026, 7, 1, 10), // 12:00 CEST
-      startedAtOffsetMinutes: 120,
-    );
-    // Local wall-clock representation = UTC + offset.
-    final localWallClock = session.startedAtUtc.add(
-      Duration(minutes: session.startedAtOffsetMinutes),
-    );
-    expect(localWallClock.hour, 12);
-  });
+  test(
+    'local wall-clock reconstructs correctly from UTC + offset (CEST +120)',
+    () {
+      final session = Session(
+        id: const SessionId('sess_01HRTZTESTAAAAAAAAAAAAAAAB'),
+        displayName: 'Berlin',
+        status: SessionStatus.active,
+        startedAtUtc: DateTime.utc(2026, 7, 1, 10), // 12:00 CEST
+        startedAtOffsetMinutes: 120,
+      );
+      // Local wall-clock representation = UTC + offset.
+      final localWallClock = session.startedAtUtc.add(
+        Duration(minutes: session.startedAtOffsetMinutes),
+      );
+      expect(localWallClock.hour, 12);
+    },
+  );
 
   test('negative offset (UTC-5 New York winter) round-trips', () {
     final session = Session(

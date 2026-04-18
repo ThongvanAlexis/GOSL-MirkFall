@@ -49,8 +49,14 @@ void main() {
     });
 
     test('boundary offsets -720 and 840 construct successfully', () {
-      expect(buildSession(startedAtOffsetMinutes: -720).startedAtOffsetMinutes, -720);
-      expect(buildSession(startedAtOffsetMinutes: 840).startedAtOffsetMinutes, 840);
+      expect(
+        buildSession(startedAtOffsetMinutes: -720).startedAtOffsetMinutes,
+        -720,
+      );
+      expect(
+        buildSession(startedAtOffsetMinutes: 840).startedAtOffsetMinutes,
+        840,
+      );
     });
 
     test('happy path constructs without throwing', () {
