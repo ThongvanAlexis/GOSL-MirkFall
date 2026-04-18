@@ -61,6 +61,7 @@ void main() {
     });
 
     test('boundary setBitCount values (0 and 4096) construct successfully', () {
+      // ignore: avoid_redundant_argument_values — explicit boundary assertion
       expect(buildRevealedTile(setBitCount: 0).setBitCount, 0);
       expect(buildRevealedTile(setBitCount: 4096).setBitCount, 4096);
     });
