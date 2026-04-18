@@ -39,19 +39,23 @@ void main() {
 
     final counts = await checker.captureRowCounts();
     expect(counts.keys, containsAll(<String>['t_sessions', 't_markers', 't_revealed_tiles', 't_marker_categories', 't_mirk_styles', 't_photos']));
-    // Fresh DB — every table empty.
+    // Fresh DB — every table empty EXCEPT t_marker_categories which carries
+    // the onCreate-seeded `cat_default` sentinel row (04-rev Batch F /
+    // finding #2).
     for (final entry in counts.entries) {
-      expect(entry.value, 0, reason: '${entry.key} should be empty on fresh DB');
+      if (entry.key == 't_marker_categories') {
+        expect(entry.value, 1, reason: 't_marker_categories contains the cat_default seed row on a fresh DB');
+      } else {
+        expect(entry.value, 0, reason: '${entry.key} should be empty on fresh DB');
+      }
     }
   });
 
   test('captureRowCounts reflects INSERTs', () async {
     await db.customStatement('SELECT 1');
-    await db.customStatement(
-      "INSERT INTO t_marker_categories "
-      "(id, display_name, icon_name, created_at_utc, created_at_offset_minutes) "
-      "VALUES ('cat_default', 'Default', 'pin', 1000, 120)",
-    );
+    // cat_default is already seeded by onCreate (finding #2 / Batch F) —
+    // this test previously inserted it manually, which would now PK-collide.
+    // Start count for t_marker_categories is therefore 1, not 0.
     await db.customStatement(
       "INSERT INTO t_sessions "
       "(id, display_name, status, started_at_utc, started_at_offset_minutes) "
@@ -60,7 +64,7 @@ void main() {
 
     final checker = SchemaSanityChecker(db.executor);
     final counts = await checker.captureRowCounts();
-    expect(counts['t_marker_categories'], 1);
+    expect(counts['t_marker_categories'], 1, reason: 'onCreate seeded cat_default');
     expect(counts['t_sessions'], 1);
     expect(counts['t_markers'], 0);
   });

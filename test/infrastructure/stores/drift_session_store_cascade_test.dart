@@ -43,12 +43,8 @@ void main() {
     store = DriftSessionStore(db, SeededIdGenerator(seed: 1));
     await db.customStatement('SELECT 1');
 
-    // Seed the default category so markers can FK to it.
-    await db.customStatement(
-      "INSERT INTO t_marker_categories (id, display_name, icon_name, "
-      "created_at_utc, created_at_offset_minutes) "
-      "VALUES ('cat_default', 'Default', 'pin', 1000, 120)",
-    );
+    // cat_default is seeded by onCreate (finding #2 / Batch F) — markers can
+    // FK to it without a manual re-insert (which would PK-collide).
 
     // Seed the session.
     await store.insert(

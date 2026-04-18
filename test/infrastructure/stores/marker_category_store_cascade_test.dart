@@ -36,6 +36,14 @@ Future<String?> _categoryIdOfMarker(AppDatabase db, String markerId) async {
 }
 
 void main() {
+  // The Batch F regression tests open additional fresh in-memory databases
+  // (each with its own QueryExecutor) to exercise the onCreate seed in
+  // isolation. Drift's multi-instance warning is not relevant here because
+  // the underlying backends are never shared.
+  setUpAll(() {
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  });
+
   late AppDatabase db;
   late DriftMarkerCategoryStore store;
   // A 26-char ULID body so CategoryId.isValid returns true for this one.
@@ -46,10 +54,10 @@ void main() {
     store = DriftMarkerCategoryStore(db);
     await db.customStatement('SELECT 1');
 
-    // Seed cat_default via the store's insert.
-    await store.insert(
-      MarkerCategory(id: kCategoryDefaultId, displayName: 'Default', iconName: 'pin', createdAtUtc: DateTime.utc(2026, 4, 18, 10), createdAtOffsetMinutes: 120),
-    );
+    // cat_default is already seeded by the AppDatabase onCreate migration
+    // (04-rev Batch F / finding #2). Previously this setUp re-seeded it via
+    // store.insert — now redundant and would duplicate-PK fail on the
+    // post-Batch-F schema.
 
     // Seed a custom category.
     await store.insert(
@@ -83,6 +91,54 @@ void main() {
   test('precondition: 2 markers in custom, 1 in default', () async {
     expect(await _count(db, 't_markers', 'category_id = ?', <Object?>[customId.value]), 2);
     expect(await _count(db, 't_markers', 'category_id = ?', <Object?>[kCategoryDefaultId.value]), 1);
+  });
+
+  test('cat_default is seeded by onCreate migration '
+      '(finding #2 / Batch F regression guard)', () async {
+    // Fresh DB — does NOT run the setUp-level reassign fixtures.
+    final freshDb = _newDb();
+    try {
+      // Force the lazy migration to fire.
+      await freshDb.customStatement('SELECT 1');
+      final rowCount = await _count(freshDb, 't_marker_categories', 'id = ?', <Object?>[kCategoryDefaultId.value]);
+      expect(rowCount, 1, reason: 'onCreate must seed the cat_default sentinel row (finding #2)');
+    } finally {
+      await freshDb.close();
+    }
+  });
+
+  test('delete non-default category reassigns markers post-seed '
+      '(finding #2 / Batch F)', () async {
+    // Fresh DB — proves reassign target (cat_default) exists without a
+    // test-level manual seed. Pre-Batch-F this test would have thrown
+    // SQLITE_CONSTRAINT_FOREIGNKEY because the reassign target did not exist.
+    final freshDb = _newDb();
+    final freshStore = DriftMarkerCategoryStore(freshDb);
+    try {
+      await freshDb.customStatement('SELECT 1');
+
+      // Seed session + custom category + 1 marker in the custom category.
+      await freshDb.customStatement(
+        "INSERT INTO t_sessions (id, display_name, status, started_at_utc, "
+        "started_at_offset_minutes) VALUES ('sess_FRESH', 'Fresh', 'stopped', 1000, 120)",
+      );
+      await freshStore.insert(
+        MarkerCategory(id: customId, displayName: 'Custom', iconName: 'star', createdAtUtc: DateTime.utc(2026, 4, 18, 11), createdAtOffsetMinutes: 120),
+      );
+      await freshDb.customStatement(
+        "INSERT INTO t_markers (id, session_id, category_id, lat, lon, title, "
+        "created_at_utc, created_at_offset_minutes) "
+        "VALUES ('mrk_FRESH', 'sess_FRESH', '${customId.value}', 0, 0, 'M', 1000, 120)",
+      );
+
+      // Delete the custom category — reassign to cat_default must succeed.
+      await freshStore.delete(customId);
+
+      // Marker survived and was reassigned to the seeded cat_default row.
+      expect(await _categoryIdOfMarker(freshDb, 'mrk_FRESH'), kCategoryDefaultId.value);
+    } finally {
+      await freshDb.close();
+    }
   });
 
   test('deleting a custom category reassigns its markers to cat_default '

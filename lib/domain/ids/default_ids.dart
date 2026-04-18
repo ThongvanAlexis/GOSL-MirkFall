@@ -9,9 +9,13 @@ import 'category_id.dart';
 /// markers that referenced it are reassigned to [`kCategoryDefaultId`] in
 /// the same transaction, then the row itself is dropped.
 ///
-/// The default category row is seeded by Phase 11 (markers + icons) — Phase
-/// 03 only reserves the ID slot so the deletion logic (and its tests) can
-/// compile and reference the symbol.
+/// The default category row is seeded by the `AppDatabase` `onCreate`
+/// migration (04-rev Batch F fix for finding #2) — previously the symbol
+/// was reserved but never seeded, which made `MarkerCategoryStore.delete`
+/// blow up with `SQLITE_CONSTRAINT_FOREIGNKEY` on a fresh DB when reassign
+/// targeted a row that did not exist yet. Phase 11 owns the UI to create
+/// additional custom categories; the sentinel row itself is a Phase 03
+/// schema invariant.
 ///
 /// The body deliberately is NOT a ULID: a recognizable sentinel survives
 /// log greps and SQL inspector reads better than a random ULID would.

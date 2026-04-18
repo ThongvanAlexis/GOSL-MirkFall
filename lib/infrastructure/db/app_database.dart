@@ -78,9 +78,16 @@ class Sessions extends Table {
 }
 
 /// `t_marker_categories` — user-defined marker taxonomies. Includes the
-/// reserved `cat_default` sentinel row seeded by 03-06 migrations; that row
-/// is the reassignment target for markers whose category gets deleted
-/// (CONTEXT.md §cascade — marker_category deletion does NOT cascade).
+/// reserved `cat_default` sentinel row seeded by [AppDatabase] `onCreate`
+/// (04-rev Batch F fix for finding #2); that row is the reassignment target
+/// for markers whose category gets deleted (CONTEXT.md §cascade —
+/// marker_category deletion does NOT cascade).
+///
+/// Pre-existing V1 databases get the same row via `v1_baseline.sql`
+/// fixture; no V1→V2 backfill migration is needed because the production
+/// V1→V2 migration (`v1_to_v2_notes.dart`) predates this seed and any V1
+/// database in the wild is the fixture itself — the fixture already carries
+/// the row.
 @DataClassName('MarkerCategoryRow')
 class MarkerCategories extends Table {
   @override
@@ -268,7 +275,28 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (Migrator m) => m.createAll(),
+    onCreate: (Migrator m) async {
+      await m.createAll();
+      // Finding #2 (Batch F) — seed the reserved `cat_default` row so
+      // `MarkerCategoryStore.delete`'s reassign-target invariant holds on
+      // every fresh database. The delete path reassigns markers to this id
+      // inside a transaction before dropping the source category, which
+      // assumes the target already exists.
+      //
+      // The 2026-04-18 timestamp is the Phase 03 persistence landing date —
+      // stable across test reproductions (no wall-clock dependency) and
+      // self-identifying in logs. Offset 0 (UTC) is correct: the row is a
+      // schema sentinel, not a user-timezone event.
+      await into(markerCategories).insert(
+        MarkerCategoriesCompanion.insert(
+          id: 'cat_default',
+          displayName: 'Default',
+          iconName: 'pin',
+          createdAtUtc: DateTime.utc(2026, 4, 18),
+          createdAtOffsetMinutes: 0,
+        ),
+      );
+    },
     onUpgrade: (Migrator m, int from, int to) async {
       await V1ToV2Notes.apply(m, from, to);
     },

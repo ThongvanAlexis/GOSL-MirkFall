@@ -109,11 +109,8 @@ void main() {
 
   test('CASCADE: deleting a session removes its markers + revealed_tiles', () async {
     await db.customStatement("SELECT 1");
-    await db.customStatement(
-      "INSERT INTO t_marker_categories (id, display_name, icon_name, "
-      "created_at_utc, created_at_offset_minutes) "
-      "VALUES ('cat_default', 'Default', 'pin', 1000, 120)",
-    );
+    // cat_default is seeded by onCreate (finding #2 / Batch F); previously
+    // this test re-inserted it manually, now that would PK-collide.
     await db.customStatement(
       "INSERT INTO t_sessions (id, display_name, status, started_at_utc, "
       "started_at_offset_minutes) VALUES ('sess_C', 'C', 'stopped', 1000, 120)",
