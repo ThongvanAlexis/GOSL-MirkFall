@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 
+import 'migrations/v1_to_v2_notes.dart';
 import 'pragma_setup.dart';
 import 'type_converters.dart';
 
@@ -48,7 +49,10 @@ class Sessions extends Table {
       integer().nullable().map(const UnixMsToDateTimeConverter())();
   IntColumn get stoppedAtOffsetMinutes => integer().nullable()();
 
-  // V1 shape: NO `notes` column. Task 2 adds it + the V1->V2 migration.
+  // V2: fictive notes column — see migrations/v1_to_v2_notes.dart for
+  // rationale. Ships nullable to match the V1->V2 `ALTER TABLE ... ADD
+  // COLUMN` semantics (SQLite defaults new columns to NULL).
+  TextColumn get notes => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -225,15 +229,14 @@ class AppDatabase extends _$AppDatabase {
   /// Pre-upgrade hook — see constructor docstring.
   final Future<void> Function(OpeningDetails details)? onBeforeUpgrade;
 
-  // V1 shape. Task 2 bumps to 2 and wires V1ToV2Notes in `onUpgrade`.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (Migrator m) => m.createAll(),
         onUpgrade: (Migrator m, int from, int to) async {
-          // V1 has no upgrades. Task 2 wires V1ToV2Notes here.
+          await V1ToV2Notes.apply(m, from, to);
         },
         beforeOpen: (OpeningDetails details) async {
           if (details.hadUpgrade && onBeforeUpgrade != null) {

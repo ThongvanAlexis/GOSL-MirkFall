@@ -78,6 +78,15 @@ class $SessionsTable extends Sessions
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -87,6 +96,7 @@ class $SessionsTable extends Sessions
     startedAtOffsetMinutes,
     stoppedAtUtc,
     stoppedAtOffsetMinutes,
+    notes,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -144,6 +154,12 @@ class $SessionsTable extends Sessions
         ),
       );
     }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
     return context;
   }
 
@@ -185,6 +201,10 @@ class $SessionsTable extends Sessions
         DriftSqlType.int,
         data['${effectivePrefix}stopped_at_offset_minutes'],
       ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
     );
   }
 
@@ -209,6 +229,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
   final int startedAtOffsetMinutes;
   final DateTime? stoppedAtUtc;
   final int? stoppedAtOffsetMinutes;
+  final String? notes;
   const SessionRow({
     required this.id,
     required this.displayName,
@@ -217,6 +238,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     required this.startedAtOffsetMinutes,
     this.stoppedAtUtc,
     this.stoppedAtOffsetMinutes,
+    this.notes,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -238,6 +260,9 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     if (!nullToAbsent || stoppedAtOffsetMinutes != null) {
       map['stopped_at_offset_minutes'] = Variable<int>(stoppedAtOffsetMinutes);
     }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
     return map;
   }
 
@@ -254,6 +279,9 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       stoppedAtOffsetMinutes: stoppedAtOffsetMinutes == null && nullToAbsent
           ? const Value.absent()
           : Value(stoppedAtOffsetMinutes),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
     );
   }
 
@@ -274,6 +302,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       stoppedAtOffsetMinutes: serializer.fromJson<int?>(
         json['stoppedAtOffsetMinutes'],
       ),
+      notes: serializer.fromJson<String?>(json['notes']),
     );
   }
   @override
@@ -287,6 +316,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       'startedAtOffsetMinutes': serializer.toJson<int>(startedAtOffsetMinutes),
       'stoppedAtUtc': serializer.toJson<DateTime?>(stoppedAtUtc),
       'stoppedAtOffsetMinutes': serializer.toJson<int?>(stoppedAtOffsetMinutes),
+      'notes': serializer.toJson<String?>(notes),
     };
   }
 
@@ -298,6 +328,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     int? startedAtOffsetMinutes,
     Value<DateTime?> stoppedAtUtc = const Value.absent(),
     Value<int?> stoppedAtOffsetMinutes = const Value.absent(),
+    Value<String?> notes = const Value.absent(),
   }) => SessionRow(
     id: id ?? this.id,
     displayName: displayName ?? this.displayName,
@@ -309,6 +340,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     stoppedAtOffsetMinutes: stoppedAtOffsetMinutes.present
         ? stoppedAtOffsetMinutes.value
         : this.stoppedAtOffsetMinutes,
+    notes: notes.present ? notes.value : this.notes,
   );
   SessionRow copyWithCompanion(SessionsCompanion data) {
     return SessionRow(
@@ -329,6 +361,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       stoppedAtOffsetMinutes: data.stoppedAtOffsetMinutes.present
           ? data.stoppedAtOffsetMinutes.value
           : this.stoppedAtOffsetMinutes,
+      notes: data.notes.present ? data.notes.value : this.notes,
     );
   }
 
@@ -341,7 +374,8 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           ..write('startedAtUtc: $startedAtUtc, ')
           ..write('startedAtOffsetMinutes: $startedAtOffsetMinutes, ')
           ..write('stoppedAtUtc: $stoppedAtUtc, ')
-          ..write('stoppedAtOffsetMinutes: $stoppedAtOffsetMinutes')
+          ..write('stoppedAtOffsetMinutes: $stoppedAtOffsetMinutes, ')
+          ..write('notes: $notes')
           ..write(')'))
         .toString();
   }
@@ -355,6 +389,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     startedAtOffsetMinutes,
     stoppedAtUtc,
     stoppedAtOffsetMinutes,
+    notes,
   );
   @override
   bool operator ==(Object other) =>
@@ -366,7 +401,8 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           other.startedAtUtc == this.startedAtUtc &&
           other.startedAtOffsetMinutes == this.startedAtOffsetMinutes &&
           other.stoppedAtUtc == this.stoppedAtUtc &&
-          other.stoppedAtOffsetMinutes == this.stoppedAtOffsetMinutes);
+          other.stoppedAtOffsetMinutes == this.stoppedAtOffsetMinutes &&
+          other.notes == this.notes);
 }
 
 class SessionsCompanion extends UpdateCompanion<SessionRow> {
@@ -377,6 +413,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
   final Value<int> startedAtOffsetMinutes;
   final Value<DateTime?> stoppedAtUtc;
   final Value<int?> stoppedAtOffsetMinutes;
+  final Value<String?> notes;
   final Value<int> rowid;
   const SessionsCompanion({
     this.id = const Value.absent(),
@@ -386,6 +423,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     this.startedAtOffsetMinutes = const Value.absent(),
     this.stoppedAtUtc = const Value.absent(),
     this.stoppedAtOffsetMinutes = const Value.absent(),
+    this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SessionsCompanion.insert({
@@ -396,6 +434,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     required int startedAtOffsetMinutes,
     this.stoppedAtUtc = const Value.absent(),
     this.stoppedAtOffsetMinutes = const Value.absent(),
+    this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        displayName = Value(displayName),
@@ -410,6 +449,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     Expression<int>? startedAtOffsetMinutes,
     Expression<int>? stoppedAtUtc,
     Expression<int>? stoppedAtOffsetMinutes,
+    Expression<String>? notes,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -422,6 +462,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
       if (stoppedAtUtc != null) 'stopped_at_utc': stoppedAtUtc,
       if (stoppedAtOffsetMinutes != null)
         'stopped_at_offset_minutes': stoppedAtOffsetMinutes,
+      if (notes != null) 'notes': notes,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -434,6 +475,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     Value<int>? startedAtOffsetMinutes,
     Value<DateTime?>? stoppedAtUtc,
     Value<int?>? stoppedAtOffsetMinutes,
+    Value<String?>? notes,
     Value<int>? rowid,
   }) {
     return SessionsCompanion(
@@ -446,6 +488,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
       stoppedAtUtc: stoppedAtUtc ?? this.stoppedAtUtc,
       stoppedAtOffsetMinutes:
           stoppedAtOffsetMinutes ?? this.stoppedAtOffsetMinutes,
+      notes: notes ?? this.notes,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -482,6 +525,9 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
         stoppedAtOffsetMinutes.value,
       );
     }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -498,6 +544,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
           ..write('startedAtOffsetMinutes: $startedAtOffsetMinutes, ')
           ..write('stoppedAtUtc: $stoppedAtUtc, ')
           ..write('stoppedAtOffsetMinutes: $stoppedAtOffsetMinutes, ')
+          ..write('notes: $notes, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3050,6 +3097,7 @@ typedef $$SessionsTableCreateCompanionBuilder =
       required int startedAtOffsetMinutes,
       Value<DateTime?> stoppedAtUtc,
       Value<int?> stoppedAtOffsetMinutes,
+      Value<String?> notes,
       Value<int> rowid,
     });
 typedef $$SessionsTableUpdateCompanionBuilder =
@@ -3061,6 +3109,7 @@ typedef $$SessionsTableUpdateCompanionBuilder =
       Value<int> startedAtOffsetMinutes,
       Value<DateTime?> stoppedAtUtc,
       Value<int?> stoppedAtOffsetMinutes,
+      Value<String?> notes,
       Value<int> rowid,
     });
 
@@ -3149,6 +3198,11 @@ class $$SessionsTableFilterComposer
 
   ColumnFilters<int> get stoppedAtOffsetMinutes => $composableBuilder(
     column: $table.stoppedAtOffsetMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3246,6 +3300,11 @@ class $$SessionsTableOrderingComposer
     column: $table.stoppedAtOffsetMinutes,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SessionsTableAnnotationComposer
@@ -3289,6 +3348,9 @@ class $$SessionsTableAnnotationComposer
     column: $table.stoppedAtOffsetMinutes,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
 
   Expression<T> markersRefs<T extends Object>(
     Expression<T> Function($$MarkersTableAnnotationComposer a) f,
@@ -3376,6 +3438,7 @@ class $$SessionsTableTableManager
                 Value<int> startedAtOffsetMinutes = const Value.absent(),
                 Value<DateTime?> stoppedAtUtc = const Value.absent(),
                 Value<int?> stoppedAtOffsetMinutes = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion(
                 id: id,
@@ -3385,6 +3448,7 @@ class $$SessionsTableTableManager
                 startedAtOffsetMinutes: startedAtOffsetMinutes,
                 stoppedAtUtc: stoppedAtUtc,
                 stoppedAtOffsetMinutes: stoppedAtOffsetMinutes,
+                notes: notes,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3396,6 +3460,7 @@ class $$SessionsTableTableManager
                 required int startedAtOffsetMinutes,
                 Value<DateTime?> stoppedAtUtc = const Value.absent(),
                 Value<int?> stoppedAtOffsetMinutes = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion.insert(
                 id: id,
@@ -3405,6 +3470,7 @@ class $$SessionsTableTableManager
                 startedAtOffsetMinutes: startedAtOffsetMinutes,
                 stoppedAtUtc: stoppedAtUtc,
                 stoppedAtOffsetMinutes: stoppedAtOffsetMinutes,
+                notes: notes,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

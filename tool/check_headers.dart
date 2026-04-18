@@ -33,6 +33,11 @@ final List<RegExp> _excludePatterns = <RegExp>[
   RegExp(r'\.chopper\.dart$'), // chopper
   RegExp(r'\.mocks\.dart$'), // mockito
   RegExp(r'[/\\]generated[/\\]'),
+  // `test/generated_migrations/` holds drift_dev's auto-generated
+  // SchemaVerifier helpers (schema.dart / schema_v{N}.dart). Same status as
+  // the `.g.dart` suffix exclusion: produced by a codegen tool, not
+  // hand-written.
+  RegExp(r'[/\\]generated_migrations[/\\]'),
   RegExp(r'[/\\]\.dart_tool[/\\]'),
   RegExp(r'[/\\]build[/\\]'),
   // Plugin package `example/` fixtures and managed platform Dart files
