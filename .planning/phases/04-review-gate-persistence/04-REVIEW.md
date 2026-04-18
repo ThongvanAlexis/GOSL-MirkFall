@@ -573,7 +573,24 @@ Observations only. No action taken under blanket-approve; these stay as document
 ### Test 1: Domain purity import violation (Flutter + Drift)
 *Branch `adversarial/04-domain-import-flutter-and-drift`: one branch, TWO violations. CI step `Check domain purity (lib/domain/ imports)` must fail with exit 1 listing BOTH `lib/domain/sessions/session.dart` (Flutter import) AND `lib/domain/markers/marker.dart` (Drift import).*
 
-(pending)
+- **Branch:** `adversarial/04-domain-import-flutter-and-drift` (deleted 2026-04-18, local + remote)
+- **Poison commit:** `259af71` — `test(adversarial): inject Flutter + Drift imports in domain to exercise check_domain_purity gate` (initial `a375418` amended with format reflow of 61 pre-existing-drift files, see Surprise finding below; single-commit branch at deletion)
+- **CI-trigger commit:** `259af71` — same commit; Option B per Phase 02 precedent (poison + trigger in same commit). `.github/workflows/ci.yml` `on.push.branches` temporarily set to `[main, 'adversarial/**']` on the branch only; `main` trigger stays `[main]`-only (inline expansion deleted together with the throwaway branch).
+- **Run URL:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24611059783
+- **Job:** `Lint / Licence / Headers / Deps` (the `gates` job, conclusion=failure)
+- **Gate step:** `Check domain purity (lib/domain/ imports)` — exit code **1** (policy violation, NOT exit 2 / misconfiguration). Prior steps all green: `Dart format check`, `Flutter analyze`, `Check GOSL headers`, `Check licenses`, `Check DEPENDENCIES.md is up to date`.
+- **Error excerpt (stderr from `gh run view 24611059783 --log-failed`):**
+  ```
+  Run dart run tool/check_domain_purity.dart
+  check_domain_purity: 2 forbidden import(s) under lib/domain/:
+    lib/domain/sessions/session.dart:13: import 'package:flutter/material.dart';
+    lib/domain/markers/marker.dart:13: import 'package:drift/drift.dart' hide JsonKey;
+  Rule: lib/domain/ must not import package:flutter/* or package:drift/*.
+  Move the offending import to lib/application/ or lib/infrastructure/.
+  Process completed with exit code 1.
+  ```
+- **Confirms:** Gate detects multiple real forbidden imports in a single pass, not just synthetic fixtures. Tool does NOT short-circuit on first violation — both `session.dart` (Flutter) and `marker.dart` (Drift) are listed in one run. The `hide JsonKey` clause on the drift import does not disguise the import from the scanner (the regex anchors on `package:drift(?:/|['"])`, not on the symbol list).
+- **Surprise finding during execution:** The first push (commit `a375418`) failed CI on `Dart format check` — an EARLIER step than the target — because 61 pre-existing files on `main` itself do not round-trip through CI's `dart format --line-length 160 --set-exit-if-changed .` clean (Phase 03 generated `.g.dart` files + some hand-written Phase 03 sources committed at a slightly-different toolchain rendering than CI's Flutter 3.41.5 produces). Confirmed independently — CI run 24610968531 on `main` (today's 61-commit push, docs-only) ALSO failed on the same step. The adversarial test amended its poison commit to include the re-formatted 61 files so CI could reach the target `Check domain purity` gate. This pre-existing drift is tracked in `.planning/phases/04-review-gate-persistence/deferred-items.md` for Plan 04-05 (or a standalone fix) — see item #1. It is NOT caused by the adversarial poison.
 
 ### Test 2: Drift schema dump stale
 *Branch `adversarial/04-schema-drift-stale`: add a column to `t_sessions` in `app_database.dart`, run `build_runner build` (mandatory — otherwise `flutter analyze` fails first per RESEARCH Pitfall 1), do NOT run `drift_dev schema dump`. CI step `Check drift schema (current) is committed and fresh` must fail with `git diff --exit-code` showing stale `drift_schemas/drift_schema_current.json`.*
