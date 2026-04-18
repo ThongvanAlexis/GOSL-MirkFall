@@ -624,7 +624,21 @@ Observations only. No action taken under blanket-approve; these stay as document
 ### Test 3: SchemaSanityChecker row-loss detection (permanent unit test)
 *NOT a throwaway branch. Permanent test `test/infrastructure/db/migration_v1_to_v2_data_loss_test.dart` on `main`. Injects V1 fixture (70 rows), runs adversarial migration with `ALTER TABLE` + `DELETE FROM t_sessions WHERE rowid % 2 = 0`, asserts `SchemaSanityChecker.assertNoLoss` throws `MigrationFailureException` with exact row-count diff. Evidence = commit hash + green `dart test` output.*
 
-(pending)
+- **Type:** permanent regression guard (NOT a throwaway branch)
+- **File:** `test/infrastructure/db/migration_v1_to_v2_data_loss_test.dart`
+- **Commit:** `9c32eb1` on `main` — `test(04-rev): add SchemaSanityChecker row-loss regression guard`
+- **Tags:** `@Tags(<String>['migration'])` (inherits Phase 03's slow-suite tag discipline — runs alongside `migration_v1_to_v2_test.dart` under `dart test -t migration`)
+- **Test result (local `dart test test/infrastructure/db/migration_v1_to_v2_data_loss_test.dart`):**
+  ```
+  00:00 +0: loading test/infrastructure/db/migration_v1_to_v2_data_loss_test.dart
+  00:00 +0: (setUpAll)
+  00:00 +0: SchemaSanityChecker row-loss regression guard (Phase 04 Test #3) assertNoLoss throws MigrationFailureException when adversarial DELETE loses ~50% of t_sessions during a V1→V2-shaped migration
+  00:00 +1: (tearDownAll)
+  00:00 +1: All tests passed!
+  ```
+- **Behavior proven:** `SchemaSanityChecker.assertNoLoss` throws `MigrationFailureException` when an adversarial migration (`ALTER TABLE t_sessions ADD COLUMN "notes" TEXT NULL` + `DELETE FROM t_sessions WHERE rowid % 2 = 0`) loses sessions from the 70-row `v1_baseline.sql` fixture. Exception `reason` field contains both `t_sessions` and `decreased` (matching prod message: `row count decreased on t_sessions: 10 → 5 (migration likely dropped data)`).
+- **False-positive guard:** the test asserts `after['t_sessions']! < before['t_sessions']!` BEFORE the `throwsA` expectation. A local mutation experiment confirmed this guard fires: replacing the adversarial DELETE with `DELETE FROM t_sessions WHERE 1=0` (inert) causes the test to fail with `adversarial DELETE did not remove any session row — test would be inert. before=10 after=10`. So the test cannot silently become a no-op through future SQL or fixture changes.
+- **Confirms:** `SchemaSanityChecker` is the last line of defense against data-loss in any future migration. Permanent in-repo adversary means Phase 05+ cannot accidentally bypass it — any onUpgrade regression that drops rows will trip this test, and the same production code path at runtime will also fail-closed with `MigrationFailureException` (wrapped in 03-05's `DbBackupService` restore flow).
 
 ## 5. CI-green confirmation
 
