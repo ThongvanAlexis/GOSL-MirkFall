@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 6
+current_plan: 3
 status: executing
-stopped_at: Completed 04-01-PLAN.md (scaffold + §1 user-first capture)
-last_updated: "2026-04-18T16:53:45.512Z"
+stopped_at: Completed 04-02-PLAN.md (runtime walk Windows + findings escalated)
+last_updated: "2026-04-18T17:37:52.196Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 16
   completed_phases: 3
   total_plans: 19
-  completed_plans: 15
-  percent: 86
+  completed_plans: 16
+  percent: 84
 ---
 
 # Project State
@@ -22,18 +22,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 03 — Persistence & Domain Models (03-01 through 03-04 done; 03-05 + 03-06 unblocked in Wave 4)
+**Current focus:** Phase 04 — Review Gate Persistence (04-01 scaffold + §1 user-first done; 04-02 runtime walk Windows done; 04-03 four-agent audit wave + 04-04 adversarial + 04-05 fix loop remaining)
 
 ## Current Position
 
-Phase: 03 of 16 (Persistence & Domain Models)
-Current Plan: 6
-Total Plans in Phase: 6
-Plan: 4 of 6 complete in current phase (03-04 Drift AppDatabase + V1->V2 migration shipped — SC#1 + SESS-06 + MIRK-03 schema-layer closed, 13 DB tests + 82-test pure-Dart suite green)
+Phase: 04 of 16 (Review Gate — Persistence)
+Current Plan: 3
+Total Plans in Phase: 5
+Plan: 2 of 5 complete in current phase (04-02 Runtime walk Windows archived verbatim into §1b; surfaced Blocker — Zone mismatch at runApp on flutter run -d windows — escalated to §2 pending user triage; tool/walk_db.dart + tool/inspect_db.sql retained on main)
 Status: In Progress
 Last Activity: 2026-04-18
 
-Progress: [█████████░] 86%
+Progress: [████████░░] 84%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [█████████░] 86%
 | Phase 03-persistence-domain-models P05 | 8 min | 3 tasks | 8 files |
 | Phase 03-persistence-domain-models P6 | 12 min | 2 tasks | 28 files |
 | Phase 04-review-gate-persistence P01 | 6min | 2 tasks | 1 files |
+| Phase 04-review-gate-persistence P02 | 45 min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -147,6 +148,11 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 03-persistence-domain-models]: Test convention: drift/drift.dart import uses 'hide isNotNull' in every store test — drift re-exports a column matcher with the same name as matcher's value matcher. Consistent idiom across infra test suite, same as 03-05 migration tests.
 - [Phase 04-review-gate-persistence]: 'Aucune observation utilisateur' is valid §1 content — when user has no IDE findings, commit the explicit marker (not silence, not the 'awaiting user input' placeholder) so the grep sanity check passes and the user-first gate is satisfied
 - [Phase 04-review-gate-persistence]: Review-gate Plan 01 template (scaffold + user-first §1 capture) validated on second cycle without modification — stable pattern reusable for Phases 06/08/10/12/14/16
+- [Phase 04-review-gate-persistence]: Runtime walk driver (a+b) combined — user ran both flutter run -d windows and dart run tool/walk_db.dart for complete coverage of desktop packaging + DB open paths
+- [Phase 04-review-gate-persistence]: Option B manual path resolution in tool/walk_db.dart — path_provider transitively imports dart:ui so it cannot load under vanilla dart run; constructed APPDATA/app.gosl/mirkfall from Runner.rc CompanyName + ProductName, verified byte-identical to path_provider_windows via where /r single match
+- [Phase 04-review-gate-persistence]: Retain BOTH tool/walk_db.dart (69 lines) and tool/inspect_db.sql (29 lines) on main — zero CI/dep cost, reusable smoke test for Phase 05 ProviderScope wiring, natural home for future walk-tooling pragma-authoritativeness fix
+- [Phase 04-review-gate-persistence]: CMD-compatible tool/inspect_db.sql replaces bash heredoc from plan Task 2 — Windows CMD has no heredoc; .sql script works across CMD, PowerShell, and bash via stdin redirect
+- [Phase 04-review-gate-persistence]: 3 per-connection pragmas (foreign_keys, synchronous, busy_timeout) flagged as 1b CAVEAT and 2 Should finding rather than asserted green — sqlite3 CLI reads library defaults not Drift applied values; Phase 03 in-process unit tests cover the contract, but independent filesystem cross-check is incomplete
 
 ### Pending Todos
 
@@ -163,9 +169,10 @@ None yet.
 **Phase 11 (EXIF strip):** `image_picker` ne strippe pas EXIF nativement ; approche lightweight à évaluer en début de Phase 11.
 
 **Phase 13 (ZIP archive format):** Format ZIP final (.mirkfall extension, layout manifest/photos/) à confirmer au démarrage de la phase ; audit licence du package `archive` à documenter dans DEPENDENCIES.md (O11).
+- Phase 04 runtime walk (Plan 04-02) surfaced Blocker: Zone mismatch crash at runApp during flutter run -d windows. Build is green (mirkfall.exe produced in 36.5s) but app crashes at main.dart:71 because WidgetsFlutterBinding.ensureInitialized runs in root zone while runApp runs inside runZonedGuarded — debugCheckZone assertion fires. Must be triaged in 04-REVIEW.md Section 3 and fixed in Plan 04-05 (or waived with rationale) before Phase 05 opens.
 
 ## Session Continuity
 
-Last session: 2026-04-18T16:53:39.375Z
-Stopped at: Completed 04-01-PLAN.md (scaffold + §1 user-first capture)
+Last session: 2026-04-18T17:37:47.390Z
+Stopped at: Completed 04-02-PLAN.md (runtime walk Windows + findings escalated)
 Resume file: None

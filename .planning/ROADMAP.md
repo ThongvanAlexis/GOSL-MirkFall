@@ -16,7 +16,7 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 - [x] **Phase 02: Review Gate — Foundation** - Audit phase 01 (licence scan, headers, CI verte, zéro warning)
  (completed 2026-04-17)
 - [x] **Phase 03: Persistence & Domain Models** - Drift schema + Freezed models + stores + TileMath + RevealCalculator + JsonMigrator framework (completed 2026-04-18)
-- [ ] **Phase 04: Review Gate — Persistence** - Audit phase 03 (migrations testées, invariants DB, pureté du domaine) (1/5 plans — Plan 04-01 done 2026-04-18)
+- [ ] **Phase 04: Review Gate — Persistence** - Audit phase 03 (migrations testées, invariants DB, pureté du domaine) (2/5 plans — 04-01 scaffold + 04-02 runtime walk Windows done 2026-04-18)
 - [ ] **Phase 05: GPS & Session Lifecycle** - LocationSource + foreground service Android + iOS background + sessions CRUD + POC battery
 - [ ] **Phase 06: Review Gate — GPS** - Audit phase 05 (POC background validé sur OEM Android + iOS, permissions, notification)
 - [ ] **Phase 07: Map Integration** - flutter_map + TileSource interface + OSM tiles + attribution + FogOfWarLayer stub
@@ -94,7 +94,7 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
   4. Les corrections choisies sont intégrées et les tests de persistance restent verts avant ouverture de la Phase 05
 **Plans** (5 plans, 5 waves):
 - [x] 04-review-gate-persistence/04-01-PLAN.md — Wave 1: Scaffold 04-REVIEW.md 5-section skeleton (+ §1b runtime walk + §2 pre-class + §4 three-test placeholders) + user-first IDE review capture into §1
-- [ ] 04-review-gate-persistence/04-02-PLAN.md — Wave 2: Runtime walk Windows (dedicated plan before agents) — tool/walk_db.dart + user executes + sqlite3 observation archived verbatim into §1b
+- [x] 04-review-gate-persistence/04-02-PLAN.md — Wave 2: Runtime walk Windows (dedicated plan before agents) — tool/walk_db.dart + user executes + sqlite3 observation archived verbatim into §1b
 - [ ] 04-review-gate-persistence/04-03-PLAN.md — Wave 3: Pre-class 3 VERIFICATION candidates into §2 FIRST, then 4 parallel sub-agent audits (schema+migrations / domain+pureté / stores+factory+providers / tests+fixtures+tooling+CLAUDE.md sweep), findings synthesis + user triage into §3
 - [ ] 04-review-gate-persistence/04-04-PLAN.md — Wave 4: Adversarial wave — Test #1 domain-purity double violation (CI branch), Test #2 drift schema dump stale with build_runner prerequisite (CI branch), Test #3 permanent SchemaSanityChecker row-loss regression guard (unit test), evidence archived in §4, branches deleted local+remote
 - [ ] 04-review-gate-persistence/04-05-PLAN.md — Wave 5: Atomic fix loop (.fixes-expected snapshot BEFORE mutation) + 3 pre-class fixes (flaky backup determinism / custom_lint DEPENDENCIES.md+STATE.md / computeRevealMask no-callers guard) + §5 CI-green closure + status=closed + STATE.md + ROADMAP.md update + unblock Phase 05
@@ -253,7 +253,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 | 01. Foundation | 4/4 | Complete    | 2026-04-17 |
 | 02. Review Gate — Foundation | 3/4 | In Progress|  |
 | 03. Persistence & Domain Models | 6/6 | Complete    | 2026-04-18 |
-| 04. Review Gate — Persistence | 1/5 | In Progress|  |
+| 04. Review Gate — Persistence | 2/5 | In Progress|  |
 | 05. GPS & Session Lifecycle | 0/TBD | Not started | - |
 | 06. Review Gate — GPS | 0/TBD | Not started | - |
 | 07. Map Integration | 0/TBD | Not started | - |
