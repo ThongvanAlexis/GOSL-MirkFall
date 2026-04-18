@@ -21,6 +21,16 @@ import 'package:mirkfall/infrastructure/db/app_database.dart';
 /// end up with a final bitmap equal to `maskA | maskB` byte-wise —
 /// proven by `revealed_tile_store_concurrent_test.dart`.
 ///
+/// Cold-start race guard (findings #20 + #32 / Batch H): if both
+/// transactions observed no existing row in their SELECT phase — which
+/// could happen on `NativeDatabase.createInBackground` (factory doc
+/// allows the future swap to the isolate variant), where serialization
+/// no longer holds across transactions — the INSERT is performed with
+/// `INSERT OR IGNORE` semantics. The second writer's row is silently
+/// dropped; a follow-up SELECT re-reads the row committed by the first
+/// writer and merges via the UPDATE branch. The final bitmap still
+/// equals `maskA | maskB`, no raw `SqliteException` surfaces.
+///
 /// Invariant rejected at the ingress: [mergeMask] throws [ArgumentError]
 /// if `mask.length != kRevealedTileBitmapBytes` (== 512). Skipping this
 /// guard would let a buggy caller write a wrong-size BLOB that later
@@ -60,12 +70,18 @@ class DriftRevealedTileStore implements RevealedTileStore {
       );
     }
     await _db.transaction(() async {
-      final existing = await (_db.select(
-        _db.revealedTiles,
-      )..where((t) => t.sessionId.equals(sessionId.value) & t.parentX.equals(parentX) & t.parentY.equals(parentY))).getSingleOrNull();
+      // Findings #20 + #32 (Batch H) — cold-start race guard.
+      // The in-transaction SELECT → {INSERT | UPDATE} pattern is atomic
+      // under a single connection (Drift's default NativeDatabase), but
+      // the factory doc explicitly allows a future swap to
+      // NativeDatabase.createInBackground, which moves writes to a
+      // separate isolate and breaks the single-connection serialization
+      // assumption. The `InsertMode.insertOrIgnore` + SELECT-retry dance
+      // makes the cold-start path deterministic in either regime.
+      final existing = await _findRow(sessionId: sessionId, parentX: parentX, parentY: parentY);
       final now = DateTime.now().toUtc();
       if (existing == null) {
-        await _db
+        final insertedRowId = await _db
             .into(_db.revealedTiles)
             .insert(
               RevealedTilesCompanion.insert(
@@ -79,14 +95,48 @@ class DriftRevealedTileStore implements RevealedTileStore {
                 setBitCount: Value(popcount(mask)),
                 updatedAtUtc: now,
               ),
+              mode: InsertMode.insertOrIgnore,
             );
+        if (insertedRowId == 0) {
+          // Lost the race — another transaction committed a row with the
+          // same (sessionId, parentX, parentY) after our SELECT but before
+          // our INSERT. Re-read and merge.
+          final raced = await _findRow(sessionId: sessionId, parentX: parentX, parentY: parentY);
+          if (raced == null) {
+            // Defensive: the only way rowid == 0 should be reachable is a
+            // unique-constraint collision on the composite key; if we also
+            // fail to find the row, something outside the test invariant
+            // happened — surface rather than swallow (CLAUDE.md §Error
+            // handling: no silently-swallowed errors).
+            throw StateError(
+              'mergeMask: INSERT OR IGNORE returned 0 rowid but no conflicting row found for '
+              '(sessionId=${sessionId.value}, parentX=$parentX, parentY=$parentY)',
+            );
+          }
+          await _mergeInto(raced, mask, now);
+        }
       } else {
-        final merged = mergeBitmap(existing.bitmap, mask);
-        await (_db.update(_db.revealedTiles)..where((t) => t.id.equals(existing.id))).write(
-          RevealedTilesCompanion(bitmap: Value(merged), setBitCount: Value(popcount(merged)), updatedAtUtc: Value(now)),
-        );
+        await _mergeInto(existing, mask, now);
       }
     });
+  }
+
+  /// Re-reads the `(sessionId, parentX, parentY)` row to allow the
+  /// mergeMask cold-start race path to recover from a lost INSERT OR
+  /// IGNORE. Factored for readability; no independent contract.
+  Future<RevealedTileRow?> _findRow({required SessionId sessionId, required int parentX, required int parentY}) async {
+    return (_db.select(
+      _db.revealedTiles,
+    )..where((t) => t.sessionId.equals(sessionId.value) & t.parentX.equals(parentX) & t.parentY.equals(parentY))).getSingleOrNull();
+  }
+
+  /// Merges [mask] byte-wise into [existing] and writes back the result,
+  /// preserving the row's id and updating `set_bit_count` + `updated_at_utc`.
+  Future<void> _mergeInto(RevealedTileRow existing, Uint8List mask, DateTime now) async {
+    final merged = mergeBitmap(existing.bitmap, mask);
+    await (_db.update(_db.revealedTiles)..where((t) => t.id.equals(existing.id))).write(
+      RevealedTilesCompanion(bitmap: Value(merged), setBitCount: Value(popcount(merged)), updatedAtUtc: Value(now)),
+    );
   }
 
   // -- hydration ---------------------------------------------------------
