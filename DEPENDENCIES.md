@@ -54,12 +54,14 @@ Initial audit date: **2026-04-17**. Re-audit required whenever
 | Package | Version | License | Source | Telemetry audit | Date |
 |---------|---------|---------|--------|-----------------|------|
 | build_runner | 2.9.0 | BSD-3-Clause | https://pub.dev/packages/build_runner | Dev codegen only. No app runtime. | 2026-04-17 |
+| custom_lint | 0.8.1 | Apache-2.0 | https://pub.dev/packages/custom_lint | Phase 03 — analyzer-plugin host for riverpod_lint rules. Audit 2026-04-18: source github.com/invertase/dart_custom_lint inspected — analyzer-plugin runtime only, zero outbound HTTP, only opens a local IPC channel to the analyzer. License preamble in pub cache is Apache-2.0 (plan stated MIT — corrected here). | 2026-04-18 |
 | flutter_lints | 6.0.0 | BSD-3-Clause | https://pub.dev/packages/flutter_lints | Analyzer config, no runtime. | 2026-04-17 |
 | freezed | 3.2.3 | MIT | https://pub.dev/packages/freezed | Dev codegen. No app runtime. | 2026-04-17 |
 | json_serializable | 6.11.2 | BSD-3-Clause | https://pub.dev/packages/json_serializable | Dev codegen. | 2026-04-17 |
 | path_provider_platform_interface | 2.1.2 | BSD-3-Clause | https://pub.dev/packages/path_provider_platform_interface | Test-mock contract. No network. | 2026-04-17 |
 | plugin_platform_interface | 2.1.8 | BSD-3-Clause | https://pub.dev/packages/plugin_platform_interface | MockPlatformInterfaceMixin for tests. No runtime. | 2026-04-17 |
 | riverpod_generator | 4.0.0+1 | MIT | https://pub.dev/packages/riverpod_generator | Dev codegen. | 2026-04-17 |
+| riverpod_lint | 3.1.0 | MIT | https://pub.dev/packages/riverpod_lint | Phase 03 — Riverpod misuse detection (`@riverpod` provider rules). Audit 2026-04-18: source github.com/rrousselGit/riverpod inspected — pure analyzer-plugin rule definitions, zero outbound HTTP, runs only inside custom_lint's plugin host. | 2026-04-18 |
 | test | 1.30.0 | BSD-3-Clause | https://pub.dev/packages/test | Dart test runner used by tool/test/. No app runtime. | 2026-04-17 |
 | yaml | 3.1.3 | MIT | https://pub.dev/packages/yaml | YAML parser used by tool/check_*.dart. No network. | 2026-04-17 |
 
@@ -71,8 +73,10 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | Package | Version | License | Pulled in by | Notes | Date |
 |---------|---------|---------|--------------|-------|------|
 | _fe_analyzer_shared | 91.0.0 | BSD-3-Clause | analyzer | Dev-only. | 2026-04-17 |
-| analyzer | 8.4.1 | BSD-3-Clause | build_runner, riverpod_generator | Dev-only. | 2026-04-17 |
+| analysis_server_plugin | 0.3.3 | BSD-3-Clause | custom_lint | Dev-only. Dart-team package providing the analysis-server plugin host API. | 2026-04-18 |
+| analyzer | 8.4.0 | BSD-3-Clause | build_runner, riverpod_generator, custom_lint | Dev-only. Phase 03 added custom_lint as a third constraint and the resolver converged on 8.4.0 (was 8.4.1). | 2026-04-18 |
 | analyzer_buffer | 0.1.11 | MIT | riverpod_analyzer_utils | Dev-only. | 2026-04-17 |
+| analyzer_plugin | 0.13.10 | BSD-3-Clause | custom_lint | Dev-only. Dart-team package: analyzer plugin protocol implementation. | 2026-04-18 |
 | archive | 4.0.9 | MIT | build_runner | Dev-only. | 2026-04-17 |
 | args | 2.7.0 | BSD-3-Clause | build_runner, test | Dev-only. | 2026-04-17 |
 | async | 2.13.1 | BSD-3-Clause | multiple | Pure async utilities. | 2026-04-17 |
@@ -84,7 +88,9 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | built_value | 8.12.5 | BSD-3-Clause | code_builder | Dev-only. | 2026-04-17 |
 | characters | 1.4.1 | BSD-3-Clause | flutter | Grapheme clusters. | 2026-04-17 |
 | checked_yaml | 2.0.4 | BSD-3-Clause | json_serializable | Dev-only. | 2026-04-17 |
+| ci | 0.1.0 | Apache-2.0 | custom_lint | Dev-only. Detects CI environment for plugin output formatting. | 2026-04-18 |
 | cli_config | 0.2.0 | BSD-3-Clause | native_toolchain_c | Dev-only. | 2026-04-17 |
+| cli_util | 0.4.2 | BSD-3-Clause | custom_lint | Dev-only. Dart-team CLI helpers (paths, OS detection). | 2026-04-18 |
 | clock | 1.1.2 | Apache-2.0 | fake_async | Testing utility. | 2026-04-17 |
 | code_assets | 1.0.0 | BSD-3-Clause | build_runner | Dev-only. | 2026-04-17 |
 | code_builder | 4.11.1 | BSD-3-Clause | riverpod_generator | Dev-only. | 2026-04-17 |
@@ -92,6 +98,8 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | coverage | 1.15.0 | BSD-3-Clause | test | Dev-only. | 2026-04-17 |
 | cross_file | 0.3.5+2 | BSD-3-Clause | share_plus_platform_interface | XFile type. | 2026-04-17 |
 | crypto | 3.0.7 | BSD-3-Clause | build_runner | Pure crypto. | 2026-04-17 |
+| custom_lint_core | 0.8.1 | Apache-2.0 | custom_lint | Dev-only. Shared logic between custom_lint and rule packages. | 2026-04-18 |
+| custom_lint_visitor | 1.0.0+8.4.0 | Apache-2.0 | custom_lint | Dev-only. AST visitor helpers pinned to analyzer 8.4.x compatibility. | 2026-04-18 |
 | dart_earcut | 1.2.0 | MIT | flutter_map | Polygon triangulation. | 2026-04-17 |
 | dart_polylabel2 | 1.0.0 | BSD-3-Clause | flutter_map | Pure geometry. | 2026-04-17 |
 | dart_style | 3.1.3 | BSD-3-Clause | build_runner | Dev-only formatter. | 2026-04-17 |
@@ -168,6 +176,7 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | pubspec_parse | 1.5.0 | BSD-3-Clause | build_runner | Dev-only. | 2026-04-17 |
 | riverpod | 3.1.0 | MIT | flutter_riverpod | Core DI/state container. | 2026-04-17 |
 | riverpod_analyzer_utils | 1.0.0-dev.8 | MIT | riverpod_generator | Dev-only. | 2026-04-17 |
+| rxdart | 0.28.0 | Apache-2.0 | riverpod_lint | Dev-only. Reactive extensions used internally by riverpod_lint rule engine. | 2026-04-18 |
 | share_plus_platform_interface | 6.1.0 | BSD-3-Clause | share_plus | Platform interface. | 2026-04-17 |
 | shared_preferences_android | 2.4.23 | BSD-3-Clause | shared_preferences | Android surface. | 2026-04-17 |
 | shared_preferences_foundation | 2.5.6 | BSD-3-Clause | shared_preferences | iOS/macOS surface. | 2026-04-17 |
@@ -214,6 +223,7 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | wkt_parser | 2.0.0 | MIT | flutter_map | Pure WKT parser. | 2026-04-17 |
 | xdg_directories | 1.1.0 | BSD-3-Clause | path_provider_linux | Linux-only directory resolution. | 2026-04-17 |
 | xml | 6.6.1 | MIT | flutter_map | Pure Dart XML parser. | 2026-04-17 |
+| yaml_edit | 2.2.4 | BSD-3-Clause | riverpod_lint | Dev-only. Dart-team package for YAML edits (used by lint quick-fix output). | 2026-04-18 |
 
 ## Tooling / GitHub Actions
 

@@ -72,10 +72,22 @@ dev_dependencies:
   # already a transitive of `flutter_test`; we declare it directly so the
   # imports pass `depend_on_referenced_packages`.
   test: 1.30.0
-  # NOTE Phase 03: `custom_lint` + `riverpod_lint` were deferred from Phase 01
-  # because no compatible trio (custom_lint + riverpod_lint + analyzer) exists
-  # in the current ecosystem. Re-add them in Phase 03 when the Riverpod
-  # codegen actually lands and the ecosystem has converged on analyzer ^9.x.
+
+  # Phase 03: custom_lint + riverpod_lint re-adopted after version resolution.
+  # Pinning notes:
+  # - Resolved against analyzer <9 to stay compatible with flutter_lints 6.0.0
+  #   and riverpod_generator 4.0.0+1 (both gate analyzer at <9).
+  # - custom_lint 0.8.1 is the highest tag whose `custom_lint_visitor` targets
+  #   analyzer ^8.x (custom_lint_visitor 1.0.0+8.4.0). 0.8.2 does not exist
+  #   on pub.dev; only `custom_lint_core 0.8.2`. The next minor (custom_lint
+  #   0.9.x, when released) will require analyzer ^9.0.0 — re-evaluate then.
+  # - riverpod_lint 3.1.0 is the highest tag compatible with analyzer ^8.x;
+  #   3.1.1+ requires analyzer ^9.0.0 (resolver error if combined with
+  #   custom_lint 0.8.1: see resolution trace in 03-01-SUMMARY.md).
+  # - See .planning/phases/03-persistence-domain-models/03-01-SUMMARY.md for
+  #   the resolution trace (probe command + pubspec.lock excerpt).
+  custom_lint: 0.8.1
+  riverpod_lint: 3.1.0
 
 flutter:
   uses-material-design: true

@@ -1,6 +1,11 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
+  # Phase 03: activate custom_lint plugin so riverpod_lint rules execute on
+  # @riverpod-annotated providers. The plugin runs alongside the standard
+  # analyzer; rules surface as analyzer warnings/info messages.
+  plugins:
+    - custom_lint
   language:
     strict-casts: true
     strict-inference: true
