@@ -11,6 +11,17 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# fail-fast notes:
+# The three jobs below (gates / android / ios) are declared independently —
+# NOT via a matrix — because they run distinct build pipelines with different
+# runners (ubuntu-latest × 2, macos-14 × 1). `fail-fast: true` is a matrix-only
+# knob, so it does not apply here. The behaviour we want is already the
+# default: if `gates` fails, its two dependents (`android`, `ios` via
+# `needs: gates`) are skipped automatically. If `android` fails while `ios`
+# is still running, `ios` continues — intentional, so we surface platform-
+# specific breakage on both platforms in a single CI run rather than
+# masking one failure behind another. Reviewed 2026-04-17 (finding #42).
+
 jobs:
 
   gates:
