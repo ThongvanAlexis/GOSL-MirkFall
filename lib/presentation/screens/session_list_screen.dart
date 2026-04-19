@@ -5,11 +5,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/providers/session_list_provider.dart';
-import 'package:mirkfall/application/providers/session_settings_provider.dart';
 import 'package:mirkfall/application/providers/session_store_provider.dart';
-import 'package:mirkfall/domain/errors/concurrent_errors.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
@@ -64,8 +61,35 @@ class SessionListScreen extends ConsumerWidget {
   }
 
   Future<void> _openCreateDialog(BuildContext context, WidgetRef ref) async {
-    await showDialog<void>(context: context, builder: (dialogContext) => const _CreateSessionDialog());
+    // Dialog returns its intent (newly-created session id + whether the
+    // user tapped "Créer et démarrer"). The post-dialog flow (navigate
+    // to detail, optionally auto-start) happens AFTER the dialog has
+    // popped, so that the permission rationale / OS permission dialogs
+    // do not fire under the modal barrier of a still-open dialog (the
+    // bug this refactor fixes: showDialog uses the app Overlay which
+    // renders ABOVE the Navigator, so any route pushed during the
+    // dialog was invisible and the user had to dismiss the dialog by
+    // tapping the barrier before anything else could surface).
+    final _CreateDialogResult? result = await showDialog<_CreateDialogResult>(
+      context: context,
+      builder: (dialogContext) => const _CreateSessionDialog(),
+    );
+    if (result == null) return;
+    if (!context.mounted) return;
+    final String path = '/sessions/${result.sessionId.value}';
+    context.push(result.startImmediately ? '$path?start=true' : path);
   }
+}
+
+/// What the create dialog returns when the user submits. The dialog
+/// itself is a pure form: it creates the DB row and hands this intent
+/// back to the caller. Navigation and session start happen in the
+/// caller's context AFTER the dialog has popped.
+class _CreateDialogResult {
+  const _CreateDialogResult({required this.sessionId, required this.startImmediately});
+
+  final SessionId sessionId;
+  final bool startImmediately;
 }
 
 /// Empty-state body shown when [sessionListProvider] returns an empty
@@ -216,18 +240,12 @@ class _CreateSessionDialogState extends ConsumerState<_CreateSessionDialog> {
 
     try {
       final SessionId newId = await _createSession(name);
-
       if (!mounted) return;
-      if (startImmediately) {
-        await _startWithPermissionFlow(newId);
-        if (!mounted) return;
-      }
-      Navigator.of(context).pop();
-      if (!mounted) return;
-      // Navigate to the detail screen so the user sees the status
-      // dashboard when the session was started, or the summary when
-      // it was only created.
-      context.push('/sessions/${newId.value}');
+      // Pop with the intent; caller (`_openCreateDialog`) handles
+      // navigation + auto-start. Keeping the dialog open across the
+      // permission flow leaves it floating in the Overlay above any
+      // pushed route — see the comment in `_openCreateDialog`.
+      Navigator.of(context).pop(_CreateDialogResult(sessionId: newId, startImmediately: startImmediately));
     } catch (err) {
       if (!mounted) return;
       setState(() {
@@ -274,43 +292,4 @@ class _CreateSessionDialogState extends ConsumerState<_CreateSessionDialog> {
     return buffer.toString().substring(0, 26);
   }
 
-  Future<void> _startWithPermissionFlow(SessionId id) async {
-    final settings = await ref.read(sessionSettingsProvider.future);
-    if (!settings.permissionFlowCompleted) {
-      if (!mounted) return;
-      // Route through the permission rationale screen — its Continue
-      // button runs `requestLocationAlways()` and returns a bool via
-      // `context.pop`. We treat anything non-`true` as "user did not
-      // complete grant" and do not start the session.
-      final result = await GoRouter.of(context).push<bool>('/permissions/rationale');
-      if (!mounted) return;
-      if (result != true) return;
-    }
-
-    try {
-      await ref.read(activeSessionControllerProvider.notifier).start(id);
-    } on ConcurrentActivationException {
-      if (!mounted) return;
-      // The user requested a Start while another session was active.
-      // Ask whether to stop+switch. Kept inline in the dialog rather
-      // than dispatched via the router so cancelling simply drops the
-      // Start intent and the newly-created session stays `stopped`.
-      final bool? confirm = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Une session est déjà active'),
-          content: const Text("Arrêter la session en cours et démarrer celle-ci à la place ?"),
-          actions: <Widget>[
-            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Annuler')),
-            FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Stop et Start')),
-          ],
-        ),
-      );
-      if (!mounted) return;
-      if (confirm != true) return;
-      await ref.read(activeSessionControllerProvider.notifier).stop();
-      if (!mounted) return;
-      await ref.read(activeSessionControllerProvider.notifier).start(id);
-    }
-  }
 }

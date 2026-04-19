@@ -35,9 +35,17 @@ import 'package:mirkfall/domain/sessions/session_status.dart';
 /// Rename goes through the overflow menu and updates the store via
 /// [Session.copyWith].
 class SessionDetailScreen extends ConsumerStatefulWidget {
-  const SessionDetailScreen({required this.sessionId, super.key});
+  const SessionDetailScreen({required this.sessionId, this.autoStart = false, super.key});
 
   final SessionId sessionId;
+
+  /// When true, the detail screen fires the Start flow once, after the
+  /// initial session load, as if the user had tapped Démarrer. Used by
+  /// the `?start=true` query param pushed by SessionListScreen's create
+  /// dialog ("Créer et démarrer") so the permission rationale + OS
+  /// dialogs surface on the detail route instead of under the create
+  /// dialog's Overlay.
+  final bool autoStart;
 
   @override
   ConsumerState<SessionDetailScreen> createState() => _SessionDetailScreenState();
@@ -47,6 +55,7 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
   Session? _session;
   bool _loading = true;
   String? _inlineError;
+  bool _didAutoStart = false;
 
   @override
   void initState() {
@@ -63,6 +72,10 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
         _session = session;
         _loading = false;
       });
+      if (!_didAutoStart && widget.autoStart && session != null) {
+        _didAutoStart = true;
+        await _handleStart(session);
+      }
     } catch (err) {
       if (!mounted) return;
       setState(() {
@@ -157,7 +170,18 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
   }
 
   Future<void> _handleDelete(Session session) async {
-    if (session.status == SessionStatus.active) {
+    // Re-read from DB. The `session` passed in was loaded by
+    // [_loadSession] at initState() and never refreshes, so a Stop
+    // that happened during this route's lifetime (user tapped Arrêter
+    // inside the Tracking dashboard, DB row flipped active -> stopped)
+    // does not show on the cached object. Without this re-fetch the
+    // active-status guard below blocks deletion until the user exits
+    // and re-opens the detail route.
+    final store = await ref.read(sessionStoreProvider.future);
+    if (!mounted) return;
+    final Session target = (await store.findById(session.id)) ?? session;
+    if (!mounted) return;
+    if (target.status == SessionStatus.active) {
       setState(() => _inlineError = "Arrête la session d'abord avant de la supprimer.");
       return;
     }
@@ -177,8 +201,6 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
     if (confirm != true) return;
 
     try {
-      final store = await ref.read(sessionStoreProvider.future);
-      if (!mounted) return;
       await store.delete(session.id);
       if (!mounted) return;
       context.go('/');

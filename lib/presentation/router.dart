@@ -57,7 +57,14 @@ GoRouter appRouter(Ref ref) {
             path: '/sessions/:id',
             builder: (_, state) {
               final String id = state.pathParameters['id'] ?? '';
-              return SessionDetailScreen(sessionId: SessionId(id));
+              // `?start=true` is emitted by SessionListScreen when the
+              // user taps "Créer et démarrer" in the create dialog.
+              // The query param is the signal that triggers the Start
+              // flow automatically once the detail route is on screen —
+              // keeps the permission dialogs visible on a clean route
+              // instead of hidden under the create dialog's Overlay.
+              final bool autoStart = state.uri.queryParameters['start'] == 'true';
+              return SessionDetailScreen(sessionId: SessionId(id), autoStart: autoStart);
             },
           ),
           GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
