@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 05-05 (auto-resume post-kill) next up
+current_plan: 05-06 (store review + POC) next up
 status: executing
-stopped_at: Completed 05-04-PLAN.md
-last_updated: "2026-04-19T12:33:32Z"
+stopped_at: Completed 05-05-PLAN.md
+last_updated: "2026-04-19T12:53:09Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 16
   completed_phases: 4
   total_plans: 25
-  completed_plans: 23
-  percent: 92
+  completed_plans: 24
+  percent: 96
 ---
 
 # Project State
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 05 of 16 (GPS & Session Lifecycle) IN PROGRESS — 4 / 6 plans done
-Current Plan: 05-05 (auto-resume post-kill) next up
-Total Plans in Phase 05: 4 / 6 done
+Phase: 05 of 16 (GPS & Session Lifecycle) IN PROGRESS — 5 / 6 plans done
+Current Plan: 05-06 (store review + POC) next up
+Total Plans in Phase 05: 5 / 6 done
 Status: In progress — Phase 05 execution
 Last Activity: 2026-04-19
 
-Progress: [█████████░] ~92% of plans across 4 completed phases + Phase 05 Plans 05-01 + 05-02 + 05-03 + 05-04 (23/25 plans executed so far)
+Progress: [█████████░] ~96% of plans across 4 completed phases + Phase 05 Plans 05-01 + 05-02 + 05-03 + 05-04 + 05-05 (24/25 plans executed so far)
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Progress: [█████████░] ~92% of plans across 4 completed phas
 | Phase 05-gps-session-lifecycle P02 | 17 min | 3 tasks | 25 files |
 | Phase 05-gps-session-lifecycle P03 | 10 min | 2 tasks | 8 files |
 | Phase 05-gps-session-lifecycle P04 | 2h 12m | 2 tasks | 21 files |
+| Phase 05-gps-session-lifecycle P05 | 13 min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -191,6 +192,14 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 05-gps-session-lifecycle]: OemGuidanceScreen._onDone uses canPop() ? pop() : go('/') — screen reachable via push (pop OK) and deep-link (nothing to pop, go home). Avoids GoError at runtime on directly-navigated routes.
 - [Phase 05-gps-session-lifecycle]: Deferred TextEditingController.dispose() via WidgetsBinding.instance.addPostFrameCallback — the dialog's close animation (AnimatedDefaultTextStyle) still reads the controller during out-transition; immediate dispose triggers 'used-after-dispose' assertion in widget tests. Single-frame deferral is enough.
 - [Phase 05-gps-session-lifecycle]: Banner InkWell split — inner InkWell(title-only) + peer IconButton(stop) instead of one ancestor InkWell wrapping the whole Row. Gesture-arena-friendly; each widget owns one action.
+- [Phase 05-gps-session-lifecycle]: BootCompletedWatchdog is PURE DART — native side only fires the trigger. Full watchdog logic unit-tested (4 tests covering active / none / idempotent / error-swallow) without Kotlin/Swift test harness. Boot scenarios cannot be CI'd on-device; pure-Dart testing is the only scalable path.
+- [Phase 05-gps-session-lifecycle]: runBootWatchdogEntryPoint re-opens the DB via the SAME buildAppDatabase factory the UI uses. Forking into a custom path or a separate isolate would fork the schema singleton and invite migration drift. Mini-engine DB close is mandatory (try/finally) — engine.destroy tears down the isolate; a leaked Drift executor handle would cause SQLITE_BUSY on the next main-isolate open.
+- [Phase 05-gps-session-lifecycle]: Android 14 SecurityException avoidance (05-RESEARCH Pitfall #5) — BroadcastReceiver fires notification only, NEVER starts the geolocator foreground service directly. Tap-then-Start from the activity is a legitimate fg-service start from a foreground context.
+- [Phase 05-gps-session-lifecycle]: iOS AppDelegate uses FlutterImplicitEngineDelegate + didInitializeImplicitFlutterEngine hook, not window?.rootViewController as? FlutterViewController — the current Flutter scene-based template does not expose a rootViewController at didFinishLaunchingWithOptions time. Cold-start-via-location-wake requires a two-phase handshake: capture launchOption flag first, fire runWatchdog once the channel is wired inside didInitializeImplicitFlutterEngine.
+- [Phase 05-gps-session-lifecycle]: MethodChannel 'app.gosl.mirkfall/boot_watchdog' is shared between THREE sides (Kotlin receiver + Swift AppDelegate + Dart entry point). Single source of truth: the channel constant in boot_completed_watchdog.dart is mirrored by string literals in BootCompletedReceiver.kt + AppDelegate.swift. Any change requires a triple coordinated update.
+- [Phase 05-gps-session-lifecycle]: rootNavigatorKey lives at the top level of router.dart (NOT inside @riverpod function) because the same GlobalKey<NavigatorState> instance must survive router rebuilds for out-of-tree notification-tap navigation to route against the live NavigatorState. flutter_local_notifications onDidReceiveNotificationResponse fires outside any Riverpod scope.
+- [Phase 05-gps-session-lifecycle]: flutter_local_notifications 21.0.0 `initialize` requires named `settings:` parameter (plan had positional). plugin.initialize is a process-singleton factory; main.dart call + SessionNotificationService.initialize both operate on the same instance with disjoint concerns (tap wiring vs channel creation). Idempotent.
+- [Phase 05-gps-session-lifecycle]: Controller hooks iOS watchdog on every platform — the IosSignificantChangeWatchdog wrapper class no-ops on non-iOS so the call site stays platform-agnostic. Platform-branching lives inside the wrapper, the controller stays pure. Matches CLAUDE.md §Structure.
 
 ### Pending Todos
 
@@ -213,6 +222,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-19T12:33:32Z
-Stopped at: Completed 05-04-PLAN.md
+Last session: 2026-04-19T12:53:09Z
+Stopped at: Completed 05-05-PLAN.md
 Resume file: None
