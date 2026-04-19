@@ -29,9 +29,7 @@ final locationStreamProvider = LocationStreamProvider._();
 /// owns the actual `.positions(...)` subscription lifecycle. This provider
 /// only holds the stateless factory.
 
-final class LocationStreamProvider
-    extends $FunctionalProvider<LocationStream, LocationStream, LocationStream>
-    with $Provider<LocationStream> {
+final class LocationStreamProvider extends $FunctionalProvider<LocationStream, LocationStream, LocationStream> with $Provider<LocationStream> {
   /// Production [LocationStream] — wraps [`GeolocatorLocationStream`] around
   /// the app's [`IdGenerator`] (the stream mints fresh `FixId`s on every
   /// accepted `Position`).
@@ -56,8 +54,7 @@ final class LocationStreamProvider
 
   @$internal
   @override
-  $ProviderElement<LocationStream> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
+  $ProviderElement<LocationStream> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
 
   @override
   LocationStream create(Ref ref) {
@@ -66,10 +63,7 @@ final class LocationStreamProvider
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(LocationStream value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<LocationStream>(value),
-    );
+    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<LocationStream>(value));
   }
 }
 

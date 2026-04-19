@@ -19,13 +19,7 @@ final mirkStyleStoreProvider = MirkStyleStoreProvider._();
 /// the app database. Phase 09 adds the first consumer (`MirkRenderer`
 /// seam); Phase 03 only wires persistence.
 
-final class MirkStyleStoreProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<MirkStyleStore>,
-          MirkStyleStore,
-          FutureOr<MirkStyleStore>
-        >
+final class MirkStyleStoreProvider extends $FunctionalProvider<AsyncValue<MirkStyleStore>, MirkStyleStore, FutureOr<MirkStyleStore>>
     with $FutureModifier<MirkStyleStore>, $FutureProvider<MirkStyleStore> {
   /// Production [MirkStyleStore] — wraps [`DriftMirkStyleStore`] around
   /// the app database. Phase 09 adds the first consumer (`MirkRenderer`
@@ -46,9 +40,7 @@ final class MirkStyleStoreProvider
 
   @$internal
   @override
-  $FutureProviderElement<MirkStyleStore> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $FutureProviderElement<MirkStyleStore> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<MirkStyleStore> create(Ref ref) {
