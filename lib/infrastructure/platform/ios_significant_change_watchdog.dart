@@ -44,12 +44,17 @@ class IosSignificantChangeWatchdog {
     if (defaultTargetPlatform != TargetPlatform.iOS) return;
     try {
       await _channel.invokeMethod<void>('startSignificantChangeMonitoring');
+    } on MissingPluginException catch (e, st) {
+      // Expected until Phase 15 : the current iOS AppDelegate does NOT
+      // register a handler for this channel (scene-based
+      // FlutterImplicitEngineDelegate wiring was stripped when the CI
+      // iOS runner moved to Xcode 26 — see AppDelegate.swift docstring).
+      // Logged at FINE so verbose traces still show it, but the default
+      // INFO level stays clean on every session start / stop.
+      _log.fine('startMonitoring: no iOS handler (expected until Phase 15). $e', e, st);
     } on PlatformException catch (e, st) {
       _log.warning('startMonitoring platform error (swallowed): ${e.code} ${e.message}', e, st);
     } on Object catch (e, st) {
-      // MissingPluginException on cold start before the AppDelegate has
-      // registered the channel handler, and any unexpected error — all
-      // best-effort per the contract.
       _log.warning('startMonitoring unexpected error (swallowed): $e', e, st);
     }
   }
@@ -59,6 +64,8 @@ class IosSignificantChangeWatchdog {
     if (defaultTargetPlatform != TargetPlatform.iOS) return;
     try {
       await _channel.invokeMethod<void>('stopSignificantChangeMonitoring');
+    } on MissingPluginException catch (e, st) {
+      _log.fine('stopMonitoring: no iOS handler (expected until Phase 15). $e', e, st);
     } on PlatformException catch (e, st) {
       _log.warning('stopMonitoring platform error (swallowed): ${e.code} ${e.message}', e, st);
     } on Object catch (e, st) {

@@ -7,6 +7,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../config/constants.dart';
@@ -91,6 +93,49 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
     }
   }
 
+  /// Shares the SQLite DB files (mirkfall.db + optional -wal / -shm
+  /// sidecars) via the system share sheet. On iOS this is the only
+  /// sideload-friendly way to extract the DB without a Mac (Xcode's
+  /// "Download Container" is Mac-only ; Filza requires jailbreak).
+  ///
+  /// The WAL sidecar is shared alongside the main file because Drift
+  /// uses WAL journaling by default — recent writes live in
+  /// `mirkfall.db-wal` until SQLite checkpoints them. Sharing only the
+  /// main `.db` loses those rows (exactly the trap the Android POC
+  /// hit — see 2026-04-19 conversation). sqlite3 reads the WAL
+  /// automatically when the three files are co-located.
+  Future<void> _onShareDatabase() async {
+    try {
+      final Directory supportDir = await getApplicationSupportDirectory();
+      final String dbBasename = kDbFilename;
+      final List<File> candidates = <File>[
+        File(p.join(supportDir.path, dbBasename)),
+        File(p.join(supportDir.path, '$dbBasename-wal')),
+        File(p.join(supportDir.path, '$dbBasename-shm')),
+      ];
+      final List<XFile> existing = <XFile>[];
+      for (final File f in candidates) {
+        if (await f.exists()) {
+          existing.add(XFile(f.path));
+        }
+      }
+      if (existing.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aucun fichier de base de données trouvé')));
+        return;
+      }
+      await SharePlus.instance.share(ShareParams(files: existing, subject: 'MirkFall DB snapshot')).timeout(const Duration(milliseconds: kShareCallTimeoutMilliseconds));
+    } on TimeoutException catch (e, st) {
+      Logger('debug_menu').warning('_onShareDatabase timeout', e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Partage annulé (timeout)')));
+    } on Exception catch (e, st) {
+      Logger('debug_menu').warning('_onShareDatabase failed', e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Partage échoué : $e')));
+    }
+  }
+
   Future<void> _onClearAll() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -137,6 +182,13 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
                 trailing: IconButton(icon: const Icon(Icons.share), onPressed: () => _onShare(f)),
               ),
             ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.storage_outlined),
+            title: const Text('Partager la base de données'),
+            subtitle: const Text('Exporte mirkfall.db + -wal + -shm via le share sheet (iOS-friendly).'),
+            onTap: _onShareDatabase,
+          ),
           const Divider(),
           ListTile(leading: const Icon(Icons.delete_forever), title: const Text('Supprimer tous les logs'), onTap: _onClearAll),
           const SizedBox(height: kListSectionPaddingLogicalPx),
