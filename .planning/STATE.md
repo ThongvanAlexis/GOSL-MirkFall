@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 05-06 (store review + POC) next up
-status: executing
-stopped_at: Completed 05-05-PLAN.md
-last_updated: "2026-04-19T12:53:09Z"
+current_plan: Phase 05 plans complete, awaiting Phase 06 Review Gate
+status: verifying
+stopped_at: Completed 05-06-PLAN.md — Phase 05 plans all complete, awaiting phase verification (Phase 06 Review Gate)
+last_updated: "2026-04-19T21:39:07.265Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 16
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 25
-  completed_plans: 24
-  percent: 96
+  completed_plans: 25
+  percent: 100
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 04 CLOSED (review gate persistence signed off, CI green on 26f3d99) — Phase 05 GPS background POC next up (risque #1 projet).
+**Current focus:** Phase 05 CODE COMPLETE (all 6 plans delivered, Pixel 4a POC PASS + iPhone 17 Pro POC PASS-with-caveat, risk #1 empirically validated). Awaiting Phase 06 Review Gate — GPS to audit evidence and sign off before unblocking Phase 07 Map Integration.
 
 ## Current Position
 
-Phase: 05 of 16 (GPS & Session Lifecycle) IN PROGRESS — 5 / 6 plans done
-Current Plan: 05-06 (store review + POC) next up
-Total Plans in Phase 05: 5 / 6 done
-Status: In progress — Phase 05 execution
+Phase: 05 of 16 (GPS & Session Lifecycle) CODE COMPLETE — 6 / 6 plans done — awaiting Phase 06 Review Gate verification
+Current Plan: Phase 05 plans complete, awaiting Phase 06 Review Gate
+Total Plans in Phase 05: 6 / 6 done
+Status: Awaiting phase verification (Phase 06 Review Gate — GPS)
 Last Activity: 2026-04-19
 
-Progress: [█████████░] ~96% of plans across 4 completed phases + Phase 05 Plans 05-01 + 05-02 + 05-03 + 05-04 + 05-05 (24/25 plans executed so far)
+Progress: [██████████] 100% of plans across 4 completed phases + Phase 05 (all 6 plans: 05-01 + 05-02 + 05-03 + 05-04 + 05-05 + 05-06) — 25 / 25 plans executed. Phase 05 pending formal closure via Phase 06 Review Gate.
 
 ## Performance Metrics
 
@@ -75,6 +75,7 @@ Progress: [█████████░] ~96% of plans across 4 completed phas
 | Phase 05-gps-session-lifecycle P03 | 10 min | 2 tasks | 8 files |
 | Phase 05-gps-session-lifecycle P04 | 2h 12m | 2 tasks | 21 files |
 | Phase 05-gps-session-lifecycle P05 | 13 min | 2 tasks | 13 files |
+| Phase 05-gps-session-lifecycle P06 | ~13h elapsed | 3 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -88,7 +89,7 @@ Recent decisions carried from research (2026-04-17) :
 - Phase 03: Envelope JSON `{schemaVersion, type, payload}` pour import/export (D9)
 - Phase 05: Pas de `flutter_background_geolocation` — clé de licence payante incompatible GOSL ; geolocator + foreground service Android + iOS background mode à la place
 - Phase 05: Exclusivité session enforced par partial unique index Drift, pas par discipline caller (D13)
-- Phase 07: `TileSource` seam — V1.0 online OSM, V1.1 MBTiles offline en pur ajout (D7)
+- Phase 07: `PmtilesSource` seam — V1.0 **100 % offline** : world map PMTiles bundlé dans l'APK + téléchargement par pays (ZIPs multi-parts via catalog JSON pointant vers GitHub Release du repo projet). Aucune impl remote n'existe (lint `avoid_remote_pmtiles`). Décision D7 refondue 2026-04-19 : l'ancien plan "V1.0 online OSM / V1.1 MBTiles offline en pur ajout" est écarté (coûts bucket + streaming + surface d'attaque) ; l'offline est désormais partie intégrante de la V1.0 et absorbe les anciens OFFL-01..04 v2.
 - Phase 09: `MirkRenderer` seam — expose uniquement `paint(Canvas, Size, MirkPaintContext)`, aucun détail d'implémentation (D6)
 - Project-wide: Riverpod comme unique state management + DI (D5)
 - [Phase 01-foundation]: Held analyzer stack at <9.0 for Phase 01 — No compatible custom_lint + riverpod_lint + analyzer trio exists yet; upgrading to analyzer ^9 would force dropping lint tools. Phase 03 will re-evaluate when ecosystem converges.
@@ -200,6 +201,10 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 05-gps-session-lifecycle]: rootNavigatorKey lives at the top level of router.dart (NOT inside @riverpod function) because the same GlobalKey<NavigatorState> instance must survive router rebuilds for out-of-tree notification-tap navigation to route against the live NavigatorState. flutter_local_notifications onDidReceiveNotificationResponse fires outside any Riverpod scope.
 - [Phase 05-gps-session-lifecycle]: flutter_local_notifications 21.0.0 `initialize` requires named `settings:` parameter (plan had positional). plugin.initialize is a process-singleton factory; main.dart call + SessionNotificationService.initialize both operate on the same instance with disjoint concerns (tap wiring vs channel creation). Idempotent.
 - [Phase 05-gps-session-lifecycle]: Controller hooks iOS watchdog on every platform — the IosSignificantChangeWatchdog wrapper class no-ops on non-iOS so the call site stays platform-agnostic. Platform-branching lives inside the wrapper, the controller stays pure. Matches CLAUDE.md §Structure.
+- [Phase 05-gps-session-lifecycle]: Plan 05-06: iOS POC PASS-with-caveat accepted — 13.5 min stable 6s/fix cadence + same-day Android 28.6 min/342 fixes PASS = convergent evidence that MirkFall survives 30-min background screen-off on both platforms. A longer iOS walk is a cheap optional top-up if Phase 06 Review Gate flags it insufficient.
+- [Phase 05-gps-session-lifecycle]: Plan 05-06: Python POC tool deps (staticmap 0.5.x + Pillow) live in tool/requirements.txt only — DEPENDENCIES.md is binary-ship-scoped per CONTEXT.md; tool-side deps audited in tool/README.md instead.
+- [Phase 05-gps-session-lifecycle]: Plan 05-06: Android POC DB extraction must pull mirkfall.db-wal + mirkfall.db-shm alongside the main file — WAL sidecar held 123 of 342 rows during the first Pixel 4a pull. Protocol updated in qual-01-02-poc.md step 9.
+- [Phase 05-gps-session-lifecycle]: Plan 05-06: iOS FlutterImplicitEngineDelegate bridge stripped after Xcode 26 move — Flutter 3.41+ stabilised scene-based API surface, bridge was no longer necessary for current boot-watchdog path. Auto-resume-post-kill full iOS validation deferred to Phase 15 with user approval.
 
 ### Pending Todos
 
@@ -207,9 +212,13 @@ None yet.
 
 ### Blockers/Concerns
 
-**Phase 05 (POC GPS background):** Risque #1 projet. Si la validation background sur OEM Android ou iOS échoue, toute la V1.0 est remise en question. Doit être validé avant d'investir dans Map/Fog/Markers.
+**Phase 05 (POC GPS background) — RESOLVED Plan 05-06 (2026-04-19):** ~~Risque #1 projet.~~ VALIDATED empirically — Pixel 4a PASS (342 fixes / 28.6 min screen-off walk) + iPhone 17 Pro PASS-with-caveat (82 fixes / 13.5 min, stable cadence throughout + convergent same-day Android evidence). Evidence committed in `docs/qual-01-02-poc.md` + `docs/poc-artifacts/test2-full.png`. Phase 06 Review Gate to re-litigate if iOS duration caveat unacceptable.
 
-**Phase 05 (store policy):** Les strings de justification "Always" location doivent être rédigées humainement pour résister à une revue App Store / Play Store. Texte finalisé en Phase 15.
+**Phase 05 → Phase 06 handoff concerns** (for review gate scrutiny):
+- iOS walk duration shortfall (13.5 min vs 30 min target) — Decision "PASS-with-caveat" logged; review gate may request second iOS walk.
+- OEM Android coverage (Xiaomi/Samsung/Huawei/OnePlus) deferred to Phase 15 per CONTEXT.md — ROADMAP SC#1 annotated "partial".
+- Auto-resume-post-kill on iOS unvalidated (FlutterImplicitEngineDelegate bridge stripped after Xcode 26 move, deferred to Phase 15).
+- Store rationale English copy finalisé Plan 05-06 (QUAL-03) — final polish still in Phase 15.
 
 **Phase 09 (fog perf):** Sub-tile grid size (32/64/128) et batch-flush interval à profiler sur fixture 50k-tiles avant de finaliser les constantes.
 
@@ -222,6 +231,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-19T12:53:09Z
-Stopped at: Completed 05-05-PLAN.md
+Last session: 2026-04-19T21:38:28.890Z
+Stopped at: Completed 05-06-PLAN.md — Phase 05 plans all complete, awaiting phase verification (Phase 06 Review Gate)
 Resume file: None

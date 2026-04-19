@@ -58,9 +58,10 @@ Projet-cadeau personnel de l'auteur (pour explorer sa ville et matérialiser ses
 - [ ] Schéma lisible à la main (pas de blob binaire injustifié)
 
 **Carte**
-- [ ] Fond de plan standard (OSM ou équivalent gratuit, à trancher en recherche)
+- [ ] Fond de plan vectoriel PMTiles (Protomaps dérivées d'OSM), **100 % offline**
 - [ ] Interactivité (pan, zoom) préservée sous mirk
-- [ ] Architecture carte découplée pour faciliter l'ajout de tiles offline en V1.1
+- [ ] World map bundlé dans les assets (day-1 UX) + téléchargement par pays depuis GitHub Release (day-N)
+- [ ] Architecture carte découplée (`MapView` domain-level + `PmtilesSource` local-only)
 
 **Options / paramètres globaux**
 - [ ] Écran dédié regroupant : rayon de révélation, style de mirk actif, gestion des styles importés, gestion des catégories de markers, import/export global
@@ -81,7 +82,6 @@ Projet-cadeau personnel de l'auteur (pour explorer sa ville et matérialiser ses
 - **Re-brumage temporel des zones révélées** — contraire au design (le territoire exploré reste exploré)
 - **Achievements / gamification** — pas dans l'esprit du projet
 - **Intégrations tierces (Strava, Google Photos, etc.)** — viole les principes GOSL et complique le scope
-- **Téléchargement de tuiles offline (V1.1)** — V1.0 code l'abstraction carte découplée, mais pas de UI de download (§6.2 de la spec marquée nice-to-have)
 - **Rendu du mirk par session** — le choix de style est global à l'app en V1.0
 - **Analytics, crash reporting automatique, télémétrie quelconque** — interdit par la GOSL et le CLAUDE.md du projet
 - **Abonnement / monétisation / pub** — interdit par la GOSL
@@ -100,7 +100,7 @@ Projet-cadeau personnel de l'auteur (pour explorer sa ville et matérialiser ses
 - **Télémétrie**: Zéro SDK d'analytics, crash reporting auto, attribution, A/B, session replay. Logs strictement locaux. Aucun appel réseau sans action utilisateur explicite.
 - **Tech stack**: Flutter (iOS + Android cibles). Dart strict mode (`strict-casts`, `strict-inference`, `strict-raw-types`). Pin exact des versions dans `pubspec.yaml`. Plugins officiels Flutter privilégiés (`geolocator`, `permission_handler`, `camera`, `shared_preferences`, `path_provider`, etc.).
 - **Plateforme dev principale**: Windows 10 + Android. iOS via CI + sideload par paliers.
-- **Fond cartographique**: vector tiles only (PMTiles au format Protomaps), **pas de raster**. Hébergement sur object storage cheap (R2 / B2 / S3) avec un PMTiles régional (pas planet) pour minimiser le coût et la surface d'attaque. PMTiles permet le futur offline (V1.1) en swappant l'URL `pmtiles://https://...` pour `pmtiles:///path/local.pmtiles` sans toucher à la couche appelante. L'attribution OSM reste requise parce que les données Protomaps sont dérivées d'OSM.
+- **Fond cartographique**: vector tiles only (PMTiles au format Protomaps dérivées d'OSM), **pas de raster**, **100 % hors ligne**. Aucun streaming, aucun bucket object-storage, aucune requête réseau pour les tuiles — jamais. Day-1 UX : un world map PMTiles low-zoom (zoom 0-5, ~20-50 MB) est bundlé dans les assets et copié vers le stockage interne au premier lancement. Day-N : l'utilisateur télécharge des cartes par pays depuis un catalogue JSON pinné qui pointe vers un GitHub Release du repo projet ; chaque pays = N ZIP parts (contrainte GitHub Release : 2 GB / asset) qui s'assemblent pour reconstituer un unique `.pmtiles` local. MapLibre consomme uniquement des URI `pmtiles:///<path>` (lint custom interdit toute URI remote). L'attribution OSM + Protomaps reste requise parce que les données dérivent d'OSM.
 - **Couche map**: l'app code (controllers, screens, services) ne dépend QUE d'une interface domain-level exprimée dans le vocabulaire MirkFall — `showMap(region)`, `moveCameraTo(location)`, `markVisited(polygon)`, `getUnvisitedAreas()`, `addLocationMarker(user)`, `addPointOfInterest(poi)`, `setTheme(standard | rpgParchment)`. Les types du renderer (`MapLibreMapController`, `SymbolOptions`, `CameraUpdate`, structure du `style.json`) NE REMONTENT JAMAIS au-dessus de `lib/infrastructure/map/`. Règle d'odeur : si l'interface contient `addSymbol(SymbolOptions)` ou équivalent, elle est trop basse et n'abstrait rien — la réécrire. Cette contrainte est architecturale et durable, indépendamment du renderer choisi.
 - **Rendu du mirk**: qualité visuelle secondaire mais **couplage interdit** — l'implémentation doit être remplaçable sans toucher au reste de l'app (pattern stratégie ou équivalent).
 - **Persistance**: représentation du mirk révélé doit rester raisonnable en stockage (on ne veut pas 10 TB de points GPS — voir §9 de la spec).
@@ -114,9 +114,9 @@ Projet-cadeau personnel de l'auteur (pour explorer sa ville et matérialiser ses
 |----------|-----------|---------|
 | Import/export JSON comme **core value** (pas un bonus) | Différencie vs apps concurrentes ; résout le problème "je perds mon téléphone = je perds tout" | — Pending |
 | Markers **visibles en transparence** sous mirk (plutôt que masqués) | Cohérent avec le use-case "pré-import de lieux à visiter avant un voyage" (import-export first) | — Pending |
-| Tuiles offline **reportées en V1.1** | Nice-to-have dans spec ; V1.0 prépare l'abstraction pour intégration facile plus tard | — Pending |
+| Tuiles offline **intégrées en V1.0** (pivot 2026-04-19) | Le modèle "PMTiles régional hébergé sur bucket object-storage" (coûts bucket + streaming + surface d'attaque) a été écarté au profit d'une cartographie 100 % offline. Remplacé par : bundle world PMTiles low-zoom dans l'APK + téléchargement par pays depuis un GitHub Release du repo projet (ZIPs multi-parts). L'ancien plan "V1.1 offline en pur ajout" n'a plus lieu d'être : la feature est partie intégrante de la Phase 07. Les anciens OFFL-01..04 v2 sont absorbés dans MAP-07..10. | — Recorded |
 | Rendu du mirk **découplé/générique dès V1.0** | Qualité visuelle peut évoluer, mais architecture ne doit pas être à refaire | — Pending |
-| **Vector-first dès V1.0** (PMTiles Protomaps, pas de raster OSM) | V2 parchemin RPG exige du vector + styles MapLibre ; partir raster = réécrire tout à V2. Auto-hébergement PMTiles régional contourne la policy OSM tile + zero CDN cost sur petit volume. | — Recorded |
+| **Vector-first 100 % offline dès V1.0** (PMTiles Protomaps bundlé + téléchargement par pays) | V2 parchemin RPG exige du vector + styles MapLibre ; partir raster = réécrire tout à V2. Distribution = assets APK (world low-zoom) + GitHub Release du repo projet (pays entiers, ZIPs multi-parts pour contourner la limite 2 GB / asset GitHub). Résultat : zero coût bucket / CDN, zero runtime network pour les tuiles, zero policy OSM applicable, airplane mode fonctionnel dès le premier lancement. | — Recorded |
 | Interface map **domain-level** (vocabulaire MirkFall, pas renderer) | Abstraction "1:1 wrapper autour de MapLibreMap" est du LARP architectural — l'interface doit exprimer ce que l'app veut (`markVisited`, `setTheme`), pas ce que le renderer expose (`SymbolOptions`, `CameraUpdate`). Règle durable, indépendante du renderer. | — Recorded |
 | **Renderer V1.0 = `maplibre_gl 0.25.0` (pinned)** | Recherche 2026-04-19 : maintenu par MapLibre org, BSD-3, PMTiles natif depuis v0.22, zéro télémétrie, iOS 13+ / Android API 21+. Fallback non implémenté : sera envisagé uniquement si `maplibre_gl` est abandonné ou montre un bug bloquant. Décision implémentation, revisitable ; l'abstraction (ligne du dessus) est durable. | — Recorded |
 | CI = **GitHub Actions** (Android ubuntu + iOS non-signé macos) | Cohérent avec CLAUDE.md, gratuit, permet distribution via GitHub Releases | — Pending |

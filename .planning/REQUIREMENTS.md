@@ -58,12 +58,18 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 
 ### Map (MAP)
 
-- [ ] **MAP-01**: La carte s'affiche sur un fond vectoriel PMTiles (données Protomaps/OSM) servi depuis un bucket object-storage contrôlé par le projet ; aucune requête sortante vers tile.openstreetmap.org ni vers un tile-server tiers pendant le dev ou en prod
-- [ ] **MAP-02**: La carte reste interactive (pan, zoom) sous le mirk
-- [ ] **MAP-03**: Attribution `© OpenStreetMap contributors` + `© Protomaps` visibles sur la carte et dans l'écran À propos, avec liens vers les pages de copyright officielles ; conforme aux licences amont
-- [ ] **MAP-04**: L'overlay mirk s'intègre au rendu vectoriel MapLibre comme un layer natif (source GeoJSON tuilée côté client ou équivalent), avec RepaintBoundary / isolation de rebuild, sans référencer directement le SDK MapLibre depuis la couche app
-- [ ] **MAP-05**: Le chemin de données des tuiles est derrière un `PmtilesSource` minimal (URL hébergée vs URI locale) — V1.0 ship l'impl "hosted" ; V1.1 ajoute l'impl "local file downloaded" sans modifier le consommateur. Validé par mock test
+<!-- Pivot 2026-04-19 : cartographie 100 % offline. Abandon du modèle PMTiles hébergé sur bucket object-storage (coûts + streaming). Remplacé par : bundle world low-zoom dans l'APK + téléchargement par pays depuis un GitHub Release du repo projet (ZIPs multi-parts). Aucune requête réseau pour les tuiles — jamais, ni en dev ni en prod. Les anciens OFFL-01..04 v2 sont absorbés dans cette section. -->
+
+- [ ] **MAP-01**: La carte s'affiche sur un fond vectoriel PMTiles (données Protomaps dérivées d'OSM) **100 % local** — fichier `.pmtiles` sur le disque de l'appareil, consommé via une URI `pmtiles:///<path>` par `maplibre_gl`. Aucune requête réseau de tuiles, jamais, ni en dev ni en prod. Mode airplane = carte pleinement fonctionnelle sur la zone couverte par les fichiers installés.
+- [ ] **MAP-02**: La carte reste interactive (pan, zoom) sous le mirk.
+- [ ] **MAP-03**: Attribution `© OpenStreetMap contributors` + `© Protomaps` visible sur la carte et dans l'écran À propos, avec liens vers les pages de copyright officielles ; conforme aux licences amont (les données PMTiles dérivent d'OSM via Protomaps, l'attribution reste requise même hors ligne).
+- [ ] **MAP-04**: L'overlay mirk s'intègre au rendu vectoriel MapLibre comme un layer natif (source GeoJSON tuilée côté client ou équivalent), avec RepaintBoundary / isolation de rebuild, sans référencer directement le SDK MapLibre depuis la couche app.
+- [ ] **MAP-05**: Le chemin de données des tuiles est derrière un `PmtilesSource` minimal qui expose **uniquement** des URI locales (`pmtiles:///<path>`). Aucune implémentation "hosted / remote" n'existe dans le code — un lint custom `avoid_remote_pmtiles` interdit tout `pmtiles://https?://...`. Un country resolver sélectionne le bon fichier selon la zone affichée (fallback world bundle si le pays visualisé n'est pas téléchargé). Validé par mock test.
 - [ ] **MAP-06**: L'app code (controllers, screens, services) ne dépend que d'une interface `MapView` **domain-level** exprimée dans le vocabulaire MirkFall : `showMap(region)`, `moveCameraTo(location)`, `markVisited(polygon)`, `getUnvisitedAreas()`, `addLocationMarker(user)`, `addPointOfInterest(poi)`, `setTheme(standard | rpgParchment)`. Les types du SDK (`MapLibreMapController`, `SymbolOptions`, `CameraUpdate`, le schéma du `style.json`) **ne remontent jamais** au-dessus de `lib/infrastructure/map/`. Règle d'odeur : toute méthode dont la signature révèle un type MapLibre est disqualifiée (interdiction mécanique via lint custom `avoid_maplibre_leak`). Validé par un `FakeMapView` qui implémente l'interface en mémoire et par lequel passent tous les tests Phase 07+ qui touchent à la carte.
+- [ ] **MAP-07**: Un world map PMTiles low-zoom (zoom 0-5, fichier fourni par l'utilisateur) est **bundlé dans l'APK/IPA** sous `assets/maps/world.pmtiles` et copié vers `<app_support>/maps/world.pmtiles` au premier lancement. Day-1 UX : l'utilisateur voit une carte monde dès l'ouverture de l'app, sans aucun téléchargement requis. Ce fichier ne peut pas être supprimé par l'utilisateur (hardcoded floor).
+- [ ] **MAP-08**: Un écran "Télécharger une carte" (accessible depuis l'écran options + depuis une bannière carte quand l'utilisateur navigue sur un pays non téléchargé) liste les pays disponibles à partir d'un catalogue JSON distant pinné via `kMapCatalogUrl` (constante dans `lib/config/constants.dart`, URL à fournir avant le build Phase 07). Chaque entrée du catalogue déclare : `countryCode`, `displayName`, `zipUrls[]` (ordonnés, N parts hébergées sur GitHub Release du repo projet — limite 2 GB / asset), `sha256` par chunk et global, `sizeBytesTotal`, `pmtilesVersion`.
+- [ ] **MAP-09**: Le téléchargement d'un pays suit un protocole atomique : (1) download séquentiel des N ZIP parts vers `<app_support>/maps/staging/<countryCode>/`, (2) vérification `sha256` par chunk, (3) extraction + concaténation pour reconstituer l'unique `.pmtiles` du pays, (4) vérification `sha256` global du fichier reconstitué, (5) commit atomique par rename vers `<app_support>/maps/countries/<countryCode>.pmtiles`. Interruption à n'importe quelle étape laisse le pays **soit absent soit complet** en base — jamais partiellement installé. Téléchargements interrompus reprennent au chunk échoué (HTTP Range ou redownload du chunk seul, pas redownload total). Staging nettoyé en cas d'abandon explicite par l'utilisateur.
+- [ ] **MAP-10**: Écran de gestion des cartes : liste les pays installés avec leur espace disque consommé et leur `pmtilesVersion` ; l'utilisateur peut supprimer un pays (libère l'espace, le pays redeviendra téléchargeable) ; le world bundle est présent en lecture seule et ne peut pas être supprimé. Affichage de l'espace disque total utilisé par les cartes.
 
 ### Markers (MARK)
 
@@ -123,9 +129,9 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 
 ### Quality / Release (QUAL)
 
-- [ ] **QUAL-01**: POC validation du tracking background sur device Android OEM (Xiaomi ou Samsung) avec session ≥ 30 min écran éteint
-- [ ] **QUAL-02**: POC validation du tracking background sur device iOS (via CI + sideload) avec session ≥ 30 min écran éteint
-- [ ] **QUAL-03**: Argumentaire pour revue App Store / Play Store documenté (justification background location)
+- [x] **QUAL-01**: POC validation du tracking background sur device Android OEM (Xiaomi ou Samsung) avec session ≥ 30 min écran éteint
+- [x] **QUAL-02**: POC validation du tracking background sur device iOS (via CI + sideload) avec session ≥ 30 min écran éteint
+- [x] **QUAL-03**: Argumentaire pour revue App Store / Play Store documenté (justification background location)
 - [x] **QUAL-04**: `Info.plist` iOS contient toutes les `*UsageDescription` requises (location, camera, photo library) au fur et à mesure des ajouts
 - [ ] **QUAL-05**: Aucune dépendance identifiée faisant des appels réseau sans action utilisateur explicite (confirmé par inspection source + test smoke "airplane mode = zéro requête sortante")
 
@@ -133,12 +139,7 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 
 Différé à V1.1+, non couvert par la V1.0. Architecture V1.0 prépare ces extensions (interfaces déjà en place) mais code n'est pas livré.
 
-### Offline tiles (OFFL)
-
-- **OFFL-01**: Utilisateur peut télécharger les tuiles d'une zone définie pour usage offline
-- **OFFL-02**: Provider de tuiles retenu permet un usage gratuit du download offline
-- **OFFL-03**: UI de sélection de zone + gestion du cache tiles
-- **OFFL-04**: Purge / gestion des tiles téléchargées
+<!-- Les anciens OFFL-01..04 (offline tiles) ont été promus en V1.0 lors du pivot 2026-04-19 et sont désormais couverts par MAP-07..10. Plus de section "Offline tiles" en v2. -->
 
 ### Observabilité / Stats
 
@@ -178,7 +179,7 @@ Explicitement exclus de la V1.0 et au-delà, sauf décision explicite de l'utili
 
 Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase de **code** (phases impaires 01-15). Les Review Gates (phases paires 02-16) vérifient les REQ de la phase de code précédente mais ne les possèdent pas.
 
-**Note :** le compte total précédemment documenté à "77" dans l'en-tête original est une erreur arithmétique ; la somme réelle est **87** v1 requirements (FOUND:8 + SESS:9 + GPS:8 + MIRK:10 + MAP:6 + MARK:10 + CAT:6 + PORT:13 + OPT:7 + ABOUT:5 + QUAL:5 = 87). MAP-06 ajouté en 2026-04-19 pour capturer la contrainte d'abstraction du renderer de carte (V2 parchment RPG).
+**Note :** le compte total précédemment documenté à "77" dans l'en-tête original est une erreur arithmétique. Après les deux révisions successives de la section MAP (MAP-06 ajouté 2026-04-19 pour l'abstraction `MapView` ; MAP-07..10 ajoutés 2026-04-19 lors du pivot offline-only), la somme réelle est **91** v1 requirements (FOUND:8 + SESS:9 + GPS:8 + MIRK:10 + MAP:10 + MARK:10 + CAT:6 + PORT:13 + OPT:7 + ABOUT:5 + QUAL:5 = 91).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -223,6 +224,10 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | MAP-04 | Phase 07 | Pending |
 | MAP-05 | Phase 07 | Pending |
 | MAP-06 | Phase 07 | Pending |
+| MAP-07 | Phase 07 | Pending |
+| MAP-08 | Phase 07 | Pending |
+| MAP-09 | Phase 07 | Pending |
+| MAP-10 | Phase 07 | Pending |
 | MARK-01 | Phase 11 | Pending |
 | MARK-02 | Phase 11 | Pending |
 | MARK-03 | Phase 11 | Pending |
@@ -264,9 +269,9 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | ABOUT-03 | Phase 15 | Pending |
 | ABOUT-04 | Phase 15 | Pending |
 | ABOUT-05 | Phase 15 | Pending |
-| QUAL-01 | Phase 05 | Pending |
-| QUAL-02 | Phase 05 | Pending |
-| QUAL-03 | Phase 05 | Pending |
+| QUAL-01 | Phase 05 | Complete |
+| QUAL-02 | Phase 05 | Complete |
+| QUAL-03 | Phase 05 | Complete |
 | QUAL-04 | Phase 05 | Complete |
 | QUAL-05 | Phase 15 | Pending |
 
