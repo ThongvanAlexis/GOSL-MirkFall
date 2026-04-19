@@ -9,6 +9,10 @@
 .swiftpm/
 migrate_working_dir/
 
+# Python tooling (Phase 05 POC — tool/plot_session_fixes.py)
+tool/.venv/
+__pycache__/
+
 # IntelliJ / Android Studio
 *.iml
 *.ipr

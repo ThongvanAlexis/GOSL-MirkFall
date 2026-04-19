@@ -1,0 +1,10 @@
+# Phase 05 POC tooling — Python dependencies for tool/plot_session_fixes.py
+#
+# These packages are NOT shipped in the app binary (tool-only use). Licences
+# documented in tool/README.md. Strictly pinned per CLAUDE.md §Pin des versions.
+#
+# staticmap: MIT (https://github.com/komoot/staticmap)
+# Pillow:    HPND / MIT-equivalent (https://github.com/python-pillow/Pillow)
+
+staticmap==0.5.7
+Pillow==12.2.0
