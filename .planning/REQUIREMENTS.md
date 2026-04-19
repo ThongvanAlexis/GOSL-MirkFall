@@ -63,6 +63,7 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 - [ ] **MAP-03**: Attribution OSM visible et conforme à la policy
 - [ ] **MAP-04**: La couche `FogOfWarLayer` s'intègre proprement au layer system de flutter_map sans faire rebuild le reste de la carte (RepaintBoundary)
 - [ ] **MAP-05**: Interface `TileSource` abstraite en place dès V1.0 — permet d'ajouter en V1.1 un provider de tuiles offline sans modifier le code appelant
+- [ ] **MAP-06**: Interface `MapRenderer` (ou équivalent) abstrait **le moteur de rendu complet** (widget carte + tiles + markers + overlays) — le reste de l'app (controllers, screens) n'importe jamais directement `flutter_map` ni tout autre package de rendu. Swap vers un renderer vectoriel (maplibre, vector_map_tiles, autre) en V2 pour supporter le style "parchemin RPG" doit se faire en ajoutant une implémentation, sans modifier les consommateurs. Validé par un mock `FakeMapRenderer` qui couvre les tests de Phase 07.
 
 ### Markers (MARK)
 
@@ -177,7 +178,7 @@ Explicitement exclus de la V1.0 et au-delà, sauf décision explicite de l'utili
 
 Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase de **code** (phases impaires 01-15). Les Review Gates (phases paires 02-16) vérifient les REQ de la phase de code précédente mais ne les possèdent pas.
 
-**Note :** le compte total précédemment documenté à "77" dans l'en-tête original est une erreur arithmétique ; la somme réelle est **86** v1 requirements (FOUND:8 + SESS:9 + GPS:8 + MIRK:10 + MAP:5 + MARK:10 + CAT:6 + PORT:13 + OPT:7 + ABOUT:5 + QUAL:5 = 86). Corrigé ici.
+**Note :** le compte total précédemment documenté à "77" dans l'en-tête original est une erreur arithmétique ; la somme réelle est **87** v1 requirements (FOUND:8 + SESS:9 + GPS:8 + MIRK:10 + MAP:6 + MARK:10 + CAT:6 + PORT:13 + OPT:7 + ABOUT:5 + QUAL:5 = 87). MAP-06 ajouté en 2026-04-19 pour capturer la contrainte d'abstraction du renderer de carte (V2 parchment RPG).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -221,6 +222,7 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | MAP-03 | Phase 07 | Pending |
 | MAP-04 | Phase 07 | Pending |
 | MAP-05 | Phase 07 | Pending |
+| MAP-06 | Phase 07 | Pending |
 | MARK-01 | Phase 11 | Pending |
 | MARK-02 | Phase 11 | Pending |
 | MARK-03 | Phase 11 | Pending |
@@ -269,8 +271,8 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | QUAL-05 | Phase 15 | Pending |
 
 **Coverage:**
-- v1 requirements: **86 total** (FOUND:8, SESS:9, GPS:8, MIRK:10, MAP:5, MARK:10, CAT:6, PORT:13, OPT:7, ABOUT:5, QUAL:5)
-- Mapped to phases: **86 / 86 (100%)**
+- v1 requirements: **87 total** (FOUND:8, SESS:9, GPS:8, MIRK:10, MAP:6, MARK:10, CAT:6, PORT:13, OPT:7, ABOUT:5, QUAL:5)
+- Mapped to phases: **87 / 87 (100%)**
 - Unmapped: 0
 
 **Distribution par phase de code :**
@@ -280,14 +282,14 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | 01 Foundation | FOUND (8) | 8 |
 | 03 Persistence & Domain Models | SESS-06 (DB invariant), MIRK-03 (storage invariant) | 2 |
 | 05 GPS & Session Lifecycle | SESS (8: 01-05, 07-09), GPS (8), QUAL (4: 01-04) | 20 |
-| 07 Map Integration | MAP (5) | 5 |
+| 07 Map Integration | MAP (6) | 6 |
 | 09 Fog Rendering | MIRK (5: 01, 02, 04, 05, 06) | 5 |
 | 11 Markers & Categories | MARK (10), CAT (6) | 16 |
 | 13 Import/Export, Mirk Styles & Options | PORT (13), MIRK (4: 07-10), OPT (7) | 24 |
 | 15 Polish, About & Release | ABOUT (5), QUAL (1: 05) | 6 |
-| **Total mappé** | | **86 — chaque REQ mappé à exactement une phase** |
+| **Total mappé** | | **87 — chaque REQ mappé à exactement une phase** |
 
-*Somme de vérification : 8 + 2 + 20 + 5 + 5 + 16 + 24 + 6 = 86 ✓*
+*Somme de vérification : 8 + 2 + 20 + 6 + 5 + 16 + 24 + 6 = 87 ✓*
 
 ---
 *Requirements defined: 2026-04-17*

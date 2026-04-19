@@ -101,6 +101,7 @@ Projet-cadeau personnel de l'auteur (pour explorer sa ville et matérialiser ses
 - **Tech stack**: Flutter (iOS + Android cibles). Dart strict mode (`strict-casts`, `strict-inference`, `strict-raw-types`). Pin exact des versions dans `pubspec.yaml`. Plugins officiels Flutter privilégiés (`geolocator`, `permission_handler`, `camera`, `shared_preferences`, `path_provider`, etc.).
 - **Plateforme dev principale**: Windows 10 + Android. iOS via CI + sideload par paliers.
 - **Fond cartographique**: doit permettre usage gratuit, y compris pour la préparation de l'abstraction offline (impact du choix OSM vs Mapbox vs autre à trancher en recherche).
+- **Map provider/renderer**: le choix du moteur de rendu de carte (`flutter_map` raster vs `maplibre_gl` vectoriel vs autre) **n'est pas arrêté** pour V1.0 et peut changer en cours de route. L'intégralité du rendu de carte (widget, tiles, markers, overlay mirk) doit être derrière une interface `MapView` / `MapRenderer` dont le reste de l'app (controllers, screens, services) ignore tout de l'implémentation. Contrainte critique car V2 vise un rendu **style "parchemin RPG"** qui exige des données vectorielles + un système de styles feedé au renderer — incompatible avec un moteur raster tile-only. Rework rétroactif sera coûteux, donc l'abstraction doit être en place dès Phase 07.
 - **Rendu du mirk**: qualité visuelle secondaire mais **couplage interdit** — l'implémentation doit être remplaçable sans toucher au reste de l'app (pattern stratégie ou équivalent).
 - **Persistance**: représentation du mirk révélé doit rester raisonnable en stockage (on ne veut pas 10 TB de points GPS — voir §9 de la spec).
 - **Background tracking**: faisabilité à valider dès POC sur iOS ET Android, incluant l'argumentaire revue App Store / Play Store.
@@ -115,6 +116,7 @@ Projet-cadeau personnel de l'auteur (pour explorer sa ville et matérialiser ses
 | Markers **visibles en transparence** sous mirk (plutôt que masqués) | Cohérent avec le use-case "pré-import de lieux à visiter avant un voyage" (import-export first) | — Pending |
 | Tuiles offline **reportées en V1.1** | Nice-to-have dans spec ; V1.0 prépare l'abstraction pour intégration facile plus tard | — Pending |
 | Rendu du mirk **découplé/générique dès V1.0** | Qualité visuelle peut évoluer, mais architecture ne doit pas être à refaire | — Pending |
+| Moteur de carte **derrière `MapRenderer` dès V1.0** | Choix du renderer (flutter_map / maplibre / autre) pas arrêté ; V2 vise un style "parchemin RPG" qui exige un renderer vectoriel avec styles — impossible de pivoter rétroactivement sans abstraction | — Pending |
 | CI = **GitHub Actions** (Android ubuntu + iOS non-signé macos) | Cohérent avec CLAUDE.md, gratuit, permet distribution via GitHub Releases | — Pending |
 | Distribution **hors stores officiels** (sideload iOS, APK direct Android) | Évite les frais Apple Developer, cohérent avec GOSL (pas de monétisation) | — Pending |
 | **Un seul système de state management** à choisir en début de projet | Imposé par CLAUDE.md, évite mélange `Provider`+`Riverpod`+`Bloc` | — Pending |
