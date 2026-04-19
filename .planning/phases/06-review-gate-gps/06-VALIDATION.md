@@ -19,8 +19,8 @@ created: 2026-04-20
 |----------|-------|
 | **Framework** | Dart `test` 1.25.x + Flutter `flutter_test` (already installed Phases 01-05) |
 | **Config file** | `dart_test.yaml` (none currently — only `analysis_options.yaml`) |
-| **Quick run command** | `dart test test/infrastructure/boot_watchdog/ test/infrastructure/platform/ test/application/permissions/ test/tooling/` |
-| **Full suite command** | `dart test test/domain/ test/infrastructure/ test/application/ test/presentation/ test/tooling/ && flutter analyze --fatal-infos --fatal-warnings && dart format --set-exit-if-changed lib/ test/ tool/` |
+| **Quick run command** | `dart test tool/test/ && flutter test test/infrastructure/platform/ test/application/permissions/ test/tooling/` |
+| **Full suite command** | `flutter test && dart test tool/test/ && flutter analyze --fatal-infos --fatal-warnings && dart format --set-exit-if-changed lib/ test/ tool/` |
 | **Estimated runtime** | ~25s (quick) / ~90s (full) on Windows dev machine |
 
 ---
@@ -46,12 +46,12 @@ Phase 06 is a review-gate phase: most tasks produce **artifacts** (REVIEW.md sec
 | 06-03-01 | 03 | 2 | SC#3 (pre-class §2 protocol) | artifact-grep | `grep -c "^- \[" .planning/phases/06-review-gate-gps/06-REVIEW.md` (must be ≥ 8 in §2) | ❌ W0 | ⬜ pending |
 | 06-03-02 | 03 | 2 | SC#4 (OEM workaround documented) | artifact-evidence | `grep -q "OemFamily" .planning/phases/06-review-gate-gps/06-REVIEW.md && grep -q "dontkillmyapp.com" .planning/phases/06-review-gate-gps/06-REVIEW.md` | ❌ W0 | ⬜ pending |
 | 06-03-03 | 03 | 2 | SC#3 (4 audit agents wave) | artifact-evidence | `grep -E "Agent #[1-4]" .planning/phases/06-review-gate-gps/06-REVIEW.md \| wc -l` (must be ≥ 4) | ❌ W0 | ⬜ pending |
-| 06-04-01 | 04 | 3 | gate-closed: MethodChannel sync | unit | `dart test test/infrastructure/boot_watchdog/method_channel_sync_test.dart` | ❌ W0 | ⬜ pending |
-| 06-04-02 | 04 | 3 | gate-closed: permission cascade | unit | `dart test test/application/permissions/location_permission_cascade_test.dart` | ❌ W0 | ⬜ pending |
-| 06-04-03 | 04 | 3 | gate-closed: OemDetector ambiguous | unit | `dart test test/infrastructure/platform/oem_detector_ambiguous_test.dart` | ❌ W0 | ⬜ pending |
+| 06-04-01 | 04 | 3 | gate-closed: MethodChannel sync | unit | `flutter test test/infrastructure/platform/method_channel_sync_test.dart` | ❌ W0 | ⬜ pending |
+| 06-04-02 | 04 | 3 | gate-closed: permission cascade | unit | `flutter test test/application/permissions/location_permission_cascade_test.dart` | ❌ W0 | ⬜ pending |
+| 06-04-03 | 04 | 3 | gate-closed: OemDetector ambiguous | unit | `flutter test test/infrastructure/platform/oem_detector_ambiguous_test.dart` | ❌ W0 | ⬜ pending |
 | 06-04-04 | 04 | 3 | gate-closed: platform manifests parsed | unit | `dart test test/tooling/platform_manifests_test.dart` | ❌ W0 | ⬜ pending |
-| 06-04-05 | 04 | 3 | gate-closed: Android boot receiver contract | unit | `dart test test/infrastructure/boot_watchdog/android_boot_receiver_contract_test.dart` | ❌ W0 | ⬜ pending |
-| 06-04-06 | 04 | 3 | gate-closed: new CI gate script behaves | unit | `dart test test/tooling/check_platform_manifests_test.dart` | ❌ W0 | ⬜ pending |
+| 06-04-05 | 04 | 3 | gate-closed: Android boot receiver contract | unit | `dart test test/infrastructure/platform/android_boot_receiver_contract_test.dart` | ❌ W0 | ⬜ pending |
+| 06-04-06 | 04 | 3 | gate-closed: new CI gate script behaves | unit | `dart test tool/test/check_platform_manifests_test.dart` | ❌ W0 | ⬜ pending |
 | 06-04-07 | 04 | 3 | gate-closed: new CI gate script clean exit on main | static-gate | `dart run tool/check_platform_manifests.dart` (exit 0) | ❌ W0 | ⬜ pending |
 | 06-04-08 | 04 | 3 | gate-closed: adversarial branch surfaces violation | CI-run | push `adversarial/06-manifest-drift`, observe `gh run view` exit-1 + stderr identifying missing entry; archive run ID into §4 | ❌ W0 | ⬜ pending |
 | 06-05-01 | 05 | 4 | SC#1 (artifacts location aligned with reality) | artifact-amendment | `grep -q "docs/qual-01-02-poc.md" .planning/ROADMAP.md && ! grep -q ".planning/pocs/phase-05/" .planning/ROADMAP.md` | ✅ (existing path) | ⬜ pending |
@@ -62,6 +62,8 @@ Phase 06 is a review-gate phase: most tasks produce **artifacts** (REVIEW.md sec
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
+> **Path correction (revision 2026-04-20):** rows 06-04-01, 06-04-05, 06-04-06 — earlier draft used stale paths (`test/infrastructure/boot_watchdog/`, `test/tooling/check_platform_manifests_test.dart`). The directory `lib/infrastructure/boot_watchdog/` was renamed to `lib/infrastructure/platform/` during Phase 05 (verified on disk: `ls lib/infrastructure/` shows `platform/`, not `boot_watchdog/`); test mirror lives at `test/infrastructure/platform/`. The paired tool unit test for `tool/check_platform_manifests.dart` lives at `tool/test/check_platform_manifests_test.dart` to match the existing Phase 02 convention (verified: `ci.yml` line 76–77 step `Tool scripts unit tests` runs `dart test tool/test/`, picking up the new test automatically — no ci.yml amendment needed for that test). Rows 06-04-01 / 06-04-02 / 06-04-03 use `flutter test` (require Flutter binding — `permission_handler.PermissionStatus`, `device_info_plus` types); rows 06-04-04 / 06-04-05 / 06-04-06 use `dart test` (pure-Dart file scan / regex parsing).
+
 ---
 
 ## Wave 0 Requirements
@@ -69,12 +71,12 @@ Phase 06 is a review-gate phase: most tasks produce **artifacts** (REVIEW.md sec
 Phase 06 has no scaffolded test stubs because the 5 adversarial unit tests + 1 tool unit test must be **hand-authored at audit time** with concrete assertions tied to the actual files on disk. Phase 06 ships them in Plan 06-04 (Wave 3), not as Wave 0 stubs. The artifact targets (REVIEW.md sections) are likewise authored progressively across Plans 06-01..06-05.
 
 - [ ] `.planning/phases/06-review-gate-gps/06-REVIEW.md` — created with 5-section skeleton in Plan 06-01
-- [ ] `test/infrastructure/boot_watchdog/method_channel_sync_test.dart` — created in Plan 06-04 (Test #1)
+- [ ] `test/infrastructure/platform/method_channel_sync_test.dart` — created in Plan 06-04 (Test #1)
 - [ ] `test/application/permissions/location_permission_cascade_test.dart` — created in Plan 06-04 (Test #2)
 - [ ] `test/infrastructure/platform/oem_detector_ambiguous_test.dart` — created in Plan 06-04 (Test #3)
 - [ ] `test/tooling/platform_manifests_test.dart` — created in Plan 06-04 (Test #4)
-- [ ] `test/infrastructure/boot_watchdog/android_boot_receiver_contract_test.dart` — created in Plan 06-04 (Test #5)
-- [ ] `test/tooling/check_platform_manifests_test.dart` — created in Plan 06-04 (paired tool test)
+- [ ] `test/infrastructure/platform/android_boot_receiver_contract_test.dart` — created in Plan 06-04 (Test #5)
+- [ ] `tool/test/check_platform_manifests_test.dart` — created in Plan 06-04 (paired tool test, runs under existing `Tool scripts unit tests` CI step)
 - [ ] `tool/check_platform_manifests.dart` — created in Plan 06-04 (new CI gate script)
 - [ ] `.github/workflows/ci.yml` — amended in Plan 06-04 (new gate step + adversarial trigger expansion on the throwaway branch only)
 
@@ -96,7 +98,7 @@ Phase 06 has no scaffolded test stubs because the 5 adversarial unit tests + 1 t
 
 ## Validation Sign-Off
 
-- [ ] All Plan 06-04 tasks have `<automated>` verify (`dart test <path>`) — gate-closed unit-test conditions covered
+- [ ] All Plan 06-04 tasks have `<automated>` verify (`dart test <path>` or `flutter test <path>`) — gate-closed unit-test conditions covered
 - [ ] All Plan 06-01..03 tasks have artifact-presence verify (`grep` over `06-REVIEW.md`) — review-protocol conditions covered
 - [ ] All Plan 06-05 tasks have artifact-amendment OR CI-run verify (`gh run` for CI green, `grep` for ROADMAP amendment) — gate-closure conditions covered
 - [ ] Sampling continuity: no 3 consecutive tasks without automated verify (full suite required between plan waves)
