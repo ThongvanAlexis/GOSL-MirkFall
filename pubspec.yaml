@@ -55,6 +55,21 @@ dependencies:
   json_annotation: 4.11.0
   file_picker: 11.0.2
   collection: 1.19.1
+  # Phase 05 plan 05-02: OEM family detection for the GPS-08 guidance
+  # screen (Xiaomi / Samsung / Huawei / OnePlus / OPPO / Realme battery
+  # killers — see 05-RESEARCH.md Pitfall #8). device_info_plus 12.4.0 is
+  # BSD-3-Clause + publisher-verified fluttercommunity.dev; audited +
+  # documented in DEPENDENCIES.md.
+  #
+  # Pinning note: 05-02-PLAN.md called for 13.0.0 but that release bumps
+  # its Windows backend transitive to `win32: ^6.0.0`, incompatible with
+  # the currently-pinned `file_picker: 11.0.2` which holds
+  # `win32: ^5.9.0`. 12.4.0 is the highest `device_info_plus` line that
+  # still resolves against `win32: ^5.11.0` (compatible with file_picker
+  # 11.0.2). Same API surface for AndroidDeviceInfo.manufacturer/brand
+  # used by OemDetector — the version bump was purely a Windows
+  # transitive. Re-evaluate the 13.x bump when file_picker is upgraded.
+  device_info_plus: 12.4.0
 
 dev_dependencies:
   flutter_test:

@@ -16,7 +16,11 @@ _Marker _$MarkerFromJson(Map<String, dynamic> json) => _Marker(
   createdAtUtc: DateTime.parse(json['createdAtUtc'] as String),
   createdAtOffsetMinutes: (json['createdAtOffsetMinutes'] as num).toInt(),
   notes: json['notes'] as String?,
-  photos: (json['photos'] as List<dynamic>?)?.map((e) => PhotoRef.fromJson(e as Map<String, dynamic>)).toList() ?? const <PhotoRef>[],
+  photos:
+      (json['photos'] as List<dynamic>?)
+          ?.map((e) => PhotoRef.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <PhotoRef>[],
 );
 
 Map<String, dynamic> _$MarkerToJson(_Marker instance) => <String, dynamic>{

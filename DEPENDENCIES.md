@@ -28,6 +28,7 @@ Initial audit date: **2026-04-17**. Re-audit required whenever
 |---------|---------|---------|--------|-----------------|------|
 | collection | 1.19.1 | BSD-3-Clause | https://pub.dev/packages/collection | Pure Dart collection utilities. No network. | 2026-04-17 |
 | cupertino_icons | 1.0.9 | MIT | https://pub.dev/packages/cupertino_icons | Asset-only (icon font). No runtime code. | 2026-04-17 |
+| device_info_plus | 12.4.0 | BSD-3-Clause | https://pub.dev/packages/device_info_plus | Phase 05 plan 05-02 — OEM family detection for GPS-08 guidance screen (Xiaomi / Samsung / Huawei / OnePlus / OPPO / Realme battery killers per 05-RESEARCH Pitfall #8). Audit 2026-04-19: source github.com/fluttercommunity/plus_plugins/device_info_plus inspected — pure platform-info queries (Android Build.MANUFACTURER / iOS UIDevice / Windows Registry / Linux /etc/os-release). Network audit: `grep -rni "analytics\|crashlytics\|sentry\|firebase\|mixpanel\|amplitude" lib/` returned 0 matches. HTTP audit: `grep -rn "package:http\|package:dio\|HttpClient" lib/` returned 0 matches. License file in pub cache: `Copyright 2017 The Chromium Authors` + standard BSD 3-clause preamble (inherited from flutter.dev/community plus_plugins convention). Publisher: fluttercommunity.dev (verified). Version pin note: 05-02-PLAN.md specified 13.0.0 but that release transitively requires `win32: ^6.0.0`, incompatible with the pinned `file_picker: 11.0.2` constraint `win32: ^5.9.0`. 12.4.0 is the highest line that still resolves against `win32: ^5.11.0` and exposes the same `AndroidDeviceInfo.manufacturer` + `brand` surface used by `OemDetector`. Re-evaluate 13.x when file_picker is upgraded. | 2026-04-19 |
 | drift | 2.32.1 | MIT | https://pub.dev/packages/drift | SQLite ORM. Local DB access only, no network. | 2026-04-17 |
 | drift_flutter | 0.3.0 | MIT | https://pub.dev/packages/drift_flutter | Flutter glue for drift. Local-only. | 2026-04-17 |
 | file_picker | 11.0.2 | MIT | https://pub.dev/packages/file_picker | OS file picker bridge. No network. | 2026-04-17 |
@@ -106,6 +107,7 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | dart_polylabel2 | 1.0.0 | BSD-3-Clause | flutter_map | Pure geometry. | 2026-04-17 |
 | dart_style | 3.1.7 | BSD-3-Clause | build_runner | Dev-only formatter. Bumped 2026-04-18 from 3.1.3 via `dependency_overrides` — 3.1.8 requires analyzer ^12, but our override holds analyzer at ^10, so 3.1.7 (supports analyzer >=10 <12) is the ceiling. | 2026-04-18 |
 | dbus | 0.7.12 | MPL-2.0-Linux-only | flutter_local_notifications_linux, geolocator_linux, gsettings | Linux-only transitive; does not ship on Android/iOS. MPL-2.0 is file-level weak-copyleft, does not contaminate combined work. Override in tool/check_licenses.dart. | 2026-04-17 |
+| device_info_plus_platform_interface | 7.0.3 | BSD-3-Clause | device_info_plus | Platform interface contract for device_info_plus. License in pub cache: Chromium Authors + BSD 3-clause preamble. No analytics, no HTTP imports. Added 2026-04-19 with device_info_plus 12.4.0. | 2026-04-19 |
 | fake_async | 1.3.3 | Apache-2.0 | flutter_test | Testing utility. | 2026-04-17 |
 | ffi | 2.2.0 | BSD-3-Clause | native plugins | FFI bindings. | 2026-04-17 |
 | file | 7.0.1 | BSD-3-Clause | build_runner | Dev-only FS abstraction. | 2026-04-17 |
@@ -224,6 +226,7 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | web_socket_channel | 3.0.3 | BSD-3-Clause | shelf_web_socket | Dev-only. | 2026-04-17 |
 | webkit_inspection_protocol | 1.2.1 | BSD-3-Clause | test | Dev-only. | 2026-04-17 |
 | win32 | 5.15.0 | BSD-3-Clause | Windows-only surfaces | Win32 FFI bindings. | 2026-04-17 |
+| win32_registry | 2.1.0 | BSD-3-Clause | device_info_plus (Windows) | Windows registry FFI helpers used by device_info_plus to read OS version. License file: "BSD 3-Clause License / Copyright (c) 2023, Halil Durmus". Windows-only; not shipped on Android/iOS. Added 2026-04-19 with device_info_plus 12.4.0. | 2026-04-19 |
 | wkt_parser | 2.0.0 | MIT | flutter_map | Pure WKT parser. | 2026-04-17 |
 | xdg_directories | 1.1.0 | BSD-3-Clause | path_provider_linux | Linux-only directory resolution. | 2026-04-17 |
 | xml | 6.6.1 | MIT | flutter_map | Pure Dart XML parser. | 2026-04-17 |

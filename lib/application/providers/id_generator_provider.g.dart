@@ -29,7 +29,9 @@ final idGeneratorProvider = IdGeneratorProvider._();
 /// directly (bypassing the provider graph) — provider overrides are
 /// exercised in widget tests from Phase 07 onward.
 
-final class IdGeneratorProvider extends $FunctionalProvider<IdGenerator, IdGenerator, IdGenerator> with $Provider<IdGenerator> {
+final class IdGeneratorProvider
+    extends $FunctionalProvider<IdGenerator, IdGenerator, IdGenerator>
+    with $Provider<IdGenerator> {
   /// Production [IdGenerator] — [`RandomIdGenerator`] backed by
   /// `Random.secure()` (safe across trust boundaries).
   ///
@@ -39,14 +41,23 @@ final class IdGeneratorProvider extends $FunctionalProvider<IdGenerator, IdGener
   /// directly (bypassing the provider graph) — provider overrides are
   /// exercised in widget tests from Phase 07 onward.
   IdGeneratorProvider._()
-    : super(from: null, argument: null, retry: null, name: r'idGeneratorProvider', isAutoDispose: false, dependencies: null, $allTransitiveDependencies: null);
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'idGeneratorProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$idGeneratorHash();
 
   @$internal
   @override
-  $ProviderElement<IdGenerator> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+  $ProviderElement<IdGenerator> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
   IdGenerator create(Ref ref) {
@@ -55,7 +66,10 @@ final class IdGeneratorProvider extends $FunctionalProvider<IdGenerator, IdGener
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(IdGenerator value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<IdGenerator>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<IdGenerator>(value),
+    );
   }
 }
 
