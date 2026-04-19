@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 05 not started (waiting for user kickoff)
-status: Ready for next phase
-stopped_at: Phase 05 context gathered
-last_updated: "2026-04-19T08:02:43.265Z"
+current_plan: 05-02 (GPS infrastructure) next up
+status: executing
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-04-19T09:38:22.455Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 16
   completed_phases: 4
-  total_plans: 19
-  completed_plans: 19
-  percent: 96
+  total_plans: 25
+  completed_plans: 20
+  percent: 80
 ---
 
 # Project State
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 04 of 16 (Review Gate — Persistence) COMPLETE — ready to open Phase 05
-Current Plan: Phase 05 not started (waiting for user kickoff)
-Total Plans in Phase 04: 5 / 5 done
-Status: Ready for next phase
+Phase: 05 of 16 (GPS & Session Lifecycle) IN PROGRESS — 1 / 6 plans done
+Current Plan: 05-02 (GPS infrastructure) next up
+Total Plans in Phase 05: 1 / 6 done
+Status: In progress — Phase 05 execution
 Last Activity: 2026-04-19
 
-Progress: [██████████] ~96% of plans across 4 completed phases (4/16 phases, 23/24 plans executed so far — Phase 05 adds plans as the POC scope is scoped)
+Progress: [████████░░] ~80% of plans across 4 completed phases + Phase 05 Plan 05-01 (20/25 plans executed so far)
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [██████████] ~96% of plans across 4 completed phas
 | Phase 04-review-gate-persistence PP3 | 30 min | 4 tasks | 2 files |
 | Phase 04-review-gate-persistence P04 | 15 min | 4 tasks | 4 files |
 | Phase 04-review-gate-persistence P05 | ~3h (batched strategy) | 2 tasks (1 fix loop + 1 closure checkpoint) | 30+ files across 10 fix batches + 11 docs markers + closure |
+| Phase 05-gps-session-lifecycle P01 | 26 min | 4 tasks | 38 files |
 
 ## Accumulated Context
 
@@ -167,6 +168,8 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 04-review-gate-persistence]: Plan 04-05 strategy deviation — user approved BATCHED fix loop (10 batches × ~10 min CI gate) over the plan's literal per-finding protocol. Trade-off: batch-granularity bisectability (git bisect locates the batch, not the individual finding) vs wall-clock parallelism (31+ CI rounds collapses to 15 sequential fix commits + 11 docs markers). `.fixes-expected=31` snapshot preserved for the historic record; the verify assertion was accepted as deliberately looser at batch scope.
 - [Phase 04-review-gate-persistence]: P4 Zone mismatch resolved via option-b (WidgetsFlutterBinding.ensureInitialized + runApp BOTH inside runZonedGuarded) after option-a (both outside, runZonedGuarded wraps logger only) failed the user walk. Architectural lesson: Flutter 3.41+'s `debugCheckZone` in `_runWidget` asserts zone identity at runApp time; the "canonical pattern" IS to wrap the whole bootstrap in one guarded zone, contra the Phase 01 RESEARCH pitfall document's stricter reading. Retained verbatim in 04-05-SUMMARY.md + main.dart comments for future maintainers.
 - [Phase 04-review-gate-persistence]: Phase 04 review gate CLOSED 2026-04-19 — 04-REVIEW.md §§1-5 complete, all 31 fix-triaged findings marked done, CI green on commit 26f3d99, all 3 jobs (gates/android/ios) succeeded. Phase 05 unblocked.
+- [Phase 05-gps-session-lifecycle]: Drift V2 to V3 uses m.createTable(db.fixes) + explicit createIndex per @TableIndex.sql (Drift 2.32.1 does NOT auto-emit indexes via createTable — Pitfall #7)
+- [Phase 05-gps-session-lifecycle]: V2 to V3 migration test uses direct sqlite_master probes (not SchemaVerifier.migrateAndValidate) — keeps stale schema_v{1,2}.dart helpers for backward-compat with V1 to V2 test
 
 ### Pending Todos
 
@@ -189,6 +192,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-19T08:02:43.256Z
-Stopped at: Phase 05 context gathered
-Resume file: .planning/phases/05-gps-session-lifecycle/05-CONTEXT.md
+Last session: 2026-04-19T09:38:22.451Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None

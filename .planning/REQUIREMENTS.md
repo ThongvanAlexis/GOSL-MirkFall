@@ -22,15 +22,15 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 
 ### Sessions (SESS)
 
-- [ ] **SESS-01**: Utilisateur peut créer une session avec un nom
-- [ ] **SESS-02**: Utilisateur peut renommer une session existante
-- [ ] **SESS-03**: Utilisateur peut supprimer une session (avec confirmation)
+- [x] **SESS-01**: Utilisateur peut créer une session avec un nom
+- [x] **SESS-02**: Utilisateur peut renommer une session existante
+- [x] **SESS-03**: Utilisateur peut supprimer une session (avec confirmation)
 - [ ] **SESS-04**: Utilisateur peut démarrer (Start) une session
 - [ ] **SESS-05**: Utilisateur peut arrêter (Stop) une session active
 - [x] **SESS-06**: Démarrer une session arrête automatiquement toute autre session en cours (exclusivité enforcée au niveau DB)
-- [ ] **SESS-07**: L'état d'une session (mirk révélé, markers, métadonnées) est persisté localement en continu
-- [ ] **SESS-08**: Utilisateur peut voir la liste de toutes ses sessions avec leur état (active / arrêtée)
-- [ ] **SESS-09**: Utilisateur peut créer un nombre illimité de sessions
+- [x] **SESS-07**: L'état d'une session (mirk révélé, markers, métadonnées) est persisté localement en continu
+- [x] **SESS-08**: Utilisateur peut voir la liste de toutes ses sessions avec leur état (active / arrêtée)
+- [x] **SESS-09**: Utilisateur peut créer un nombre illimité de sessions
 
 ### GPS / Tracking (GPS)
 
@@ -189,15 +189,15 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | FOUND-06 | Phase 01 | Complete |
 | FOUND-07 | Phase 01 | Complete |
 | FOUND-08 | Phase 01 | Complete |
-| SESS-01 | Phase 05 | Pending |
-| SESS-02 | Phase 05 | Pending |
-| SESS-03 | Phase 05 | Pending |
+| SESS-01 | Phase 05 | Complete |
+| SESS-02 | Phase 05 | Complete |
+| SESS-03 | Phase 05 | Complete |
 | SESS-04 | Phase 05 | Pending |
 | SESS-05 | Phase 05 | Pending |
 | SESS-06 | Phase 03 | Complete |
-| SESS-07 | Phase 05 | Pending |
-| SESS-08 | Phase 05 | Pending |
-| SESS-09 | Phase 05 | Pending |
+| SESS-07 | Phase 05 | Complete |
+| SESS-08 | Phase 05 | Complete |
+| SESS-09 | Phase 05 | Complete |
 | GPS-01 | Phase 05 | Pending |
 | GPS-02 | Phase 05 | Pending |
 | GPS-03 | Phase 05 | Pending |
