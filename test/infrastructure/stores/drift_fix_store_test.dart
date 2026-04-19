@@ -78,11 +78,7 @@ void main() {
   });
 
   test('insertPersistsAllColumns — round-trip through listBySession', () async {
-    final fix = _buildFix(
-      fixId: 'fix_01HRFIXSTORE00000000000AA',
-      sessionId: sessionId,
-      epochMs: 1765000000000,
-    );
+    final fix = _buildFix(fixId: 'fix_01HRFIXSTORE00000000000AA', sessionId: sessionId, epochMs: 1765000000000);
     await store.insert(fix);
 
     final rows = await store.listBySession(sessionId);

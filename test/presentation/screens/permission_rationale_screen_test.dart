@@ -9,9 +9,5 @@ import 'package:flutter_test/flutter_test.dart';
 /// Full-screen rationale: title + 3–4 line body + Continue / "Pas
 /// maintenant" buttons. Lands in Plan 05-03.
 void main() {
-  test(
-    'placeholder',
-    () {},
-    skip: 'stub — PermissionRationaleScreen lands in Plan 05-03 (GPS-01)',
-  );
+  test('placeholder', () {}, skip: 'stub — PermissionRationaleScreen lands in Plan 05-03 (GPS-01)');
 }

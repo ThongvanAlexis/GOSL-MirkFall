@@ -10,9 +10,5 @@ import 'package:test/test.dart';
 /// replaces the stub body with tests that reference `GeolocatorLocationStream`
 /// and platform `Position` — both land in that plan.
 void main() {
-  test(
-    'placeholder',
-    () {},
-    skip: 'stub — GeolocatorLocationStream lands in Plan 05-02 (GPS-02 infra)',
-  );
+  test('placeholder', () {}, skip: 'stub — GeolocatorLocationStream lands in Plan 05-02 (GPS-02 infra)');
 }

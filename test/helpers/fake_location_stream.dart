@@ -37,8 +37,7 @@ class FakeLocationStream implements LocationStream {
   void emit(Fix fix) => _controller.add(fix);
 
   /// Injects a stream error.
-  void emitError(Object error, [StackTrace? stackTrace]) =>
-      _controller.addError(error, stackTrace);
+  void emitError(Object error, [StackTrace? stackTrace]) => _controller.addError(error, stackTrace);
 
   Object? get capturedSessionId => _sessionId;
   int? get capturedDistanceFilter => _distanceFilter;

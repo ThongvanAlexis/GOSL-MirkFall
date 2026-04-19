@@ -42,6 +42,12 @@ class DriftSessionStore implements SessionStore {
   }
 
   @override
+  Stream<List<Session>> watchAll() {
+    final query = _db.select(_db.sessions)..orderBy([(t) => OrderingTerm(expression: t.startedAtUtc, mode: OrderingMode.desc)]);
+    return query.watch().map((rows) => rows.map(_hydrate).toList(growable: false));
+  }
+
+  @override
   Future<Session?> findById(SessionId id) async {
     final row = await (_db.select(_db.sessions)..where((t) => t.id.equals(id.value))).getSingleOrNull();
     return row == null ? null : _hydrate(row);

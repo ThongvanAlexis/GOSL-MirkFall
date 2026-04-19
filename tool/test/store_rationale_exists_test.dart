@@ -14,7 +14,8 @@ void main() {
   test(
     'placeholder',
     () {},
-    skip: 'stub — docs/store-review-rationale.md headings assertion '
+    skip:
+        'stub — docs/store-review-rationale.md headings assertion '
         'lands in Plan 05-06 (QUAL-03)',
   );
 }

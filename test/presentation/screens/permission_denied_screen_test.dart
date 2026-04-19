@@ -9,9 +9,5 @@ import 'package:flutter_test/flutter_test.dart';
 /// Deep-link to system settings via `permission_handler.openAppSettings()`.
 /// Lands in Plan 05-03.
 void main() {
-  test(
-    'placeholder',
-    () {},
-    skip: 'stub — PermissionDeniedScreen lands in Plan 05-03 (GPS-07)',
-  );
+  test('placeholder', () {}, skip: 'stub — PermissionDeniedScreen lands in Plan 05-03 (GPS-07)');
 }

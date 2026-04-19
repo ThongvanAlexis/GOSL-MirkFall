@@ -9,9 +9,5 @@ import 'package:test/test.dart';
 /// Verifies the channel-id / title / importance contract around
 /// `flutter_local_notifications`. Plan 05-02 implements.
 void main() {
-  test(
-    'placeholder',
-    () {},
-    skip: 'stub — SessionNotificationService lands in Plan 05-02 (GPS-04)',
-  );
+  test('placeholder', () {}, skip: 'stub — SessionNotificationService lands in Plan 05-02 (GPS-04)');
 }

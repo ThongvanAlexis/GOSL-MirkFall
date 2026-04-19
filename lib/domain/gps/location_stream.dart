@@ -20,10 +20,7 @@ abstract class LocationStream {
   /// Platform-level errors (permission denied, service disabled) are
   /// propagated as stream errors typed via `lib/domain/gps/gps_errors.dart`
   /// (created Plan 05-03).
-  Stream<Fix> positions({
-    required Object sessionId,
-    required int distanceFilterMeters,
-  });
+  Stream<Fix> positions({required Object sessionId, required int distanceFilterMeters});
 
   /// Cancels the stream cleanly. Safe to call more than once.
   Future<void> dispose();

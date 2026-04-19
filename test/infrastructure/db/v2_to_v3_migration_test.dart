@@ -66,9 +66,7 @@ void main() {
         await prodDb.customStatement('SELECT 1');
 
         // t_fixes exists, is queryable, and carries 0 rows.
-        final fixesCount = await prodDb
-            .customSelect('SELECT COUNT(*) AS c FROM t_fixes')
-            .getSingle();
+        final fixesCount = await prodDb.customSelect('SELECT COUNT(*) AS c FROM t_fixes').getSingle();
         expect(fixesCount.read<int>('c'), 0);
 
         // Both indexes were created as part of the migration.
@@ -81,10 +79,7 @@ void main() {
         final indexNames = indexRows.map((r) => r.read<String>('name')).toList();
         expect(
           indexNames,
-          containsAll(<String>[
-            'idx_t_fixes_session_id',
-            'idx_t_fixes_session_recorded_at',
-          ]),
+          containsAll(<String>['idx_t_fixes_session_id', 'idx_t_fixes_session_recorded_at']),
           reason: 'V2→V3 migration must emit both t_fixes indexes (Pitfall #7)',
         );
       } finally {
@@ -112,9 +107,7 @@ void main() {
       try {
         await prodDb.customStatement('SELECT 1');
 
-        final rows = await prodDb
-            .customSelect('SELECT COUNT(*) AS c FROM t_sessions')
-            .getSingle();
+        final rows = await prodDb.customSelect('SELECT COUNT(*) AS c FROM t_sessions').getSingle();
         expect(rows.read<int>('c'), 5, reason: 'V2 session rows lost through V2→V3 migration');
 
         // Notes column (V1→V2 addition) survives V2→V3.
@@ -133,9 +126,7 @@ void main() {
           "VALUES ('fix_01HRV3FIXINSTEST00000000AA', "
           "'sess_01HRV3DATAPRESRVK0AAAAAAAA', 1765000000000, 0, 0.0, 0.0, 5.0)",
         );
-        final fixesCount = await prodDb
-            .customSelect('SELECT COUNT(*) AS c FROM t_fixes')
-            .getSingle();
+        final fixesCount = await prodDb.customSelect('SELECT COUNT(*) AS c FROM t_fixes').getSingle();
         expect(fixesCount.read<int>('c'), 1);
       } finally {
         await prodDb.close();

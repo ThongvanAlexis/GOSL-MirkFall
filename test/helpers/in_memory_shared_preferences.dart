@@ -12,9 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///
 /// Requires the widget-test binding to be initialised by the caller
 /// (`TestWidgetsFlutterBinding.ensureInitialized()`).
-Future<SharedPreferences> primeSharedPreferences([
-  Map<String, Object>? seed,
-]) async {
+Future<SharedPreferences> primeSharedPreferences([Map<String, Object>? seed]) async {
   SharedPreferences.setMockInitialValues(seed ?? const <String, Object>{});
   return SharedPreferences.getInstance();
 }

@@ -51,4 +51,12 @@ abstract class SessionStore {
 
   /// Stops the session (transitions status `active` -> `stopped`).
   Future<void> deactivate(SessionId id);
+
+  /// Emits the current list of sessions on every row change in
+  /// `t_sessions`. Ordering matches [listAll] — `startedAtUtc` DESC.
+  ///
+  /// First emission carries the current snapshot. Consumed by
+  /// `SessionListScreen` in Plan 05-05; Phase 11 and Phase 13 reuse.
+  /// Resolves 05-RESEARCH Open Question #5.
+  Stream<List<Session>> watchAll();
 }

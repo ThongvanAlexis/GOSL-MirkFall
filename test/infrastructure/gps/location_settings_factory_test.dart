@@ -10,9 +10,5 @@ import 'package:test/test.dart';
 /// `foregroundNotificationConfig` on Android, `AppleSettings` with
 /// `allowBackgroundLocationUpdates` on iOS. Plan 05-02 implements.
 void main() {
-  test(
-    'placeholder',
-    () {},
-    skip: 'stub — LocationSettingsFactory lands in Plan 05-02 (GPS-05)',
-  );
+  test('placeholder', () {}, skip: 'stub — LocationSettingsFactory lands in Plan 05-02 (GPS-05)');
 }

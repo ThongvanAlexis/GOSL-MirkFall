@@ -9,9 +9,5 @@ import 'package:flutter_test/flutter_test.dart';
 /// Exercises the `flutter.baseflow.com/permissions/methods` MethodChannel
 /// mock to drive the rationale → OS prompt → OEM guidance wizard.
 void main() {
-  test(
-    'placeholder',
-    () {},
-    skip: 'stub — location permission flow orchestrator lands in Plan 05-02 (GPS-01)',
-  );
+  test('placeholder', () {}, skip: 'stub — location permission flow orchestrator lands in Plan 05-02 (GPS-01)');
 }

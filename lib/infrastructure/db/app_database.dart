@@ -2,6 +2,16 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+// ignore_for_file: recursive_getters
+// Drift's `.check()` builder takes an `Expression<bool>` that references
+// the column getter itself. The self-reference is the documented Drift
+// pattern (https://drift.simonbinder.eu/docs/getting-started/advanced_dart_tables/)
+// — the build_runner rewrites the getter body, so the runtime path never
+// enters the getter recursively. Hoisting the `ignore` to file scope
+// keeps the column declarations readable after `dart format` reflows the
+// `check(...)` expression across multiple lines (which moves the
+// diagnostic origin line away from any narrow `// ignore:` placement).
+
 import 'package:drift/drift.dart';
 // Re-exported through `part 'app_database.g.dart'` — the generated code
 // references `MirkStyleConfig` directly, so the enclosing library must
@@ -43,30 +53,16 @@ class Sessions extends Table {
   // DB-level CHECK constraint (finding #10, Batch B) — defense-in-depth on
   // top of the `SessionStatusStringConverter` contract. Raw SQL inserts that
   // bypass the converter will now be refused by SQLite itself.
-  // ignore: recursive_getters
   TextColumn get status => text().check(status.isIn(const <String>['active', 'stopped']))();
   IntColumn get startedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
-  // Drift's `check()` takes an `Expression<bool>` that references the column
-  // itself — the self-reference is the documented pattern (see
-  // https://drift.simonbinder.eu/docs/getting-started/advanced_dart_tables/
-  // and the package doc example). `recursive_getters` is a false positive
-  // here because the body is rewritten by the build_runner builder; the
-  // actual runtime path never enters the getter recursively.
-  // ignore: recursive_getters
-  IntColumn get startedAtOffsetMinutes =>
-      // ignore: recursive_getters
-      integer().check(startedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
+  IntColumn get startedAtOffsetMinutes => integer().check(startedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
   IntColumn get stoppedAtUtc => integer().nullable().map(const UnixMsToDateTimeConverter())();
   // Finding #12 (Batch B) — offset-CHECK asymmetry: extend `[-720, 840]`
   // bound to `stoppedAtOffsetMinutes` parity with `startedAtOffsetMinutes`.
   // SQLite CHECK evaluates to UNKNOWN on NULL and does NOT fail, so null
   // rows (in-flight sessions) remain allowed; only out-of-range non-null
   // values are rejected.
-  // ignore: recursive_getters
-  IntColumn get stoppedAtOffsetMinutes =>
-      integer().nullable()
-      // ignore: recursive_getters
-      .check(stoppedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
+  IntColumn get stoppedAtOffsetMinutes => integer().nullable().check(stoppedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   // V2: fictive notes column — see migrations/v1_to_v2_notes.dart for
   // rationale. Ships nullable to match the V1->V2 `ALTER TABLE ... ADD
@@ -98,10 +94,7 @@ class MarkerCategories extends Table {
   TextColumn get iconName => text()();
   IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
-  // ignore: recursive_getters
-  IntColumn get createdAtOffsetMinutes =>
-      // ignore: recursive_getters
-      integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
+  IntColumn get createdAtOffsetMinutes => integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -131,10 +124,7 @@ class Markers extends Table {
   TextColumn get notes => text().nullable()();
   IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
-  // ignore: recursive_getters
-  IntColumn get createdAtOffsetMinutes =>
-      // ignore: recursive_getters
-      integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
+  IntColumn get createdAtOffsetMinutes => integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -202,10 +192,7 @@ class MirkStyles extends Table {
   TextColumn get config => text().map(const MirkStyleConfigJsonConverter())();
   IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
-  // ignore: recursive_getters
-  IntColumn get createdAtOffsetMinutes =>
-      // ignore: recursive_getters
-      integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
+  IntColumn get createdAtOffsetMinutes => integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -218,9 +205,9 @@ class MirkStyles extends Table {
 ///
 /// CHECK constraints mirror the domain `@Assert` invariants on `Fix`
 /// (lat in [-90, 90], lon in [-180, 180], accuracy >= 0, offset range).
-/// The `// ignore: recursive_getters` pragmas are the documented Drift
-/// pattern for in-class CHECK constraints — see the Sessions table for
-/// the full rationale already captured in 03-persistence-domain-models.
+/// Recursive-getter false-positives from the `column.check(column.expr)`
+/// self-reference are suppressed at file scope — see the top-of-file
+/// `ignore_for_file: recursive_getters` directive.
 ///
 /// Indexes:
 /// - `idx_t_fixes_session_id` — cheap lookup when deleting all fixes for
@@ -241,15 +228,9 @@ class Fixes extends Table {
   TextColumn get id => text()();
   TextColumn get sessionId => text().references(Sessions, #id, onDelete: KeyAction.cascade)();
   IntColumn get recordedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
-  // ignore: recursive_getters
-  IntColumn get recordedAtOffsetMinutes =>
-      // ignore: recursive_getters
-      integer().check(recordedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
-  // ignore: recursive_getters
+  IntColumn get recordedAtOffsetMinutes => integer().check(recordedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
   RealColumn get latitude => real().check(latitude.isBetweenValues(-90.0, 90.0))();
-  // ignore: recursive_getters
   RealColumn get longitude => real().check(longitude.isBetweenValues(-180.0, 180.0))();
-  // ignore: recursive_getters
   RealColumn get accuracyMeters => real().check(accuracyMeters.isBiggerOrEqualValue(0.0))();
   RealColumn get altitudeMeters => real().nullable()();
   RealColumn get speedMps => real().nullable()();
@@ -276,10 +257,7 @@ class Photos extends Table {
   IntColumn get fileSizeBytes => integer()();
   IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
-  // ignore: recursive_getters
-  IntColumn get createdAtOffsetMinutes =>
-      // ignore: recursive_getters
-      integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
+  IntColumn get createdAtOffsetMinutes => integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

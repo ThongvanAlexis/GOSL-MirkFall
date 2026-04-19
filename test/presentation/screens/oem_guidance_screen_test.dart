@@ -9,9 +9,5 @@ import 'package:flutter_test/flutter_test.dart';
 /// Per-family steps (Xiaomi / Samsung / Huawei / OnePlus / OPPO / Realme)
 /// with `dontkillmyapp.com/[vendor]` link. Lands in Plan 05-04.
 void main() {
-  test(
-    'placeholder',
-    () {},
-    skip: 'stub — OemGuidanceScreen lands in Plan 05-04 (GPS-08 UI)',
-  );
+  test('placeholder', () {}, skip: 'stub — OemGuidanceScreen lands in Plan 05-04 (GPS-08 UI)');
 }

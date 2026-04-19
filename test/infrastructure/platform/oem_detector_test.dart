@@ -11,9 +11,5 @@ import 'package:test/test.dart';
 /// substring match). Plan 05-02 implements the OemDetector + sealed
 /// OemFamily hierarchy.
 void main() {
-  test(
-    'placeholder',
-    () {},
-    skip: 'stub — OemDetector lands in Plan 05-02 (GPS-08)',
-  );
+  test('placeholder', () {}, skip: 'stub — OemDetector lands in Plan 05-02 (GPS-08)');
 }

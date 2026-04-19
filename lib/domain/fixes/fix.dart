@@ -43,10 +43,7 @@ abstract class Fix with _$Fix {
   @Assert('latitude >= -90.0 && latitude <= 90.0', 'Fix.latitude out of [-90, 90]')
   @Assert('longitude >= -180.0 && longitude <= 180.0', 'Fix.longitude out of [-180, 180]')
   @Assert('accuracyMeters >= 0.0', 'Fix.accuracyMeters must be non-negative')
-  @Assert(
-    'recordedAtOffsetMinutes >= -720 && recordedAtOffsetMinutes <= 840',
-    'Fix.recordedAtOffsetMinutes out of range (UTC-12 to UTC+14)',
-  )
+  @Assert('recordedAtOffsetMinutes >= -720 && recordedAtOffsetMinutes <= 840', 'Fix.recordedAtOffsetMinutes out of range (UTC-12 to UTC+14)')
   factory Fix({
     @JsonKey(fromJson: fixIdFromJson, toJson: fixIdToJson) required FixId id,
     @JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required SessionId sessionId,

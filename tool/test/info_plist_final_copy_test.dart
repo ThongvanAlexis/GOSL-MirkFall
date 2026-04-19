@@ -11,9 +11,5 @@ import 'package:test/test.dart';
 /// + `NSLocationAlwaysAndWhenInUseUsageDescription` and asserts the string
 /// values do not contain "TODO". Lands in Plan 05-06.
 void main() {
-  test(
-    'placeholder',
-    () {},
-    skip: 'stub — Info.plist final-copy assertion lands in Plan 05-06 (QUAL-04)',
-  );
+  test('placeholder', () {}, skip: 'stub — Info.plist final-copy assertion lands in Plan 05-06 (QUAL-04)');
 }

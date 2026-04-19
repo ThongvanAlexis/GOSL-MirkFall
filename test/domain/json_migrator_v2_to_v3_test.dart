@@ -37,24 +37,14 @@ void main() {
     });
 
     test('fixture: v2_to_v3_envelope.json round-trips with unchanged payload', () {
-      final fixtureFilename = p.join(
-        Directory.current.path,
-        'test',
-        'fixtures',
-        'json',
-        'v2_to_v3_envelope.json',
-      );
+      final fixtureFilename = p.join(Directory.current.path, 'test', 'fixtures', 'json', 'v2_to_v3_envelope.json');
       final raw = jsonDecode(File(fixtureFilename).readAsStringSync()) as Map<String, Object?>;
 
       final envelope = Envelope.parse(raw);
       expect(envelope.schemaVersion, 2);
 
       final migrator = JsonMigrator(<JsonMigration>[V2ToV3Fixes()]);
-      final migrated = migrator.migrate(
-        fromVersion: envelope.schemaVersion,
-        toVersion: 3,
-        payload: envelope.payload,
-      );
+      final migrated = migrator.migrate(fromVersion: envelope.schemaVersion, toVersion: 3, payload: envelope.payload);
 
       expect(migrated, envelope.payload);
     });

@@ -35,13 +35,7 @@ void main() {
     await db.customStatement('SELECT 1');
     store = DriftSessionStore(db);
     await store.insert(
-      Session(
-        id: sessionId,
-        displayName: 'Initial',
-        status: SessionStatus.stopped,
-        startedAtUtc: DateTime.utc(2026, 4, 19, 8),
-        startedAtOffsetMinutes: 120,
-      ),
+      Session(id: sessionId, displayName: 'Initial', status: SessionStatus.stopped, startedAtUtc: DateTime.utc(2026, 4, 19, 8), startedAtOffsetMinutes: 120),
     );
   });
 
@@ -64,10 +58,7 @@ void main() {
 
     // Second rename to the same value — must not throw.
     final refreshed = await store.requireById(sessionId);
-    expect(
-      () async => store.update(refreshed.copyWith(displayName: 'Renamed')),
-      returnsNormally,
-    );
+    expect(() async => store.update(refreshed.copyWith(displayName: 'Renamed')), returnsNormally);
 
     final reread = await store.requireById(sessionId);
     expect(reread.displayName, 'Renamed');

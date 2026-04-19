@@ -13,7 +13,8 @@ void main() {
   test(
     'placeholder',
     () {},
-    skip: 'stub — ActiveSessionController lands in Plan 05-02 (GPS-02) '
+    skip:
+        'stub — ActiveSessionController lands in Plan 05-02 (GPS-02) '
         'and Plan 05-04 (SESS-05 end-to-end UI)',
   );
 }

@@ -10,9 +10,5 @@ import 'package:test/test.dart';
 /// decide whether to push the "tap to resume" local notification. Plan
 /// 05-05 implements.
 void main() {
-  test(
-    'placeholder',
-    () {},
-    skip: 'stub — BootCompletedWatchdog lands in Plan 05-05 (GPS-06)',
-  );
+  test('placeholder', () {}, skip: 'stub — BootCompletedWatchdog lands in Plan 05-05 (GPS-06)');
 }

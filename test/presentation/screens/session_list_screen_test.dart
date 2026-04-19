@@ -8,9 +8,5 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// SessionListScreen replaces PlaceholderHomeScreen at `/` in Plan 05-05.
 void main() {
-  test(
-    'placeholder',
-    () {},
-    skip: 'stub — SessionListScreen lands in Plan 05-05 (SESS-01 / SESS-08)',
-  );
+  test('placeholder', () {}, skip: 'stub — SessionListScreen lands in Plan 05-05 (SESS-01 / SESS-08)');
 }

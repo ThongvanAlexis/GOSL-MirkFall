@@ -12,7 +12,8 @@ void main() {
   test(
     'placeholder',
     () {},
-    skip: 'stub — SessionDetailScreen lands in Plan 05-05 (SESS-03) '
+    skip:
+        'stub — SessionDetailScreen lands in Plan 05-05 (SESS-03) '
         'and Plan 05-04 (SESS-05 end-to-end UI)',
   );
 }
