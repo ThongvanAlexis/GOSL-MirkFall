@@ -14,23 +14,35 @@ import 'package:permission_handler/permission_handler.dart';
 /// statuses (see `test/application/permissions/location_permission_flow_test.dart`).
 typedef PermissionRequester = Future<PermissionStatus> Function(Permission permission);
 
-/// Orchestrates the two-step Android 10+ location permission chain
-/// (locationWhenInUse -> locationAlways).
+/// Orchestrates the Android permission chain required for a GPS session :
+/// `Permission.notification` -> `locationWhenInUse` -> `locationAlways`.
 ///
 /// This is a pure top-level function, not a widget or service class —
 /// single caller (Plan 05-04 PermissionRationaleScreen) and no state to
 /// retain. Testable via the injected [requestPermission] seam without
 /// relying on `PermissionHandlerPlatform` test channels.
 ///
-/// **Why two steps?** On Android 10 (API 29) and above, requesting
-/// `Permission.locationAlways` without first obtaining
+/// **Why notification first?** Android 13+ (API 33+) requires
+/// `POST_NOTIFICATIONS` at runtime for ANY app-posted notification —
+/// including the one geolocator's foreground service shows while a
+/// session is tracking. Without it, the manifest declaration alone is
+/// not enough : the service still runs but the user sees no indicator.
+/// We ask it FIRST so both dialogs appear back-to-back in the rationale
+/// flow rather than one interrupting a session mid-walk. Denial does
+/// NOT block location tracking — the outcome is still derived from the
+/// location steps — but the UI will have to live without its indicator.
+/// On Android < 13 and on iOS the call is a no-op (permission_handler
+/// resolves instantly to `granted`).
+///
+/// **Why two location steps?** On Android 10 (API 29) and above,
+/// requesting `Permission.locationAlways` without first obtaining
 /// `Permission.locationWhenInUse` is silently ignored — the OS returns
 /// `denied` without showing a prompt. The chain below requests
 /// whenInUse first, checks the outcome, and ONLY THEN requests always.
 /// The `neverRequestsAlwaysIfWhenInUseNotGrantedFirst` regression test
 /// locks this invariant in.
 ///
-/// Return values map to [LocationPermissionOutcome]:
+/// Return values map to [LocationPermissionOutcome] :
 /// - [LocationPermissionOutcome.granted] — full background tracking.
 /// - [LocationPermissionOutcome.whileInUseOnly] — foreground-only.
 ///   User accepted whenInUse but declined always. UI should warn that
@@ -39,6 +51,14 @@ typedef PermissionRequester = Future<PermissionStatus> Function(Permission permi
 /// - [LocationPermissionOutcome.permanentlyDenied] — deep-link to
 ///   system settings required via [openLocationSettings].
 Future<LocationPermissionOutcome> requestLocationAlways({PermissionRequester requestPermission = _defaultRequestPermission}) async {
+  // Best-effort. Notification denial does not block the flow : the
+  // session will track fine, only the persistent foreground notification
+  // is missing. Exceptions from the plugin (very rare, typically only
+  // on misconfigured test channels) are swallowed for the same reason.
+  try {
+    await requestPermission(Permission.notification);
+  } catch (_) {}
+
   final whenInUse = await requestPermission(Permission.locationWhenInUse);
   if (whenInUse.isPermanentlyDenied) {
     return LocationPermissionOutcome.permanentlyDenied;

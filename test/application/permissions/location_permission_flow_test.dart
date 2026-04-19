@@ -35,8 +35,8 @@ class _RecordingPermissionRequester {
 void main() {
   group('requestLocationAlways', () {
     test('grantsFullAlwaysOnTwoStepSuccess', () async {
-      // Step 1 whenInUse -> granted; Step 2 always -> granted.
       final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{
+        Permission.notification: PermissionStatus.granted,
         Permission.locationWhenInUse: PermissionStatus.granted,
         Permission.locationAlways: PermissionStatus.granted,
       });
@@ -44,11 +44,14 @@ void main() {
       final outcome = await requestLocationAlways(requestPermission: fake.request);
 
       expect(outcome, LocationPermissionOutcome.granted);
-      expect(fake.requested, <Permission>[Permission.locationWhenInUse, Permission.locationAlways]);
+      expect(fake.requested, <Permission>[Permission.notification, Permission.locationWhenInUse, Permission.locationAlways]);
     });
 
     test('returnsDeniedIfWhenInUseDenied', () async {
-      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{Permission.locationWhenInUse: PermissionStatus.denied});
+      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{
+        Permission.notification: PermissionStatus.granted,
+        Permission.locationWhenInUse: PermissionStatus.denied,
+      });
 
       final outcome = await requestLocationAlways(requestPermission: fake.request);
 
@@ -56,7 +59,10 @@ void main() {
     });
 
     test('returnsPermanentlyDeniedIfWhenInUsePermanentlyDenied', () async {
-      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{Permission.locationWhenInUse: PermissionStatus.permanentlyDenied});
+      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{
+        Permission.notification: PermissionStatus.granted,
+        Permission.locationWhenInUse: PermissionStatus.permanentlyDenied,
+      });
 
       final outcome = await requestLocationAlways(requestPermission: fake.request);
 
@@ -64,8 +70,8 @@ void main() {
     });
 
     test('returnsWhileInUseOnlyIfAlwaysDeclined', () async {
-      // whenInUse -> granted; always -> denied (user accepts foreground-only).
       final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{
+        Permission.notification: PermissionStatus.granted,
         Permission.locationWhenInUse: PermissionStatus.granted,
         Permission.locationAlways: PermissionStatus.denied,
       });
@@ -77,6 +83,7 @@ void main() {
 
     test('returnsPermanentlyDeniedIfAlwaysPermanentlyDenied', () async {
       final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{
+        Permission.notification: PermissionStatus.granted,
         Permission.locationWhenInUse: PermissionStatus.granted,
         Permission.locationAlways: PermissionStatus.permanentlyDenied,
       });
@@ -87,15 +94,35 @@ void main() {
     });
 
     test('neverRequestsAlwaysIfWhenInUseNotGrantedFirst', () async {
-      // Android 10+ silently ignores a direct Always request; the two-step
-      // chain MUST request whenInUse FIRST and only proceed to always if
-      // whenInUse was granted. Regression guard.
-      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{Permission.locationWhenInUse: PermissionStatus.denied});
+      // Android 10+ silently ignores a direct Always request; the chain
+      // MUST request whenInUse BEFORE always and only proceed to always
+      // if whenInUse was granted. Regression guard.
+      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{
+        Permission.notification: PermissionStatus.granted,
+        Permission.locationWhenInUse: PermissionStatus.denied,
+      });
 
       await requestLocationAlways(requestPermission: fake.request);
 
-      expect(fake.requested.length, 1, reason: 'Always must NOT be requested when whenInUse is denied');
-      expect(fake.requested.single, Permission.locationWhenInUse);
+      expect(fake.requested.length, 2, reason: 'Always must NOT be requested when whenInUse is denied');
+      expect(fake.requested, <Permission>[Permission.notification, Permission.locationWhenInUse]);
+    });
+
+    test('requestsNotificationFirstAndDenialDoesNotBlockLocationFlow', () async {
+      // Android 13+ POST_NOTIFICATIONS is best-effort : the session must
+      // start even if the user denies notifications. Regression guard
+      // that notification is requested FIRST and its denial does not
+      // change the outcome.
+      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{
+        Permission.notification: PermissionStatus.denied,
+        Permission.locationWhenInUse: PermissionStatus.granted,
+        Permission.locationAlways: PermissionStatus.granted,
+      });
+
+      final outcome = await requestLocationAlways(requestPermission: fake.request);
+
+      expect(outcome, LocationPermissionOutcome.granted);
+      expect(fake.requested.first, Permission.notification, reason: 'Notification must be requested FIRST so both OS dialogs appear back-to-back in the rationale flow');
     });
   });
 }
