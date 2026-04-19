@@ -36,9 +36,9 @@ void main() {
     });
 
     test('noopWhenNoActiveSession', () async {
-      // Seed only a stopped session.
+      // Seed only a stopped session (status=stopped is the default).
       const sessionId = SessionId('sess_01HR0000000000000000000B');
-      final stoppedSession = _buildSession(sessionId, status: SessionStatus.stopped);
+      final stoppedSession = _buildSession(sessionId);
 
       final sessionStore = _FakeSessionStore(sessions: [stoppedSession]);
       final notificationService = _FakeNotificationService();
@@ -83,17 +83,8 @@ void main() {
   });
 }
 
-Session _buildSession(
-  SessionId id, {
-  SessionStatus status = SessionStatus.stopped,
-  String displayName = 'Test session',
-}) => Session(
-  id: id,
-  displayName: displayName,
-  status: status,
-  startedAtUtc: DateTime.utc(2026, 4, 19, 10),
-  startedAtOffsetMinutes: 120,
-);
+Session _buildSession(SessionId id, {SessionStatus status = SessionStatus.stopped, String displayName = 'Test session'}) =>
+    Session(id: id, displayName: displayName, status: status, startedAtUtc: DateTime.utc(2026, 4, 19, 10), startedAtOffsetMinutes: 120);
 
 /// Minimal SessionStore fake — seeds a fixed list of sessions + optionally
 /// throws on `listAll()` to exercise the error-swallowing contract.

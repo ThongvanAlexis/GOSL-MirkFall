@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
+import 'package:mirkfall/application/providers/boot_watchdog_provider.dart';
 import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/location_stream_provider.dart';
 import 'package:mirkfall/application/providers/session_notification_service_provider.dart';
@@ -22,6 +23,7 @@ import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
 import 'package:mirkfall/domain/sessions/session_store.dart';
 import 'package:mirkfall/infrastructure/notifications/session_notification_service.dart';
+import 'package:mirkfall/infrastructure/platform/ios_significant_change_watchdog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_location_stream.dart';
@@ -131,6 +133,20 @@ class _FakeNotificationService implements SessionNotificationService {
   Future<void> showResumeNotification(SessionId sessionId, String sessionDisplayName) async => showResumeCount++;
 }
 
+/// Fake iOS significant-change watchdog — records start/stop calls so tests
+/// can assert the controller invokes them at the right transitions without
+/// touching CLLocationManager.
+class _FakeIosSignificantChangeWatchdog implements IosSignificantChangeWatchdog {
+  int startCount = 0;
+  int stopCount = 0;
+
+  @override
+  Future<void> startMonitoring() async => startCount++;
+
+  @override
+  Future<void> stopMonitoring() async => stopCount++;
+}
+
 Session _buildSession(SessionId id, {SessionStatus status = SessionStatus.stopped, String displayName = 'Test session'}) =>
     Session(id: id, displayName: displayName, status: status, startedAtUtc: DateTime.utc(2026, 4, 19, 10), startedAtOffsetMinutes: 120);
 
@@ -149,6 +165,7 @@ ProviderContainer _buildContainer({
   required _FakeFixStore fixStore,
   required FakeLocationStream locationStream,
   required _FakeNotificationService notificationService,
+  _FakeIosSignificantChangeWatchdog? iosWatchdog,
 }) {
   return ProviderContainer(
     overrides: [
@@ -156,6 +173,7 @@ ProviderContainer _buildContainer({
       fixStoreProvider.overrideWith((ref) async => fixStore),
       locationStreamProvider.overrideWith((ref) => locationStream),
       sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
+      iosSignificantChangeWatchdogProvider.overrideWith((ref) => iosWatchdog ?? _FakeIosSignificantChangeWatchdog()),
     ],
   );
 }
@@ -352,6 +370,57 @@ void main() {
       expect(sessionStore.deactivatedIds, <SessionId>[sessionId]);
       expect(locationStream.isDisposed, isTrue);
       expect(notificationService.dismissCount, greaterThanOrEqualTo(1));
+    });
+
+    test('startInvokesIosSignificantChangeWatchdog', () async {
+      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      const sessionId = SessionId('sess_01HR0000000000000000000A');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final fixStore = _FakeFixStore();
+      final locationStream = FakeLocationStream();
+      final notificationService = _FakeNotificationService();
+      final iosWatchdog = _FakeIosSignificantChangeWatchdog();
+
+      final container = _buildContainer(
+        sessionStore: sessionStore,
+        fixStore: fixStore,
+        locationStream: locationStream,
+        notificationService: notificationService,
+        iosWatchdog: iosWatchdog,
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeSessionControllerProvider.future);
+      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+
+      expect(iosWatchdog.startCount, 1);
+      expect(iosWatchdog.stopCount, 0);
+    });
+
+    test('stopInvokesIosSignificantChangeWatchdogStopMonitoring', () async {
+      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      const sessionId = SessionId('sess_01HR0000000000000000000A');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final fixStore = _FakeFixStore();
+      final locationStream = FakeLocationStream();
+      final notificationService = _FakeNotificationService();
+      final iosWatchdog = _FakeIosSignificantChangeWatchdog();
+
+      final container = _buildContainer(
+        sessionStore: sessionStore,
+        fixStore: fixStore,
+        locationStream: locationStream,
+        notificationService: notificationService,
+        iosWatchdog: iosWatchdog,
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeSessionControllerProvider.future);
+      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      await container.read(activeSessionControllerProvider.notifier).stop();
+
+      expect(iosWatchdog.startCount, 1);
+      expect(iosWatchdog.stopCount, 1);
     });
 
     test('streamErrorTransitionsToErrorState', () async {

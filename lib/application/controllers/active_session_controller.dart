@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:mirkfall/application/providers/boot_watchdog_provider.dart';
 import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/location_stream_provider.dart';
 import 'package:mirkfall/application/providers/session_notification_service_provider.dart';
@@ -109,6 +110,11 @@ class ActiveSessionController extends _$ActiveSessionController {
           );
 
       state = AsyncData(Tracking(sessionId: id, startedAtUtc: activated.startedAtUtc, fixCount: 0, distanceFilterMeters: settings.distanceFilterMeters));
+
+      // Plan 05-05 auto-resume (iOS half) — enable significant-change
+      // monitoring so iOS can wake us after a post-kill significant move.
+      // No-op on Android/desktop (watchdog itself branches on platform).
+      await ref.read(iosSignificantChangeWatchdogProvider).startMonitoring();
     } on GpsError catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -133,6 +139,11 @@ class ActiveSessionController extends _$ActiveSessionController {
     _sub = null;
     await _stream?.dispose();
     _stream = null;
+
+    // Plan 05-05 auto-resume (iOS half) — release the CLLocationManager
+    // significant-change subscription. Watchdog no-ops on non-iOS, and
+    // swallows platform errors best-effort.
+    await ref.read(iosSignificantChangeWatchdogProvider).stopMonitoring();
 
     try {
       final notificationService = ref.read(sessionNotificationServiceProvider);

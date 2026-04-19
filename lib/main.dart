@@ -120,10 +120,7 @@ Future<void> main() async {
       // the Android channel + requests iOS permissions) — they operate on
       // the same singleton but on disjoint surfaces.
       await FlutterLocalNotificationsPlugin().initialize(
-        settings: const InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-          iOS: DarwinInitializationSettings(),
-        ),
+        settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher'), iOS: DarwinInitializationSettings()),
         onDidReceiveNotificationResponse: _handleNotificationTap,
       );
 
