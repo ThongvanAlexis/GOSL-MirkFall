@@ -3,11 +3,99 @@
 // See LICENSE file for details
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mirkfall/application/permissions/location_permission_flow.dart';
+import 'package:mirkfall/domain/errors/location_permission_errors.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-/// Wave-0 stub — covers GPS-01 (permission flow orchestration).
+/// Captures every permission requested via [PermissionRequester].
 ///
-/// Exercises the `flutter.baseflow.com/permissions/methods` MethodChannel
-/// mock to drive the rationale → OS prompt → OEM guidance wizard.
+/// Returns programmed [PermissionStatus] values in the order they were
+/// registered, keyed by [Permission]. Missing-registration triggers a
+/// hard failure so tests never silently pass against an unexpected
+/// request.
+class _RecordingPermissionRequester {
+  _RecordingPermissionRequester(this._responseByPermission);
+
+  final Map<Permission, PermissionStatus> _responseByPermission;
+  final List<Permission> requested = <Permission>[];
+
+  Future<PermissionStatus> request(Permission permission) async {
+    requested.add(permission);
+    final response = _responseByPermission[permission];
+    if (response == null) {
+      fail(
+        'PermissionRequester called with unexpected permission: $permission. '
+        'Registered permissions: ${_responseByPermission.keys.toList()}',
+      );
+    }
+    return response;
+  }
+}
+
 void main() {
-  test('placeholder', () {}, skip: 'stub — location permission flow orchestrator lands in Plan 05-02 (GPS-01)');
+  group('requestLocationAlways', () {
+    test('grantsFullAlwaysOnTwoStepSuccess', () async {
+      // Step 1 whenInUse -> granted; Step 2 always -> granted.
+      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{
+        Permission.locationWhenInUse: PermissionStatus.granted,
+        Permission.locationAlways: PermissionStatus.granted,
+      });
+
+      final outcome = await requestLocationAlways(requestPermission: fake.request);
+
+      expect(outcome, LocationPermissionOutcome.granted);
+      expect(fake.requested, <Permission>[Permission.locationWhenInUse, Permission.locationAlways]);
+    });
+
+    test('returnsDeniedIfWhenInUseDenied', () async {
+      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{Permission.locationWhenInUse: PermissionStatus.denied});
+
+      final outcome = await requestLocationAlways(requestPermission: fake.request);
+
+      expect(outcome, LocationPermissionOutcome.denied);
+    });
+
+    test('returnsPermanentlyDeniedIfWhenInUsePermanentlyDenied', () async {
+      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{Permission.locationWhenInUse: PermissionStatus.permanentlyDenied});
+
+      final outcome = await requestLocationAlways(requestPermission: fake.request);
+
+      expect(outcome, LocationPermissionOutcome.permanentlyDenied);
+    });
+
+    test('returnsWhileInUseOnlyIfAlwaysDeclined', () async {
+      // whenInUse -> granted; always -> denied (user accepts foreground-only).
+      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{
+        Permission.locationWhenInUse: PermissionStatus.granted,
+        Permission.locationAlways: PermissionStatus.denied,
+      });
+
+      final outcome = await requestLocationAlways(requestPermission: fake.request);
+
+      expect(outcome, LocationPermissionOutcome.whileInUseOnly);
+    });
+
+    test('returnsPermanentlyDeniedIfAlwaysPermanentlyDenied', () async {
+      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{
+        Permission.locationWhenInUse: PermissionStatus.granted,
+        Permission.locationAlways: PermissionStatus.permanentlyDenied,
+      });
+
+      final outcome = await requestLocationAlways(requestPermission: fake.request);
+
+      expect(outcome, LocationPermissionOutcome.permanentlyDenied);
+    });
+
+    test('neverRequestsAlwaysIfWhenInUseNotGrantedFirst', () async {
+      // Android 10+ silently ignores a direct Always request; the two-step
+      // chain MUST request whenInUse FIRST and only proceed to always if
+      // whenInUse was granted. Regression guard.
+      final fake = _RecordingPermissionRequester(<Permission, PermissionStatus>{Permission.locationWhenInUse: PermissionStatus.denied});
+
+      await requestLocationAlways(requestPermission: fake.request);
+
+      expect(fake.requested.length, 1, reason: 'Always must NOT be requested when whenInUse is denied');
+      expect(fake.requested.single, Permission.locationWhenInUse);
+    });
+  });
 }

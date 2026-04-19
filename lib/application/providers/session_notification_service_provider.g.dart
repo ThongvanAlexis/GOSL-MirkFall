@@ -8,9 +8,9 @@ part of 'session_notification_service_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Production [SessionNotificationService] — wraps a fresh
-/// [`FlutterLocalNotificationsPlugin`] instance (the plugin is a stateless
-/// handle; a single instance per process is sufficient).
+/// Production [SessionNotificationService] — wraps a
+/// [`FlutterLocalNotificationsAdapter`] around the
+/// [`FlutterLocalNotificationsPlugin`] singleton.
 ///
 /// `keepAlive: true` — the Android notification channel is a
 /// process-long singleton; re-creating the service on every consumer
@@ -20,9 +20,9 @@ part of 'session_notification_service_provider.dart';
 final sessionNotificationServiceProvider =
     SessionNotificationServiceProvider._();
 
-/// Production [SessionNotificationService] — wraps a fresh
-/// [`FlutterLocalNotificationsPlugin`] instance (the plugin is a stateless
-/// handle; a single instance per process is sufficient).
+/// Production [SessionNotificationService] — wraps a
+/// [`FlutterLocalNotificationsAdapter`] around the
+/// [`FlutterLocalNotificationsPlugin`] singleton.
 ///
 /// `keepAlive: true` — the Android notification channel is a
 /// process-long singleton; re-creating the service on every consumer
@@ -36,9 +36,9 @@ final class SessionNotificationServiceProvider
           SessionNotificationService
         >
     with $Provider<SessionNotificationService> {
-  /// Production [SessionNotificationService] — wraps a fresh
-  /// [`FlutterLocalNotificationsPlugin`] instance (the plugin is a stateless
-  /// handle; a single instance per process is sufficient).
+  /// Production [SessionNotificationService] — wraps a
+  /// [`FlutterLocalNotificationsAdapter`] around the
+  /// [`FlutterLocalNotificationsPlugin`] singleton.
   ///
   /// `keepAlive: true` — the Android notification channel is a
   /// process-long singleton; re-creating the service on every consumer
@@ -78,4 +78,4 @@ final class SessionNotificationServiceProvider
 }
 
 String _$sessionNotificationServiceHash() =>
-    r'cdd623b76a2dea17196c8681530efc3cf71b9cb5';
+    r'fa2ae76b5de9f57b9892608baef6c4a9aa073269';
