@@ -131,17 +131,17 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 **Plans**: TBD
 
 ### Phase 07: Map Integration
-**Goal**: Afficher une carte interactive OSM conforme à la policy (User-Agent identifiant, attribution visible, pas de bulk prefetch) avec les seams `MapRenderer`, `TileSource` et `FogOfWarLayer` en place. La carte ne montre pas encore de mirk rendu — le stub `FogOfWarLayer` existe mais ne peint rien — mais son intégration layer-stack est gelée ici. Le `MapRenderer` est le seam critique qui permettra de swapper en V2 pour un moteur vectoriel (style "parchemin RPG") sans toucher aux screens/controllers.
+**Goal**: Afficher une carte interactive vectorielle rendue par `maplibre_gl 0.25.0` (pinned) contre un PMTiles Protomaps hébergé par le projet, derrière une interface `MapView` **domain-level** (vocabulaire MirkFall, zéro fuite de type MapLibre au-dessus de `lib/infrastructure/map/`). Le stub d'overlay mirk existe en tant que layer MapLibre mais ne peint rien — son intégration au layer-stack est gelée ici. Phase 07 pose **les deux décisions architecturales map les plus coûteuses à revenir** : (1) l'interface domain-level, (2) le pipeline vector PMTiles. Le V2 "parchemin RPG" deviendra un swap de `style.json` + sprite sheet, sans modification Dart.
 **Depends on**: Phase 06 (Review Gate GPS)
 **Requirements**: MAP-01, MAP-02, MAP-03, MAP-04, MAP-05, MAP-06
 **Success Criteria** (what must be TRUE):
-  1. L'utilisateur ouvre l'app, la carte OSM s'affiche, il peut panner et zoomer fluidement ; la position courante apparaît quand une session est active (hook sur l'`ActiveSessionController` de la Phase 05)
-  2. L'attribution `© OpenStreetMap contributors` est visible sur la carte et dans l'écran À propos (prévu), avec un lien vers https://www.openstreetmap.org/copyright
-  3. Toutes les requêtes tiles partent avec un `User-Agent: MirkFall/<version> (+<repo-url>)` distinct, vérifié en capturant le trafic local (mitmproxy ou équivalent) pendant le dev
-  4. L'interface `TileSource` est le seul point de contact entre le renderer et les tiles ; l'implémentation `OnlineOsmTileSource` est isolée, et l'ajout d'un `MbtilesFileTileSource` en V1.1 ne demande aucune modification appelante (validé par un mock test)
-  5. L'interface `MapRenderer` est le SEUL point de contact entre `MapScreen`/controllers et le moteur de rendu ; aucun `import 'package:flutter_map/...'` (ni équivalent) n'apparaît hors du dossier `lib/infrastructure/map/`. Un `FakeMapRenderer` est utilisé par les tests de `MapScreen` pour verrouiller cette frontière. Rationale V2 "parchemin RPG" documenté dans PROJECT.md §Constraints
-  6. Le `FogOfWarLayer` stub est présent dans le layer-stack avec son `RepaintBoundary`, au bon ordre (tiles → markers → fog → attribution) ; il ne peint rien en Phase 07 mais l'ordre est gelé
-  7. Le cache tiles LRU a un plafond explicite (200 MB, constante dans `lib/config/constants.dart`) avec un bouton "Clear map cache" qui sera exposé en Phase 15
+  1. L'utilisateur ouvre l'app, la carte vectorielle s'affiche à partir d'un PMTiles régional hébergé sur object-storage contrôlé par le projet (R2/B2/S3) ; pan et zoom fluides ; la position courante apparaît quand une session est active (hook sur l'`ActiveSessionController` de la Phase 05)
+  2. Attribution `© OpenStreetMap contributors` + `© Protomaps` visibles sur la carte et dans l'écran À propos, avec liens copyright officiels. Aucune requête sortante vers `tile.openstreetmap.org` ni tile-server tiers (vérifié en capture de trafic local)
+  3. L'interface `MapView` est le SEUL point de contact entre `MapScreen`/controllers et le rendu. Ses méthodes parlent MirkFall (`showMap`, `markVisited`, `setTheme`, …) et aucune signature ne révèle un type MapLibre. Un lint custom `avoid_maplibre_leak` interdit `import 'package:maplibre_gl/...'` hors de `lib/infrastructure/map/`. Un `FakeMapView` en mémoire fait passer tous les widget tests de `MapScreen`
+  4. Le `PmtilesSource` minimal (hosted URL vs local URI) est en place ; l'impl hosted V1.0 est livrée ; swap V1.1 vers local-file se fait en ajoutant une impl et sans modifier le consommateur (validé par mock test)
+  5. Le stub d'overlay mirk est présent dans la stack de layers MapLibre au bon ordre (base vector tiles → POIs → fog → user location) ; il ne peint rien en Phase 07 mais son intégration + RepaintBoundary-equivalent sont gelés
+  6. Le PMTiles régional hébergé a un plafond explicite de taille (< 1 GB, couvre la zone beta + buffer ; constante dans `lib/config/constants.dart`) ; aucun pre-fetch planet ni téléchargement automatique à l'install
+  7. DEPENDENCIES.md contient l'audit `maplibre_gl 0.25.0` (licence BSD-3, zéro télémétrie, deps transitives BSD/Apache, pas de GPL/AGPL)
 **Plans**: TBD
 
 ### Phase 08: Review Gate — Map

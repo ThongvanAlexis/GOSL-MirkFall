@@ -58,12 +58,12 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 
 ### Map (MAP)
 
-- [ ] **MAP-01**: La carte s'affiche sur un fond de plan standard (OSM via User-Agent conforme à la policy)
+- [ ] **MAP-01**: La carte s'affiche sur un fond vectoriel PMTiles (données Protomaps/OSM) servi depuis un bucket object-storage contrôlé par le projet ; aucune requête sortante vers tile.openstreetmap.org ni vers un tile-server tiers pendant le dev ou en prod
 - [ ] **MAP-02**: La carte reste interactive (pan, zoom) sous le mirk
-- [ ] **MAP-03**: Attribution OSM visible et conforme à la policy
-- [ ] **MAP-04**: La couche `FogOfWarLayer` s'intègre proprement au layer system de flutter_map sans faire rebuild le reste de la carte (RepaintBoundary)
-- [ ] **MAP-05**: Interface `TileSource` abstraite en place dès V1.0 — permet d'ajouter en V1.1 un provider de tuiles offline sans modifier le code appelant
-- [ ] **MAP-06**: Interface `MapRenderer` (ou équivalent) abstrait **le moteur de rendu complet** (widget carte + tiles + markers + overlays) — le reste de l'app (controllers, screens) n'importe jamais directement `flutter_map` ni tout autre package de rendu. Swap vers un renderer vectoriel (maplibre, vector_map_tiles, autre) en V2 pour supporter le style "parchemin RPG" doit se faire en ajoutant une implémentation, sans modifier les consommateurs. Validé par un mock `FakeMapRenderer` qui couvre les tests de Phase 07.
+- [ ] **MAP-03**: Attribution `© OpenStreetMap contributors` + `© Protomaps` visibles sur la carte et dans l'écran À propos, avec liens vers les pages de copyright officielles ; conforme aux licences amont
+- [ ] **MAP-04**: L'overlay mirk s'intègre au rendu vectoriel MapLibre comme un layer natif (source GeoJSON tuilée côté client ou équivalent), avec RepaintBoundary / isolation de rebuild, sans référencer directement le SDK MapLibre depuis la couche app
+- [ ] **MAP-05**: Le chemin de données des tuiles est derrière un `PmtilesSource` minimal (URL hébergée vs URI locale) — V1.0 ship l'impl "hosted" ; V1.1 ajoute l'impl "local file downloaded" sans modifier le consommateur. Validé par mock test
+- [ ] **MAP-06**: L'app code (controllers, screens, services) ne dépend que d'une interface `MapView` **domain-level** exprimée dans le vocabulaire MirkFall : `showMap(region)`, `moveCameraTo(location)`, `markVisited(polygon)`, `getUnvisitedAreas()`, `addLocationMarker(user)`, `addPointOfInterest(poi)`, `setTheme(standard | rpgParchment)`. Les types du SDK (`MapLibreMapController`, `SymbolOptions`, `CameraUpdate`, le schéma du `style.json`) **ne remontent jamais** au-dessus de `lib/infrastructure/map/`. Règle d'odeur : toute méthode dont la signature révèle un type MapLibre est disqualifiée (interdiction mécanique via lint custom `avoid_maplibre_leak`). Validé par un `FakeMapView` qui implémente l'interface en mémoire et par lequel passent tous les tests Phase 07+ qui touchent à la carte.
 
 ### Markers (MARK)
 
