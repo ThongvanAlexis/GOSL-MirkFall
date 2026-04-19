@@ -12,7 +12,9 @@ _Session _$SessionFromJson(Map<String, dynamic> json) => _Session(
   status: $enumDecode(_$SessionStatusEnumMap, json['status']),
   startedAtUtc: DateTime.parse(json['startedAtUtc'] as String),
   startedAtOffsetMinutes: (json['startedAtOffsetMinutes'] as num).toInt(),
-  stoppedAtUtc: json['stoppedAtUtc'] == null ? null : DateTime.parse(json['stoppedAtUtc'] as String),
+  stoppedAtUtc: json['stoppedAtUtc'] == null
+      ? null
+      : DateTime.parse(json['stoppedAtUtc'] as String),
   stoppedAtOffsetMinutes: (json['stoppedAtOffsetMinutes'] as num?)?.toInt(),
   notes: json['notes'] as String?,
 );
@@ -28,4 +30,7 @@ Map<String, dynamic> _$SessionToJson(_Session instance) => <String, dynamic>{
   'notes': instance.notes,
 };
 
-const _$SessionStatusEnumMap = {SessionStatus.active: 'active', SessionStatus.stopped: 'stopped'};
+const _$SessionStatusEnumMap = {
+  SessionStatus.active: 'active',
+  SessionStatus.stopped: 'stopped',
+};

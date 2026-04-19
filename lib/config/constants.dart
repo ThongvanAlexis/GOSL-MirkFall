@@ -102,6 +102,37 @@ const int kMinUtcOffsetMinutes = -720;
 /// See [kMinUtcOffsetMinutes] for the `@Assert` carve-out rationale.
 const int kMaxUtcOffsetMinutes = 840;
 
+// ---------------------------------------------------------------------------
+// Phase 05 (GPS & Session Lifecycle) — constants consumed across the
+// geolocator seam (05-02), the notification service (05-02), the UI
+// settings slider (05-04), and the cross-route active-session banner
+// (05-04).
+// ---------------------------------------------------------------------------
+
+/// Default distance filter for Geolocator streams (meters). User-adjustable
+/// via the settings slider (range 2..100). 5m targets a dense trace for
+/// fog-rendering quality (Phase 09). Battery-vs-fidelity trade-off
+/// profiled during the QUAL-01/02 POC.
+const int kDefaultDistanceFilterMeters = 5;
+
+/// Reject any GPS fix with reported accuracy worse than this (meters).
+/// Source: indoor GPS typically reports >100m, outdoor open-sky <15m,
+/// urban canyon 20–40m — 50m is the signal/noise frontier.
+const double kMaxAcceptableAccuracyMeters = 50.0;
+
+/// UI threshold — show "En attente du GPS…" if no fix received since
+/// session start after this many seconds. Does not stop tracking; the
+/// stream keeps running while the UI shows the waiting state.
+const int kFirstFixTimeoutSeconds = 30;
+
+/// Android notification channel ID for the session-tracking foreground
+/// service. Stable across app installs — Android preserves per-channel
+/// user preferences keyed by this ID.
+const String kNotificationChannelId = 'mirkfall_session_tracking';
+
+/// Cross-route active-session banner height in logical pixels.
+const double kSessionActiveBannerHeightDp = 40.0;
+
 // Reserved for later phases (declared here so future callers can import from
 // a stable location):
 //   - kDefaultRevealRadiusMeters  (Phase 09 — fog reveal radius)

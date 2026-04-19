@@ -14,6 +14,7 @@ is pure Dart and does not need codegen.
 | `json_migrator.dart` | `JsonMigrator` chain executor — composes the list |
 | `identity_migration_v1.dart` | `IdentityMigrationV1` — symbolic anchor (sentinel `fromVersion = -1`) |
 | `v1_to_v2_rename_radius.dart` | `V1ToV2RenameRadius` — fictive proof-of-framework rename `mirk_radius_m -> reveal_radius_m` |
+| `v2_to_v3_fixes.dart` | `V2ToV3Fixes` — Phase 05 identity step (DB adds `t_fixes`; export-payload shape is Phase 13 scope) |
 
 ## Conventions
 

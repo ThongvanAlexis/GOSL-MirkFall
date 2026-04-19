@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 2,
+  "type": "session",
+  "payload": {
+    "id": "sess_01HRV2V3FIXTUREAAAAAAAAAAAA",
+    "displayName": "V2 → V3 fixture",
+    "status": "stopped",
+    "startedAtUtc": "2026-04-19T08:00:00.000Z",
+    "startedAtOffsetMinutes": 120,
+    "stoppedAtUtc": "2026-04-19T08:45:00.000Z",
+    "stoppedAtOffsetMinutes": 120,
+    "notes": null
+  }
+}

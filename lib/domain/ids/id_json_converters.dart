@@ -3,6 +3,7 @@
 // See LICENSE file for details
 
 import 'category_id.dart';
+import 'fix_id.dart';
 import 'marker_id.dart';
 import 'mirk_style_id.dart';
 import 'photo_ref_id.dart';
@@ -49,3 +50,6 @@ String photoRefIdToJson(PhotoRefId value) => value.value;
 
 RevealedTileId revealedTileIdFromJson(String json) => RevealedTileId(json);
 String revealedTileIdToJson(RevealedTileId value) => value.value;
+
+FixId fixIdFromJson(String json) => FixId(json);
+String fixIdToJson(FixId value) => value.value;
