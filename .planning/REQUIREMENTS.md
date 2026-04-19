@@ -40,7 +40,7 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 - [x] **GPS-04**: Une notification persistante signale qu'une session est en cours (Android foreground service notification + équivalent iOS)
 - [x] **GPS-05**: Tracking respecte un `distanceFilter` configurable pour limiter la consommation batterie (pas de poll 1 Hz en stationnaire)
 - [ ] **GPS-06**: Si l'app est killée par l'OS en background, le tracking reprend automatiquement au redémarrage de la session
-- [ ] **GPS-07**: Écran dédié "Permissions" qui explique pourquoi MirkFall a besoin de la localisation et guide vers les paramètres système si permission refusée
+- [x] **GPS-07**: Écran dédié "Permissions" qui explique pourquoi MirkFall a besoin de la localisation et guide vers les paramètres système si permission refusée
 - [x] **GPS-08**: Documentation utilisateur intégrée mentionnant les contraintes OEM Android (Xiaomi/Huawei/Samsung/OnePlus background killers) avec liens `dontkillmyapp.com`
 
 ### Mirk (MIRK)
@@ -204,7 +204,7 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | GPS-04 | Phase 05 | Complete |
 | GPS-05 | Phase 05 | Complete |
 | GPS-06 | Phase 05 | Pending |
-| GPS-07 | Phase 05 | Pending |
+| GPS-07 | Phase 05 | Complete |
 | GPS-08 | Phase 05 | Complete |
 | MIRK-01 | Phase 09 | Pending |
 | MIRK-02 | Phase 09 | Pending |

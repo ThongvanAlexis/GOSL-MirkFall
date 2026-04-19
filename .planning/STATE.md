@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 05-04 (settings + end-to-end UI) next up
+current_plan: 05-05 (auto-resume post-kill) next up
 status: executing
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-04-19T10:18:17.249Z"
+stopped_at: Completed 05-04-PLAN.md
+last_updated: "2026-04-19T12:33:32Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 16
   completed_phases: 4
   total_plans: 25
-  completed_plans: 22
-  percent: 88
+  completed_plans: 23
+  percent: 92
 ---
 
 # Project State
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 05 of 16 (GPS & Session Lifecycle) IN PROGRESS — 3 / 6 plans done
-Current Plan: 05-04 (settings + end-to-end UI) next up
-Total Plans in Phase 05: 3 / 6 done
+Phase: 05 of 16 (GPS & Session Lifecycle) IN PROGRESS — 4 / 6 plans done
+Current Plan: 05-05 (auto-resume post-kill) next up
+Total Plans in Phase 05: 4 / 6 done
 Status: In progress — Phase 05 execution
 Last Activity: 2026-04-19
 
-Progress: [█████████░] ~88% of plans across 4 completed phases + Phase 05 Plans 05-01 + 05-02 + 05-03 (22/25 plans executed so far)
+Progress: [█████████░] ~92% of plans across 4 completed phases + Phase 05 Plans 05-01 + 05-02 + 05-03 + 05-04 (23/25 plans executed so far)
 
 ## Performance Metrics
 
@@ -73,6 +73,7 @@ Progress: [█████████░] ~88% of plans across 4 completed phas
 | Phase 05-gps-session-lifecycle P01 | 26 min | 4 tasks | 38 files |
 | Phase 05-gps-session-lifecycle P02 | 17 min | 3 tasks | 25 files |
 | Phase 05-gps-session-lifecycle P03 | 10 min | 2 tasks | 8 files |
+| Phase 05-gps-session-lifecycle P04 | 2h 12m | 2 tasks | 21 files |
 
 ## Accumulated Context
 
@@ -184,6 +185,12 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 05-gps-session-lifecycle]: PermissionRequester typedef seam (Future<PermissionStatus> Function(Permission)) — narrowest injection for testing without PermissionHandlerPlatform test channels. permission_handler's Permission.* instances are const PermissionWithService._() — subclassing not possible.
 - [Phase 05-gps-session-lifecycle]: Riverpod 3.x uses AsyncValue.value (nullable), NOT valueOrNull — the Riverpod-2 getter was removed. Pattern for controllers: read state.value once, pattern-match on the Dart type (is Tracking).
 - [Phase 05-gps-session-lifecycle]: sessionStore.activate(id) returns Future<void> per Phase 03 contract (plan pseudocode incorrectly had Future<Session>) — controller calls requireById(id) after activate() to hydrate displayName + startedAtUtc. Two round-trips on in-memory Drift; negligible cost.
+- [Phase 05-gps-session-lifecycle]: Widget tests must avoid pumpAndSettle when the live Tracking dashboard is rendered — _ChronoCard spins Stream.periodic(1s); `pumpAndSettle()` blocks indefinitely. Pattern: assert on IconButton.onPressed != null (wiring) + rely on controller tests for full async stop() coverage. Bounded pump(Duration) for simple frame waits.
+- [Phase 05-gps-session-lifecycle]: `Override` is NOT publicly exported by `flutter_riverpod` 3.3.x — widget tests inline `ProviderScope(overrides: [...], child: ...)` to let type inference resolve the sealed class. Helper functions with `List<Override>` param signatures fail to compile.
+- [Phase 05-gps-session-lifecycle]: Smoke test overrides sessionStoreProvider with in-memory fake to avoid Drift StreamQueryStore timer teardown race with TestWidgetsFlutterBinding's verify-no-pending-timers gate — Drift's broadcast-stream close chain schedules a 0-duration timer that fires after ProviderScope disposal
+- [Phase 05-gps-session-lifecycle]: OemGuidanceScreen._onDone uses canPop() ? pop() : go('/') — screen reachable via push (pop OK) and deep-link (nothing to pop, go home). Avoids GoError at runtime on directly-navigated routes.
+- [Phase 05-gps-session-lifecycle]: Deferred TextEditingController.dispose() via WidgetsBinding.instance.addPostFrameCallback — the dialog's close animation (AnimatedDefaultTextStyle) still reads the controller during out-transition; immediate dispose triggers 'used-after-dispose' assertion in widget tests. Single-frame deferral is enough.
+- [Phase 05-gps-session-lifecycle]: Banner InkWell split — inner InkWell(title-only) + peer IconButton(stop) instead of one ancestor InkWell wrapping the whole Row. Gesture-arena-friendly; each widget owns one action.
 
 ### Pending Todos
 
@@ -206,6 +213,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-19T10:18:17.244Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-04-19T12:33:32Z
+Stopped at: Completed 05-04-PLAN.md
 Resume file: None
