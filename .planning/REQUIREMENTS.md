@@ -35,13 +35,13 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 ### GPS / Tracking (GPS)
 
 - [ ] **GPS-01**: L'app demande la permission de localisation "Always" à la première session démarrée, avec écran d'explication préalable (pre-prompt rationale)
-- [ ] **GPS-02**: Une session active tracke la position utilisateur en temps réel (foreground)
-- [ ] **GPS-03**: Une session active continue à tracker en arrière-plan (app backgroundée, écran éteint) — Android foreground service + iOS background location
-- [ ] **GPS-04**: Une notification persistante signale qu'une session est en cours (Android foreground service notification + équivalent iOS)
-- [ ] **GPS-05**: Tracking respecte un `distanceFilter` configurable pour limiter la consommation batterie (pas de poll 1 Hz en stationnaire)
+- [x] **GPS-02**: Une session active tracke la position utilisateur en temps réel (foreground)
+- [x] **GPS-03**: Une session active continue à tracker en arrière-plan (app backgroundée, écran éteint) — Android foreground service + iOS background location
+- [x] **GPS-04**: Une notification persistante signale qu'une session est en cours (Android foreground service notification + équivalent iOS)
+- [x] **GPS-05**: Tracking respecte un `distanceFilter` configurable pour limiter la consommation batterie (pas de poll 1 Hz en stationnaire)
 - [ ] **GPS-06**: Si l'app est killée par l'OS en background, le tracking reprend automatiquement au redémarrage de la session
 - [ ] **GPS-07**: Écran dédié "Permissions" qui explique pourquoi MirkFall a besoin de la localisation et guide vers les paramètres système si permission refusée
-- [ ] **GPS-08**: Documentation utilisateur intégrée mentionnant les contraintes OEM Android (Xiaomi/Huawei/Samsung/OnePlus background killers) avec liens `dontkillmyapp.com`
+- [x] **GPS-08**: Documentation utilisateur intégrée mentionnant les contraintes OEM Android (Xiaomi/Huawei/Samsung/OnePlus background killers) avec liens `dontkillmyapp.com`
 
 ### Mirk (MIRK)
 
@@ -125,7 +125,7 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 - [ ] **QUAL-01**: POC validation du tracking background sur device Android OEM (Xiaomi ou Samsung) avec session ≥ 30 min écran éteint
 - [ ] **QUAL-02**: POC validation du tracking background sur device iOS (via CI + sideload) avec session ≥ 30 min écran éteint
 - [ ] **QUAL-03**: Argumentaire pour revue App Store / Play Store documenté (justification background location)
-- [ ] **QUAL-04**: `Info.plist` iOS contient toutes les `*UsageDescription` requises (location, camera, photo library) au fur et à mesure des ajouts
+- [x] **QUAL-04**: `Info.plist` iOS contient toutes les `*UsageDescription` requises (location, camera, photo library) au fur et à mesure des ajouts
 - [ ] **QUAL-05**: Aucune dépendance identifiée faisant des appels réseau sans action utilisateur explicite (confirmé par inspection source + test smoke "airplane mode = zéro requête sortante")
 
 ## v2 Requirements
@@ -199,13 +199,13 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | SESS-08 | Phase 05 | Complete |
 | SESS-09 | Phase 05 | Complete |
 | GPS-01 | Phase 05 | Pending |
-| GPS-02 | Phase 05 | Pending |
-| GPS-03 | Phase 05 | Pending |
-| GPS-04 | Phase 05 | Pending |
-| GPS-05 | Phase 05 | Pending |
+| GPS-02 | Phase 05 | Complete |
+| GPS-03 | Phase 05 | Complete |
+| GPS-04 | Phase 05 | Complete |
+| GPS-05 | Phase 05 | Complete |
 | GPS-06 | Phase 05 | Pending |
 | GPS-07 | Phase 05 | Pending |
-| GPS-08 | Phase 05 | Pending |
+| GPS-08 | Phase 05 | Complete |
 | MIRK-01 | Phase 09 | Pending |
 | MIRK-02 | Phase 09 | Pending |
 | MIRK-03 | Phase 03 | Complete |
@@ -265,7 +265,7 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | QUAL-01 | Phase 05 | Pending |
 | QUAL-02 | Phase 05 | Pending |
 | QUAL-03 | Phase 05 | Pending |
-| QUAL-04 | Phase 05 | Pending |
+| QUAL-04 | Phase 05 | Complete |
 | QUAL-05 | Phase 15 | Pending |
 
 **Coverage:**

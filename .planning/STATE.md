@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 05-02 (GPS infrastructure) next up
+current_plan: 05-03 (permission flow UI) next up
 status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-04-19T09:38:22.455Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-04-19T10:01:49.194Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 16
   completed_phases: 4
   total_plans: 25
-  completed_plans: 20
-  percent: 80
+  completed_plans: 21
+  percent: 84
 ---
 
 # Project State
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 05 of 16 (GPS & Session Lifecycle) IN PROGRESS — 1 / 6 plans done
-Current Plan: 05-02 (GPS infrastructure) next up
-Total Plans in Phase 05: 1 / 6 done
+Phase: 05 of 16 (GPS & Session Lifecycle) IN PROGRESS — 2 / 6 plans done
+Current Plan: 05-03 (permission flow UI) next up
+Total Plans in Phase 05: 2 / 6 done
 Status: In progress — Phase 05 execution
 Last Activity: 2026-04-19
 
-Progress: [████████░░] ~80% of plans across 4 completed phases + Phase 05 Plan 05-01 (20/25 plans executed so far)
+Progress: [████████░░] ~84% of plans across 4 completed phases + Phase 05 Plans 05-01 + 05-02 (21/25 plans executed so far)
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [████████░░] ~80% of plans across 4 completed phas
 | Phase 04-review-gate-persistence P04 | 15 min | 4 tasks | 4 files |
 | Phase 04-review-gate-persistence P05 | ~3h (batched strategy) | 2 tasks (1 fix loop + 1 closure checkpoint) | 30+ files across 10 fix batches + 11 docs markers + closure |
 | Phase 05-gps-session-lifecycle P01 | 26 min | 4 tasks | 38 files |
+| Phase 05-gps-session-lifecycle P02 | 17 min | 3 tasks | 25 files |
 
 ## Accumulated Context
 
@@ -170,6 +171,12 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 04-review-gate-persistence]: Phase 04 review gate CLOSED 2026-04-19 — 04-REVIEW.md §§1-5 complete, all 31 fix-triaged findings marked done, CI green on commit 26f3d99, all 3 jobs (gates/android/ios) succeeded. Phase 05 unblocked.
 - [Phase 05-gps-session-lifecycle]: Drift V2 to V3 uses m.createTable(db.fixes) + explicit createIndex per @TableIndex.sql (Drift 2.32.1 does NOT auto-emit indexes via createTable — Pitfall #7)
 - [Phase 05-gps-session-lifecycle]: V2 to V3 migration test uses direct sqlite_master probes (not SchemaVerifier.migrateAndValidate) — keeps stale schema_v{1,2}.dart helpers for backward-compat with V1 to V2 test
+- [Phase 05-gps-session-lifecycle]: device_info_plus pinned to 12.4.0 (not 13.0.0 as plan specified) — 13.0.0 bumps transitively to win32 ^6 which conflicts with file_picker 11.0.2's win32 ^5.9 pin; 12.4.0 is the highest line compatible and exposes identical AndroidDeviceInfo.manufacturer/brand surface
+- [Phase 05-gps-session-lifecycle]: LocationStream port upgraded to strong-typed SessionId + required sessionDisplayName (was Object + no display in 05-01 stub) now that infra impl ships in same plan — lateral-import concern moot, keeping weaker type would only defer type error to impl-construction boundary
+- [Phase 05-gps-session-lifecycle]: LocalNotificationsPort + FlutterLocalNotificationsAdapter seam: flutter_local_notifications ships a factory-singleton plugin (private ._() constructor) that is not subclassable — introduced a narrow 4-method port (createAndroidChannel, requestIosPermissions, show, cancel) + thin adapter so tests inject capturing fake without platform channels
+- [Phase 05-gps-session-lifecycle]: OemDetector.detect takes isIosOverride/isAndroidOverride optional named params for deterministic tests — runtime Platform.isIOS/isAndroid sentinels are hardcoded by the Dart VM at process start; injected overrides work on any host
+- [Phase 05-gps-session-lifecycle]: distanceFilter is int not double: 05-RESEARCH Pattern 1 showed distanceFilterMeters.toDouble() on the iOS branch but LocationSettings.distanceFilter is declared int in geolocator_platform_interface 4.2.6; native side casts to CLLocationDistance internally
+- [Phase 05-gps-session-lifecycle]: BootCompletedReceiver declared in AndroidManifest.xml Plan 05-02 but Kotlin class implementation is Plan 05-06 — manifest is a platform declaration (concentrated in 05-02 with all permissions); receiver body is platform-glue code (belongs with Plan 05-06 iOS significant-change watchdog). Android silently ignores intents for missing receiver classes at install time
 
 ### Pending Todos
 
@@ -192,6 +199,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-19T09:38:22.451Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-04-19T10:01:49.190Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
