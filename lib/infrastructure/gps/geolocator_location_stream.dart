@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:geolocator/geolocator.dart' as geo;
+import 'package:logging/logging.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/gps/gps_errors.dart';
@@ -14,6 +15,8 @@ import 'package:mirkfall/domain/ids/id_generator.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 
 import 'location_settings_factory.dart';
+
+final Logger _log = Logger('gps.stream');
 
 /// Factory shape that produces the underlying `Stream<Position>` from a
 /// built [geo.LocationSettings]. Default hits `Geolocator.getPositionStream`;
@@ -70,17 +73,36 @@ class GeolocatorLocationStream implements LocationStream {
     double? lastLatitude;
     double? lastLongitude;
     DateTime? lastEmittedAt;
+    int positionsReceived = 0;
+    int fixesEmitted = 0;
+    int droppedAccuracy = 0;
+    int droppedStationary = 0;
 
     controller.onListen = () {
+      _log.info('stream start · session=${sessionId.value} distanceFilter=${distanceFilterMeters}m accuracyCeiling=${kMaxAcceptableAccuracyMeters}m');
       _subscription = _positionStreamFactory(settings).listen(
         (geo.Position position) {
-          if (position.accuracy > kMaxAcceptableAccuracyMeters) return;
+          positionsReceived++;
+          if (position.accuracy > kMaxAcceptableAccuracyMeters) {
+            droppedAccuracy++;
+            _log.fine(
+              'position rejected (accuracy ${position.accuracy.toStringAsFixed(1)}m > ${kMaxAcceptableAccuracyMeters}m) · '
+              'lat=${position.latitude.toStringAsFixed(5)} lng=${position.longitude.toStringAsFixed(5)} '
+              '· counters received=$positionsReceived emitted=$fixesEmitted droppedAcc=$droppedAccuracy droppedStat=$droppedStationary',
+            );
+            return;
+          }
 
           final now = DateTime.now().toUtc();
           if (lastLatitude != null && lastLongitude != null && lastEmittedAt != null) {
             final double distanceMeters = geo.Geolocator.distanceBetween(lastLatitude!, lastLongitude!, position.latitude, position.longitude);
             final Duration sinceLast = now.difference(lastEmittedAt!);
             if (distanceMeters < _stationaryDedupMinDistanceMeters && sinceLast.inSeconds < _stationaryDedupWindowSeconds) {
+              droppedStationary++;
+              _log.fine(
+                'position rejected (stationary ${distanceMeters.toStringAsFixed(2)}m < '
+                '${_stationaryDedupMinDistanceMeters}m within ${sinceLast.inSeconds}s < ${_stationaryDedupWindowSeconds}s)',
+              );
               return;
             }
           }
@@ -100,10 +122,23 @@ class GeolocatorLocationStream implements LocationStream {
           lastLatitude = position.latitude;
           lastLongitude = position.longitude;
           lastEmittedAt = now;
+          fixesEmitted++;
+          if (fixesEmitted == 1) {
+            _log.info(
+              'first fix accepted · lat=${fix.latitude.toStringAsFixed(5)} lng=${fix.longitude.toStringAsFixed(5)} '
+              '± ${fix.accuracyMeters.toStringAsFixed(1)}m · session=${sessionId.value}',
+            );
+          } else {
+            _log.fine(
+              'fix emitted #$fixesEmitted · lat=${fix.latitude.toStringAsFixed(5)} lng=${fix.longitude.toStringAsFixed(5)} '
+              '± ${fix.accuracyMeters.toStringAsFixed(1)}m speed=${fix.speedMps?.toStringAsFixed(1) ?? "-"}m/s',
+            );
+          }
           controller.add(fix);
         },
         onError: (Object error, StackTrace stackTrace) {
           final translated = _translate(error);
+          _log.warning('stream error (translated=${translated.runtimeType})', error, stackTrace);
           controller.addError(translated, stackTrace);
         },
         cancelOnError: false,
@@ -111,6 +146,10 @@ class GeolocatorLocationStream implements LocationStream {
     };
 
     controller.onCancel = () async {
+      _log.info(
+        'stream cancel · session=${sessionId.value} summary: received=$positionsReceived emitted=$fixesEmitted '
+        'droppedAccuracy=$droppedAccuracy droppedStationary=$droppedStationary',
+      );
       await _subscription?.cancel();
       _subscription = null;
     };

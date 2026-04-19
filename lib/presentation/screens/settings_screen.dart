@@ -96,6 +96,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/permissions/oem'),
                 ),
               ),
+              const SizedBox(height: 16.0),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.bug_report_outlined),
+                  title: const Text('Debug menu'),
+                  subtitle: const Text('Logs, verbose toggle, partage de fichiers'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/debug'),
+                ),
+              ),
             ],
           );
         },
