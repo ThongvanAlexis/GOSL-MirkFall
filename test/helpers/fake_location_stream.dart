@@ -6,22 +6,27 @@ import 'dart:async';
 
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/gps/location_stream.dart';
+import 'package:mirkfall/domain/ids/session_id.dart';
 
 /// Reusable test double for [LocationStream].
 ///
 /// Emits programmed [Fix] values via [emit] + [emitError]. Captures the
-/// last `sessionId` and `distanceFilterMeters` passed to [positions] so
-/// controller tests can assert wiring.
+/// last arguments passed to [positions] so controller tests can assert
+/// wiring. Signature tracks the Plan 05-02 upgrade: `sessionId` is now
+/// [SessionId] (was `Object`) and a `sessionDisplayName` parameter was
+/// added to feed the Android foreground-service notification title.
 class FakeLocationStream implements LocationStream {
   final StreamController<Fix> _controller = StreamController<Fix>.broadcast();
-  Object? _sessionId;
+  SessionId? _sessionId;
   int? _distanceFilter;
+  String? _displayName;
   bool _disposed = false;
 
   @override
-  Stream<Fix> positions({required Object sessionId, required int distanceFilterMeters}) {
+  Stream<Fix> positions({required SessionId sessionId, required int distanceFilterMeters, required String sessionDisplayName}) {
     _sessionId = sessionId;
     _distanceFilter = distanceFilterMeters;
+    _displayName = sessionDisplayName;
     return _controller.stream;
   }
 
@@ -39,7 +44,8 @@ class FakeLocationStream implements LocationStream {
   /// Injects a stream error.
   void emitError(Object error, [StackTrace? stackTrace]) => _controller.addError(error, stackTrace);
 
-  Object? get capturedSessionId => _sessionId;
+  SessionId? get capturedSessionId => _sessionId;
   int? get capturedDistanceFilter => _distanceFilter;
+  String? get capturedDisplayName => _displayName;
   bool get isDisposed => _disposed;
 }

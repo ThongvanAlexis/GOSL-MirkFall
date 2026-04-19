@@ -3,24 +3,34 @@
 // See LICENSE file for details
 
 import '../fixes/fix.dart';
+import '../ids/session_id.dart';
 
 /// Abstract port over the platform GPS stream.
 ///
-/// Implementations (e.g. `GeolocatorLocationStream` in Plan 05-03) translate
-/// a platform `Position` into a domain [Fix] before emitting downstream.
+/// Implementations (e.g. `GeolocatorLocationStream` in
+/// `lib/infrastructure/gps/`) translate a platform `Position` into a domain
+/// [Fix] before emitting downstream.
 ///
-/// `sessionId` is intentionally typed `Object` (not `SessionId`) to keep the
-/// port minimal — forcing `SessionId` here would force a direct peer-domain
-/// import from `sessions/`, creating a lateral import chain. Plan 05-03 can
-/// tighten to `SessionId` in the concrete impl if desired.
+/// Port upgrade (Plan 05-02): `sessionId` is now typed [SessionId] (was
+/// `Object` in the Plan 05-01 stub) now that the infrastructure impl lives in
+/// the same plan — the lateral-import concern that motivated `Object` no
+/// longer applies; keeping the weaker type would only defer the type error
+/// to impl-construction time. `sessionDisplayName` is required to feed the
+/// Android foreground-service notification title (see
+/// `lib/infrastructure/gps/location_settings_factory.dart`).
 abstract class LocationStream {
   /// Emits accepted [Fix] values for an active session.
   ///
-  /// `distanceFilterMeters` controls the minimum distance between emissions.
-  /// Platform-level errors (permission denied, service disabled) are
-  /// propagated as stream errors typed via `lib/domain/gps/gps_errors.dart`
-  /// (created Plan 05-03).
-  Stream<Fix> positions({required Object sessionId, required int distanceFilterMeters});
+  /// [distanceFilterMeters] controls the minimum distance between emissions
+  /// (set by the user via the Phase 05-04 settings slider).
+  /// [sessionDisplayName] is surfaced in the Android foreground-service
+  /// notification title; on iOS/desktop it is unused but kept at the port
+  /// so the shape is platform-agnostic.
+  ///
+  /// Platform-level errors are propagated as stream errors typed via
+  /// `lib/domain/gps/gps_errors.dart` — subscribers pattern-match over the
+  /// sealed [`GpsError`] hierarchy.
+  Stream<Fix> positions({required SessionId sessionId, required int distanceFilterMeters, required String sessionDisplayName});
 
   /// Cancels the stream cleanly. Safe to call more than once.
   Future<void> dispose();
