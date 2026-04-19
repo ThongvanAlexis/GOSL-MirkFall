@@ -103,23 +103,36 @@ jobs:
       - name: Flutter test with DEBUG define
         run: flutter test --dart-define=DEBUG=true test/file_logger_debug_define_test.dart
 
-      # Phase 03: plain-Dart test runner for the pure-domain + JsonMigrator
-      # + MirkStyleConfig suites that 03-02 / 03-03 / 03-05 ship under
-      # test/domain/ and test/infrastructure/migration/. Existing test/*.dart
-      # files at the repo root all import package:flutter_test and stay
-      # under `flutter test` above; the `dart test` invocation here
-      # deliberately scopes to subdirectories so it never tries to load a
-      # Flutter-binding test under the plain-Dart runner. Guarded by
-      # `hashFiles` so the step is a no-op until at least one of those
-      # subdirectories appears — downstream plans do NOT need to touch
-      # ci.yml when they add their own files.
+      # Plain-Dart test runner for pure-Dart suites (no Flutter binding,
+      # no platform channels). Scoped EXPLICITLY to subdirectories known
+      # to be pure-Dart. Flutter-binding tests (test/infrastructure/gps/,
+      # notifications/, platform/) already run under `flutter test` above
+      # and MUST NOT be double-executed here — `dart test` cannot load
+      # them (ServicesBinding, MethodChannel mocking, etc. require the
+      # Flutter test harness).
+      #
+      # Allowed pure-Dart subdirectories :
+      # - test/domain/              — pure domain types (Phase 03)
+      # - test/infrastructure/db/   — Drift + NativeDatabase.memory (Phase 03)
+      # - test/infrastructure/stores/ — Drift store impls (Phase 03)
+      # - test/infrastructure/ids/  — ULID + id converters (Phase 03)
+      # - test/infrastructure/migration/ — JsonMigrator (Phase 03)
+      #
+      # Downstream plans adding a new pure-Dart test subdir MUST add an
+      # explicit line here — do not re-introduce a blanket
+      # `test/infrastructure/` invocation : that mask silently drags in
+      # Flutter-binding tests from sibling subdirs and fails the load
+      # step.
       - name: Plain-Dart domain + infra tests
-        if: ${{ hashFiles('test/domain/**/*_test.dart', 'test/infrastructure/**/*_test.dart') != '' }}
+        if: ${{ hashFiles('test/domain/**/*_test.dart', 'test/infrastructure/db/**/*_test.dart', 'test/infrastructure/stores/**/*_test.dart', 'test/infrastructure/ids/**/*_test.dart', 'test/infrastructure/migration/**/*_test.dart') != '' }}
         run: |
-          # Re-run only what's there (`dart test path/` accepts a glob of
-          # directories — empty subdir is silently skipped).
+          # Each directory is optional — the `-d` guard silently skips
+          # anything that does not exist yet.
           if [ -d test/domain ]; then dart test test/domain/; fi
-          if [ -d test/infrastructure ]; then dart test test/infrastructure/; fi
+          if [ -d test/infrastructure/db ]; then dart test test/infrastructure/db/; fi
+          if [ -d test/infrastructure/stores ]; then dart test test/infrastructure/stores/; fi
+          if [ -d test/infrastructure/ids ]; then dart test test/infrastructure/ids/; fi
+          if [ -d test/infrastructure/migration ]; then dart test test/infrastructure/migration/; fi
 
   android:
     name: Build Android APK (debug)
