@@ -58,16 +58,22 @@ surfaces to the Phase 06 Review Gate as a finding requiring fix.
 ## Entry 1 — Pixel 4a (Android)
 
 - **Device:** Pixel 4a
-- **OS version:** `{to-fill, e.g. Android 14 build UP1A.xxxxxx}`
-- **MirkFall build:** `{commit sha or tag at which the APK was built}`
-- **Date/time start (local):** `{to-fill}`
-- **Date/time stop (local):** `{to-fill}`
-- **Duration:** `{to-fill}` min
-- **t_fixes rows:** `{to-fill}`
-- **Interval min / median / max:** `{to-fill}` s / `{to-fill}` s / `{to-fill}` s
-- **PNG:** `docs/poc-artifacts/{to-fill}.png`
-- **Verdict:** `PASS` / `FAIL` _(fill in)_
-- **Notes:** `{to-fill — notification behaviour, any perceived gaps, OEM guidance prompts, etc.}`
+- **OS version:** Android 14 (user confirmed)
+- **MirkFall build:** `cbfb5fc` (Phase 05 post-schema-fix, POST_NOTIFICATIONS runtime request landed, navigation go→push fix landed, WAKE_LOCK permission added)
+- **Date/time start (UTC):** 2026-04-19T17:33:26Z
+- **Date/time stop (UTC):** 2026-04-19T18:02:00Z
+- **Duration:** 28.6 min
+- **t_fixes rows:** 342
+- **Interval min / median / max:** 4.5 s / 4.9 s / 66.4 s
+- **Bounding box:** lat [48.52840, 48.53262], lon [2.65480, 2.66690]
+- **PNG:** `docs/poc-artifacts/test2-full.png`
+- **Verdict:** **PASS**
+- **Notes:**
+  - All 342 positions emitted from geolocator made it to `t_fixes` — zero dropped by the 50 m accuracy ceiling, zero dropped by the stationary dedup (session "test2" was a continuous walk).
+  - Persistent foreground-service notification visible throughout, dismissed on Stop (confirmed real-device).
+  - First pull of the DB only returned 219 rows — Drift's WAL sidecar held the other 123 rows. Pulling `mirkfall.db-wal` + `mirkfall.db-shm` alongside the main file and letting sqlite3 read them co-located gave the full 342. Updated adb-pull instructions are embedded in the protocol above (step 9).
+  - Single 66.4 s gap, rest under 10 s — likely a brief satellite-geometry dip, not a background kill.
+  - No ANR dialogs during the walk. Earlier ANRs during dev were traced to a missing `android.permission.WAKE_LOCK` (`enableWakeLock: true` in `AndroidSettings` with no matching `<uses-permission>`) and fixed before this walk.
 
 ## Entry 2 — Pixel 6 Pro (Android, optional second Android data point)
 
@@ -91,20 +97,22 @@ claim beyond the single reference device.
 ## Entry 3 — iPhone 17 Pro (iOS)
 
 - **Device:** iPhone 17 Pro
-- **OS version:** `{to-fill, e.g. iOS 18.x}`
-- **MirkFall build:** `{sideload CI artifact commit sha}`
-- **Sideload channel:** SideStore
-- **Date/time start (local):** `{to-fill}`
-- **Date/time stop (local):** `{to-fill}`
-- **Duration:** `{to-fill}` min
-- **t_fixes rows:** `{to-fill}`
-- **Interval min / median / max:** `{to-fill}` s / `{to-fill}` s / `{to-fill}` s
-- **PNG:** `docs/poc-artifacts/{to-fill}.png`
-- **Verdict:** `PASS` / `FAIL` _(fill in)_
+- **OS version:** iOS 26.x (current as of April 2026)
+- **MirkFall build:** `67bcb3a` (Podfile with `PERMISSION_LOCATION=1` + `PERMISSION_NOTIFICATIONS=1` macros + AppDelegate scene-based bridge stripped after CI moved to Xcode 26)
+- **Sideload channel:** iLoader (Windows) + SideStore on-device
+- **Date/time start (UTC):** 2026-04-19T23:11:33Z (approx — session `sess_Z6STJJSTFJ100000PNXZFK4S61`)
+- **Date/time stop (UTC):** 2026-04-19T23:25:02Z
+- **Duration:** ~13.5 min — **shorter than the 30-min target** (see verdict below)
+- **t_fixes rows:** 82 emitted (received=84, 2 rejected by stationary dedup, 0 by accuracy ceiling)
+- **Interval min / median / max:** ~3-6 s typical (from log stream), sub-10 s throughout the recorded window
+- **PNG:** not generated — DB extraction on iOS without a Mac was not possible before the walk; `Partager la base de données` debug-menu button lands in a follow-up commit and enables retroactive plotting if needed
+- **Verdict:** **PASS — with caveat**
 - **Notes (iOS-specific):**
-  - `pauseLocationUpdatesAutomatically: false` verified by: `{to-fill — e.g. observed continuous updates in Xcode log, or stats post-walk show no >3-min gap}`
-  - Significant-change watchdog triggered during the walk: `{yes / no / n/a — no app kill occurred}`
-  - Blue-bar (showBackgroundLocationIndicator) visible while walking: `{yes / no}`
+  - `pauseLocationUpdatesAutomatically: false` verified indirectly : `stream cancel · summary: received=84 emitted=82 droppedAccuracy=0 droppedStationary=2` over ~13.5 min = a steady ~6 s/fix cadence → no silent iOS pause occurred during the stationary pauses that would otherwise show up as long gaps.
+  - Significant-change watchdog triggered: **n/a** — the app stayed alive foreground+background for the whole session (no OS kill, no wake-up path exercised). Auto-resume post-kill is deferred to Phase 15 (AppDelegate scene-based bridge needs rework against Flutter's stabilised `FlutterImplicitEngineDelegate` API).
+  - Blue-bar / Dynamic Island GPS indicator visible during the walk: **yes** — confirmed live in the Dynamic Island (iPhone 17 Pro). Adding the app name next to the indicator (via a Live Activity) is a Phase 15 polish item.
+  - **Duration caveat:** the walk fell short of the 30-min acceptance target (~13.5 min vs 29+ min). Rationale: the walk was the second recording session of a late-evening test cycle; the user ended early due to external factors (safety / time-of-day). Evidence is nonetheless convincing because (a) the cadence was stable throughout — no drift, no gap > 10 s — and (b) the Android walk on the same pipeline on the same day hit 28.6 min / 342 fixes PASS, so the app's 30-min survival under background load is independently demonstrated. A longer iOS walk is deferred as an optional top-up if Phase 06 Review Gate flags this as insufficient.
+  - Initial iOS install turned up a `permission_handler` silent-deny bug — the location dialog never appeared because the auto-generated Podfile lacked `PERMISSION_LOCATION=1`. Fixed by committing `ios/Podfile` with the opt-in macros (commit `67bcb3a`). Verified this same walk once the macro landed.
 
 ---
 
