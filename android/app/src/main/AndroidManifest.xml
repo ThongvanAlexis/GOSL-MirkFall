@@ -20,6 +20,17 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
 
+    <!-- Required by geolocator's foreground service when
+         `enableWakeLock: true` is set in AndroidSettings
+         (lib/infrastructure/gps/location_settings_factory.dart). Without
+         this uses-permission, Android throws
+         `PlatformException(WAKE_LOCK)` on the first emitted position,
+         which kills the stream silently — 0 fixes recorded, then ANR
+         while the error handler chain unwinds. The wake-lock is what
+         keeps the GPS callbacks alive past ~30 min of screen-off
+         (Doze), per 05-RESEARCH.md Pitfall #4 / geolocator #1023. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+
     <!-- Notification (Android 13+ / API 33+). The Phase 05-04 settings flow
          requests this at first-run via permission_handler. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
