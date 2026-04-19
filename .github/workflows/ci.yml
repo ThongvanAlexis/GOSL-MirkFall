@@ -306,4 +306,36 @@ jobs:
 
       - name: Build iOS (no-codesign)
         run: flutter build ios --release --no-codesign
-      # No IPA artifact upload in Phase 01. Phase 15 (release) adds signed IPA.
+
+      # Package the unsigned Runner.app bundle into an unsigned `.ipa` so
+      # it can be downloaded as a CI artifact and sideloaded onto an
+      # iPhone via SideStore / AltStore / Sideloadly (see CLAUDE.md
+      # §Plateformes — "Déploiement iOS : sideload via SideStore ou
+      # équivalent, pas de compte Apple Developer payant"). An `.ipa` is
+      # just a zip of `Payload/Runner.app`; the sideloader re-signs with
+      # a free Apple ID at install time.
+      #
+      # Phase 15 will replace this with a signed .ipa + notarisation.
+      # Until then, the output is unsigned-only and requires a sideloader
+      # to install on a device.
+      - name: Package unsigned IPA for sideloading
+        run: |
+          set -euo pipefail
+          BUILD_DIR="build/ios/iphoneos"
+          if [ ! -d "$BUILD_DIR/Runner.app" ]; then
+            echo "::error::Expected Runner.app under $BUILD_DIR after flutter build ios"
+            exit 1
+          fi
+          WORK_DIR="$(mktemp -d)"
+          mkdir "$WORK_DIR/Payload"
+          cp -R "$BUILD_DIR/Runner.app" "$WORK_DIR/Payload/"
+          (cd "$WORK_DIR" && zip -qr "$GITHUB_WORKSPACE/mirkfall-unsigned.ipa" Payload)
+          ls -la mirkfall-unsigned.ipa
+
+      - name: Upload unsigned IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mirkfall-ios-unsigned-ipa
+          path: mirkfall-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
