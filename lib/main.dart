@@ -105,6 +105,13 @@ Future<void> main() async {
 
       log.info('MirkFall starting — logger armed');
 
+      // Phase 05 wiring note — `ActiveSessionController` is the first
+      // productive consumer of `appDatabaseProvider` (Option A lazy
+      // resolution per 05-CONTEXT.md). No structural change required
+      // here; Riverpod resolves the DB synchronously-lazily on first
+      // `ref.watch(appDatabaseProvider.future)` from the controller,
+      // which keeps this bootstrap body identical to Phase 04.
+      //
       // Mount the app in the SAME guarded zone as ensureInitialized above —
       // that is the whole point of option (b). Flutter's `debugCheckZone`
       // now sees binding.rootZone == Zone.current at runApp time.
