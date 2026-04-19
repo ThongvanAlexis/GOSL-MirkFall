@@ -67,12 +67,16 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>TODO Phase 05: rationale GPS WhenInUse</string>
+	<string>MirkFall utilise ta position pour révéler le brouillard de ta carte d'exploration personnelle. Tout reste sur ton téléphone — aucun serveur, aucun partage, aucune publicité.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>TODO Phase 05: rationale background location, store-grade copy en Phase 15</string>
+	<string>MirkFall continue à suivre ta position en arrière-plan pour que ta carte d'exploration se révèle pendant que ton téléphone est dans ta poche, écran éteint — comme une vraie sortie. Tout reste sur ton téléphone. Aucune donnée n'est envoyée ni partagée.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>TODO Phase 11: rationale photos markers</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>TODO Phase 11: rationale import photo galerie</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 </dict>
 </plist>

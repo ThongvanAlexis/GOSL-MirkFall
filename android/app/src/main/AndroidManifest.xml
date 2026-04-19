@@ -1,4 +1,43 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- ==================================================================
+         Phase 05 — permissions required for the GPS session-lifecycle
+         pipeline. Source: 05-RESEARCH.md §AndroidManifest.xml additions +
+         Pitfalls #2 (Android 14 FOREGROUND_SERVICE_LOCATION) and #5
+         (BOOT_COMPLETED receiver constraints).
+         ================================================================== -->
+
+    <!-- GPS foreground + background. ACCESS_BACKGROUND_LOCATION must be
+         requested via the two-step permission_handler flow (locationWhenInUse
+         first, locationAlways second — Plan 05-03). -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+
+    <!-- Foreground service. Android 14+ (API 34) REQUIRES both permissions
+         below AND a matching service-type declaration. The matching
+         <service> entry is shipped by geolocator_android via manifest merge
+         (see NOTE above the <application> tag). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+
+    <!-- Notification (Android 13+ / API 33+). The Phase 05-04 settings flow
+         requests this at first-run via permission_handler. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- Boot-completed watchdog (Plan 05-06). After reboot, the receiver
+         checks the DB; if a session was active at kill time it fires a
+         local "tap to resume" notification (does NOT attempt to start the
+         geolocator foreground service directly — Pitfall #5 / Android 14+
+         SecurityException). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <!-- NOTE: geolocator_android ships its own <service> declaration for
+         com.baseflow.geolocator.GeolocatorLocationService via manifest
+         merge. Verify post-build (apkanalyzer or unzip the APK's
+         AndroidManifest.xml) that the merged manifest contains
+         android:foregroundServiceType="location". If missing, add an
+         explicit override here (see 05-RESEARCH.md §AndroidManifest.xml
+         additions — Common Pitfalls #2). -->
     <application
         android:label="MirkFall"
         android:name="${applicationName}"
@@ -25,6 +64,25 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- Declared in Plan 05-02; Kotlin implementation lands in Plan
+             05-06. The receiver checks the DB at boot / package replace;
+             if a session was active at kill time, it fires a local
+             "tap to resume" notification. The receiver does NOT try to
+             start the geolocator foreground service directly — on
+             Android 14+ this throws SecurityException without
+             ACCESS_BACKGROUND_LOCATION at receiver-invocation time
+             (05-RESEARCH.md Common Pitfalls #5). -->
+        <receiver
+            android:name=".BootCompletedReceiver"
+            android:exported="true"
+            android:directBootAware="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+            </intent-filter>
+        </receiver>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
