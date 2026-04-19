@@ -3032,6 +3032,661 @@ class PhotosCompanion extends UpdateCompanion<PhotoRow> {
   }
 }
 
+class $FixesTable extends Fixes with TableInfo<$FixesTable, FixRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FixesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES t_sessions (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime, int> recordedAtUtc =
+      GeneratedColumn<int>(
+        'recorded_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($FixesTable.$converterrecordedAtUtc);
+  static const VerificationMeta _recordedAtOffsetMinutesMeta =
+      const VerificationMeta('recordedAtOffsetMinutes');
+  @override
+  late final GeneratedColumn<int> recordedAtOffsetMinutes =
+      GeneratedColumn<int>(
+        'recorded_at_offset_minutes',
+        aliasedName,
+        false,
+        check: () => ComparableExpr(
+          recordedAtOffsetMinutes,
+        ).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    false,
+    check: () => ComparableExpr(latitude).isBetweenValues(-90.0, 90.0),
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    false,
+    check: () => ComparableExpr(longitude).isBetweenValues(-180.0, 180.0),
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accuracyMetersMeta = const VerificationMeta(
+    'accuracyMeters',
+  );
+  @override
+  late final GeneratedColumn<double> accuracyMeters = GeneratedColumn<double>(
+    'accuracy_meters',
+    aliasedName,
+    false,
+    check: () => ComparableExpr(accuracyMeters).isBiggerOrEqualValue(0.0),
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _altitudeMetersMeta = const VerificationMeta(
+    'altitudeMeters',
+  );
+  @override
+  late final GeneratedColumn<double> altitudeMeters = GeneratedColumn<double>(
+    'altitude_meters',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _speedMpsMeta = const VerificationMeta(
+    'speedMps',
+  );
+  @override
+  late final GeneratedColumn<double> speedMps = GeneratedColumn<double>(
+    'speed_mps',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _headingDegreesMeta = const VerificationMeta(
+    'headingDegrees',
+  );
+  @override
+  late final GeneratedColumn<double> headingDegrees = GeneratedColumn<double>(
+    'heading_degrees',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sessionId,
+    recordedAtUtc,
+    recordedAtOffsetMinutes,
+    latitude,
+    longitude,
+    accuracyMeters,
+    altitudeMeters,
+    speedMps,
+    headingDegrees,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 't_fixes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FixRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('recorded_at_offset_minutes')) {
+      context.handle(
+        _recordedAtOffsetMinutesMeta,
+        recordedAtOffsetMinutes.isAcceptableOrUnknown(
+          data['recorded_at_offset_minutes']!,
+          _recordedAtOffsetMinutesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_recordedAtOffsetMinutesMeta);
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_latitudeMeta);
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_longitudeMeta);
+    }
+    if (data.containsKey('accuracy_meters')) {
+      context.handle(
+        _accuracyMetersMeta,
+        accuracyMeters.isAcceptableOrUnknown(
+          data['accuracy_meters']!,
+          _accuracyMetersMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_accuracyMetersMeta);
+    }
+    if (data.containsKey('altitude_meters')) {
+      context.handle(
+        _altitudeMetersMeta,
+        altitudeMeters.isAcceptableOrUnknown(
+          data['altitude_meters']!,
+          _altitudeMetersMeta,
+        ),
+      );
+    }
+    if (data.containsKey('speed_mps')) {
+      context.handle(
+        _speedMpsMeta,
+        speedMps.isAcceptableOrUnknown(data['speed_mps']!, _speedMpsMeta),
+      );
+    }
+    if (data.containsKey('heading_degrees')) {
+      context.handle(
+        _headingDegreesMeta,
+        headingDegrees.isAcceptableOrUnknown(
+          data['heading_degrees']!,
+          _headingDegreesMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FixRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FixRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
+      recordedAtUtc: $FixesTable.$converterrecordedAtUtc.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}recorded_at_utc'],
+        )!,
+      ),
+      recordedAtOffsetMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recorded_at_offset_minutes'],
+      )!,
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      )!,
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      )!,
+      accuracyMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}accuracy_meters'],
+      )!,
+      altitudeMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}altitude_meters'],
+      ),
+      speedMps: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}speed_mps'],
+      ),
+      headingDegrees: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}heading_degrees'],
+      ),
+    );
+  }
+
+  @override
+  $FixesTable createAlias(String alias) {
+    return $FixesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<DateTime, int> $converterrecordedAtUtc =
+      const UnixMsToDateTimeConverter();
+}
+
+class FixRow extends DataClass implements Insertable<FixRow> {
+  final String id;
+  final String sessionId;
+  final DateTime recordedAtUtc;
+  final int recordedAtOffsetMinutes;
+  final double latitude;
+  final double longitude;
+  final double accuracyMeters;
+  final double? altitudeMeters;
+  final double? speedMps;
+  final double? headingDegrees;
+  const FixRow({
+    required this.id,
+    required this.sessionId,
+    required this.recordedAtUtc,
+    required this.recordedAtOffsetMinutes,
+    required this.latitude,
+    required this.longitude,
+    required this.accuracyMeters,
+    this.altitudeMeters,
+    this.speedMps,
+    this.headingDegrees,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['session_id'] = Variable<String>(sessionId);
+    {
+      map['recorded_at_utc'] = Variable<int>(
+        $FixesTable.$converterrecordedAtUtc.toSql(recordedAtUtc),
+      );
+    }
+    map['recorded_at_offset_minutes'] = Variable<int>(recordedAtOffsetMinutes);
+    map['latitude'] = Variable<double>(latitude);
+    map['longitude'] = Variable<double>(longitude);
+    map['accuracy_meters'] = Variable<double>(accuracyMeters);
+    if (!nullToAbsent || altitudeMeters != null) {
+      map['altitude_meters'] = Variable<double>(altitudeMeters);
+    }
+    if (!nullToAbsent || speedMps != null) {
+      map['speed_mps'] = Variable<double>(speedMps);
+    }
+    if (!nullToAbsent || headingDegrees != null) {
+      map['heading_degrees'] = Variable<double>(headingDegrees);
+    }
+    return map;
+  }
+
+  FixesCompanion toCompanion(bool nullToAbsent) {
+    return FixesCompanion(
+      id: Value(id),
+      sessionId: Value(sessionId),
+      recordedAtUtc: Value(recordedAtUtc),
+      recordedAtOffsetMinutes: Value(recordedAtOffsetMinutes),
+      latitude: Value(latitude),
+      longitude: Value(longitude),
+      accuracyMeters: Value(accuracyMeters),
+      altitudeMeters: altitudeMeters == null && nullToAbsent
+          ? const Value.absent()
+          : Value(altitudeMeters),
+      speedMps: speedMps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(speedMps),
+      headingDegrees: headingDegrees == null && nullToAbsent
+          ? const Value.absent()
+          : Value(headingDegrees),
+    );
+  }
+
+  factory FixRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FixRow(
+      id: serializer.fromJson<String>(json['id']),
+      sessionId: serializer.fromJson<String>(json['sessionId']),
+      recordedAtUtc: serializer.fromJson<DateTime>(json['recordedAtUtc']),
+      recordedAtOffsetMinutes: serializer.fromJson<int>(
+        json['recordedAtOffsetMinutes'],
+      ),
+      latitude: serializer.fromJson<double>(json['latitude']),
+      longitude: serializer.fromJson<double>(json['longitude']),
+      accuracyMeters: serializer.fromJson<double>(json['accuracyMeters']),
+      altitudeMeters: serializer.fromJson<double?>(json['altitudeMeters']),
+      speedMps: serializer.fromJson<double?>(json['speedMps']),
+      headingDegrees: serializer.fromJson<double?>(json['headingDegrees']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sessionId': serializer.toJson<String>(sessionId),
+      'recordedAtUtc': serializer.toJson<DateTime>(recordedAtUtc),
+      'recordedAtOffsetMinutes': serializer.toJson<int>(
+        recordedAtOffsetMinutes,
+      ),
+      'latitude': serializer.toJson<double>(latitude),
+      'longitude': serializer.toJson<double>(longitude),
+      'accuracyMeters': serializer.toJson<double>(accuracyMeters),
+      'altitudeMeters': serializer.toJson<double?>(altitudeMeters),
+      'speedMps': serializer.toJson<double?>(speedMps),
+      'headingDegrees': serializer.toJson<double?>(headingDegrees),
+    };
+  }
+
+  FixRow copyWith({
+    String? id,
+    String? sessionId,
+    DateTime? recordedAtUtc,
+    int? recordedAtOffsetMinutes,
+    double? latitude,
+    double? longitude,
+    double? accuracyMeters,
+    Value<double?> altitudeMeters = const Value.absent(),
+    Value<double?> speedMps = const Value.absent(),
+    Value<double?> headingDegrees = const Value.absent(),
+  }) => FixRow(
+    id: id ?? this.id,
+    sessionId: sessionId ?? this.sessionId,
+    recordedAtUtc: recordedAtUtc ?? this.recordedAtUtc,
+    recordedAtOffsetMinutes:
+        recordedAtOffsetMinutes ?? this.recordedAtOffsetMinutes,
+    latitude: latitude ?? this.latitude,
+    longitude: longitude ?? this.longitude,
+    accuracyMeters: accuracyMeters ?? this.accuracyMeters,
+    altitudeMeters: altitudeMeters.present
+        ? altitudeMeters.value
+        : this.altitudeMeters,
+    speedMps: speedMps.present ? speedMps.value : this.speedMps,
+    headingDegrees: headingDegrees.present
+        ? headingDegrees.value
+        : this.headingDegrees,
+  );
+  FixRow copyWithCompanion(FixesCompanion data) {
+    return FixRow(
+      id: data.id.present ? data.id.value : this.id,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      recordedAtUtc: data.recordedAtUtc.present
+          ? data.recordedAtUtc.value
+          : this.recordedAtUtc,
+      recordedAtOffsetMinutes: data.recordedAtOffsetMinutes.present
+          ? data.recordedAtOffsetMinutes.value
+          : this.recordedAtOffsetMinutes,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      accuracyMeters: data.accuracyMeters.present
+          ? data.accuracyMeters.value
+          : this.accuracyMeters,
+      altitudeMeters: data.altitudeMeters.present
+          ? data.altitudeMeters.value
+          : this.altitudeMeters,
+      speedMps: data.speedMps.present ? data.speedMps.value : this.speedMps,
+      headingDegrees: data.headingDegrees.present
+          ? data.headingDegrees.value
+          : this.headingDegrees,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FixRow(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('recordedAtUtc: $recordedAtUtc, ')
+          ..write('recordedAtOffsetMinutes: $recordedAtOffsetMinutes, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('accuracyMeters: $accuracyMeters, ')
+          ..write('altitudeMeters: $altitudeMeters, ')
+          ..write('speedMps: $speedMps, ')
+          ..write('headingDegrees: $headingDegrees')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    sessionId,
+    recordedAtUtc,
+    recordedAtOffsetMinutes,
+    latitude,
+    longitude,
+    accuracyMeters,
+    altitudeMeters,
+    speedMps,
+    headingDegrees,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FixRow &&
+          other.id == this.id &&
+          other.sessionId == this.sessionId &&
+          other.recordedAtUtc == this.recordedAtUtc &&
+          other.recordedAtOffsetMinutes == this.recordedAtOffsetMinutes &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
+          other.accuracyMeters == this.accuracyMeters &&
+          other.altitudeMeters == this.altitudeMeters &&
+          other.speedMps == this.speedMps &&
+          other.headingDegrees == this.headingDegrees);
+}
+
+class FixesCompanion extends UpdateCompanion<FixRow> {
+  final Value<String> id;
+  final Value<String> sessionId;
+  final Value<DateTime> recordedAtUtc;
+  final Value<int> recordedAtOffsetMinutes;
+  final Value<double> latitude;
+  final Value<double> longitude;
+  final Value<double> accuracyMeters;
+  final Value<double?> altitudeMeters;
+  final Value<double?> speedMps;
+  final Value<double?> headingDegrees;
+  final Value<int> rowid;
+  const FixesCompanion({
+    this.id = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.recordedAtUtc = const Value.absent(),
+    this.recordedAtOffsetMinutes = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.accuracyMeters = const Value.absent(),
+    this.altitudeMeters = const Value.absent(),
+    this.speedMps = const Value.absent(),
+    this.headingDegrees = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FixesCompanion.insert({
+    required String id,
+    required String sessionId,
+    required DateTime recordedAtUtc,
+    required int recordedAtOffsetMinutes,
+    required double latitude,
+    required double longitude,
+    required double accuracyMeters,
+    this.altitudeMeters = const Value.absent(),
+    this.speedMps = const Value.absent(),
+    this.headingDegrees = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       sessionId = Value(sessionId),
+       recordedAtUtc = Value(recordedAtUtc),
+       recordedAtOffsetMinutes = Value(recordedAtOffsetMinutes),
+       latitude = Value(latitude),
+       longitude = Value(longitude),
+       accuracyMeters = Value(accuracyMeters);
+  static Insertable<FixRow> custom({
+    Expression<String>? id,
+    Expression<String>? sessionId,
+    Expression<int>? recordedAtUtc,
+    Expression<int>? recordedAtOffsetMinutes,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+    Expression<double>? accuracyMeters,
+    Expression<double>? altitudeMeters,
+    Expression<double>? speedMps,
+    Expression<double>? headingDegrees,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sessionId != null) 'session_id': sessionId,
+      if (recordedAtUtc != null) 'recorded_at_utc': recordedAtUtc,
+      if (recordedAtOffsetMinutes != null)
+        'recorded_at_offset_minutes': recordedAtOffsetMinutes,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (accuracyMeters != null) 'accuracy_meters': accuracyMeters,
+      if (altitudeMeters != null) 'altitude_meters': altitudeMeters,
+      if (speedMps != null) 'speed_mps': speedMps,
+      if (headingDegrees != null) 'heading_degrees': headingDegrees,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FixesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? sessionId,
+    Value<DateTime>? recordedAtUtc,
+    Value<int>? recordedAtOffsetMinutes,
+    Value<double>? latitude,
+    Value<double>? longitude,
+    Value<double>? accuracyMeters,
+    Value<double?>? altitudeMeters,
+    Value<double?>? speedMps,
+    Value<double?>? headingDegrees,
+    Value<int>? rowid,
+  }) {
+    return FixesCompanion(
+      id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
+      recordedAtUtc: recordedAtUtc ?? this.recordedAtUtc,
+      recordedAtOffsetMinutes:
+          recordedAtOffsetMinutes ?? this.recordedAtOffsetMinutes,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      accuracyMeters: accuracyMeters ?? this.accuracyMeters,
+      altitudeMeters: altitudeMeters ?? this.altitudeMeters,
+      speedMps: speedMps ?? this.speedMps,
+      headingDegrees: headingDegrees ?? this.headingDegrees,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (recordedAtUtc.present) {
+      map['recorded_at_utc'] = Variable<int>(
+        $FixesTable.$converterrecordedAtUtc.toSql(recordedAtUtc.value),
+      );
+    }
+    if (recordedAtOffsetMinutes.present) {
+      map['recorded_at_offset_minutes'] = Variable<int>(
+        recordedAtOffsetMinutes.value,
+      );
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (accuracyMeters.present) {
+      map['accuracy_meters'] = Variable<double>(accuracyMeters.value);
+    }
+    if (altitudeMeters.present) {
+      map['altitude_meters'] = Variable<double>(altitudeMeters.value);
+    }
+    if (speedMps.present) {
+      map['speed_mps'] = Variable<double>(speedMps.value);
+    }
+    if (headingDegrees.present) {
+      map['heading_degrees'] = Variable<double>(headingDegrees.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FixesCompanion(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('recordedAtUtc: $recordedAtUtc, ')
+          ..write('recordedAtOffsetMinutes: $recordedAtOffsetMinutes, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('accuracyMeters: $accuracyMeters, ')
+          ..write('altitudeMeters: $altitudeMeters, ')
+          ..write('speedMps: $speedMps, ')
+          ..write('headingDegrees: $headingDegrees, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3043,6 +3698,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RevealedTilesTable revealedTiles = $RevealedTilesTable(this);
   late final $MirkStylesTable mirkStyles = $MirkStylesTable(this);
   late final $PhotosTable photos = $PhotosTable(this);
+  late final $FixesTable fixes = $FixesTable(this);
   late final Index idxTSessionsStatusActive = Index(
     'idx_t_sessions_status_active',
     'CREATE UNIQUE INDEX idx_t_sessions_status_active ON t_sessions (status) WHERE status = \'active\'',
@@ -3063,6 +3719,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_t_photos_marker_id',
     'CREATE INDEX idx_t_photos_marker_id ON t_photos (marker_id)',
   );
+  late final Index idxTFixesSessionId = Index(
+    'idx_t_fixes_session_id',
+    'CREATE INDEX idx_t_fixes_session_id ON t_fixes (session_id)',
+  );
+  late final Index idxTFixesSessionRecordedAt = Index(
+    'idx_t_fixes_session_recorded_at',
+    'CREATE INDEX idx_t_fixes_session_recorded_at ON t_fixes (session_id, recorded_at_utc)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3074,11 +3738,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     revealedTiles,
     mirkStyles,
     photos,
+    fixes,
     idxTSessionsStatusActive,
     idxTMarkersSessionId,
     idxTMarkersCategoryId,
     idxTRevealedTilesSessionIdParentKey,
     idxTPhotosMarkerId,
+    idxTFixesSessionId,
+    idxTFixesSessionRecordedAt,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3102,6 +3769,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('t_photos', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        't_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('t_fixes', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -3167,6 +3841,25 @@ final class $$SessionsTableReferences
     ).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_revealedTilesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$FixesTable, List<FixRow>> _fixesRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.fixes,
+    aliasName: $_aliasNameGenerator(db.sessions.id, db.fixes.sessionId),
+  );
+
+  $$FixesTableProcessedTableManager get fixesRefs {
+    final manager = $$FixesTableTableManager(
+      $_db,
+      $_db.fixes,
+    ).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_fixesRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3265,6 +3958,31 @@ class $$SessionsTableFilterComposer
           }) => $$RevealedTilesTableFilterComposer(
             $db: $db,
             $table: $db.revealedTiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> fixesRefs(
+    Expression<bool> Function($$FixesTableFilterComposer f) f,
+  ) {
+    final $$FixesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.fixes,
+      getReferencedColumn: (t) => t.sessionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FixesTableFilterComposer(
+            $db: $db,
+            $table: $db.fixes,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3419,6 +4137,31 @@ class $$SessionsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> fixesRefs<T extends Object>(
+    Expression<T> Function($$FixesTableAnnotationComposer a) f,
+  ) {
+    final $$FixesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.fixes,
+      getReferencedColumn: (t) => t.sessionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FixesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.fixes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$SessionsTableTableManager
@@ -3434,7 +4177,11 @@ class $$SessionsTableTableManager
           $$SessionsTableUpdateCompanionBuilder,
           (SessionRow, $$SessionsTableReferences),
           SessionRow,
-          PrefetchHooks Function({bool markersRefs, bool revealedTilesRefs})
+          PrefetchHooks Function({
+            bool markersRefs,
+            bool revealedTilesRefs,
+            bool fixesRefs,
+          })
         > {
   $$SessionsTableTableManager(_$AppDatabase db, $SessionsTable table)
     : super(
@@ -3500,12 +4247,17 @@ class $$SessionsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({markersRefs = false, revealedTilesRefs = false}) {
+              ({
+                markersRefs = false,
+                revealedTilesRefs = false,
+                fixesRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (markersRefs) db.markers,
                     if (revealedTilesRefs) db.revealedTiles,
+                    if (fixesRefs) db.fixes,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -3552,6 +4304,27 @@ class $$SessionsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (fixesRefs)
+                        await $_getPrefetchedData<
+                          SessionRow,
+                          $SessionsTable,
+                          FixRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SessionsTableReferences
+                              ._fixesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SessionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).fixesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sessionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -3572,7 +4345,11 @@ typedef $$SessionsTableProcessedTableManager =
       $$SessionsTableUpdateCompanionBuilder,
       (SessionRow, $$SessionsTableReferences),
       SessionRow,
-      PrefetchHooks Function({bool markersRefs, bool revealedTilesRefs})
+      PrefetchHooks Function({
+        bool markersRefs,
+        bool revealedTilesRefs,
+        bool fixesRefs,
+      })
     >;
 typedef $$MarkerCategoriesTableCreateCompanionBuilder =
     MarkerCategoriesCompanion Function({
@@ -5482,6 +6259,427 @@ typedef $$PhotosTableProcessedTableManager =
       PhotoRow,
       PrefetchHooks Function({bool markerId})
     >;
+typedef $$FixesTableCreateCompanionBuilder =
+    FixesCompanion Function({
+      required String id,
+      required String sessionId,
+      required DateTime recordedAtUtc,
+      required int recordedAtOffsetMinutes,
+      required double latitude,
+      required double longitude,
+      required double accuracyMeters,
+      Value<double?> altitudeMeters,
+      Value<double?> speedMps,
+      Value<double?> headingDegrees,
+      Value<int> rowid,
+    });
+typedef $$FixesTableUpdateCompanionBuilder =
+    FixesCompanion Function({
+      Value<String> id,
+      Value<String> sessionId,
+      Value<DateTime> recordedAtUtc,
+      Value<int> recordedAtOffsetMinutes,
+      Value<double> latitude,
+      Value<double> longitude,
+      Value<double> accuracyMeters,
+      Value<double?> altitudeMeters,
+      Value<double?> speedMps,
+      Value<double?> headingDegrees,
+      Value<int> rowid,
+    });
+
+final class $$FixesTableReferences
+    extends BaseReferences<_$AppDatabase, $FixesTable, FixRow> {
+  $$FixesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $SessionsTable _sessionIdTable(_$AppDatabase db) => db.sessions
+      .createAlias($_aliasNameGenerator(db.fixes.sessionId, db.sessions.id));
+
+  $$SessionsTableProcessedTableManager get sessionId {
+    final $_column = $_itemColumn<String>('session_id')!;
+
+    final manager = $$SessionsTableTableManager(
+      $_db,
+      $_db.sessions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sessionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$FixesTableFilterComposer extends Composer<_$AppDatabase, $FixesTable> {
+  $$FixesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DateTime, DateTime, int> get recordedAtUtc =>
+      $composableBuilder(
+        column: $table.recordedAtUtc,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get recordedAtOffsetMinutes => $composableBuilder(
+    column: $table.recordedAtOffsetMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get accuracyMeters => $composableBuilder(
+    column: $table.accuracyMeters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get altitudeMeters => $composableBuilder(
+    column: $table.altitudeMeters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get speedMps => $composableBuilder(
+    column: $table.speedMps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get headingDegrees => $composableBuilder(
+    column: $table.headingDegrees,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$SessionsTableFilterComposer get sessionId {
+    final $$SessionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FixesTableOrderingComposer
+    extends Composer<_$AppDatabase, $FixesTable> {
+  $$FixesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recordedAtUtc => $composableBuilder(
+    column: $table.recordedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recordedAtOffsetMinutes => $composableBuilder(
+    column: $table.recordedAtOffsetMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get accuracyMeters => $composableBuilder(
+    column: $table.accuracyMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get altitudeMeters => $composableBuilder(
+    column: $table.altitudeMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get speedMps => $composableBuilder(
+    column: $table.speedMps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get headingDegrees => $composableBuilder(
+    column: $table.headingDegrees,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$SessionsTableOrderingComposer get sessionId {
+    final $$SessionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FixesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FixesTable> {
+  $$FixesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DateTime, int> get recordedAtUtc =>
+      $composableBuilder(
+        column: $table.recordedAtUtc,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get recordedAtOffsetMinutes => $composableBuilder(
+    column: $table.recordedAtOffsetMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<double> get accuracyMeters => $composableBuilder(
+    column: $table.accuracyMeters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get altitudeMeters => $composableBuilder(
+    column: $table.altitudeMeters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get speedMps =>
+      $composableBuilder(column: $table.speedMps, builder: (column) => column);
+
+  GeneratedColumn<double> get headingDegrees => $composableBuilder(
+    column: $table.headingDegrees,
+    builder: (column) => column,
+  );
+
+  $$SessionsTableAnnotationComposer get sessionId {
+    final $$SessionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FixesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FixesTable,
+          FixRow,
+          $$FixesTableFilterComposer,
+          $$FixesTableOrderingComposer,
+          $$FixesTableAnnotationComposer,
+          $$FixesTableCreateCompanionBuilder,
+          $$FixesTableUpdateCompanionBuilder,
+          (FixRow, $$FixesTableReferences),
+          FixRow,
+          PrefetchHooks Function({bool sessionId})
+        > {
+  $$FixesTableTableManager(_$AppDatabase db, $FixesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FixesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FixesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FixesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> sessionId = const Value.absent(),
+                Value<DateTime> recordedAtUtc = const Value.absent(),
+                Value<int> recordedAtOffsetMinutes = const Value.absent(),
+                Value<double> latitude = const Value.absent(),
+                Value<double> longitude = const Value.absent(),
+                Value<double> accuracyMeters = const Value.absent(),
+                Value<double?> altitudeMeters = const Value.absent(),
+                Value<double?> speedMps = const Value.absent(),
+                Value<double?> headingDegrees = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FixesCompanion(
+                id: id,
+                sessionId: sessionId,
+                recordedAtUtc: recordedAtUtc,
+                recordedAtOffsetMinutes: recordedAtOffsetMinutes,
+                latitude: latitude,
+                longitude: longitude,
+                accuracyMeters: accuracyMeters,
+                altitudeMeters: altitudeMeters,
+                speedMps: speedMps,
+                headingDegrees: headingDegrees,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String sessionId,
+                required DateTime recordedAtUtc,
+                required int recordedAtOffsetMinutes,
+                required double latitude,
+                required double longitude,
+                required double accuracyMeters,
+                Value<double?> altitudeMeters = const Value.absent(),
+                Value<double?> speedMps = const Value.absent(),
+                Value<double?> headingDegrees = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FixesCompanion.insert(
+                id: id,
+                sessionId: sessionId,
+                recordedAtUtc: recordedAtUtc,
+                recordedAtOffsetMinutes: recordedAtOffsetMinutes,
+                latitude: latitude,
+                longitude: longitude,
+                accuracyMeters: accuracyMeters,
+                altitudeMeters: altitudeMeters,
+                speedMps: speedMps,
+                headingDegrees: headingDegrees,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) =>
+                    (e.readTable(table), $$FixesTableReferences(db, table, e)),
+              )
+              .toList(),
+          prefetchHooksCallback: ({sessionId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (sessionId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.sessionId,
+                                referencedTable: $$FixesTableReferences
+                                    ._sessionIdTable(db),
+                                referencedColumn: $$FixesTableReferences
+                                    ._sessionIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$FixesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FixesTable,
+      FixRow,
+      $$FixesTableFilterComposer,
+      $$FixesTableOrderingComposer,
+      $$FixesTableAnnotationComposer,
+      $$FixesTableCreateCompanionBuilder,
+      $$FixesTableUpdateCompanionBuilder,
+      (FixRow, $$FixesTableReferences),
+      FixRow,
+      PrefetchHooks Function({bool sessionId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5498,4 +6696,6 @@ class $AppDatabaseManager {
       $$MirkStylesTableTableManager(_db, _db.mirkStyles);
   $$PhotosTableTableManager get photos =>
       $$PhotosTableTableManager(_db, _db.photos);
+  $$FixesTableTableManager get fixes =>
+      $$FixesTableTableManager(_db, _db.fixes);
 }

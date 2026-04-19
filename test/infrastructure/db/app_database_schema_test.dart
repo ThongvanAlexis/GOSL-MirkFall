@@ -144,8 +144,8 @@ void main() {
     expect(catCount.read<int>('c'), 1, reason: 'category deletion is transactional-reassign, not cascade');
   });
 
-  test('schemaVersion is 2 (V2 — notes column shipped)', () async {
-    expect(db.schemaVersion, 2);
+  test('schemaVersion is 3 (V3 — t_fixes table shipped by 05-01)', () async {
+    expect(db.schemaVersion, 3);
   });
 
   test('t_sessions.notes column exists (V2 shape)', () async {

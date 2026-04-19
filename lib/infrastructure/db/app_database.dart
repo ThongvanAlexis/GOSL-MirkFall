@@ -12,6 +12,7 @@ import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 
 import 'migrations/v1_to_v2_notes.dart';
+import 'migrations/v2_to_v3_fixes.dart';
 import 'pragma_setup.dart';
 import 'type_converters.dart';
 
@@ -210,6 +211,54 @@ class MirkStyles extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// `t_fixes` — one row per GPS fix recorded during an active session
+/// (Phase 05, SESS-07). FK `session_id` references `t_sessions.id` with
+/// ON DELETE CASCADE — deleting a session drops every fix it owns in the
+/// same transaction (CONTEXT.md §cascade).
+///
+/// CHECK constraints mirror the domain `@Assert` invariants on `Fix`
+/// (lat in [-90, 90], lon in [-180, 180], accuracy >= 0, offset range).
+/// The `// ignore: recursive_getters` pragmas are the documented Drift
+/// pattern for in-class CHECK constraints — see the Sessions table for
+/// the full rationale already captured in 03-persistence-domain-models.
+///
+/// Indexes:
+/// - `idx_t_fixes_session_id` — cheap lookup when deleting all fixes for
+///   a session (also the access path for `countBySession`).
+/// - `idx_t_fixes_session_recorded_at` — composite, supports the
+///   `listBySession ORDER BY recorded_at_utc ASC` access pattern that
+///   dominates session-detail reads.
+@DataClassName('FixRow')
+@TableIndex.sql('CREATE INDEX idx_t_fixes_session_id ON t_fixes(session_id);')
+@TableIndex.sql(
+  'CREATE INDEX idx_t_fixes_session_recorded_at '
+  'ON t_fixes(session_id, recorded_at_utc);',
+)
+class Fixes extends Table {
+  @override
+  String get tableName => 't_fixes';
+
+  TextColumn get id => text()();
+  TextColumn get sessionId => text().references(Sessions, #id, onDelete: KeyAction.cascade)();
+  IntColumn get recordedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
+  // ignore: recursive_getters
+  IntColumn get recordedAtOffsetMinutes =>
+      // ignore: recursive_getters
+      integer().check(recordedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
+  // ignore: recursive_getters
+  RealColumn get latitude => real().check(latitude.isBetweenValues(-90.0, 90.0))();
+  // ignore: recursive_getters
+  RealColumn get longitude => real().check(longitude.isBetweenValues(-180.0, 180.0))();
+  // ignore: recursive_getters
+  RealColumn get accuracyMeters => real().check(accuracyMeters.isBiggerOrEqualValue(0.0))();
+  RealColumn get altitudeMeters => real().nullable()();
+  RealColumn get speedMps => real().nullable()();
+  RealColumn get headingDegrees => real().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 /// `t_photos` — photo attachments for markers. Deleting the parent marker
 /// cascades here (CONTEXT.md §cascade — marker deletion drops attached
 /// photos; orphan file cleanup on disk is the PhotoService's job, Phase 11).
@@ -256,7 +305,7 @@ class Photos extends Table {
 /// 2. `MigrationStrategy.beforeOpen` calls [applyRuntimePragmas] to set the
 ///    other three pragmas (synchronous, busy_timeout, foreign_keys) on every
 ///    cold + warm open.
-@DriftDatabase(tables: [Sessions, MarkerCategories, Markers, RevealedTiles, MirkStyles, Photos])
+@DriftDatabase(tables: [Sessions, MarkerCategories, Markers, RevealedTiles, MirkStyles, Photos, Fixes])
 class AppDatabase extends _$AppDatabase {
   /// Creates an [AppDatabase] backed by [executor].
   ///
@@ -270,7 +319,7 @@ class AppDatabase extends _$AppDatabase {
   final Future<void> Function(OpeningDetails details)? onBeforeUpgrade;
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -298,6 +347,7 @@ class AppDatabase extends _$AppDatabase {
     },
     onUpgrade: (Migrator m, int from, int to) async {
       await V1ToV2Notes.apply(m, from, to);
+      await V2ToV3Fixes.apply(m, from, to);
     },
     beforeOpen: (OpeningDetails details) async {
       if (details.hadUpgrade && onBeforeUpgrade != null) {

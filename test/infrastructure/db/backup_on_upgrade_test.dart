@@ -62,7 +62,7 @@ void main() {
     expect(File(dbFilename).existsSync(), isTrue, reason: 'NativeDatabase should have materialized the file on close');
   }
 
-  test('upgrading V1 → V2 triggers backup BEFORE onUpgrade', () async {
+  test('upgrading V1 → current schemaVersion triggers backup BEFORE onUpgrade', () async {
     await seedV1DbFile();
     final sizeBefore = File(dbFilename).lengthSync();
     expect(sizeBefore, greaterThan(0));
@@ -82,7 +82,11 @@ void main() {
       final backups = backupDir.listSync().whereType<File>().toList();
       expect(backups, hasLength(1), reason: 'exactly one backup file');
       final backup = backups.single;
-      expect(p.basename(backup.path), startsWith('mirkfall.db.backup-v1-to-v2-'));
+      // Phase 05 (05-01) bumped schemaVersion to 3; the backup filename
+      // reflects the current target version. We match the {from}-to-v
+      // prefix to keep the assertion future-proof against V3 → V4 bumps
+      // while still asserting the V1 origin.
+      expect(p.basename(backup.path), startsWith('mirkfall.db.backup-v1-to-v'));
 
       // Assertion B: backup captured the pre-upgrade file bytes. If the
       // backup had fired AFTER onUpgrade, its byte count would reflect the

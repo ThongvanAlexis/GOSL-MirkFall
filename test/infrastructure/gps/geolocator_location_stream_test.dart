@@ -2,7 +2,7 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 /// Wave-0 stub — covers GPS-02 infra (geolocator `Position` → domain `Fix`).
 ///
