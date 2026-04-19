@@ -122,7 +122,11 @@ void main() {
       final outcome = await requestLocationAlways(requestPermission: fake.request);
 
       expect(outcome, LocationPermissionOutcome.granted);
-      expect(fake.requested.first, Permission.notification, reason: 'Notification must be requested FIRST so both OS dialogs appear back-to-back in the rationale flow');
+      expect(
+        fake.requested.first,
+        Permission.notification,
+        reason: 'Notification must be requested FIRST so both OS dialogs appear back-to-back in the rationale flow',
+      );
     });
   });
 }

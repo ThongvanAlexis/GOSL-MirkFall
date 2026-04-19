@@ -70,10 +70,7 @@ class SessionListScreen extends ConsumerWidget {
     // renders ABOVE the Navigator, so any route pushed during the
     // dialog was invisible and the user had to dismiss the dialog by
     // tapping the barrier before anything else could surface).
-    final _CreateDialogResult? result = await showDialog<_CreateDialogResult>(
-      context: context,
-      builder: (dialogContext) => const _CreateSessionDialog(),
-    );
+    final _CreateDialogResult? result = await showDialog<_CreateDialogResult>(context: context, builder: (dialogContext) => const _CreateSessionDialog());
     if (result == null) return;
     if (!context.mounted) return;
     final String path = '/sessions/${result.sessionId.value}';
@@ -291,5 +288,4 @@ class _CreateSessionDialogState extends ConsumerState<_CreateSessionDialog> {
     }
     return buffer.toString().substring(0, 26);
   }
-
 }
