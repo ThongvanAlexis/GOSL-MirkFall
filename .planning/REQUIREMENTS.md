@@ -25,8 +25,8 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 - [x] **SESS-01**: Utilisateur peut créer une session avec un nom
 - [x] **SESS-02**: Utilisateur peut renommer une session existante
 - [x] **SESS-03**: Utilisateur peut supprimer une session (avec confirmation)
-- [ ] **SESS-04**: Utilisateur peut démarrer (Start) une session
-- [ ] **SESS-05**: Utilisateur peut arrêter (Stop) une session active
+- [x] **SESS-04**: Utilisateur peut démarrer (Start) une session
+- [x] **SESS-05**: Utilisateur peut arrêter (Stop) une session active
 - [x] **SESS-06**: Démarrer une session arrête automatiquement toute autre session en cours (exclusivité enforcée au niveau DB)
 - [x] **SESS-07**: L'état d'une session (mirk révélé, markers, métadonnées) est persisté localement en continu
 - [x] **SESS-08**: Utilisateur peut voir la liste de toutes ses sessions avec leur état (active / arrêtée)
@@ -34,7 +34,7 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 
 ### GPS / Tracking (GPS)
 
-- [ ] **GPS-01**: L'app demande la permission de localisation "Always" à la première session démarrée, avec écran d'explication préalable (pre-prompt rationale)
+- [x] **GPS-01**: L'app demande la permission de localisation "Always" à la première session démarrée, avec écran d'explication préalable (pre-prompt rationale)
 - [x] **GPS-02**: Une session active tracke la position utilisateur en temps réel (foreground)
 - [x] **GPS-03**: Une session active continue à tracker en arrière-plan (app backgroundée, écran éteint) — Android foreground service + iOS background location
 - [x] **GPS-04**: Une notification persistante signale qu'une session est en cours (Android foreground service notification + équivalent iOS)
@@ -192,13 +192,13 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | SESS-01 | Phase 05 | Complete |
 | SESS-02 | Phase 05 | Complete |
 | SESS-03 | Phase 05 | Complete |
-| SESS-04 | Phase 05 | Pending |
-| SESS-05 | Phase 05 | Pending |
+| SESS-04 | Phase 05 | Complete |
+| SESS-05 | Phase 05 | Complete |
 | SESS-06 | Phase 03 | Complete |
 | SESS-07 | Phase 05 | Complete |
 | SESS-08 | Phase 05 | Complete |
 | SESS-09 | Phase 05 | Complete |
-| GPS-01 | Phase 05 | Pending |
+| GPS-01 | Phase 05 | Complete |
 | GPS-02 | Phase 05 | Complete |
 | GPS-03 | Phase 05 | Complete |
 | GPS-04 | Phase 05 | Complete |
