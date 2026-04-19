@@ -2,7 +2,7 @@
 phase: 05
 slug: gps-session-lifecycle
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-04-19
 ---
@@ -124,4 +124,4 @@ Tests and fixtures to create BEFORE first production code:
 - [ ] Real-device POC artefacts archived in `docs/poc-artifacts/`
 - [ ] `nyquist_compliant: true` set in frontmatter after plans pass checker
 
-**Approval:** pending
+**Approval:** approved 2026-04-19
