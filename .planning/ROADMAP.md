@@ -76,7 +76,7 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
   4. Tous les modèles de domaine (`Session`, `Marker`, `MarkerCategory`, `MirkStyle`, `RevealedTile`, `PhotoRef`, `Envelope`) sont générés par Freezed, immuables, et le dossier `lib/domain/` ne contient aucun `import 'package:flutter/...'` ni `import 'package:drift/...'`
   5. `tile_math.dart` et `reveal_calculator.dart` sont purement Dart, sans I/O, et leurs tests unitaires tournent sous `dart test` (pas `flutter test`) ; le framework `JsonMigrator` existe avec une chaîne identity pour v1 et un slot prêt à recevoir v2
   6. Un backup DB pré-migration est produit automatiquement et un sanity check post-migration (row-count) échoue hard si la migration a perdu des lignes
-**Plans** (6 plans, 5 waves):
+**Plans** (6 plans, 6 waves):
 - [ ] 03-persistence-domain-models/03-01-PLAN.md — Wave 1: Wave 0 bootstrap — pin custom_lint + riverpod_lint (Phase 01 deferred), libsqlite3 CI dep, drift-schema-drift guard on drift_schema_current.json (frozen v{1,2}.json fixtures never rewritten), Phase 03 constants, JSON + SQL fixtures, tool/check_domain_purity.dart
 - [ ] 03-persistence-domain-models/03-02-PLAN.md — Wave 2: Pure-Dart domain — IDs (6 extension types + IdGenerator + ULID), domain errors (7 exceptions), tile_math + reveal_calculator (MIRK-03 algebra: mergeBitmap + popcount), JsonMigrator framework + V1→V2 rename-radius fictive (Envelope moved to 03-03)
 - [ ] 03-persistence-domain-models/03-03-PLAN.md — Wave 3: Freezed entities (Session + Marker + MarkerCategory + MirkStyle + sealed MirkStyleConfig + RevealedTile + PhotoRef + Envelope) + 6 store ports + UnknownConfig fallback test + Envelope.fromJson test + fixture-driven JsonMigrator v1→v2 integration test (SC#4 verbatim, SC#5 closure)
@@ -111,13 +111,13 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
   4. Une notification persistante signale qu'une session est en cours dès que le tracking démarre (Android foreground service notification + équivalent iOS) ; le bouton Stop la fait disparaître immédiatement
   5. La permission localisation "Always" est demandée **après** un écran d'explication (pre-prompt rationale) et uniquement à la première session démarrée ; si l'utilisateur refuse, un écran dédié guide vers les paramètres système (GPS-07)
   6. `Info.plist` contient `NSLocationWhenInUseUsageDescription` + `NSLocationAlwaysAndWhenInUseUsageDescription` avec des textes humains défendables par un reviewer App Store ; l'argumentaire store (QUAL-03) est rédigé dans `docs/store-review-rationale.md`
-**Plans** (6 plans, 5 waves):
-- [ ] 05-gps-session-lifecycle/05-01-PLAN.md — Wave 1: Wave-0 test scaffolding (22 files + fakes) + Fix entity + FixStore port + LocationStream stub + Drift V2→V3 migration + DriftFixStore + SessionStore.watchAll()
+**Plans** (6 plans, 6 waves):
+- [ ] 05-gps-session-lifecycle/05-01-PLAN.md — Wave 1: Wave-0 test scaffolding (23 files + fakes) + Fix entity + FixStore port + LocationStream stub + Drift V2→V3 migration + DriftFixStore + SessionStore.watchAll()
 - [ ] 05-gps-session-lifecycle/05-02-PLAN.md — Wave 2: GPS infrastructure (GeolocatorLocationStream + LocationSettingsFactory) + SessionNotificationService + OemDetector + AndroidManifest permissions + Info.plist QUAL-04 final copy + device_info_plus audit
 - [ ] 05-gps-session-lifecycle/05-03-PLAN.md — Wave 3: ActiveSessionController orchestration + two-step permission flow + SessionSettings provider + sealed ActiveSessionState
 - [ ] 05-gps-session-lifecycle/05-04-PLAN.md — Wave 4: UI — SessionListScreen (replaces PlaceholderHomeScreen) + SessionDetailScreen + SettingsScreen + permission screens + OEM guidance + cross-route banner + routing updates
-- [ ] 05-gps-session-lifecycle/05-05-PLAN.md — Wave 4: Auto-resume post-kill — BootCompletedWatchdog (Dart) + Kotlin BootCompletedReceiver + iOS AppDelegate significant-change + tap-to-resume flow
-- [ ] 05-gps-session-lifecycle/05-06-PLAN.md — Wave 5: POC tooling (tool/plot_session_fixes.py + tool/requirements.txt) + docs/store-review-rationale.md (QUAL-03) + docs/qual-01-02-poc.md template + real-device 30-min walks on Pixel + iPhone 17 Pro
+- [ ] 05-gps-session-lifecycle/05-05-PLAN.md — Wave 5: Auto-resume post-kill — BootCompletedWatchdog (Dart) + Kotlin BootCompletedReceiver + iOS AppDelegate significant-change + tap-to-resume flow
+- [ ] 05-gps-session-lifecycle/05-06-PLAN.md — Wave 6: POC tooling (tool/plot_session_fixes.py + tool/requirements.txt) + docs/store-review-rationale.md (QUAL-03) + docs/qual-01-02-poc.md template + real-device 30-min walks on Pixel + iPhone 17 Pro
 
 ### Phase 06: Review Gate — GPS
 **Goal**: Valider le POC background GPS. Si ce gate rouge, on ne passe pas à la carte — on corrige ou on réévalue la V1.0.

@@ -53,10 +53,12 @@ created: 2026-04-19
 | 05-02-03 | 02 | 0 | GPS-04 | unit | `dart test test/infrastructure/notifications/session_notification_service_test.dart` | ❌ W0 | ⬜ pending |
 | 05-02-04 | 02 | 0 | GPS-05 | unit | `dart test test/infrastructure/gps/location_settings_factory_test.dart` | ❌ W0 | ⬜ pending |
 | 05-02-05 | 02 | 0 | GPS-08 | unit | `dart test test/infrastructure/platform/oem_detector_test.dart` | ❌ W0 | ⬜ pending |
+| 05-02-06 | 02 | 0 | GPS-02 (infra) | unit | `flutter test test/infrastructure/gps/geolocator_location_stream_test.dart` | ❌ W0 | ⬜ pending |
 | 05-03-01 | 03 | 0 | GPS-07 | widget | `flutter test test/presentation/screens/permission_denied_screen_test.dart` | ❌ W0 | ⬜ pending |
 | 05-03-02 | 03 | 0 | GPS-01 (rationale) | widget | `flutter test test/presentation/screens/permission_rationale_screen_test.dart` | ❌ W0 | ⬜ pending |
 | 05-04-01 | 04 | 0 | GPS-08 (UI) | widget | `flutter test test/presentation/screens/oem_guidance_screen_test.dart` | ❌ W0 | ⬜ pending |
 | 05-04-02 | 04 | 0 | Settings slider persistence | widget | `flutter test test/presentation/screens/settings_screen_test.dart` | ❌ W0 | ⬜ pending |
+| 05-04-03 | 04 | 0 | SESS-06 (end-to-end UI) | widget | `flutter test test/presentation/screens/session_detail_screen_test.dart` | ❌ W0 | ⬜ pending |
 | 05-05-01 | 05 | 0 | GPS-06 (watchdog) | unit | `dart test test/infrastructure/platform/boot_completed_watchdog_test.dart` | ❌ W0 | ⬜ pending |
 | 05-06-01 | 06 | 0 | QUAL-03 | file-exists | `dart test tool/test/store_rationale_exists_test.dart` | ❌ W0 | ⬜ pending |
 | 05-06-02 | 06 | 0 | QUAL-04 | static-scan | `dart test tool/test/info_plist_final_copy_test.dart` | ❌ W0 | ⬜ pending |
@@ -73,6 +75,7 @@ Tests and fixtures to create BEFORE first production code:
 - [ ] `test/application/controllers/active_session_controller_test.dart` — stubs for SESS-04, SESS-05, GPS-02, GPS-05
 - [ ] `test/application/permissions/location_permission_flow_test.dart` — stubs for GPS-01 (mocked `flutter.baseflow.com/permissions/methods` MethodChannel)
 - [ ] `test/infrastructure/gps/location_settings_factory_test.dart` — stubs for Pattern 1 seam + GPS-05 per platform
+- [ ] `test/infrastructure/gps/geolocator_location_stream_test.dart` — Plan 05-02 stub (skip-marked in 05-01; turned green by Plan 05-02 Task 1)
 - [ ] `test/infrastructure/stores/drift_fix_store_test.dart` — stubs for SESS-07 with `NativeDatabase.memory()`
 - [ ] `test/infrastructure/stores/drift_session_store_rename_test.dart` — stubs for SESS-02
 - [ ] `test/infrastructure/stores/drift_session_store_stress_test.dart` — stubs for SESS-09 (100+ sessions)
@@ -115,7 +118,7 @@ Tests and fixtures to create BEFORE first production code:
 
 - [ ] All tasks have `<automated>` verify or Wave 0 dependencies
 - [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references (24 test files listed above)
+- [ ] Wave 0 covers all MISSING references (25 test files listed above: original 24 + geolocator_location_stream_test.dart stub)
 - [ ] No watch-mode flags
 - [ ] Feedback latency < 10s (quick) / < 120s (full)
 - [ ] Real-device POC artefacts archived in `docs/poc-artifacts/`
