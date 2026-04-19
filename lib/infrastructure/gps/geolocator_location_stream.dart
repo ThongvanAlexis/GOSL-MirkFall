@@ -79,7 +79,7 @@ class GeolocatorLocationStream implements LocationStream {
     int droppedStationary = 0;
 
     controller.onListen = () {
-      _log.info('stream start · session=${sessionId.value} distanceFilter=${distanceFilterMeters}m accuracyCeiling=${kMaxAcceptableAccuracyMeters}m');
+      _log.fine('stream start · session=${sessionId.value} distanceFilter=${distanceFilterMeters}m accuracyCeiling=${kMaxAcceptableAccuracyMeters}m');
       _subscription = _positionStreamFactory(settings).listen(
         (geo.Position position) {
           positionsReceived++;
@@ -123,17 +123,10 @@ class GeolocatorLocationStream implements LocationStream {
           lastLongitude = position.longitude;
           lastEmittedAt = now;
           fixesEmitted++;
-          if (fixesEmitted == 1) {
-            _log.info(
-              'first fix accepted · lat=${fix.latitude.toStringAsFixed(5)} lng=${fix.longitude.toStringAsFixed(5)} '
-              '± ${fix.accuracyMeters.toStringAsFixed(1)}m · session=${sessionId.value}',
-            );
-          } else {
-            _log.fine(
-              'fix emitted #$fixesEmitted · lat=${fix.latitude.toStringAsFixed(5)} lng=${fix.longitude.toStringAsFixed(5)} '
-              '± ${fix.accuracyMeters.toStringAsFixed(1)}m speed=${fix.speedMps?.toStringAsFixed(1) ?? "-"}m/s',
-            );
-          }
+          _log.fine(
+            'fix emitted #$fixesEmitted · lat=${fix.latitude.toStringAsFixed(5)} lng=${fix.longitude.toStringAsFixed(5)} '
+            '± ${fix.accuracyMeters.toStringAsFixed(1)}m speed=${fix.speedMps?.toStringAsFixed(1) ?? "-"}m/s',
+          );
           controller.add(fix);
         },
         onError: (Object error, StackTrace stackTrace) {
@@ -146,7 +139,7 @@ class GeolocatorLocationStream implements LocationStream {
     };
 
     controller.onCancel = () async {
-      _log.info(
+      _log.fine(
         'stream cancel · session=${sessionId.value} summary: received=$positionsReceived emitted=$fixesEmitted '
         'droppedAccuracy=$droppedAccuracy droppedStationary=$droppedStationary',
       );
