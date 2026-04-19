@@ -19,6 +19,14 @@ import 'widgets/app_shell.dart';
 
 part 'router.g.dart';
 
+/// Top-level navigator key used by the Phase 05 notification-tap handler in
+/// `lib/main.dart` — `flutter_local_notifications` fires its
+/// `onDidReceiveNotificationResponse` callback OUTSIDE the widget tree, so
+/// the handler needs an out-of-band route to push against. The same key is
+/// passed to [GoRouter.navigatorKey] in [appRouter] so `GoRouter.of(...)`
+/// resolves against the active router regardless of build order.
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'rootNavigatorKey');
+
 /// Root GoRouter exposed via Riverpod so consumers get it through DI.
 ///
 /// Phase 05 route map:
@@ -38,6 +46,7 @@ part 'router.g.dart';
 @riverpod
 GoRouter appRouter(Ref ref) {
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     routes: <RouteBase>[
       ShellRoute(

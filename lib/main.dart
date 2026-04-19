@@ -6,11 +6,14 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:logging/logging.dart';
 
 import 'app.dart';
 import 'infrastructure/logging/file_logger.dart';
+import 'presentation/router.dart';
 
 /// Application entry point — bootstraps logging, error handling, and UI.
 ///
@@ -105,6 +108,25 @@ Future<void> main() async {
 
       log.info('MirkFall starting — logger armed');
 
+      // Phase 05 — wire the `flutter_local_notifications` tap callback so
+      // the "tap to resume" notification (Plan 05-05 auto-resume path)
+      // deep-links into `/sessions/:id` via the rootNavigatorKey. The
+      // plugin fires `onDidReceiveNotificationResponse` OUTSIDE a widget
+      // build context, so we navigate imperatively through the key that
+      // the router is built with.
+      //
+      // Initialising the plugin here is idempotent with the separate
+      // `SessionNotificationService.initialize()` call (which only creates
+      // the Android channel + requests iOS permissions) — they operate on
+      // the same singleton but on disjoint surfaces.
+      await FlutterLocalNotificationsPlugin().initialize(
+        settings: const InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+          iOS: DarwinInitializationSettings(),
+        ),
+        onDidReceiveNotificationResponse: _handleNotificationTap,
+      );
+
       // Phase 05 wiring note — `ActiveSessionController` is the first
       // productive consumer of `appDatabaseProvider` (Option A lazy
       // resolution per 05-CONTEXT.md). No structural change required
@@ -127,4 +149,34 @@ Future<void> main() async {
       Logger('main').shout('uncaughtZoneError', error, stack);
     },
   );
+}
+
+/// Phase 05 notification-tap handler.
+///
+/// Parses the `resume:<sessionId>` payload emitted by
+/// [SessionNotificationService.showResumeNotification] and routes to
+/// `/sessions/:id`. Reached only on user tap — no silent auto-resume
+/// (CONTEXT.md §Auto-resume post-kill: explicit user control).
+///
+/// Runs OUTSIDE a BuildContext (plugin callback), so navigation goes
+/// through [rootNavigatorKey]. The router may not yet be fully mounted
+/// when the tap fires on a cold-start launch; in that case we no-op and
+/// let the user navigate manually — the resume notification stays in
+/// the status bar so they can re-tap once the app is ready.
+void _handleNotificationTap(NotificationResponse response) {
+  final String? payload = response.payload;
+  if (payload == null || !payload.startsWith('resume:')) return;
+  final String sessionId = payload.substring('resume:'.length);
+  if (sessionId.isEmpty) return;
+
+  final BuildContext? context = rootNavigatorKey.currentContext;
+  if (context == null) {
+    // Router not mounted yet — cold-start race. The notification is
+    // still visible in the status bar; a second tap after the app
+    // finishes launching will fire this handler again with the
+    // router ready.
+    Logger('main').info('Notification tap arrived before router mount; ignoring. payload=$payload');
+    return;
+  }
+  GoRouter.of(context).go('/sessions/$sessionId');
 }
