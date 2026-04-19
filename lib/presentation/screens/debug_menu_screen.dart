@@ -124,7 +124,9 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aucun fichier de base de données trouvé')));
         return;
       }
-      await SharePlus.instance.share(ShareParams(files: existing, subject: 'MirkFall DB snapshot')).timeout(const Duration(milliseconds: kShareCallTimeoutMilliseconds));
+      await SharePlus.instance
+          .share(ShareParams(files: existing, subject: 'MirkFall DB snapshot'))
+          .timeout(const Duration(milliseconds: kShareCallTimeoutMilliseconds));
     } on TimeoutException catch (e, st) {
       Logger('debug_menu').warning('_onShareDatabase timeout', e, st);
       if (!mounted) return;
