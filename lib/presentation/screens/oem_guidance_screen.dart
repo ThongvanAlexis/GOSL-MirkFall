@@ -98,7 +98,16 @@ class _OemGuidanceScreenState extends ConsumerState<OemGuidanceScreen> {
   Future<void> _onDone() async {
     await ref.read(sessionSettingsProvider.notifier).markOemGuidanceSeen();
     if (!mounted) return;
-    context.pop();
+    // Prefer `pop()` when we have a previous route — the screen was
+    // pushed from rationale or from settings' help tile. Fall back to
+    // `/` when there is nothing to pop (deep-link / test harness
+    // entry).
+    final router = GoRouter.of(context);
+    if (router.canPop()) {
+      router.pop();
+    } else {
+      router.go('/');
+    }
   }
 }
 
@@ -198,16 +207,8 @@ class _OemBody extends StatelessWidget {
       ],
       learnMoreUrl: 'https://dontkillmyapp.com/oppo',
     ),
-    OtherOem() => const _OemCopy(
-      title: 'Android',
-      intro: "Ton device n'est pas un battery-killer connu ; aucune étape spécifique requise.",
-      steps: <String>[],
-    ),
-    IosDevice() => const _OemCopy(
-      title: 'iOS',
-      intro: "iOS gère automatiquement l'arrière-plan ; aucune étape requise sur iPhone ou iPad.",
-      steps: <String>[],
-    ),
+    OtherOem() => const _OemCopy(title: 'Android', intro: "Ton device n'est pas un battery-killer connu ; aucune étape spécifique requise.", steps: <String>[]),
+    IosDevice() => const _OemCopy(title: 'iOS', intro: "iOS gère automatiquement l'arrière-plan ; aucune étape requise sur iPhone ou iPad.", steps: <String>[]),
   };
 }
 

@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
-import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/location_stream_provider.dart';
 import 'package:mirkfall/application/providers/session_notification_service_provider.dart';
@@ -46,12 +45,18 @@ Widget _pumpWrap({
   final router = GoRouter(
     initialLocation: '/sessions/${sessionId.value}',
     routes: <RouteBase>[
-      GoRoute(path: '/', builder: (_, _) => const Scaffold(body: Text('home'))),
+      GoRoute(
+        path: '/',
+        builder: (_, _) => const Scaffold(body: Text('home')),
+      ),
       GoRoute(
         path: '/sessions/:id',
         builder: (_, state) => SessionDetailScreen(sessionId: SessionId(state.pathParameters['id']!)),
       ),
-      GoRoute(path: '/permissions/rationale', builder: (_, _) => const Scaffold(body: Text('rationale'))),
+      GoRoute(
+        path: '/permissions/rationale',
+        builder: (_, _) => const Scaffold(body: Text('rationale')),
+      ),
     ],
   );
   return ProviderScope(
@@ -73,7 +78,7 @@ void main() {
 
   group('SessionDetailScreen', () {
     testWidgets('rendersSummaryCardWhenIdle', (tester) async {
-      final sessionId = SessionId('sess_00000000000000000000000001');
+      const sessionId = SessionId('sess_00000000000000000000000001');
       final session = buildSession(id: sessionId.value, displayName: 'Ma session', startedAtUtc: DateTime.utc(2026, 4, 19, 9));
       final sessionStore = FakeSessionStore(<Session>[session]);
       addTearDown(sessionStore.disposeController);
@@ -94,7 +99,7 @@ void main() {
     });
 
     testWidgets('rendersStatusDashboardWhenActive', (tester) async {
-      final sessionId = SessionId('sess_00000000000000000000000002');
+      const sessionId = SessionId('sess_00000000000000000000000002');
       final session = buildSession(id: sessionId.value, displayName: 'Ma live', startedAtUtc: DateTime.utc(2026, 4, 19, 9));
       final sessionStore = FakeSessionStore(<Session>[session]);
       addTearDown(sessionStore.disposeController);
@@ -134,7 +139,7 @@ void main() {
       // `stopCancelsSubscriptionAndDeactivates`; widget tests around
       // live tracking state hit pump/settle pathology because
       // `_ChronoCard` spins `Stream.periodic(1s)`.
-      final sessionId = SessionId('sess_00000000000000000000000003');
+      const sessionId = SessionId('sess_00000000000000000000000003');
       final session = buildSession(id: sessionId.value, displayName: 'Ma live');
       final sessionStore = FakeSessionStore(<Session>[session]);
       addTearDown(sessionStore.disposeController);
@@ -166,7 +171,7 @@ void main() {
     });
 
     testWidgets('deleteBlockedWhenActiveShowsError', (tester) async {
-      final sessionId = SessionId('sess_00000000000000000000000004');
+      const sessionId = SessionId('sess_00000000000000000000000004');
       final session = buildSession(id: sessionId.value, displayName: 'Live', status: SessionStatus.active);
       final sessionStore = FakeSessionStore(<Session>[session]);
       addTearDown(sessionStore.disposeController);
@@ -195,7 +200,7 @@ void main() {
     });
 
     testWidgets('deleteOnStoppedInvokesSessionStore', (tester) async {
-      final sessionId = SessionId('sess_00000000000000000000000005');
+      const sessionId = SessionId('sess_00000000000000000000000005');
       final session = buildSession(id: sessionId.value, displayName: 'Dead');
       final sessionStore = FakeSessionStore(<Session>[session]);
       addTearDown(sessionStore.disposeController);
@@ -223,7 +228,7 @@ void main() {
     });
 
     testWidgets('renameDialogPersistsNewDisplayName', (tester) async {
-      final sessionId = SessionId('sess_00000000000000000000000006');
+      const sessionId = SessionId('sess_00000000000000000000000006');
       final session = buildSession(id: sessionId.value, displayName: 'Ancien nom');
       final sessionStore = FakeSessionStore(<Session>[session]);
       addTearDown(sessionStore.disposeController);

@@ -28,7 +28,10 @@ class PermissionDeniedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Permission refusée'), leading: IconButton(icon: const Icon(Icons.close), onPressed: () => context.go('/'))),
+      appBar: AppBar(
+        title: const Text('Permission refusée'),
+        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => context.go('/')),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

@@ -11,7 +11,6 @@ import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/location_stream_provider.dart';
 import 'package:mirkfall/application/providers/session_notification_service_provider.dart';
 import 'package:mirkfall/application/providers/session_store_provider.dart';
-import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
@@ -42,8 +41,21 @@ GoRouter _buildRouter(Widget bannerChild) {
   return GoRouter(
     initialLocation: '/',
     routes: <RouteBase>[
-      GoRoute(path: '/', builder: (_, _) => Scaffold(body: Column(children: <Widget>[bannerChild, const Expanded(child: SizedBox.shrink())]))),
-      GoRoute(path: '/sessions/:id', builder: (_, state) => Scaffold(body: Text('detail:${state.pathParameters['id']}'))),
+      GoRoute(
+        path: '/',
+        builder: (_, _) => Scaffold(
+          body: Column(
+            children: <Widget>[
+              bannerChild,
+              const Expanded(child: SizedBox.shrink()),
+            ],
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/sessions/:id',
+        builder: (_, state) => Scaffold(body: Text('detail:${state.pathParameters['id']}')),
+      ),
     ],
   );
 }
@@ -65,11 +77,11 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-          sessionStoreProvider.overrideWith((ref) async => sessionStore),
-          fixStoreProvider.overrideWith((ref) async => fixStore),
-          locationStreamProvider.overrideWith((ref) => locationStream),
-          sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
-        ],
+            sessionStoreProvider.overrideWith((ref) async => sessionStore),
+            fixStoreProvider.overrideWith((ref) async => fixStore),
+            locationStreamProvider.overrideWith((ref) => locationStream),
+            sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
+          ],
           child: MaterialApp.router(routerConfig: _buildRouter(const ActiveSessionBanner())),
         ),
       );
@@ -80,7 +92,7 @@ void main() {
     });
 
     testWidgets('rendersBannerOnTracking', (tester) async {
-      final sessionId = SessionId('sess_00000000000000000000000001');
+      const sessionId = SessionId('sess_00000000000000000000000001');
       final seeded = Session(
         id: sessionId,
         displayName: 'Balade',
@@ -97,11 +109,11 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-          sessionStoreProvider.overrideWith((ref) async => sessionStore),
-          fixStoreProvider.overrideWith((ref) async => fixStore),
-          locationStreamProvider.overrideWith((ref) => locationStream),
-          sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
-        ],
+            sessionStoreProvider.overrideWith((ref) async => sessionStore),
+            fixStoreProvider.overrideWith((ref) async => fixStore),
+            locationStreamProvider.overrideWith((ref) => locationStream),
+            sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
+          ],
           child: MaterialApp.router(routerConfig: _buildRouter(const ActiveSessionBanner())),
         ),
       );
@@ -128,7 +140,7 @@ void main() {
       // async chain in a widget test hits test-framework settle
       // timeouts because the long-lived sessionList broadcast stream
       // keeps pumpAndSettle from returning.
-      final sessionId = SessionId('sess_00000000000000000000000001');
+      const sessionId = SessionId('sess_00000000000000000000000001');
       final seeded = Session(
         id: sessionId,
         displayName: 'Balade',

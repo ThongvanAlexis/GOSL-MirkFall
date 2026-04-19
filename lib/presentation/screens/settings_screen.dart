@@ -61,10 +61,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       const SizedBox(height: 4.0),
                       Text('${value.round()} m', style: Theme.of(context).textTheme.headlineSmall),
                       const SizedBox(height: 4.0),
-                      Text(
-                        'Plus dense = trace plus précise, consommation batterie plus élevée.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
+                      Text('Plus dense = trace plus précise, consommation batterie plus élevée.', style: Theme.of(context).textTheme.bodySmall),
                       Slider(
                         value: value.clamp(kMinDistanceFilterMeters.toDouble(), kMaxDistanceFilterMeters.toDouble()),
                         min: kMinDistanceFilterMeters.toDouble(),

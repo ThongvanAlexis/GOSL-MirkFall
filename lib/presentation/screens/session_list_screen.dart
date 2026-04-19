@@ -37,11 +37,7 @@ class SessionListScreen extends ConsumerWidget {
         title: const Text('Mes sessions'),
         actions: <Widget>[IconButton(tooltip: 'Paramètres', icon: const Icon(Icons.settings_outlined), onPressed: () => context.go('/settings'))],
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Créer une session',
-        onPressed: () => _openCreateDialog(context, ref),
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: FloatingActionButton(tooltip: 'Créer une session', onPressed: () => _openCreateDialog(context, ref), child: const Icon(Icons.add)),
       body: asyncSessions.when(
         loading: () => const Center(child: CircularProgressIndicator.adaptive()),
         error: (err, st) => Center(
@@ -68,10 +64,7 @@ class SessionListScreen extends ConsumerWidget {
   }
 
   Future<void> _openCreateDialog(BuildContext context, WidgetRef ref) async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => const _CreateSessionDialog(),
-    );
+    await showDialog<void>(context: context, builder: (dialogContext) => const _CreateSessionDialog());
   }
 }
 
@@ -93,7 +86,11 @@ class _EmptyState extends StatelessWidget {
           children: <Widget>[
             Icon(Icons.explore_off_outlined, size: 64.0, color: Theme.of(context).colorScheme.secondary),
             const SizedBox(height: 16.0),
-            const Text("Aucune session pour l'instant", style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
+            const Text(
+              "Aucune session pour l'instant",
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 8.0),
             Text(
               'Crée ta première session pour commencer à révéler le brouillard.',
@@ -137,10 +134,12 @@ class _SessionTile extends StatelessWidget {
   /// body is rebuild-cheap.
   String _formatSubtitle(Session session, {required bool isActive}) {
     final DateTime started = session.startedAtUtc.toUtc();
-    final String ymd = '${started.year.toString().padLeft(4, '0')}-'
+    final String ymd =
+        '${started.year.toString().padLeft(4, '0')}-'
         '${started.month.toString().padLeft(2, '0')}-'
         '${started.day.toString().padLeft(2, '0')}';
-    final String hms = '${started.hour.toString().padLeft(2, '0')}:'
+    final String hms =
+        '${started.hour.toString().padLeft(2, '0')}:'
         '${started.minute.toString().padLeft(2, '0')}';
     final String base = '$ymd $hms UTC';
     return isActive ? '$base • active' : base;
@@ -250,13 +249,7 @@ class _CreateSessionDialogState extends ConsumerState<_CreateSessionDialog> {
     final sessionId = SessionId(id);
     final now = DateTime.now().toUtc();
     final offsetMinutes = DateTime.now().timeZoneOffset.inMinutes;
-    final session = Session(
-      id: sessionId,
-      displayName: displayName,
-      status: SessionStatus.stopped,
-      startedAtUtc: now,
-      startedAtOffsetMinutes: offsetMinutes,
-    );
+    final session = Session(id: sessionId, displayName: displayName, status: SessionStatus.stopped, startedAtUtc: now, startedAtOffsetMinutes: offsetMinutes);
     await store.insert(session);
     return sessionId;
   }

@@ -122,10 +122,7 @@ void main() {
     // that already inject fakes; the smoke only proves bootstrap +
     // route mount + Scaffold render.
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [sessionStoreProvider.overrideWith((ref) async => _EmptyStreamSessionStore())],
-        child: const MirkFallApp(),
-      ),
+      ProviderScope(overrides: [sessionStoreProvider.overrideWith((ref) async => _EmptyStreamSessionStore())], child: const MirkFallApp()),
     );
     await settlePumpUntilText(tester, 'Mes sessions');
 

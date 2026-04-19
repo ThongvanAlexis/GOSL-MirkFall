@@ -104,12 +104,7 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
       ),
       body: isTrackingThis
           ? _TrackingDashboard(session: session, tracking: controllerState)
-          : _StoppedSummary(
-              session: session,
-              inlineError: _inlineError,
-              onStart: () => _handleStart(session),
-              onDelete: () => _handleDelete(session),
-            ),
+          : _StoppedSummary(session: session, inlineError: _inlineError, onStart: () => _handleStart(session), onDelete: () => _handleDelete(session)),
     );
   }
 
@@ -127,7 +122,11 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Renommer la session'),
-        content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(labelText: 'Nom')),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nom'),
+        ),
         actions: <Widget>[
           TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Annuler')),
           FilledButton(onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()), child: const Text('Enregistrer')),
@@ -389,8 +388,7 @@ class _StoppedSummary extends ConsumerWidget {
                   Text(session.displayName, style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 8.0),
                   Text('Commencée : ${session.startedAtUtc.toUtc()}', style: Theme.of(context).textTheme.bodyMedium),
-                  if (session.stoppedAtUtc != null)
-                    Text('Arrêtée : ${session.stoppedAtUtc!.toUtc()}', style: Theme.of(context).textTheme.bodyMedium),
+                  if (session.stoppedAtUtc != null) Text('Arrêtée : ${session.stoppedAtUtc!.toUtc()}', style: Theme.of(context).textTheme.bodyMedium),
                   const SizedBox(height: 12.0),
                   asyncFixCount.when(
                     loading: () => const Text('Fixes : …'),
@@ -401,10 +399,7 @@ class _StoppedSummary extends ConsumerWidget {
               ),
             ),
           ),
-          if (inlineError != null) ...<Widget>[
-            const SizedBox(height: 12.0),
-            Text(inlineError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-          ],
+          if (inlineError != null) ...<Widget>[const SizedBox(height: 12.0), Text(inlineError!, style: TextStyle(color: Theme.of(context).colorScheme.error))],
           const Spacer(),
           FilledButton.icon(onPressed: onStart, icon: const Icon(Icons.play_arrow_outlined), label: const Text('Démarrer')),
           const SizedBox(height: 8.0),

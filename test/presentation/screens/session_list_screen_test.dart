@@ -139,12 +139,7 @@ class FakeFixStore implements FixStore {
   Future<void> deleteAllForSession(SessionId sessionId) async => fixes.removeWhere((f) => f.sessionId == sessionId);
 }
 
-Session buildSession({
-  required String id,
-  String displayName = 'Test',
-  DateTime? startedAtUtc,
-  SessionStatus status = SessionStatus.stopped,
-}) => Session(
+Session buildSession({required String id, String displayName = 'Test', DateTime? startedAtUtc, SessionStatus status = SessionStatus.stopped}) => Session(
   id: SessionId(id),
   displayName: displayName,
   status: status,
@@ -170,10 +165,10 @@ void main() {
       final fixStore = FakeFixStore();
 
       await tester.pumpWidget(
-        ProviderScope(overrides: [
-          sessionStoreProvider.overrideWith((ref) async => sessionStore),
-          fixStoreProvider.overrideWith((ref) async => fixStore),
-        ], child: MaterialApp(home: const SessionListScreen())),
+        ProviderScope(
+          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          child: const MaterialApp(home: SessionListScreen()),
+        ),
       );
       // Pump a frame so the async session list resolves.
       await tester.pumpAndSettle();
@@ -192,10 +187,10 @@ void main() {
       final fixStore = FakeFixStore();
 
       await tester.pumpWidget(
-        ProviderScope(overrides: [
-          sessionStoreProvider.overrideWith((ref) async => sessionStore),
-          fixStoreProvider.overrideWith((ref) async => fixStore),
-        ], child: MaterialApp(home: const SessionListScreen())),
+        ProviderScope(
+          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          child: const MaterialApp(home: SessionListScreen()),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -221,10 +216,10 @@ void main() {
       final fixStore = FakeFixStore();
 
       await tester.pumpWidget(
-        ProviderScope(overrides: [
-          sessionStoreProvider.overrideWith((ref) async => sessionStore),
-          fixStoreProvider.overrideWith((ref) async => fixStore),
-        ], child: MaterialApp(home: const SessionListScreen())),
+        ProviderScope(
+          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          child: const MaterialApp(home: SessionListScreen()),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -239,10 +234,10 @@ void main() {
       final fixStore = FakeFixStore();
 
       await tester.pumpWidget(
-        ProviderScope(overrides: [
-          sessionStoreProvider.overrideWith((ref) async => sessionStore),
-          fixStoreProvider.overrideWith((ref) async => fixStore),
-        ], child: MaterialApp(home: const SessionListScreen())),
+        ProviderScope(
+          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          child: const MaterialApp(home: SessionListScreen()),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -259,21 +254,17 @@ void main() {
       // SESS-09 stress: 100 sessions render via ListView.separated.
       final seeded = <Session>[
         for (int i = 0; i < 100; i++)
-          buildSession(
-            id: 'sess_${i.toString().padLeft(26, '0')}',
-            displayName: 'Session $i',
-            startedAtUtc: DateTime.utc(2026, 4, 19, 0, i),
-          ),
+          buildSession(id: 'sess_${i.toString().padLeft(26, '0')}', displayName: 'Session $i', startedAtUtc: DateTime.utc(2026, 4, 19, 0, i)),
       ];
       final sessionStore = FakeSessionStore(seeded);
       addTearDown(sessionStore.disposeController);
       final fixStore = FakeFixStore();
 
       await tester.pumpWidget(
-        ProviderScope(overrides: [
-          sessionStoreProvider.overrideWith((ref) async => sessionStore),
-          fixStoreProvider.overrideWith((ref) async => fixStore),
-        ], child: MaterialApp(home: const SessionListScreen())),
+        ProviderScope(
+          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          child: const MaterialApp(home: SessionListScreen()),
+        ),
       );
       await tester.pumpAndSettle(const Duration(seconds: 2));
 
