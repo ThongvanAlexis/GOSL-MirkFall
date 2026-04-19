@@ -214,6 +214,12 @@ Le handler top-level (runZonedGuarded + FlutterError.onError) reste en place com
 - Privilégier early return aux IF imbriqués
 - Guard clauses en début de fonction
 
+### Navigation GoRouter
+
+- Par défaut, utiliser `context.push()` pour toute navigation vers un écran depuis lequel l'utilisateur doit pouvoir revenir en arrière (détail de session, écran de paramètres, sous-écran depuis un menu, etc.)
+- `context.go()` **remplace la pile de navigation** : le bouton back du système ferme l'app au lieu de revenir à l'écran précédent. Ne l'utiliser que pour une transition qui doit réinitialiser la pile volontairement (ex: logout, fin d'un tunnel de permission, retour forcé à la racine après action terminale)
+- Règle rapide : si le mot "retour" a du sens dans l'UX → `push`. Si c'est un reset complet de navigation → `go`
+
 ### Structure de fichiers
 
 - Pas de logique exécutable dans les `library` files ou fichiers d'export
@@ -287,6 +293,15 @@ Ne pas découvrir les requirements iOS à la fin du projet.
 4. `dart format` : appliqué systématiquement
 5. CI GitHub Actions : build Android (ubuntu-latest) + build iOS non-signé (macos-latest)
 6. Déploiement iOS : sideload via SideStore ou équivalent, pas de compte Apple Developer payant
+
+## Git & CI
+
+- `gh` CLI est installé et authentifié sur cette machine
+- Solo dev : une seule personne travaille sur ce repo
+- Une seule branche : `main` (pas de feature branches, pas de PRs internes)
+- Claude est autorisé à **pusher directement sur `main`** quand approprié (commits atomiques, tests verts localement)
+- Claude est autorisé à consulter l'état des GitHub Actions via `gh` (`gh run list`, `gh run view`, `gh run watch`, logs des jobs) pour itérer pendant les phases sans attendre un retour manuel
+- Pas de force-push sur `main` sans demande explicite
 
 ## Code Review Phases
 

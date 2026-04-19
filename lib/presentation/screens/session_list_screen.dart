@@ -35,7 +35,7 @@ class SessionListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mes sessions'),
-        actions: <Widget>[IconButton(tooltip: 'Paramètres', icon: const Icon(Icons.settings_outlined), onPressed: () => context.go('/settings'))],
+        actions: <Widget>[IconButton(tooltip: 'Paramètres', icon: const Icon(Icons.settings_outlined), onPressed: () => context.push('/settings'))],
       ),
       floatingActionButton: FloatingActionButton(tooltip: 'Créer une session', onPressed: () => _openCreateDialog(context, ref), child: const Icon(Icons.add)),
       body: asyncSessions.when(
@@ -125,7 +125,7 @@ class _SessionTile extends StatelessWidget {
       title: Text(session.displayName, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(subtitle),
       trailing: const Icon(Icons.chevron_right),
-      onTap: () => context.go('/sessions/${session.id.value}'),
+      onTap: () => context.push('/sessions/${session.id.value}'),
     );
   }
 
@@ -227,7 +227,7 @@ class _CreateSessionDialogState extends ConsumerState<_CreateSessionDialog> {
       // Navigate to the detail screen so the user sees the status
       // dashboard when the session was started, or the summary when
       // it was only created.
-      context.go('/sessions/${newId.value}');
+      context.push('/sessions/${newId.value}');
     } catch (err) {
       if (!mounted) return;
       setState(() {

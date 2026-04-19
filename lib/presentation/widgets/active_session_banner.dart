@@ -53,7 +53,7 @@ class ActiveSessionBanner extends ConsumerWidget {
                 // handler. CLAUDE.md §is-checks / separation of
                 // responsibilities: each widget owns one action.
                 child: InkWell(
-                  onTap: () => context.go('/sessions/${state.sessionId.value}'),
+                  onTap: () => context.push('/sessions/${state.sessionId.value}'),
                   child: Row(
                     children: <Widget>[
                       Icon(Icons.gps_fixed, size: 18.0, color: colorScheme.onTertiaryContainer),
