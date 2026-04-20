@@ -119,9 +119,16 @@ Format: `[severity] Title — 1-line explanation — file:line`. Severities: Blo
 
 ### Pre-known from CONTEXT
 
-*Filled by Plan 06-03 Task 1 BEFORE spawning sub-agents. Source: 06-CONTEXT.md §POC evidence acceptance (pre-class §2 items). Committed as `docs(06-rev): pre-class 8 CONTEXT handoff items into §2` before any Agent tool call.*
+*Filled by Plan 06-03 Task 1 BEFORE spawning sub-agents. Source: 06-CONTEXT.md §POC evidence acceptance + §Adversarial wave + §SC#4 OEM workaround. Committed as `docs(06-rev): pre-class 8 CONTEXT handoff items into §2`.*
 
-(pending — 8 entries: iOS duration Noted | POC artefact path drift Should | battery waiver Noted | OEM coverage Noted | iOS auto-resume Noted | store-EN Noted | pumpAndSettle watch Should | dart format drift watch Noted)
+1. **[Noted] iOS walk duration 13.5 min vs 30 min target** — Plan 05-06 PASS-with-caveat accepted (CONTEXT.md). Convergent same-day Android evidence (Pixel 4a 28.6 min PASS) supports extrapolation; stable cadence throughout iOS walk indicates no background suspension. Phase 06 closes without re-walk; user may request 30-min top-up Phase 15 release-confidence.
+2. **[Should] POC artefact location drift** — ROADMAP SC#1 says `.planning/pocs/phase-05/`, actual artefacts live in `docs/qual-01-02-poc.md` + `docs/poc-artifacts/`. Fix in Plan 06-05 loop: 1 atomic commit `docs(06-rev): amend ROADMAP.md SC#1 to match docs/ artifact location`.
+3. **[Noted] SC#2 battery measurement < 15%/h waiver** — extracted from POC if present (see §1b Battery delta — absent; waiver applied), else inline waiver with fix-cadence proxy argument. Full dumpsys battery_stats deferred Phase 15 release-confidence per ROADMAP.
+4. **[Noted] Xiaomi / Samsung / Huawei / OnePlus OEM coverage deferred** — already accepted Phase 05 (ROADMAP SC#1 annotated "partial"). Phase 06 does not re-litigate.
+5. **[Noted] Auto-resume-post-kill iOS unvalidated** — FlutterImplicitEngineDelegate bridge stripped after Xcode 26 move per Phase 05 STATE.md. Android covered by 4 BootCompletedWatchdog unit tests + Plan 05-05. iOS rewire deferred Phase 15.
+6. **[Noted] Store rationale English copy — already English on disk** — Plan 06-02 §1b surfaced ground truth: `docs/store-review-rationale.md` is ALREADY English (self-declared "The document is written in English — store reviewers are anglophone"), contradicting the original CONTEXT item 6 assumption ("French copy, English polish deferred Phase 15"). Re-class: English copy is committed Plan 05-06 as defended-by-reviewer-quality; final polish remains optional Phase 15 per CONTEXT. No fix needed this gate.
+7. **[Should] Flaky widget-test pumpAndSettle races** — pre-flag known-pattern (Phase 05 STATE.md `Widget tests must avoid pumpAndSettle`). Agent #3 verifies no `pumpAndSettle()` in `test/presentation/**` Phase 05 tests touching `_ChronoCard`. If any new occurrence found, becomes Should fix in loop.
+8. **[Noted] dart format drift regression watch** — `dart format --line-length 160 --set-exit-if-changed` CI gate active since Plan 04-05. Agent #4 runs locally to confirm zero drift; if drift found, becomes Should fix in loop (Phase 04 surprise Blocker precedent).
 
 ### SC#4 OEM workaround plan
 
