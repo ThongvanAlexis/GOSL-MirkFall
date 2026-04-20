@@ -1,8 +1,8 @@
 # Phase 06: Review Gate — GPS Review
 
 **Opened:** 2026-04-20
-**Status:** open
-**Closed:** (pending)
+**Status:** closed
+**Closed:** 2026-04-20
 
 ## 1. User-observed findings (IDE review)
 
@@ -541,13 +541,57 @@ CLAUDE.md sweep clean across all three Phase 05 `lib/infrastructure/platform/` f
 
 ## 5. CI-green confirmation
 
-*Filled by Plan 06-05 Task 2 after all Blocker + non-waived Should fixes are applied and CI is green.*
+*Filled by Plan 06-05 Task 4 after all Blocker + non-waived Should fixes landed on main with CI green on every batch.*
 
-- **Final commit on main:** (pending)
-- **CI run URL:** (pending)
-- **Status:** (pending)
-- **Date:** (pending)
+- **Final commit on main:** `96b4a6b` (pre-closure final-fix commit — last engineering-reality CI green before the bookkeeping flip; Phase 04 Plan 04-05 precedent)
+- **CI run URL:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24661322387
+- **Status:** All 3 jobs green (gates / android / ios)
+- **Date:** 2026-04-20
+
+### Closure summary
+
+**Triage totals (§3 final):** 87 findings total — 2 Blockers `fix` (rows 1, 2) / 20 Shoulds `fix` (rows 3–5, 7–22) / 1 Should `waived` (row 6 — Agent #1 #2 iOS auto-resume Phase 15 deferral) / 2 Coulds `won't-fix` (rows 39, 41 — kDefault prefix name + Python zoom one-liner; user-decided stylistic) / 18 Coulds `defer-to-phase-15` (rows 23–27, 30–33, 36–38, 40, 42, + 2 Plan-06-05-subsumed entries 34, 35) / 45 Noteds `observation` (audit transparency; no action).
+
+**Fix-loop result:** 6 fix batches on main (Strategy B per user decision 2026-04-20), each CI-green before the next push:
+- **Batch 0** (`63a8b8c`, docs): ROADMAP SC#1 amendment — `.planning/pocs/phase-05/` → `docs/qual-01-02-poc.md + docs/poc-artifacts/` — closes §3 row 3.
+- **Batch 1** (`f27000f`, fix): controller invariants — rollback partial activation (Blocker #1), GpsError → ErrorState contract (Blocker #2), re-entrant stop, _onFix try/catch, log+swallow housekeeping, test rename — closes §3 rows 1, 2, 9, 10, 11, 13, 14, 28. 3 new regression-guard tests.
+- **Batch 2** (`ef780aa`, fix): permission + ID + iOS manifest — `UIBackgroundModes` += `fetch`, log+swallow notification `catch(_)`, `SessionId.parse()` factory mirroring `FixId.parse` — closes §3 rows 5, 7, 8, 12, 29. 1 new notification-failure regression test + 3 new SessionId.parse tests.
+- **Batch 3** (`935490b`, test): SessionSettings test coverage — fills `test/application/settings/**` directory (was zero coverage); `clampDistanceFilterMeters` boundary + SharedPreferences persistence — closes §3 row 15. 11 new regression-guard tests.
+- **Batch 4** (`e1a438b`, fix): UI nav discipline + auto-start test + initState seeding + IdGenerator routing — closes §3 rows 16, 18, 19, 20, 21, 22 + subsumed rows 34, 35. 1 new autoStart widget test + strengthened notMaintenantPopsWithFalse.
+- **Batch 5** (`bf1aa60`, test): pumpAndSettle → bounded pump(Duration) in banner tests — closes §3 rows 4, 17.
+
+**Hash-update docs commits** (§3 bookkeeping, separate from fix commits — Phase 04 Plan 04-05 precedent): `179ec07` (Batches 0+1+2), `96b4a6b` (Batches 3+4+5).
+
+**Deferred Coulds:** 18 items tagged `defer-to-phase-15` (15 Phase 15 polish + 3 Phase 14 l10n) — tracked inline in §3 rows 23–27, 30–33, 36–38, 40, 42, 34, 35 with `(pending Phase 15)` / `(pending Phase 14)` in the Commit hash column. None block the gate.
+
+**Waived Shoulds:** 1 row — row 6 (Agent #1 #2 iOS auto-resume MethodChannel wiring deleted at Xcode 26 strip) with inline rationale pointing to Phase 15 FlutterImplicitEngineDelegate rewire. Android half is fully shipped (Plan 05-05 BootCompletedWatchdog + 4 unit tests); iOS half is explicitly accepted as Phase 15 scope per CONTEXT.md §POC evidence acceptance pre-class item 5.
+
+**Observations (Noteds):** 45 audit-transparency entries — all `observation` / `n/a` in the Commit hash column. Cross-lens duplicates preserve audit lineage (Agent #2 #15 / #16 / #18 overlap with Agent #1 #2; Agent #4 #2 overlaps with Pre-class #2; etc.).
+
+**Adversarial coverage recap:**
+- 5 permanent regression-guard unit tests live on main (per §4 Tests #1–#5):
+  - `test/infrastructure/platform/method_channel_sync_test.dart` — commit `a02550c`
+  - `test/application/permissions/location_permission_cascade_test.dart` — commit `406e9b3`
+  - `test/infrastructure/platform/oem_detector_ambiguous_test.dart` — commit `367bc8f`
+  - `test/tooling/platform_manifests_test.dart` — commit `abe60c8`
+  - `test/infrastructure/platform/android_boot_receiver_contract_test.dart` — commit `68dd251`
+- 1 new CI gate script live on main: `tool/check_platform_manifests.dart` (commit `38fef5e`) + paired tool test (`d3e0ee3`) + ci.yml `gates` step (`368b76f`).
+- 1 throwaway adversarial branch lifecycle complete: `adversarial/06-manifest-drift` exercised the new gate with Android `ACCESS_BACKGROUND_LOCATION` removal; CI exit **1** on gate step; run https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24657371949; branch deleted local + remote; main `on.push.branches` stays `[main]`-only.
+
+**Plan 06-05 fix-loop regression tests added (beyond §4 adversarial wave):** 3 controller guards (`startGpsErrorTransitionsToErrorStateAndDeactivates` + `stopIsReentrantSafe` + `onFixDbInsertFailureTransitionsToAsyncError`) + 1 permission guard (`notificationRequestFailureDoesNotBlockLocationFlowOutcome`) + 3 SessionId.parse guards + 11 SessionSettings guards + 1 autoStart widget guard + 1 strengthened notMaintenant test = **20 new regression-guard tests** locking the Phase 06 invariants.
+
+### Gate-closure sign-off
+
+Gate-closed criteria (CONTEXT.md verbatim):
+- [x] Tous findings `Blocker` fixés (pas de waiver possible). 2 / 2 Blockers fixed (§3 rows 1, 2 → commit `f27000f`).
+- [x] Tous findings `Should` soit fixés soit explicitement waiver avec rationale inline dans REVIEW.md §3. 20 / 21 Shoulds fixed across Batches 0–5; 1 Should waived with inline Phase 15 deferral rationale (§3 row 6).
+- [x] CI verte sur le commit final `main` (gates + android + ios). Commit `96b4a6b`, run 24661322387, all 3 jobs success.
+- [x] `06-REVIEW.md` complet, 5 sections remplies, §1b POC evidence review avec extracts inline, §2 8 pre-class items avec severity + rationale + SC#4 OEM workaround plan table, §4 evidence block adversarial branch CI + 5 commit hashes des unit tests, §5 CI-green confirmation.
+- [x] `tool/check_platform_manifests.dart` ajouté au CI gates job, confirmé green sur le commit final.
+- [x] `gsd-verifier` peut vérifier ces conditions pour marquer Phase 06 complete et débloquer Phase 07.
+
+Signed off 2026-04-20. Phase 07 Map Integration is now eligible.
 
 ---
-_Phase 06 closed: (pending)_
+_Phase 06 closed: 2026-04-20_
 _Phase 07 unblocked._

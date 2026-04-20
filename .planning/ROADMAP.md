@@ -19,7 +19,8 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 - [x] **Phase 04: Review Gate — Persistence** - Audit phase 03 (migrations testées, invariants DB, pureté du domaine) (5/5 plans — 04-REVIEW status=closed, CI green on 26f3d99, all Blockers + Shoulds fixed in 10 atomic batches, Phase 05 unblocked)
  (completed 2026-04-19)
 - [x] **Phase 05: GPS & Session Lifecycle** - LocationSource + foreground service Android + iOS background + sessions CRUD + POC battery (completed 2026-04-19)
-- [ ] **Phase 06: Review Gate — GPS** - Audit phase 05 (POC background validé sur OEM Android + iOS, permissions, notification)
+- [x] **Phase 06: Review Gate — GPS** - Audit phase 05 (POC background validé sur OEM Android + iOS, permissions, notification) (5/5 plans — 06-REVIEW status=closed, CI green on 96b4a6b, 2 Blockers + 20 Shoulds fixed + 1 Should waived iOS auto-resume Phase 15, 5 permanent unit tests + 1 new CI gate tool/check_platform_manifests.dart live, Phase 07 unblocked)
+ (completed 2026-04-20)
 - [ ] **Phase 07: Map Integration** - maplibre_gl + `MapView` domain-level + `PmtilesSource` local-only + world bundle copy + per-country download flow (catalog JSON + GitHub Release ZIPs multi-parts + sha256 + atomic commit) + map management screen + attribution + FogOfWarLayer stub
 - [ ] **Phase 08: Review Gate — Map** - Audit phase 07 (zéro trafic réseau pour les tuiles en airplane mode, robustesse pipeline téléchargement par pays, seam `PmtilesSource` local-only)
 - [ ] **Phase 09: Fog Rendering** - MirkRenderer interface + style atmosphérique animé par défaut + viewport filtering + RevealedAreaController
@@ -129,11 +130,11 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
   3. Le protocole review (user d'abord, titres + explications courtes) est appliqué
   4. Un plan de contournement pour les OEM les plus agressifs (Xiaomi / Huawei) est documenté — deep-links settings, instructions utilisateur, bannière "tracking interrompu" sur prochain launch
 **Plans** (5 plans, 5 waves):
-- [ ] 06-review-gate-gps/06-01-PLAN.md — Wave 1: Scaffold 06-REVIEW.md 5-section skeleton (+ §1b POC evidence review + §2 8-pre-class + §2 SC#4 OEM workaround + §4 six-test placeholders) + user-first IDE review capture into §1
-- [ ] 06-review-gate-gps/06-02-PLAN.md — Wave 2: POC evidence review §1b — extract docs/qual-01-02-poc.md + docs/poc-artifacts/test2-full.png + docs/store-review-rationale.md snapshot inline (no fresh runtime walk per user decision 2026-04-20)
-- [ ] 06-review-gate-gps/06-03-PLAN.md — Wave 3: Pre-class 8 CONTEXT items into §2 FIRST + SC#4 OEM workaround plan table BEFORE agents, then 4 parallel sub-agent audits (GPS infra+notifications / controller+permissions / UI+routing / boot watchdog+native+POC tooling+CLAUDE.md sweep), findings synthesis + user triage into §3
-- [ ] 06-review-gate-gps/06-04-PLAN.md — Wave 4: Adversarial wave — 5 permanent unit tests (MethodChannel sync / permission cascade / OemDetector ambiguous / platform manifests / Android boot receiver) + new CI gate tool/check_platform_manifests.dart + paired tool unit test + ci.yml amendment + adversarial branch adversarial/06-manifest-drift CI red evidence + branch deleted local+remote
-- [ ] 06-review-gate-gps/06-05-PLAN.md — Wave 5: Atomic OR batched fix loop (per user choice; Phase 04 Plan 04-05 batched precedent) + pre-class fix #2 ROADMAP SC#1 amendment to docs/ artifact location + optional dart format align if drift + §5 CI-green closure + status=closed + STATE.md + ROADMAP.md update + Phase 07 unblocked
+- [x] 06-review-gate-gps/06-01-PLAN.md — Wave 1: Scaffold 06-REVIEW.md 5-section skeleton (+ §1b POC evidence review + §2 8-pre-class + §2 SC#4 OEM workaround + §4 six-test placeholders) + user-first IDE review capture into §1 (completed 2026-04-20)
+- [x] 06-review-gate-gps/06-02-PLAN.md — Wave 2: POC evidence review §1b — extract docs/qual-01-02-poc.md + docs/poc-artifacts/test2-full.png + docs/store-review-rationale.md snapshot inline (no fresh runtime walk per user decision 2026-04-20) (completed 2026-04-20)
+- [x] 06-review-gate-gps/06-03-PLAN.md — Wave 3: Pre-class 8 CONTEXT items into §2 FIRST + SC#4 OEM workaround plan table BEFORE agents, then 4 parallel sub-agent audits (GPS infra+notifications / controller+permissions / UI+routing / boot watchdog+native+POC tooling+CLAUDE.md sweep), findings synthesis + user triage into §3 (completed 2026-04-20)
+- [x] 06-review-gate-gps/06-04-PLAN.md — Wave 4: Adversarial wave — 5 permanent unit tests (MethodChannel sync / permission cascade / OemDetector ambiguous / platform manifests / Android boot receiver) + new CI gate tool/check_platform_manifests.dart + paired tool unit test + ci.yml amendment + adversarial branch adversarial/06-manifest-drift CI red evidence + branch deleted local+remote (completed 2026-04-20)
+- [x] 06-review-gate-gps/06-05-PLAN.md — Wave 5: Batched fix loop (Strategy B, 6 CI-gated batches) + pre-class fix #2 ROADMAP SC#1 amendment to docs/ artifact location (no dart format drift at start) + §5 CI-green closure + status=closed + STATE.md + ROADMAP.md update + Phase 07 unblocked (completed 2026-04-20)
 
 ### Phase 07: Map Integration
 **Goal**: Afficher une carte interactive vectorielle rendue par `maplibre_gl 0.25.0` (pinned) contre des fichiers PMTiles **100 % locaux**, derrière une interface `MapView` **domain-level** (vocabulaire MirkFall, zéro fuite de type MapLibre au-dessus de `lib/infrastructure/map/`). Day-1 UX : un world map PMTiles low-zoom bundlé dans les assets est copié vers le stockage interne au premier lancement — l'utilisateur voit une carte dès l'ouverture. Day-N : un écran "Télécharger une carte" permet d'installer des pays spécifiques depuis un catalogue JSON pinné qui pointe vers un GitHub Release du repo projet contenant des ZIPs multi-parts (contrainte GitHub : 2 GB / asset) qui se réassemblent en un unique `.pmtiles` par pays. Le stub d'overlay mirk existe en tant que layer MapLibre mais ne peint rien — son intégration au layer-stack est gelée ici. Phase 07 pose **trois décisions architecturales map les plus coûteuses à revenir** : (1) l'interface domain-level, (2) le pipeline vector PMTiles offline-only, (3) le protocole de téléchargement par pays (catalog JSON + ZIPs multi-parts + resume + commit atomique). Le V2 "parchemin RPG" deviendra un swap de `style.json` + sprite sheet, sans modification Dart.
@@ -271,7 +272,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 | 03. Persistence & Domain Models | 6/6 | Complete    | 2026-04-18 |
 | 04. Review Gate — Persistence | 4/5 | Complete    | 2026-04-18 |
 | 05. GPS & Session Lifecycle | 6/6 | Complete   | 2026-04-19 |
-| 06. Review Gate — GPS | 4/5 | In Progress|  |
+| 06. Review Gate — GPS | 5/5 | Complete    | 2026-04-20 |
 | 07. Map Integration | 0/TBD | Not started | - |
 | 08. Review Gate — Map | 0/TBD | Not started | - |
 | 09. Fog Rendering | 0/TBD | Not started | - |

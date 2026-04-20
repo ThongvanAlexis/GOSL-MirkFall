@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 06-05 (fix loop + closure)
-status: executing
-stopped_at: Completed 06-04-PLAN.md
-last_updated: "2026-04-20T08:57:20Z"
+current_plan: Phase 06 review-gate closed, Phase 07 Map Integration unblocked
+status: complete
+stopped_at: Phase 06 closure committed 2026-04-20
+last_updated: "2026-04-20T11:30:00Z"
 last_activity: 2026-04-20
 progress:
   total_phases: 16
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 30
-  completed_plans: 29
-  percent: 97
+  completed_plans: 30
+  percent: 100
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 06 Review Gate — GPS IN PROGRESS. Plans 06-01 through 06-04 complete (06-REVIEW.md §1 + §1b + §2 + §3 + §4 populated: 87 findings triaged in §3 + 5 permanent unit-test evidence blocks + 1 adversarial CI evidence block in §4; tool/check_platform_manifests.dart + ci.yml gate step live on main; 5 new tests green in CI). Ready for Plan 06-05 fix loop + closure.
+**Current focus:** Phase 06 Review Gate — GPS CLOSED 2026-04-20. All 5 plans complete; 06-REVIEW.md §§1–5 filled; 2 Blockers + 20 Shoulds fixed across 6 CI-green batches (Strategy B), 1 Should waived (iOS auto-resume → Phase 15), 20 Coulds deferred/won't-fix, 45 Noteds observation. Phase 07 Map Integration unblocked; next step `/gsd:discuss-phase 07`.
 
 ## Current Position
 
-Phase: 06 of 16 (Review Gate — GPS) IN PROGRESS — 4 / 5 plans done
-Current Plan: 06-05 (fix loop + closure)
-Total Plans in Phase 06: 5
-Status: In progress
+Phase: 06 of 16 (Review Gate — GPS) Complete — 5 / 5 plans done — Phase 07 Map Integration unblocked
+Current Plan: Phase 06 review-gate closed, Phase 07 Map Integration unblocked
+Total Plans in Phase 06: 5 / 5 done
+Status: Phase complete; ready for /gsd:discuss-phase or /gsd:plan-phase Phase 07
 Last Activity: 2026-04-20
 
-Progress: [█████████░] 97% — 29 / 30 plans executed across phases 01-05 + Plans 06-01 + 06-02 + 06-03 + 06-04.
+Progress: [██████████] 100% — 30 / 30 plans executed across phases 01-06.
 
 ## Performance Metrics
 
@@ -227,6 +227,7 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 06-review-gate-gps]: Plan 06-04: Adversarial Option B (poison + `on.push.branches` expansion in single commit on throwaway branch; main trigger stays [main]-only) validated third cycle (Phase 02/04/06). 0 cleanup cost; branch deletion sufficient to return main ci.yml to canonical state.
 - [Phase 06-review-gate-gps]: Plan 06-04 deviation: combined §4 Tests 1-5 + Test 6 evidence into one docs commit (c712f3e) instead of plan's two separate commits — same file touched within seconds, splitting adds noise to bisect surface without bisectability benefit. Plan Tasks 2+3 commit granularity reduced by 1; plan outcome unchanged.
 - [Phase 06-review-gate-gps]: Plan 06-04 deviation: CI `concurrency.cancel-in-progress: true` cancelled Test #1 run mid-watch when Test #2 was pushed. Plan's per-commit CI-green gating not strictly achieved; substitute: each test locally pre-verified via `flutter test` + mutation experiment; subsequent commits' CI runs validated cumulative state. No broken state reached permanent main-branch CI failure.
+- [Phase 06-review-gate-gps]: review-gate closed 2026-04-20 — 2 Blockers fixed (controller partial-activation leak + GpsError→ErrorState contract) + 20 Shoulds fixed (Batches 0-5) + 1 Should waived (iOS auto-resume MethodChannel deferral → Phase 15 FlutterImplicitEngineDelegate rewire). Fix strategy: batched Strategy B (6 batches × ~8 min CI, Phase 04 Plan 04-05 precedent) — rationale: 23 §3 fix rows, wall-clock vs bisect-granularity trade-off favoured batches. iOS PASS-with-caveat formally accepted via §3 row 43 (Noted observation). Surprise findings caught by Plan 06-04 mutation experiments + Agent #2 controller lens: 2 unexpected Blockers (partial-activation leak + GpsError contract drift) — both absorbed into Batch 1 without architectural decision. Plan 06-04 5 permanent unit tests (MethodChannel sync / permission cascade / OemDetector ambiguous / platform manifests / Android boot receiver) + 1 new CI gate (tool/check_platform_manifests.dart) live on main. 20 new Plan 06-05 regression-guard tests added (3 controller + 1 permission + 3 SessionId.parse + 11 SessionSettings + 1 autoStart widget + 1 strengthened notMaintenant). Phase 07 Map Integration unblocked.
 
 ### Pending Todos
 
