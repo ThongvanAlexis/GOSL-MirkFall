@@ -173,7 +173,7 @@ All mutation experiments restored after author-time confirmation; all 5 tests gr
 ## CI run URLs
 
 - **Adversarial Test #6 (expected failure, archived):** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24657371949 — `gates` job conclusion `failure`, `Check platform manifests (Android + iOS)` step exit 1; `android` + `ios` jobs skipped (needs: gates).
-- **Final main commit CI (plan completion):** to be confirmed green after the plan-metadata commit lands (all 9 Plan 06-04 atomic commits on main; gates + android + ios jobs all green — same CI config as plan commits on main that each turned green individually).
+- **Final main commit CI (plan completion):** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24657857839 — plan-metadata commit `a29628f`; gates + android + ios all **success** ✅. Validates all 10 Plan 06-04 commits (9 atomic + 1 plan-metadata `a29628f`) cumulatively green on main.
 
 Plan-internal CI runs (each of 9 atomic commits triggered its own `gates/android/ios` pipeline; each completed green before the next commit was pushed):
 
