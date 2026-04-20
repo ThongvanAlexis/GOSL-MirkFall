@@ -22,11 +22,19 @@ class FakeLocationStream implements LocationStream {
   String? _displayName;
   bool _disposed = false;
 
+  /// When non-null, [positions] throws this error synchronously before
+  /// returning a stream. Lets controller tests exercise the
+  /// "GpsError at start()" rollback path without wiring a real
+  /// geolocator stack.
+  Object? throwGpsOnPositions;
+
   @override
   Stream<Fix> positions({required SessionId sessionId, required int distanceFilterMeters, required String sessionDisplayName}) {
     _sessionId = sessionId;
     _distanceFilter = distanceFilterMeters;
     _displayName = sessionDisplayName;
+    final err = throwGpsOnPositions;
+    if (err != null) throw err;
     return _controller.stream;
   }
 

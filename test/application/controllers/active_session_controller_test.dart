@@ -100,8 +100,17 @@ class _FakeSessionStore implements SessionStore {
 class _FakeFixStore implements FixStore {
   final List<Fix> inserts = <Fix>[];
 
+  /// When non-null, the next [insert] throws this error instead of
+  /// recording the fix. Lets tests exercise the DB-write-failure path
+  /// (disk full, SQLITE_BUSY, schema drift) without a real Drift stack.
+  Object? throwOnInsert;
+
   @override
-  Future<void> insert(Fix fix) async => inserts.add(fix);
+  Future<void> insert(Fix fix) async {
+    final err = throwOnInsert;
+    if (err != null) throw err;
+    inserts.add(fix);
+  }
 
   @override
   Future<List<Fix>> listBySession(SessionId sessionId) async => inserts.where((f) => f.sessionId == sessionId).toList(growable: false);
@@ -286,7 +295,7 @@ void main() {
       expect(notificationService.initializeCount, 1);
     });
 
-    test('startPropagatesConcurrentActivationAsErrorState', () async {
+    test('startPropagatesConcurrentActivationAsAsyncError', () async {
       SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
       const sessionId = SessionId('sess_01HR0000000000000000000A');
       final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)})..throwConcurrentOnActivate = true;
@@ -449,6 +458,97 @@ void main() {
       expect(state, isA<ErrorState>());
       final errorState = state! as ErrorState;
       expect(errorState.error, isA<LocationServiceDisabledException>());
+    });
+
+    test('startGpsErrorTransitionsToErrorStateAndDeactivates', () async {
+      // Phase 06 Blocker #2 regression guard: the sealed state contract
+      // says GpsError during start() lands the controller on
+      // AsyncData(ErrorState), not AsyncError. Phase 06 Blocker #1
+      // regression guard: a failure AFTER activate() must roll the DB
+      // row back to stopped so a retry is not blocked by the
+      // partial-unique-index on active sessions.
+      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      const sessionId = SessionId('sess_01HR0000000000000000000A');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final fixStore = _FakeFixStore();
+      final locationStream = FakeLocationStream()..throwGpsOnPositions = const LocationServiceDisabledException();
+      final notificationService = _FakeNotificationService();
+
+      final container = _buildContainer(
+        sessionStore: sessionStore,
+        fixStore: fixStore,
+        locationStream: locationStream,
+        notificationService: notificationService,
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeSessionControllerProvider.future);
+      await expectLater(container.read(activeSessionControllerProvider.notifier).start(sessionId), throwsA(isA<LocationServiceDisabledException>()));
+
+      final asyncValue = container.read(activeSessionControllerProvider);
+      expect(asyncValue.value, isA<ErrorState>(), reason: 'GpsError during start must transition to ErrorState per sealed contract');
+      expect(sessionStore.activatedIds, <SessionId>[sessionId], reason: 'activate must have been called');
+      expect(sessionStore.deactivatedIds, <SessionId>[sessionId], reason: 'rollback must deactivate on partial-activation failure');
+    });
+
+    test('stopIsReentrantSafe', () async {
+      // Phase 06 Should #4 regression guard: two concurrent stop() calls
+      // must not produce two deactivate() calls on the session store.
+      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      const sessionId = SessionId('sess_01HR0000000000000000000A');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final fixStore = _FakeFixStore();
+      final locationStream = FakeLocationStream();
+      final notificationService = _FakeNotificationService();
+
+      final container = _buildContainer(
+        sessionStore: sessionStore,
+        fixStore: fixStore,
+        locationStream: locationStream,
+        notificationService: notificationService,
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeSessionControllerProvider.future);
+      final notifier = container.read(activeSessionControllerProvider.notifier);
+      await notifier.start(sessionId);
+
+      // Fire two overlapping stop()s. The second MUST short-circuit
+      // rather than issue a second deactivate.
+      await Future.wait<void>([notifier.stop(), notifier.stop()]);
+
+      expect(sessionStore.deactivatedIds, <SessionId>[sessionId], reason: 'overlapping stop() calls must coalesce to a single deactivate');
+      expect(container.read(activeSessionControllerProvider).value, isA<Idle>());
+    });
+
+    test('onFixDbInsertFailureTransitionsToAsyncError', () async {
+      // Phase 06 Should #7 regression guard: fixStore.insert() throwing
+      // mid-Tracking must not escape into the zone handler; the
+      // controller drains to the error path and AsyncError settles.
+      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      const sessionId = SessionId('sess_01HR0000000000000000000A');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final fixStore = _FakeFixStore()..throwOnInsert = StateError('disk full');
+      final locationStream = FakeLocationStream();
+      final notificationService = _FakeNotificationService();
+
+      final container = _buildContainer(
+        sessionStore: sessionStore,
+        fixStore: fixStore,
+        locationStream: locationStream,
+        notificationService: notificationService,
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeSessionControllerProvider.future);
+      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+
+      locationStream.emit(_buildFix(sessionId: sessionId));
+      await Future<void>.delayed(Duration.zero);
+
+      final asyncValue = container.read(activeSessionControllerProvider);
+      expect(asyncValue.hasError, isTrue, reason: 'DB insert failure during Tracking must surface as AsyncError');
+      expect(asyncValue.error, isA<StateError>());
     });
   });
 }

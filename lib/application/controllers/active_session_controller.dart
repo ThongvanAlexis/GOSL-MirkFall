@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:logging/logging.dart';
 import 'package:mirkfall/application/providers/boot_watchdog_provider.dart';
 import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/location_stream_provider.dart';
@@ -19,6 +20,8 @@ import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'active_session_controller.g.dart';
+
+final Logger _log = Logger('application.controllers.active_session');
 
 /// Orchestrator for a session's GPS tracking lifecycle.
 ///
@@ -48,6 +51,7 @@ class ActiveSessionController extends _$ActiveSessionController {
   StreamSubscription<Fix>? _sub;
   LocationStream? _stream;
   SessionId? _currentSessionId;
+  bool _isStopping = false;
 
   @override
   FutureOr<ActiveSessionState> build() {
@@ -72,11 +76,29 @@ class ActiveSessionController extends _$ActiveSessionController {
   /// state machine and does not embed that policy.
   ///
   /// On a [GpsError] (permission denied, service disabled), the
-  /// controller transitions to [ErrorState] and rethrows so the caller
-  /// can surface a Snackbar / toast; the state remains available for
-  /// the UI to render a recovery screen.
+  /// controller transitions to `AsyncData(ErrorState(e))` per the
+  /// sealed state contract and rethrows so the caller can surface a
+  /// Snackbar / toast; the state remains available for the UI to
+  /// render a recovery screen. Other exceptions (including
+  /// `ConcurrentActivationException`) propagate untyped via
+  /// `AsyncError` for the UI layer to pattern-match on runtime type.
+  ///
+  /// If ANY step between `activate` and the listen() call fails, the
+  /// controller best-effort deactivates the DB row it just flipped to
+  /// `active` so the next start() on the same id is not blocked by the
+  /// partial-unique-index on `status='active'` — the session row is
+  /// leaked-active otherwise, and CONTEXT.md §partial-activation lock
+  /// forbids that.
   Future<void> start(SessionId id) async {
     state = AsyncData(Starting(id));
+
+    // Pre-assign the session id BEFORE any DB mutation so the catch
+    // paths below can reliably deactivate if activate() partially
+    // succeeds but a later step (requireById / initialize / listen)
+    // throws. Keeping it null here leaks an 'active' row whose owner
+    // cannot be identified from controller state (Phase 06 Blocker #1).
+    _currentSessionId = id;
+    bool activated = false;
 
     try {
       final settings = await ref.read(sessionSettingsProvider.future);
@@ -90,14 +112,15 @@ class ActiveSessionController extends _$ActiveSessionController {
       // the subscription. Failure here propagates; the subscription
       // has not been started, so nothing to tear down.
       await sessionStore.activate(id);
-      final activated = await sessionStore.requireById(id);
+      activated = true;
+
+      final activatedSession = await sessionStore.requireById(id);
       await notificationService.initialize();
 
       _stream = locationStream;
-      _currentSessionId = id;
 
       _sub = locationStream
-          .positions(sessionId: id, sessionDisplayName: activated.displayName, distanceFilterMeters: settings.distanceFilterMeters)
+          .positions(sessionId: id, sessionDisplayName: activatedSession.displayName, distanceFilterMeters: settings.distanceFilterMeters)
           .listen(
             (fix) => _onFix(fix, fixStore),
             onError: _onStreamError,
@@ -109,23 +132,60 @@ class ActiveSessionController extends _$ActiveSessionController {
             cancelOnError: false,
           );
 
-      state = AsyncData(Tracking(sessionId: id, startedAtUtc: activated.startedAtUtc, fixCount: 0, distanceFilterMeters: settings.distanceFilterMeters));
+      state = AsyncData(Tracking(sessionId: id, startedAtUtc: activatedSession.startedAtUtc, fixCount: 0, distanceFilterMeters: settings.distanceFilterMeters));
 
       // Plan 05-05 auto-resume (iOS half) — enable significant-change
       // monitoring so iOS can wake us after a post-kill significant move.
       // No-op on Android/desktop (watchdog itself branches on platform).
       await ref.read(iosSignificantChangeWatchdogProvider).startMonitoring();
-    } on GpsError catch (e, st) {
-      state = AsyncError(e, st);
+    } on GpsError catch (e) {
+      // Honours the sealed state contract: Starting -> ErrorState when
+      // a GpsError fires. UI pattern-matches on `state.value` for the
+      // recovery screen rather than scraping AsyncError. See
+      // active_session_state.dart docstring.
+      await _rollbackPartialActivation(activated: activated, id: id);
+      state = AsyncData(ErrorState(e));
       rethrow;
     } catch (e, st) {
       // Non-GpsError exceptions (ConcurrentActivationException,
       // SessionNotFoundException, infrastructure bugs) propagate untyped.
       // Riverpod's AsyncError carries them; the UI pattern-matches on
       // the runtime type to apply its recovery policy.
+      await _rollbackPartialActivation(activated: activated, id: id);
       state = AsyncError(e, st);
       rethrow;
     }
+  }
+
+  /// Best-effort rollback: if we flipped the DB row to `active` before
+  /// failing somewhere in the initialize/listen chain, flip it back to
+  /// `stopped` so the session can be re-started without tripping the
+  /// partial-unique-index. Swallows own failures — the catch path is
+  /// already propagating a primary exception to the caller.
+  Future<void> _rollbackPartialActivation({required bool activated, required SessionId id}) async {
+    await _sub?.cancel();
+    _sub = null;
+    await _stream?.dispose();
+    _stream = null;
+
+    if (activated) {
+      try {
+        final sessionStore = await ref.read(sessionStoreProvider.future);
+        await sessionStore.deactivate(id);
+      } catch (e, st) {
+        // Rollback is best-effort; the primary exception is already on
+        // its way up. Log so forensic analysis can correlate a leaked
+        // active row with the original failure.
+        _log.fine('start.rollback_deactivate_failed', e, st);
+      }
+      try {
+        final notificationService = ref.read(sessionNotificationServiceProvider);
+        await notificationService.dismiss();
+      } catch (e, st) {
+        _log.fine('start.rollback_dismiss_failed', e, st);
+      }
+    }
+    _currentSessionId = null;
   }
 
   /// Cancels the subscription, dismisses the resume notification,
@@ -134,41 +194,70 @@ class ActiveSessionController extends _$ActiveSessionController {
   /// Best-effort: notification dismiss and DB deactivate failures are
   /// logged-and-swallowed — once the user has stopped tracking, the
   /// state MUST settle to `Idle` regardless of housekeeping outcomes.
+  ///
+  /// Idempotent against concurrent callers — a second overlapping
+  /// stop() short-circuits without a spurious second DB deactivate
+  /// (CLAUDE.md §Idempotence).
   Future<void> stop() async {
-    await _sub?.cancel();
-    _sub = null;
-    await _stream?.dispose();
-    _stream = null;
-
-    // Plan 05-05 auto-resume (iOS half) — release the CLLocationManager
-    // significant-change subscription. Watchdog no-ops on non-iOS, and
-    // swallows platform errors best-effort.
-    await ref.read(iosSignificantChangeWatchdogProvider).stopMonitoring();
-
+    if (_isStopping) {
+      // Concurrent stop already running — the first caller will settle
+      // state to Idle. Second caller no-ops rather than double-cancel.
+      return;
+    }
+    _isStopping = true;
     try {
-      final notificationService = ref.read(sessionNotificationServiceProvider);
-      await notificationService.dismiss();
-    } catch (_) {
-      // Dismiss is best-effort; never block stop() on it.
-    }
+      await _sub?.cancel();
+      _sub = null;
+      await _stream?.dispose();
+      _stream = null;
 
-    final current = _currentSessionId;
-    if (current != null) {
+      // Plan 05-05 auto-resume (iOS half) — release the CLLocationManager
+      // significant-change subscription. Watchdog no-ops on non-iOS, and
+      // swallows platform errors best-effort.
+      await ref.read(iosSignificantChangeWatchdogProvider).stopMonitoring();
+
       try {
-        final sessionStore = await ref.read(sessionStoreProvider.future);
-        await sessionStore.deactivate(current);
-      } catch (_) {
-        // Session already deactivated (race with another caller) or
-        // not found; log + swallow so the UI settles to Idle.
+        final notificationService = ref.read(sessionNotificationServiceProvider);
+        await notificationService.dismiss();
+      } catch (e, st) {
+        // Dismiss is best-effort; never block stop() on it. Log so a
+        // stale notification surfaces in forensic log rather than going
+        // unnoticed (CLAUDE.md §Error handling level 3).
+        _log.fine('stop.dismiss_failed', e, st);
       }
-      _currentSessionId = null;
-    }
 
-    state = const AsyncData(Idle());
+      final current = _currentSessionId;
+      if (current != null) {
+        try {
+          final sessionStore = await ref.read(sessionStoreProvider.future);
+          await sessionStore.deactivate(current);
+        } catch (e, st) {
+          // Session already deactivated (race with another caller) or
+          // not found; log + swallow so the UI settles to Idle.
+          _log.fine('stop.deactivate_failed', e, st);
+        }
+        _currentSessionId = null;
+      }
+
+      state = const AsyncData(Idle());
+    } finally {
+      _isStopping = false;
+    }
   }
 
   Future<void> _onFix(Fix fix, FixStore fixStore) async {
-    await fixStore.insert(fix);
+    try {
+      await fixStore.insert(fix);
+    } catch (e, st) {
+      // A DB write failure while Tracking is a serious signal — disk
+      // full, schema drift, SQLITE_BUSY after exhausted busy_timeout.
+      // Keeping the subscription alive would just keep failing; drain
+      // through the stream-error path so the state machine transitions
+      // to AsyncError and the UI can surface a recovery affordance.
+      _log.warning('onFix.insert_failed', e, st);
+      _onStreamError(e, st);
+      return;
+    }
     // Riverpod 3.x: AsyncValue.value is nullable (returns null on
     // loading/error); check explicitly rather than relying on a
     // Riverpod-2 `valueOrNull` getter that no longer exists.
@@ -184,9 +273,9 @@ class ActiveSessionController extends _$ActiveSessionController {
       return;
     }
     // Unexpected error on the stream — the GPS pipeline is suspect.
-    // Surface as TrackingBackgroundKilled (best-effort typing) so the
-    // UI has a recovery path; the real exception goes to the zone
-    // handler via the rethrow below for diagnostic capture.
+    // Surface via AsyncError so the UI can render a recovery path; the
+    // zone handler will still see the original exception via its
+    // propagation from the underlying subscription.
     state = AsyncError(error, st);
   }
 }
