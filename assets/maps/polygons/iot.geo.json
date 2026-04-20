@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "alpha3": "iot",
+        "generator": "tool/simplify_polygons.dart (bbox simplification)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              71.258606,
+              -7.436666
+            ],
+            [
+              72.494431,
+              -7.436666
+            ],
+            [
+              72.494431,
+              -5.249722
+            ],
+            [
+              71.258606,
+              -5.249722
+            ],
+            [
+              71.258606,
+              -7.436666
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

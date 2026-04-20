@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "alpha3": "sen",
+        "generator": "tool/simplify_polygons.dart (bbox simplification)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -17.537224,
+              12.301748
+            ],
+            [
+              -11.3675,
+              12.301748
+            ],
+            [
+              -11.3675,
+              16.693054
+            ],
+            [
+              -17.537224,
+              16.693054
+            ],
+            [
+              -17.537224,
+              12.301748
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

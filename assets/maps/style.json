@@ -1,0 +1,118 @@
+{
+  "version": 8,
+  "name": "MirkFall neutral basemap (Protomaps-derived)",
+  "metadata": {
+    "description": "Phase 07 plan 07-01 scaffolding style. Frozen 8-layer order (background / landcover / water / boundaries / roads / pois / mirk_fog / user_location) derived from the Protomaps basemaps neutral light variant with glyphs + sprites bundled as local assets and the PMTiles source URL rewritten at runtime by PmtilesSource. Downstream plans (07-03 / 07-06) may tune paint properties but MUST NOT reorder the layers — the order is asserted in test/presentation/map_style_layer_order_test.dart.",
+    "mirkfall:phase": "07",
+    "mirkfall:layer_order_frozen": true,
+    "mirkfall:mirk_fog_note": "The 'mirk_fog' layer ships in Phase 07 as a no-op 'background' type with background-opacity=0 because MapLibre fill/fill-extrusion/line/symbol layers require a bound source, and creating a dummy empty-GeoJSON source for a layer that paints nothing is wasteful. Phase 09 (fog rendering) replaces this layer with a real type:'fill' layer wired to the MirkRenderer source at the same z-index position.",
+    "mirkfall:runtime_url_placeholder": "pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER is rewritten at runtime by lib/infrastructure/map/pmtiles_source.dart (Phase 07 plan 07-03) to point at the current country PMTiles (or the world bundle for zoom<3 or uninstalled viewports)."
+  },
+  "glyphs": "asset:///assets/maps/glyphs/{fontstack}/{range}.pbf",
+  "sprite": "asset:///assets/maps/sprites/sprite",
+  "sources": {
+    "mirkfall_map": {
+      "type": "vector",
+      "url": "pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER",
+      "attribution": "<a href=\"https://protomaps.com\">© Protomaps</a> <a href=\"https://openstreetmap.org/copyright\">© OpenStreetMap contributors</a>"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#f5f1e8"
+      }
+    },
+    {
+      "id": "landcover",
+      "type": "fill",
+      "source": "mirkfall_map",
+      "source-layer": "landcover",
+      "paint": {
+        "fill-color": "#e8e2d0",
+        "fill-opacity": 0.85
+      }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "mirkfall_map",
+      "source-layer": "water",
+      "paint": {
+        "fill-color": "#a6c9df"
+      }
+    },
+    {
+      "id": "boundaries",
+      "type": "line",
+      "source": "mirkfall_map",
+      "source-layer": "boundaries",
+      "paint": {
+        "line-color": "#8a8377",
+        "line-width": 0.6,
+        "line-dasharray": [4, 2]
+      }
+    },
+    {
+      "id": "roads",
+      "type": "line",
+      "source": "mirkfall_map",
+      "source-layer": "roads",
+      "paint": {
+        "line-color": "#bfb8a6",
+        "line-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          8, 0.4,
+          14, 1.2,
+          18, 3.0
+        ]
+      }
+    },
+    {
+      "id": "pois",
+      "type": "symbol",
+      "source": "mirkfall_map",
+      "source-layer": "pois",
+      "minzoom": 12,
+      "layout": {
+        "icon-image": "dot",
+        "icon-size": 0.6,
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": 11,
+        "text-offset": [0, 0.8],
+        "text-anchor": "top",
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#333333",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.2
+      }
+    },
+    {
+      "id": "mirk_fog",
+      "type": "background",
+      "paint": {
+        "background-color": "#000000",
+        "background-opacity": 0
+      }
+    },
+    {
+      "id": "user_location",
+      "type": "circle",
+      "source": "mirkfall_map",
+      "source-layer": "user_location",
+      "paint": {
+        "circle-radius": 0,
+        "circle-color": "#2b7cd6",
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 2
+      }
+    }
+  ]
+}

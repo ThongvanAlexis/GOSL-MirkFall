@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "alpha3": "ssd",
+        "generator": "tool/simplify_polygons.dart (bbox simplification)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              24.121555623000063,
+              3.4902015180000916
+            ],
+            [
+              35.92083540900012,
+              3.4902015180000916
+            ],
+            [
+              35.92083540900012,
+              12.216154684000088
+            ],
+            [
+              24.121555623000063,
+              12.216154684000088
+            ],
+            [
+              24.121555623000063,
+              3.4902015180000916
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
