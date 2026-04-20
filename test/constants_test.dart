@@ -27,4 +27,71 @@ void main() {
   test('kAboutTapWindowMilliseconds is 3000', () {
     expect(kAboutTapWindowMilliseconds, equals(3000));
   });
+
+  // Phase 07 (Map Integration) — every new Phase 07 slot gets a value +
+  // type guard here so a silent rename/retype is caught at test time.
+  group('Phase 07 constants', () {
+    test('kHttpTimeout is 60_000 ms (raised for 1.5 GB chunk downloads)', () {
+      expect(kHttpTimeout, equals(60000));
+      expect(kHttpTimeout, isA<int>());
+    });
+
+    test('kMapCatalogAssetPath is assets/maps/catalog.json', () {
+      expect(kMapCatalogAssetPath, equals('assets/maps/catalog.json'));
+      expect(kMapCatalogAssetPath, isA<String>());
+    });
+
+    test('kWorldPmtilesAssetPath is assets/maps/world.pmtiles', () {
+      expect(kWorldPmtilesAssetPath, equals('assets/maps/world.pmtiles'));
+    });
+
+    test('kWorldPmtilesInternalPath is maps/world.pmtiles (relative to <app_support>)', () {
+      expect(kWorldPmtilesInternalPath, equals('maps/world.pmtiles'));
+    });
+
+    test('kCountriesDir is maps/countries', () {
+      expect(kCountriesDir, equals('maps/countries'));
+    });
+
+    test('kStagingDir is maps/staging', () {
+      expect(kStagingDir, equals('maps/staging'));
+    });
+
+    test('kInstalledManifestPath is maps/installed.json', () {
+      expect(kInstalledManifestPath, equals('maps/installed.json'));
+    });
+
+    test('kCountryPolygonsAssetPath is assets/maps/polygons', () {
+      expect(kCountryPolygonsAssetPath, equals('assets/maps/polygons'));
+    });
+
+    test('kStyleJsonAssetPath is assets/maps/style.json', () {
+      expect(kStyleJsonAssetPath, equals('assets/maps/style.json'));
+    });
+
+    test('kInitialSessionMapZoom is 13 (neighborhood/city view showing 20m reveal)', () {
+      expect(kInitialSessionMapZoom, equals(13));
+      expect(kInitialSessionMapZoom, isA<int>());
+    });
+
+    test('kInitialRevealRadiusMeters is 20', () {
+      expect(kInitialRevealRadiusMeters, equals(20));
+      expect(kInitialRevealRadiusMeters, isA<int>());
+    });
+
+    test('kDiskSpaceSafetyMarginMultiplier is 1.1', () {
+      expect(kDiskSpaceSafetyMarginMultiplier, equals(1.1));
+      expect(kDiskSpaceSafetyMarginMultiplier, isA<double>());
+    });
+
+    test('kDownloadRetryAttempts is 3', () {
+      expect(kDownloadRetryAttempts, equals(3));
+      expect(kDownloadRetryAttempts, isA<int>());
+    });
+
+    test('kDownloadRetryBaseDelayMs is 1000', () {
+      expect(kDownloadRetryBaseDelayMs, equals(1000));
+      expect(kDownloadRetryBaseDelayMs, isA<int>());
+    });
+  });
 }

@@ -133,8 +133,92 @@ const String kNotificationChannelId = 'mirkfall_session_tracking';
 /// Cross-route active-session banner height in logical pixels.
 const double kSessionActiveBannerHeightDp = 40.0;
 
-// Reserved for later phases (declared here so future callers can import from
-// a stable location):
-//   - kDefaultRevealRadiusMeters  (Phase 09 — fog reveal radius)
-//   - kHttpTimeout                (Phase 07 — tile fetch timeout)
-//   - kMarkerPhotoMaxDimension    (Phase 11 — photo downscale cap)
+// ---------------------------------------------------------------------------
+// Phase 07 (Map Integration) — constants consumed across the map seam
+// (07-03), the download pipeline (07-04), the installed-maps manifest
+// (07-04), and the map screen (07-06).
+//
+// Sourced verbatim from 07-CONTEXT.md §Existing Code Insights. Downstream
+// plans import from this single file rather than duplicating literals.
+// ---------------------------------------------------------------------------
+
+/// HTTP timeout (ms) applied to the Phase 07 download controller and to any
+/// future map-layer fetch that opts in. Raised to 60 s (from the Phase 05
+/// GPS-plugin default of 30 s) because per-country PMTiles chunks can be
+/// up to 1.5 GB and must survive a 4G slow-start on the first byte. The
+/// Phase 05 foreground-service GPS stream does NOT use this constant —
+/// geolocator has its own internal platform-level timeout semantics.
+const int kHttpTimeout = 60000;
+
+/// Asset path (bundled in APK/IPA) for the country catalog JSON used by
+/// the download screen. Update = rebuild app. Superseded the earlier
+/// `kMapCatalogUrl` remote-fetch design (see 07-CONTEXT.md amendments).
+const String kMapCatalogAssetPath = 'assets/maps/catalog.json';
+
+/// Asset path for the bundled z0-2 world map PMTiles (856 KB). Copied
+/// verbatim to `<app_support>/maps/world.pmtiles` on first launch
+/// (MAP-07 — non-deletable floor).
+const String kWorldPmtilesAssetPath = 'assets/maps/world.pmtiles';
+
+/// Relative path (under `<app_support>/`) where the world PMTiles lives
+/// at runtime after the first-launch copy. Per-country PMTiles live
+/// alongside it under [kCountriesDir].
+const String kWorldPmtilesInternalPath = 'maps/world.pmtiles';
+
+/// Relative directory (under `<app_support>/`) where per-country
+/// `<alpha3>.pmtiles` bundles land after a successful atomic commit.
+const String kCountriesDir = 'maps/countries';
+
+/// Relative directory (under `<app_support>/`) where in-flight downloads
+/// stage their chunks before concat + rename. Cleaned on successful
+/// commit or explicit cancel.
+const String kStagingDir = 'maps/staging';
+
+/// Relative path (under `<app_support>/`) for the installed-maps manifest
+/// JSON — the source of truth for "which countries are on disk right
+/// now + their sha256 + catalog version tag". Rewritten atomically
+/// (tempfile + rename) after each download commit or deletion.
+const String kInstalledManifestPath = 'maps/installed.json';
+
+/// Asset directory containing the simplified country bounding polygons
+/// used by the country resolver (viewport-center point-in-polygon).
+/// Layout decision (per-file vs aggregate) made in Plan 07-01 itself;
+/// the path stays stable for downstream consumers.
+const String kCountryPolygonsAssetPath = 'assets/maps/polygons';
+
+/// Asset path for the Protomaps basemaps neutral style JSON (frozen
+/// 8-layer order: background / landcover / water / boundaries / roads /
+/// pois / mirk_fog / user_location). Glyphs + sprites point to
+/// `asset:///assets/maps/glyphs|sprites/…` URIs; the tile source URL is
+/// a `pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER` placeholder
+/// rewritten at runtime by `PmtilesSource` (Phase 07 plan 07-03).
+const String kStyleJsonAssetPath = 'assets/maps/style.json';
+
+/// Initial camera zoom level when opening the map screen from an active
+/// session. Z=13 shows a ~2 km square — enough context for the 20 m
+/// reveal radius to be visible but not so zoomed out that features blur.
+const int kInitialSessionMapZoom = 13;
+
+/// Radius (meters) of the data-only reveal seeded around the user's
+/// position at session open. Phase 07 captures the intent in the DB but
+/// does NOT paint fog — the corresponding render lands in Phase 09 when
+/// the mirk renderer materialises the RevealedTileStore state.
+const int kInitialRevealRadiusMeters = 20;
+
+/// Safety-margin multiplier applied to the expected total byte size when
+/// refusing a download that would fit too tightly on free disk. 1.1 =
+/// require at least 110 % of the expected size to stay available
+/// post-write (buffer for the FS, staging, and concurrent app writes).
+const double kDiskSpaceSafetyMarginMultiplier = 1.1;
+
+/// Maximum number of consecutive retry attempts on a single chunk
+/// download before the controller pauses and surfaces a "network
+/// unavailable" banner. After N failures the pipeline is gated by
+/// explicit user resume, NOT an open-ended auto-retry loop.
+const int kDownloadRetryAttempts = 3;
+
+/// Base delay (ms) for the exponential backoff between download retries.
+/// Actual delays follow the 1 s / 5 s / 30 s curve described in
+/// 07-CONTEXT.md §Pipeline download pays (kDownloadRetryBaseDelayMs,
+/// ×5, ×30).
+const int kDownloadRetryBaseDelayMs = 1000;
