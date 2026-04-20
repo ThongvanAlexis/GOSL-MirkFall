@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: "06-02 (POC evidence review — Agent #4 extracts docs/qual-01-02-poc.md + poc-artifacts + store-review-rationale.md into §1b)"
+current_plan: 06-03 (pre-classify 8 CONTEXT handoff items + spawn 4-agent audit wave)
 status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-04-20T00:27:37.182Z"
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-04-20T00:35:02.478Z"
 last_activity: 2026-04-20
 progress:
   total_phases: 16
   completed_phases: 5
   total_plans: 30
-  completed_plans: 26
-  percent: 87
+  completed_plans: 27
+  percent: 90
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 06 Review Gate — GPS IN PROGRESS. Plan 06-01 complete (06-REVIEW.md scaffolded + §1 captured with "Aucune observation utilisateur" marker). Ready for Plan 06-02 POC evidence review.
+**Current focus:** Phase 06 Review Gate — GPS IN PROGRESS. Plans 06-01 + 06-02 complete (06-REVIEW.md §1 'Aucune observation utilisateur' + §1b POC evidence review archived). Ready for Plan 06-03 pre-class + 4-agent audit wave.
 
 ## Current Position
 
-Phase: 06 of 16 (Review Gate — GPS) IN PROGRESS — 1 / 5 plans done
-Current Plan: 06-02 (POC evidence review — Agent #4 extracts docs/qual-01-02-poc.md + poc-artifacts + store-review-rationale.md into §1b)
+Phase: 06 of 16 (Review Gate — GPS) IN PROGRESS — 2 / 5 plans done
+Current Plan: 06-03 (pre-classify 8 CONTEXT handoff items + spawn 4-agent audit wave)
 Total Plans in Phase 06: 5
 Status: In progress
 Last Activity: 2026-04-20
 
-Progress: [█████████░] 87% — 26 / 30 plans executed across phases 01-05 + Plan 06-01.
+Progress: [█████████░] 90% — 27 / 30 plans executed across phases 01-05 + Plans 06-01 + 06-02.
 
 ## Performance Metrics
 
@@ -77,6 +77,7 @@ Progress: [█████████░] 87% — 26 / 30 plans executed across
 | Phase 05-gps-session-lifecycle P05 | 13 min | 2 tasks | 13 files |
 | Phase 05-gps-session-lifecycle P06 | ~13h elapsed | 3 tasks | 20 files |
 | Phase 06-review-gate-gps P01 | ~3 min (Task 2 continuation) | 2 tasks | 2 files |
+| Phase 06-review-gate-gps P02 | 4 min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -208,6 +209,9 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 05-gps-session-lifecycle]: Plan 05-06: iOS FlutterImplicitEngineDelegate bridge stripped after Xcode 26 move — Flutter 3.41+ stabilised scene-based API surface, bridge was no longer necessary for current boot-watchdog path. Auto-resume-post-kill full iOS validation deferred to Phase 15 with user approval.
 - [Phase 06-review-gate-gps]: Plan 06-01: Apply Phase 04 'Aucune observation utilisateur' marker verbatim in §1 when user reports 'rien vu' — explicit marker keeps the user-first gate documented and satisfies the grep sanity check (3rd cycle validating review-gate Plan 01 template)
 - [Phase 06-review-gate-gps]: Plan 06-01: No forward leakage into §1b / §2 / §4 — Plan 06-01 strictly scaffolds skeleton + captures §1; §1b stays pending for Plan 06-02, §2 sub-sections for Plan 06-03, §4 test blocks for Plan 06-04. Respects wave sequencing in 06-CONTEXT.md.
+- [Phase 06-review-gate-gps]: Plan 06-02: Variant B battery waiver — fix-cadence stability (6s/fix iOS, <10s Android with one 66.4s satellite-geometry dip) used as proxy for battery-healthy GPS path; dumpsys battery_stats deferred Phase 15 release-confidence per CONTEXT.md pre-class item 3. POC artefacts contain zero numeric battery readings.
+- [Phase 06-review-gate-gps]: Plan 06-02: Store rationale language is English on disk (ground truth) — CONTEXT item 6 'French copy, English polish deferred Phase 15' is stale vs actual docs/store-review-rationale.md committed Plan 05-06. §1b records truth + inline note; Plan 06-03 to re-class from 'English polish deferred' to 'English copy already committed, final polish optional Phase 15'. Surface-and-flag pattern, not silent-correct.
+- [Phase 06-review-gate-gps]: Plan 06-02: §1b POC evidence review format locked — summary table (7 metrics × 2 devices) + collapsible <details> per device verbatim + embedded POC plot via relative path + battery Variant A/B row + QUAL-03 5-section snapshot + verbatim iOS PASS-with-caveat rationale + POC protocol acceptance checklist + OEM coverage note + gate-closure confirms. Reusable pattern for future GPS-focused review gates where POC artefacts ARE the runtime observation.
 
 ### Pending Todos
 
@@ -234,6 +238,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-20T00:27:37.179Z
-Stopped at: Completed 06-01-PLAN.md
-Resume file: .planning/phases/06-review-gate-gps/06-02-PLAN.md
+Last session: 2026-04-20T00:34:28.319Z
+Stopped at: Completed 06-02-PLAN.md
+Resume file: None
