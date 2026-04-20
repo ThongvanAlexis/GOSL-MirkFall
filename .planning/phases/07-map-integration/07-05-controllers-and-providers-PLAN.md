@@ -2,7 +2,7 @@
 phase: 07-map-integration
 plan: 05
 type: execute
-wave: 4
+wave: 5
 depends_on: ["07-03", "07-04"]
 files_modified:
   - lib/application/controllers/map_camera_controller.dart

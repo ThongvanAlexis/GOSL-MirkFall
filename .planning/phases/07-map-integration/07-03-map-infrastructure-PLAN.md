@@ -238,6 +238,11 @@ const MethodChannel _channel = MethodChannel('app.gosl.mirkfall/boot_watchdog');
     - **`styleLayerOrder`** constant + `assertStyleLayerOrder(String styleJson)` helper:
       - const `kStyleLayerOrder = <String>['background', 'landcover', 'water', 'boundaries', 'roads', 'pois', 'mirk_fog', 'user_location']`
       - Helper parses the JSON, extracts `layers[].id`, asserts equality against `kStyleLayerOrder`. Throws `MapStyleCorruptException` on mismatch.
+    - **`assertStyleLayerValidity(String styleJson)` helper** (same file): walks each layer dict and enforces MapLibre-style-required fields by `type`:
+      - `background` layers: MUST have `id` + `type`; MUST NOT have `source` / `source-layer`.
+      - `fill` / `fill-extrusion` / `line` / `symbol` / `circle` / `heatmap` / `raster` layers: MUST have `id` + `type` + `source` (string referencing a declared source) + `source-layer` when the source type is `vector`.
+      - Any missing-required-field or forbidden-field → throws `MapStyleCorruptException` with a structured message (`layerId`, `offendingField`, `reason`).
+      - Test: the real `assets/maps/style.json` passes both `assertStyleLayerOrder` AND `assertStyleLayerValidity`. Seeded-violation test: a layer with `type: "fill"` and no `source` throws; a `background` layer with a stray `source` throws. This guards against silent style-rejection at MapLibre runtime (the risk that motivated the Warning 1 fix in Plan 07-01).
     - **`CountryResolver`** pure-Dart:
       - Ctor: `CountryResolver({required Map<CountryCode, List<List<({double lat, double lon})>>> installedPolygons})` (map from alpha3 to list of polygon rings in lat/lon)
       - `CountryCode? resolve({required double latitude, required double longitude, required double zoom})`:
@@ -264,6 +269,7 @@ const MethodChannel _channel = MethodChannel('app.gosl.mirkfall/boot_watchdog');
   </behavior>
   <action>
     1. **`lib/infrastructure/map/README.md`**: "The ONLY directory allowed to `import 'package:maplibre_gl/...'`. Enforced by `tool/check_avoid_maplibre_leak.dart`. All other `lib/` code must consume the `MapView` port (`lib/domain/map/map_view.dart`)."
+       - Add a Phase 09 handoff note at the bottom of the README: "Phase 07 ships `mirk_fog` as a transparent `background` layer — it paints nothing, so no Flutter-level `RepaintBoundary` is required around the map surface in this phase. Phase 09 (mirk renderer) will replace `mirk_fog` with a real `fill`-from-GeoJSON layer AND own the `RepaintBoundary` wrapping of the fog surface when the overlay actually paints. The `MapLibreMapView` adapter intentionally does NOT create a RepaintBoundary at the widget level — that responsibility belongs to the Phase 09 owner of the fog render pass."
 
     2. **`lib/infrastructure/map/pmtiles_source.dart`**:
        - GOSL header
@@ -273,7 +279,11 @@ const MethodChannel _channel = MethodChannel('app.gosl.mirkfall/boot_watchdog');
 
     3. **`lib/infrastructure/map/style_rewriter.dart`**: per behavior spec. Imports `package:flutter/services.dart` (`rootBundle`) — OK, it's inside infrastructure. Does NOT import maplibre_gl.
 
-    4. **`lib/infrastructure/map/style_layer_order.dart`**: const list + helper. Pure Dart. Unit test reads the real `assets/maps/style.json` via flutter_test rootBundle and asserts exact equality.
+    4. **`lib/infrastructure/map/style_layer_order.dart`**: const list + two helpers (`assertStyleLayerOrder` + `assertStyleLayerValidity`). Pure Dart — no Flutter, no maplibre_gl. `style_layer_order_test.dart` reads the real `assets/maps/style.json` via flutter_test rootBundle and:
+       - asserts exact layer-order equality against `kStyleLayerOrder`
+       - asserts style validity (every layer carries its type-required fields; `background` layers have no source; `fill`/`line`/`symbol` layers do)
+       - seeded-violation cases: synthesise a style JSON with a `fill` layer missing `source` → `assertStyleLayerValidity` throws `MapStyleCorruptException`; same with a `background` layer carrying a stray `source` field
+       - this closes the Plan 07-01 Warning 1 concern at verification time (MapLibre-style validity), not just at style.json authoring time
 
     5. **`lib/infrastructure/map/geo/point_in_polygon.dart`**:
        - Pure-Dart function. ~40 lines. Rosetta Code reference implementation. Handles horizontal edges via consistent convention (exclusive-upper-bound).
@@ -335,6 +345,7 @@ const MethodChannel _channel = MethodChannel('app.gosl.mirkfall/boot_watchdog');
   </behavior>
   <action>
     1. Create `lib/infrastructure/map/maplibre_map_view.dart` with GOSL header + single `import 'package:maplibre_gl/maplibre_gl.dart';` + imports of domain types + `package:flutter/widgets.dart` + `package:logging/logging.dart`.
+       - Class-level docstring on `MapLibreMapViewWidget` MUST include the note: "Phase 07 stub: the `mirk_fog` style layer is a transparent `background` — it paints nothing. No Flutter-level `RepaintBoundary` is wrapped around the map surface here. Phase 09 will introduce the mirk renderer AND own the `RepaintBoundary` wrapping of the fog surface when the overlay actually paints. Do NOT add a RepaintBoundary pre-emptively in Phase 07 — it would mask a Phase 09 design decision."
 
     2. Implement `MapLibreMapViewWidget` as described. Use `FutureBuilder` inside `build` OR `initState + ValueNotifier<String?>` for async style loading — choose the pattern that avoids platform-view rebuild (pre-compute the styleString before the widget is rendered).
 

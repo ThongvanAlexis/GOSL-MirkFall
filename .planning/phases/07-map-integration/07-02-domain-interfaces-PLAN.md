@@ -47,7 +47,8 @@ must_haves:
     - "`InstalledManifest`, `InstalledCountry` are Freezed entities; `InstalledManifestRepository` is a port interface (no impl here — that's Plan 07-04)"
     - "`DownloadJob`, sealed `DownloadState { Idle | Downloading | Paused | Error | Completed | Cancelled }`, and typed exceptions compile"
     - "`MirkRenderer` abstract interface + `MirkPaintContext` Freezed DTO compile; contract test asserts the 3 methods (paint / update / dispose) are the ONLY public surface (no ui.Image leak)"
-    - "All 6 map-layer exceptions (`MapAssetMissingException`, `PmtilesCorruptException`, `CountryNotInstalledException`, `SchemaValidationException`, `DiskSpaceInsufficientException`, `MapStyleCorruptException`) implement `Exception` and carry structured context fields"
+    - "All 7 map-layer exceptions (`MapAssetMissingException`, `PmtilesCorruptException`, `CountryNotInstalledException`, `SchemaValidationException`, `DiskSpaceInsufficientException`, `MapStyleCorruptException`, `CannotDeleteWorldBundleException`) implement `Exception` and carry structured context fields"
+    - "`CountryCode.world` sentinel (`CountryCode._('wld')`) exists as a domain-locked constant; 07-04 CountryDeleteService compares against it rather than the raw string `'wld'`"
     - "All 3 download-layer exceptions (`DownloadInterruptedException`, `Sha256MismatchException`, `ConcatFailureException`) implement `Exception` with expected / actual fields"
     - "`FakeMapView`, `FakePmtilesSource`, `FakeInstalledManifestRepository`, `FakeDownloadController`, `FakeCountryResolver` fully implement their port interfaces with in-memory state tracking (public observable getters: `cameraMovesObserved`, `layersAddedObserved`, etc.)"
     - "`tool/check_domain_purity.dart` still exits 0 — the new `lib/domain/map/` and `lib/domain/downloads/` and `lib/domain/installed_maps/` subtrees import nothing outside `dart:*`, `package:freezed_annotation`, `package:json_annotation`, `package:collection`, and the existing pure-Dart project domain"
@@ -202,6 +203,7 @@ Fake pattern (Phase 05 `test/fakes/fake_location_stream.dart`):
       - `bool get isFollowMeEnabled`
       - `Future<void> setFollowMeEnabled(bool enabled)`
     - `CountryCode` is a Dart 3 extension type wrapping a `String` (always lower-case alpha-3), with `parse(String raw)` validator (rejects non-3-char, non-alpha) and `toString()` returning the wrapped value.
+    - `CountryCode.world` — a domain-locked sentinel `static const CountryCode world = CountryCode._('wld')` exposing the reserved 3-letter code used to identify the bundled world basemap. The `'wld'` value is reserved — `parse('wld')` MUST succeed (the sentinel is a valid CountryCode), but any caller that wants to reject the world bundle (e.g. `CountryDeleteService` in 07-04) MUST compare against `CountryCode.world` rather than the raw string literal. Class docstring documents this reservation explicitly.
     - `MapTheme` is a sealed hierarchy: `MapThemeStandard()` (Phase 07) + `MapThemeRpgParchment()` (Phase 13 stub, created here for forward compat).
     - `CountryCatalog`, `CountryEntry`, `ChunkPart`, `ReassembledMeta` are Freezed with `fromJson`/`toJson` via json_serializable (Phase 03 convention).
     - `CountryCatalog.parseBundled()` (class static) loads `assets/maps/catalog.json` via `rootBundle` — BUT this call site belongs in `lib/application/` (impure I/O). The domain file exposes `fromJson` only; a separate `loadBundledCatalog` is a free function in `lib/application/providers/map_providers.dart` (Plan 07-05).
@@ -213,6 +215,7 @@ Fake pattern (Phase 05 `test/fakes/fake_location_stream.dart`):
       - `SchemaValidationException({required String documentPath, required String reason})` — catalog.json / installed.json parse failures
       - `DiskSpaceInsufficientException({required int neededBytes, required int freeBytes})`
       - `MapStyleCorruptException({required String reason})` — style.json missing placeholder / unknown layer order
+      - `CannotDeleteWorldBundleException({String? reason})` — thrown when `CountryDeleteService` (07-04) is asked to delete `CountryCode.world`; guards the invariant that the bundled world basemap is read-only. Carries an optional `reason` for log context.
       - All implement `Exception`, all have `toString()` overrides.
     - `lib/domain/map/README.md`: brief — "Pure-Dart domain types for map integration. May import only dart:*, package:freezed_annotation, package:json_annotation, package:collection, and other `lib/domain/*` siblings. No Flutter, no MapLibre, no infrastructure. Enforced by `tool/check_domain_purity.dart` and `tool/check_avoid_maplibre_leak.dart`."
     - Tests:
@@ -226,9 +229,11 @@ Fake pattern (Phase 05 `test/fakes/fake_location_stream.dart`):
         - `CountryCode.parse('fr')` throws FormatException.
         - `CountryCode.parse('fra4')` throws.
         - Equality: `CountryCode.parse('fra') == CountryCode.parse('FRA')`.
+        - `CountryCode.world.value == 'wld'` AND `CountryCode.parse('wld') == CountryCode.world` (sentinel equality).
       - `test/domain/map/map_errors_test.dart`:
-        - Every exception `implements Exception` (pattern match).
+        - Every exception `implements Exception` (pattern match) — including `CannotDeleteWorldBundleException`.
         - `toString()` contains the structured fields (useful for log inspection).
+        - `CannotDeleteWorldBundleException` can be constructed with and without the optional `reason` field.
   </behavior>
   <action>
     1. **Create `lib/domain/map/README.md`** documenting the import rules. Tie to the 2 lint scripts.
@@ -243,6 +248,7 @@ Fake pattern (Phase 05 `test/fakes/fake_location_stream.dart`):
          - throws `FormatException` on any failure
        - `@override` on `toString()` if applicable (extension types don't auto-inherit)
        - JsonConverter free functions `CountryCode _countryCodeFromJson(String)`, `String _countryCodeToJson(CountryCode)` for use in Freezed annotations
+       - `static const CountryCode world = CountryCode._('wld');` — domain-locked sentinel for the bundled world basemap. Document the reservation in the class docstring: "'wld' is a reserved alpha-3 code; `parse('wld')` succeeds and returns a value equal to `CountryCode.world`. Callers that wish to guard against the world bundle (e.g. delete, update) must compare against `CountryCode.world`."
 
     3. **`lib/domain/map/map_theme.dart`**:
        - Sealed hierarchy (not Freezed — no payload):
@@ -274,7 +280,7 @@ Fake pattern (Phase 05 `test/fakes/fake_location_stream.dart`):
          - `required String sha256`, `required int size`
          - Same asserts
 
-    5. **`lib/domain/map/map_errors.dart`**: 6 exception classes per behavior spec. Each:
+    5. **`lib/domain/map/map_errors.dart`**: 7 exception classes per behavior spec (6 map-layer + `CannotDeleteWorldBundleException` reserved for 07-04's CountryDeleteService). Each:
        - GOSL header (top of file)
        - `const` ctor with named required fields
        - `@override String toString()` with all fields inlined

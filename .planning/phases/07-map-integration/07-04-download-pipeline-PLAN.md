@@ -2,8 +2,8 @@
 phase: 07-map-integration
 plan: 04
 type: execute
-wave: 3
-depends_on: ["07-02"]
+wave: 4
+depends_on: ["07-03"]
 files_modified:
   - lib/infrastructure/downloads/http_chunk_downloader.dart
   - lib/infrastructure/downloads/sha256_verifier.dart
@@ -348,7 +348,7 @@ tags:
       - iOS backup-exclude invoked once on the very first commit to `<app_support>/maps/` via `IosBackupExcluder.excludePath` (deferred call — subsequent countries land under the already-excluded dir).
     - **`CountryDeleteService`**:
       - `Future<void> deleteCountry(CountryCode alpha3)`:
-        - Reject if `alpha3 == CountryCode.parse('wld')` / world bundle sentinel — throw `CannotDeleteWorldBundleException` (new typed exception, add to Plan 07-02 errors file OR here)
+        - Reject if `alpha3 == CountryCode.world` — throw `CannotDeleteWorldBundleException` (imported from `lib/domain/map/map_errors.dart`; defined in Plan 07-02 alongside the other 6 map-layer exceptions). Compare against the domain-locked sentinel, NOT the raw string literal `'wld'`.
         - Read current manifest; if alpha3 missing → no-op
         - Delete `<app_support>/maps/countries/<alpha3>.pmtiles`
         - Remove entry from manifest; write atomically
@@ -376,13 +376,13 @@ tags:
   <action>
     1. **`pmtiles_download_controller.dart`** — Riverpod codegen (`@Riverpod(keepAlive: true)` class). Run `build_runner` after writing. Heavy class — ~300 LoC including docstrings.
 
-    2. **`country_delete_service.dart`** — ~50 LoC. Throws typed exception if asked to delete world.
+    2. **`country_delete_service.dart`** — ~50 LoC. Imports `CountryCode` and `CannotDeleteWorldBundleException` from `lib/domain/map/`. Compares `alpha3 == CountryCode.world` (domain-locked sentinel) and throws `CannotDeleteWorldBundleException` on match — NO raw `'wld'` string literal anywhere in this file.
 
     3. **`pmtiles_download_controller_test.dart`** — unit tests with fake HTTP client + fake disk space + fake manifest repo. Scenarios: enqueue single → completed, enqueue with fail mid-chunk → paused-with-error → manual resume → completed.
 
     4. **`download_soak_test.dart`** — full-stack soak via `shelf` MockHTTPServer. Each scenario ~50 LoC. Total ~600 LoC. Tagged `@Tags(['soak'])`.
 
-    5. **`country_delete_test.dart`** — 3 tests: happy delete, delete-world rejection, delete-nonexistent no-op.
+    5. **`country_delete_test.dart`** — 3 tests: happy delete, delete-world rejection (`deleteCountry(CountryCode.world)` throws `CannotDeleteWorldBundleException`; also verify that `deleteCountry(CountryCode.parse('wld'))` — the parse path — throws the same exception, proving sentinel equality), delete-nonexistent no-op.
 
     6. **`dart_test.yaml`** — add soak tag with 10x timeout.
 

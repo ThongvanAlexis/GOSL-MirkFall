@@ -2,7 +2,7 @@
 phase: 07-map-integration
 plan: 07
 type: execute
-wave: 6
+wave: 7
 depends_on: ["07-06"]
 files_modified:
   - integration_test/airplane_mode_test.dart
@@ -55,6 +55,25 @@ Close Phase 07 with integration tests + human-device smoke checkpoints that prov
 Purpose: Without this plan, Phase 07 is green on CI but unvalidated on actual devices. Phase 08 Review Gate will re-litigate if we skip here.
 Output: 3 integration tests + 1 navigation test + 1 human-verify checkpoint producing device-smoke evidence archived in `docs/phase-07-smoke.md`.
 </objective>
+
+
+<sc_task_crosswalk>
+Mapping ROADMAP.md Phase 07 Success Criteria (SC#1..SC#9) to the task IDs + test files that verify each criterion. Use this table during `/gsd:verify-work` to confirm every SC has at least one automated binding and one device-smoke step.
+
+| SC | ROADMAP statement (abridged) | Plan-task verifiers | Automated tests | Device smoke (Task 2) |
+|----|------------------------------|---------------------|-----------------|-----------------------|
+| SC#1 | First-launch world copy + offline pan/zoom + zero net req for tiles | 07-01-01 (assets bundled), 07-03-01 (FirstLaunchWorldCopier + PmtilesSource local-only), 07-05-01 (firstLaunchBootstrapProvider), 07-07-01 (airplane_mode_test + first_launch_world_copy_test) | `integration_test/airplane_mode_test.dart`, `integration_test/first_launch_world_copy_test.dart`, `test/infrastructure/map/first_launch_world_copier_test.dart`, `dart run tool/check_avoid_remote_pmtiles.dart` | Task 2 Android step 2-6 + iOS step 1-3 (airplane-mode cold start renders) |
+| SC#2 | Attribution on map AND on À propos with official copyright links | 07-06-01 (MapAttributionIcon bottom-sheet), 07-06-04 (AboutPlaceholderScreen attribution block) | `test/presentation/widgets/map_attribution_icon_test.dart`, `test/presentation/screens/about_placeholder_screen_test.dart` | Task 2 Android step 4 + iOS step 3 (visual check of attribution icon + À propos screen) |
+| SC#3 | MapView interface is the only seam; `avoid_maplibre_leak` lint enforces | 07-01-02 (lint script + paired test), 07-02-01 (MapView abstract), 07-03-02 (MapLibreMapView adapter = sole consumer), 07-06 (all screens use FakeMapView override) | `dart run tool/check_avoid_maplibre_leak.dart`, `dart test tool/test/check_avoid_maplibre_leak_test.dart`, `test/presentation/screens/map_screen_test.dart` (FakeMapView proof) | n/a (structural invariant) |
+| SC#4 | PmtilesSource local-only + `avoid_remote_pmtiles` lint + country resolver swap | 07-01-02 (second lint + paired test), 07-03-01 (PmtilesSource + CountryResolver + point_in_polygon), 07-05-02 (CountryResolverController hot-swap) | `dart run tool/check_avoid_remote_pmtiles.dart`, `dart test tool/test/check_avoid_remote_pmtiles_test.dart`, `test/infrastructure/map/pmtiles_source_test.dart`, `test/infrastructure/map/country_resolver_test.dart`, `test/application/controllers/country_resolver_controller_test.dart` | Task 2 Android step 6 (airplane-mode world fallback) |
+| SC#5 | Mirk overlay stub present at frozen z-order; paints nothing | 07-01-01 (style.json with frozen 8 layers, mirk_fog = `background` transparent), 07-03-01 (NoopMirkRenderer + styleLayerOrder + assertStyleLayerValidity), 07-06-01 (layer-order regression test) | `test/presentation/map_style_layer_order_test.dart`, `test/infrastructure/map/style_layer_order_test.dart`, `test/infrastructure/mirk/noop_mirk_renderer_test.dart` | Task 2 Android step 4 (map renders without any black aplat) |
+| SC#6 | Download screen lists catalog.json + per-country alpha3/name/size + version | 07-01-01 (catalog.json bundled asset), 07-02-01 (CountryCatalog Freezed + catalogVersion getter), 07-06-02 (MapsDownloadScreen + MapDownloadProgressChip) | `test/domain/map/country_catalog_test.dart`, `test/presentation/screens/maps_download_screen_test.dart`, `test/presentation/widgets/map_download_progress_chip_test.dart` | Task 2 Android step 7 + iOS step 3 (Aruba download completes) |
+| SC#7 | Download pipeline: chunks → sha256 → concat → atomic commit → manifest | 07-04-01 (Sha256Verifier + BinaryConcatenator + AtomicRenamer + InstalledManifestRepository), 07-04-02 (HttpChunkDownloader + Range), 07-04-03 (PmtilesDownloadController + soak test) | `test/infrastructure/downloads/*_test.dart` (5 unit tests), `dart test --tags soak test/infrastructure/downloads/download_soak_test.dart` (7 scenarios), `integration_test/map_end_to_end_test.dart` | Task 2 Android step 7 + iOS step 3 |
+| SC#8 | Manage screen: installed list + disk size + version + delete frees space; world read-only | 07-04-03 (CountryDeleteService rejects CountryCode.world via CannotDeleteWorldBundleException), 07-05-03 (InstalledMapsController), 07-06-02 (MapsManageScreen) | `test/infrastructure/installed_maps/country_delete_test.dart`, `test/application/controllers/installed_maps_controller_test.dart`, `test/presentation/screens/maps_manage_screen_test.dart` | Task 2 Android step 8-9 + iOS step 3 (delete flow + world row disabled) |
+| SC#9 | DEPENDENCIES.md audit entries for maplibre_gl + crypto + bundled assets | 07-01-01 (pubspec swap + DEPENDENCIES.md rows + check_dependencies_md.dart green) | `dart run tool/check_dependencies_md.dart`, `dart run tool/check_licenses.dart` | n/a (documentation invariant) |
+
+If any SC has an empty `Plan-task verifiers` column, the verification is incomplete and the phase cannot close. Current table: every SC bound to at least one task + one automated test.
+</sc_task_crosswalk>
 
 <execution_context>
 @C:/Users/oliver/.claude/get-shit-done/workflows/execute-plan.md

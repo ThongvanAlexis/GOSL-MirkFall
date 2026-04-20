@@ -2,9 +2,10 @@
 phase: 07-map-integration
 plan: 06
 type: execute
-wave: 5
+wave: 6
 depends_on: ["07-05"]
 files_modified:
+  - lib/presentation/screens/about_placeholder_screen.dart
   - lib/presentation/screens/map_screen.dart
   - lib/presentation/screens/maps_download_screen.dart
   - lib/presentation/screens/maps_manage_screen.dart
@@ -28,6 +29,7 @@ files_modified:
   - test/presentation/widgets/session_burger_menu_test.dart
   - test/presentation/widgets/map_follow_me_fab_test.dart
   - test/presentation/widgets/map_attribution_icon_test.dart
+  - test/presentation/screens/about_placeholder_screen_test.dart
   - test/presentation/widgets/map_country_banner_test.dart
   - test/presentation/widgets/map_download_progress_chip_test.dart
   - test/presentation/map_style_layer_order_test.dart
@@ -51,6 +53,7 @@ must_haves:
     - "Placeholder screens show 'En construction — disponible Phase 13' + back button"
     - "Router exposes `/map`, `/maps/download`, `/maps/manage`, `/styles/import`, `/styles/export`; SessionListScreen gains a 'Ouvrir la carte' CTA once at least one session exists"
     - "MapAttributionIcon is a 32dp circular icon bas-droit (opacity ~80%); tap opens bottom-sheet with '© OpenStreetMap contributors' + '© Protomaps' + 2 cliquable external URLs"
+    - "AboutPlaceholderScreen (`lib/presentation/screens/about_placeholder_screen.dart`) renders the same attribution block (`© OpenStreetMap contributors` with link to https://www.openstreetmap.org/copyright AND `© Protomaps` with link to https://protomaps.com/) as required by ROADMAP Phase 07 SC#2 (attribution visible on map AND in the À propos screen with official copyright links)"
     - "MapCountryBanner appears when `CountryResolverController.inInstalled == false` with text 'Carte détaillée de <Pays> disponible dans Paramètres › Télécharger une carte' (NO deep-link CTA — user learns the path)"
     - "MapDownloadProgressChip appears in AppBar of settings + maps_download + session_list when `DownloadQueueController.aggregateProgressFraction != null` with '<Pays> — XX %'"
     - "Orientation portrait AND landscape supported on MapScreen + SessionDetailScreen (responsive drawer width)"
@@ -68,6 +71,9 @@ must_haves:
       provides: "in-session vertical drawer with 3 unwired ListTile + 3 live-data lines"
     - path: "lib/presentation/widgets/map_attribution_icon.dart"
       provides: "MAP-03 attribution bas-droit + bottom sheet"
+      contains: "OpenStreetMap"
+    - path: "lib/presentation/screens/about_placeholder_screen.dart"
+      provides: "MAP-03 attribution block on À propos screen (SC#2 second half)"
       contains: "OpenStreetMap"
     - path: "lib/presentation/router.dart"
       provides: "5 new routes wired"
@@ -380,6 +386,61 @@ await tester.pumpWidget(
   </verify>
   <done>
     SessionDetailScreen now renders the map + burger menu + preserves Phase 05 stop flow. SessionListScreen gains the /map entry. SettingsScreen carries 'Cartes' and 'Styles' sections. All existing Phase 05 tests still green.
+  </done>
+</task>
+
+<task type="auto" tdd="true">
+  <name>Task 4: Extend AboutPlaceholderScreen with MAP-03 attribution block (SC#2 second half)</name>
+  <files>
+    lib/presentation/screens/about_placeholder_screen.dart,
+    test/presentation/screens/about_placeholder_screen_test.dart
+  </files>
+  <behavior>
+    - `AboutPlaceholderScreen` PRESERVES all existing Phase 01 behaviour verbatim:
+      - 7-tap easter egg unlocking `/debug` (inter-tap window + total-window reset logic untouched)
+      - GestureDetector on the body
+      - AppBar title "À propos"
+      - Phase 15 placeholder text preserved
+    - NEW attribution block added below the existing placeholder text:
+      - Line 1: `© OpenStreetMap contributors` — `TextButton` (or `InkWell`-wrapped `Text`) that on tap opens `https://www.openstreetmap.org/copyright` via the same link-handling strategy used by `MapAttributionIcon` (Task 1). If Task 1 settled on copy-to-clipboard + snackbar (no `url_launcher` dep), the À propos screen uses the SAME pattern — consistency matters more than which path was chosen. If Task 1 landed on a different strategy, mirror it here.
+      - Line 2: `© Protomaps` — same pattern, target `https://protomaps.com/`
+      - Lines are styled subtly (small font size, muted colour) so the Phase 15 "full screen" later can restructure without breaking the test.
+    - Separator/spacing between the existing placeholder text and the attribution block — visually distinct so users scanning the screen can find the attribution.
+    - The 7-tap easter egg continues to work on taps that hit the body BUT NOT on the new `TextButton`/`InkWell` children (link taps are consumed by their own GestureDetector; plain-area taps still feed the counter). Test this invariant explicitly.
+    - **Widget test `about_placeholder_screen_test.dart`**:
+      - Renders the widget; asserts `find.text('© OpenStreetMap contributors')` and `find.text('© Protomaps')` both return exactly one widget.
+      - Asserts the link URLs are present in the widget tree (either via the TextButton's `onPressed` callback capture OR via a dedicated testable `Uri` field exposed at the widget/state boundary).
+      - Asserts the 7-tap easter egg STILL triggers when the taps land on the body area (not on the link buttons).
+      - Asserts that tapping the `© OpenStreetMap contributors` button does NOT increment the easter-egg counter (link taps are consumed).
+      - Tests the link-handling strategy chosen in Task 1: if copy-to-clipboard, assert a snackbar appears after tap with expected text + assert Clipboard.getData returns the URL; if url_launcher, assert the mock url_launcher received the expected Uri.
+    - Preserve the `AboutPlaceholderScreen` test file if one already exists (Phase 01 shipped the 7-tap tests) — extend rather than rewrite.
+  </behavior>
+  <action>
+    1. **Read existing `lib/presentation/screens/about_placeholder_screen.dart`** (Phase 01 output). Preserve every line of the 7-tap state-machine logic.
+
+    2. **Extend the `build` method** — wrap the existing `Text` in a `Column` that also contains the attribution block. The `GestureDetector` stays as the outermost widget so body taps still count toward the easter egg.
+
+    3. **Link-handling strategy** — mirror exactly the choice landed in Task 1 (Plan 07-06). Extract a small shared helper `_openAttributionLink(BuildContext context, Uri url)` into `lib/presentation/widgets/map_attribution_icon.dart` (or a new `lib/presentation/widgets/_attribution_link_handler.dart`) so both the map overlay and the À propos screen call the same function — no drift between the two copies of the same UX. Document in the 07-06 SUMMARY which path was taken.
+
+    4. **Widget test** per behavior spec. Seed with a `TestWidgetsFlutterBinding` + a `MaterialApp.router` or `MaterialApp(home: AboutPlaceholderScreen())`. Use `tester.tap(find.text('© OpenStreetMap contributors'))` + `await tester.pumpAndSettle()` to drive the link tap.
+
+    5. **Check existing Phase 01 `about_placeholder_screen_test.dart`** — if Phase 01 shipped one, extend it (keep 7-tap tests + add attribution tests). If Phase 01 did not ship one, create this new file.
+
+    6. **Analyze + format + headers + leak + avoid_remote_pmtiles all green**.
+
+    7. Commit: `feat(07-06): ajoute attribution OSM + Protomaps sur AboutPlaceholderScreen (MAP-03 SC#2)`.
+  </action>
+  <verify>
+    <automated>
+      flutter analyze --fatal-infos lib/presentation/screens/about_placeholder_screen.dart test/presentation/screens/about_placeholder_screen_test.dart &&
+      flutter test test/presentation/screens/about_placeholder_screen_test.dart &&
+      dart run tool/check_avoid_maplibre_leak.dart &&
+      dart run tool/check_avoid_remote_pmtiles.dart &&
+      dart run tool/check_headers.dart
+    </automated>
+  </verify>
+  <done>
+    AboutPlaceholderScreen renders both attribution lines with working link-handling (mirroring Task 1's strategy). 7-tap easter egg preserved. Widget test covers attribution presence + link-tap behaviour + easter-egg isolation. ROADMAP SC#2 second half (attribution on À propos screen) now satisfied.
   </done>
 </task>
 

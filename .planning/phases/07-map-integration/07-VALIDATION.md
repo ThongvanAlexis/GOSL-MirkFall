@@ -78,7 +78,7 @@ Wave 0 must create test stubs, fake doubles, and the lint scaffolding BEFORE any
 |----------|-------------|------------|-------------------|
 | Airplane-mode visual check: carte visible sans réseau | MAP-01 | Requires physical radio shutoff, device-level | Lancer app sur device, activer mode avion, reboot app, vérifier que la carte s'affiche z0-5 et que le pan/zoom reste fluide |
 | Attribution visibility on MapScreen + À propos | MAP-02 | Visual/typographic check | Screenshot MapScreen bas-droite : `© OpenStreetMap contributors · © Protomaps` ; ouvrir À propos et confirmer liens copyright cliquables |
-| Mirk overlay layer order (stub present, paints nothing) | MAP-05 | Visual absence-of-rendering check | Inspecter style.json via debug menu, confirmer ordre des layers: `base_* → pois → mirk_overlay (empty) → user_location`. Aucune teinte visible à l'écran. |
+| Mirk overlay layer order (stub present, paints nothing) | MAP-05 | Visual absence-of-rendering check | Inspecter style.json via debug menu, confirmer ordre des layers: `base_* → pois → mirk_fog (background, transparent) → user_location`. Aucune teinte visible à l'écran. |
 | Disk space freed after country delete | MAP-08 | OS-level filesystem check | Install FRA, note disk usage ; supprimer FRA depuis écran gestion ; vérifier que `<app_support>/maps/countries/fra.pmtiles` a disparu et espace libéré (via Settings natif) |
 | iOS sideload smoke (CI iOS IPA) | MAP-01, MAP-07 | Requires physical iOS device via SideStore | Sideload IPA après merge, premier lancement: world map copié ; télécharger FRA mini (stub), vérifier commit atomique |
 
