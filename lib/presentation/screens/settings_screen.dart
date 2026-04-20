@@ -33,6 +33,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   double? _localValue;
 
   @override
+  void initState() {
+    super.initState();
+    // Phase 06 Should #21 (Agent #3 #6) — seed _localValue from the
+    // current snapshot so the build() body stays free of init-on-first-
+    // build side-effects (CLAUDE.md §Widgets — no logique in build()).
+    // The provider is keepAlive:true and already hydrated by the time
+    // the settings route is opened, so read() is safe synchronously.
+    final asyncSettings = ref.read(sessionSettingsProvider);
+    final snapshot = asyncSettings.value;
+    if (snapshot != null) {
+      _localValue = snapshot.distanceFilterMeters.toDouble();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final asyncSettings = ref.watch(sessionSettingsProvider);
 
@@ -44,9 +59,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         data: (settings) {
           // Local drag-state stays in [_localValue] during a pan so the
           // slider does not jitter on every SharedPreferences write.
-          // Initialize on first build from the persisted snapshot.
-          _localValue ??= settings.distanceFilterMeters.toDouble();
-          final double value = _localValue ?? settings.distanceFilterMeters.toDouble();
+          // initState() seeded this from the snapshot; if the snapshot
+          // was still loading at initState (rare — provider not prewarmed),
+          // fall back to the now-resolved settings value.
+          final double value = (_localValue ?? settings.distanceFilterMeters.toDouble()).clamp(
+            kMinDistanceFilterMeters.toDouble(),
+            kMaxDistanceFilterMeters.toDouble(),
+          );
 
           return ListView(
             padding: const EdgeInsets.all(16.0),
@@ -63,7 +82,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       const SizedBox(height: 4.0),
                       Text('Plus dense = trace plus précise, consommation batterie plus élevée.', style: Theme.of(context).textTheme.bodySmall),
                       Slider(
-                        value: value.clamp(kMinDistanceFilterMeters.toDouble(), kMaxDistanceFilterMeters.toDouble()),
+                        value: value,
                         min: kMinDistanceFilterMeters.toDouble(),
                         max: kMaxDistanceFilterMeters.toDouble(),
                         divisions: kMaxDistanceFilterMeters - kMinDistanceFilterMeters,

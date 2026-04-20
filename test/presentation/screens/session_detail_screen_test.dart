@@ -41,9 +41,11 @@ Widget _pumpWrap({
   required FakeFixStore fixStore,
   required FakeLocationStream locationStream,
   required _FakeNotificationService notificationService,
+  bool autoStart = false,
 }) {
+  final String initialPath = autoStart ? '/sessions/${sessionId.value}?start=true' : '/sessions/${sessionId.value}';
   final router = GoRouter(
-    initialLocation: '/sessions/${sessionId.value}',
+    initialLocation: initialPath,
     routes: <RouteBase>[
       GoRoute(
         path: '/',
@@ -51,7 +53,10 @@ Widget _pumpWrap({
       ),
       GoRoute(
         path: '/sessions/:id',
-        builder: (_, state) => SessionDetailScreen(sessionId: SessionId(state.pathParameters['id']!)),
+        builder: (_, state) {
+          final bool start = state.uri.queryParameters['start'] == 'true';
+          return SessionDetailScreen(sessionId: SessionId(state.pathParameters['id']!), autoStart: start);
+        },
       ),
       GoRoute(
         path: '/permissions/rationale',
@@ -225,6 +230,44 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(sessionStore.deletes, <SessionId>[sessionId]);
+    });
+
+    testWidgets('autoStartFiresHandleStartOnMount', (tester) async {
+      // Phase 06 Should #18 (Agent #3 #3) regression guard: the
+      // `?start=true` query param flagging autoStart:true must trigger
+      // _handleStart once after the initial session load, exercising the
+      // SessionListScreen's "Créer et démarrer" flow end-to-end at the
+      // widget layer. permission_flow_completed:true in the shared prefs
+      // setUp skips the rationale push and lets the controller.start()
+      // land directly.
+      const sessionId = SessionId('sess_00000000000000000000000099');
+      final session = buildSession(id: sessionId.value, displayName: 'AutoStart Session');
+      final sessionStore = FakeSessionStore(<Session>[session]);
+      addTearDown(sessionStore.disposeController);
+      final locationStream = FakeLocationStream();
+
+      await tester.pumpWidget(
+        _pumpWrap(
+          sessionId: sessionId,
+          sessionStore: sessionStore,
+          fixStore: FakeFixStore(),
+          locationStream: locationStream,
+          notificationService: _FakeNotificationService(),
+          autoStart: true,
+        ),
+      );
+      // Bounded pumps; the _ChronoCard ticker will be live after
+      // auto-start lands on Tracking, so we cannot pumpAndSettle.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Auto-start fired: FakeLocationStream.positions was called with
+      // this session id. Controller transitioned to Tracking which
+      // exposes the Arrêter button.
+      expect(locationStream.capturedSessionId, sessionId, reason: 'autoStart must have triggered controller.start()');
+      expect(find.text('Arrêter'), findsOneWidget, reason: 'Tracking dashboard must render after autoStart');
+      expect(sessionStore.activatedIds, <SessionId>[sessionId]);
     });
 
     testWidgets('renameDialogPersistsNewDisplayName', (tester) async {

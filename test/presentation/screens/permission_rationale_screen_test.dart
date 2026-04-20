@@ -76,15 +76,46 @@ void main() {
     });
 
     testWidgets('notMaintenantPopsWithFalse', (tester) async {
-      await tester.pumpWidget(_wrap(const PermissionRationaleScreen()));
+      // Phase 06 Should #19 (Agent #3 #4) strengthened: verify pop(false)
+      // effect, not just onPressed != null. Wrap the rationale screen
+      // inside a parent route whose builder pushes /permissions/rationale
+      // and captures the returned bool — the weak version tolerated a
+      // silent no-op onPressed regression.
+      bool? capturedResult;
+      bool captured = false;
+      final router = GoRouter(
+        initialLocation: '/caller',
+        routes: <RouteBase>[
+          GoRoute(
+            path: '/caller',
+            builder: (context, state) => Scaffold(
+              body: Builder(
+                builder: (innerContext) => TextButton(
+                  onPressed: () async {
+                    capturedResult = await innerContext.push<bool>('/permissions/rationale');
+                    captured = true;
+                  },
+                  child: const Text('goto'),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(path: '/permissions/rationale', builder: (_, _) => const PermissionRationaleScreen()),
+        ],
+      );
+
+      await tester.pumpWidget(ProviderScope(child: MaterialApp.router(routerConfig: router)));
       await tester.pumpAndSettle();
 
-      // Router's initial location doesn't have a parent to pop to, so
-      // tapping pop on the top route is a no-op in this harness — we
-      // verify the button callback *would* pop by asserting the
-      // TextButton exists and has a non-null onPressed.
-      final TextButton button = tester.widget<TextButton>(find.widgetWithText(TextButton, 'Pas maintenant'));
-      expect(button.onPressed, isNotNull);
+      await tester.tap(find.text('goto'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pour suivre ton exploration'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Pas maintenant'));
+      await tester.pumpAndSettle();
+
+      expect(captured, isTrue, reason: 'push must have resolved after Pas maintenant tap');
+      expect(capturedResult, isFalse, reason: 'Pas maintenant must pop with false so caller does not start a session');
     });
 
     testWidgets('deniedOutcomeRoutesToDeniedScreen', (tester) async {

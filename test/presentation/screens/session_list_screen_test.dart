@@ -42,6 +42,8 @@ class FakeSessionStore implements SessionStore {
   final List<Session> inserts = <Session>[];
   final List<Session> updates = <Session>[];
   final List<SessionId> deletes = <SessionId>[];
+  final List<SessionId> activatedIds = <SessionId>[];
+  final List<SessionId> deactivatedIds = <SessionId>[];
 
   void _emit() {
     if (_controller.isClosed) return;
@@ -96,6 +98,7 @@ class FakeSessionStore implements SessionStore {
 
   @override
   Future<void> activate(SessionId id) async {
+    activatedIds.add(id);
     final existing = _byId[id];
     if (existing != null) {
       _byId[id] = existing.copyWith(status: SessionStatus.active);
@@ -105,6 +108,7 @@ class FakeSessionStore implements SessionStore {
 
   @override
   Future<void> deactivate(SessionId id) async {
+    deactivatedIds.add(id);
     final existing = _byId[id];
     if (existing != null) {
       _byId[id] = existing.copyWith(status: SessionStatus.stopped);

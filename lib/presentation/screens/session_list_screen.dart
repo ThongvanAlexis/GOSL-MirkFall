@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mirkfall/application/providers/id_generator_provider.dart';
 import 'package:mirkfall/application/providers/session_list_provider.dart';
 import 'package:mirkfall/application/providers/session_store_provider.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
@@ -254,38 +255,17 @@ class _CreateSessionDialogState extends ConsumerState<_CreateSessionDialog> {
 
   Future<SessionId> _createSession(String displayName) async {
     final store = await ref.read(sessionStoreProvider.future);
-    // Mint a local ULID-ish id at creation time. The domain `SessionId`
-    // prefix + 26-char tail shape is required; we use
-    // `DateTime.now()` milliseconds + a random suffix just for this
-    // dialog — the production `IdGenerator` is already wired elsewhere
-    // for Fix ids, and Session rows are user-facing so a short
-    // monotonic string is fine in this single call site.
-    final String id = 'sess_${_mintSessionIdBody()}';
-    final sessionId = SessionId(id);
+    // Phase 06 Should #20 (Agent #3 #5) — route session-id minting
+    // through the domain-layer IdGenerator (same generator used for
+    // Fix ids). CLAUDE.md §Structure: logique métier stays out of
+    // widgets; tests can now override idGeneratorProvider with a
+    // seeded generator for deterministic dialog creation.
+    final idGenerator = ref.read(idGeneratorProvider);
+    final sessionId = SessionId(idGenerator.newId(SessionId.prefix));
     final now = DateTime.now().toUtc();
     final offsetMinutes = DateTime.now().timeZoneOffset.inMinutes;
     final session = Session(id: sessionId, displayName: displayName, status: SessionStatus.stopped, startedAtUtc: now, startedAtOffsetMinutes: offsetMinutes);
     await store.insert(session);
     return sessionId;
-  }
-
-  /// Minimal 26-char Crockford-ish body — good enough for a one-off
-  /// user-entry flow; production session creation via the IdGenerator
-  /// lives in future non-dialog entry points (import, boot-time
-  /// recovery) and those paths can swap in the full generator.
-  String _mintSessionIdBody() {
-    const String alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-    final now = DateTime.now().toUtc().microsecondsSinceEpoch;
-    final StringBuffer buffer = StringBuffer();
-    int remaining = now;
-    for (int i = 0; i < 16; i++) {
-      buffer.write(alphabet[remaining & 0x1F]);
-      remaining >>= 5;
-    }
-    // Pad up to 26 chars with the timestamp-seeded cheap suffix.
-    while (buffer.length < 26) {
-      buffer.write(alphabet[(now >> (buffer.length * 2)) & 0x1F]);
-    }
-    return buffer.toString().substring(0, 26);
   }
 }

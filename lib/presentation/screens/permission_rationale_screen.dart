@@ -109,7 +109,21 @@ class _PermissionRationaleScreenState extends ConsumerState<PermissionRationaleS
         context.pop(true);
       case LocationPermissionOutcome.denied:
       case LocationPermissionOutcome.permanentlyDenied:
-        context.go('/permissions/denied');
+        // Phase 06 Should #16 (Agent #3 #1) — prefer push() so /permissions/denied
+        // is a child of the rationale route rather than replacing the stack.
+        // Deep-link origin (no parent to pop) falls back to go() to avoid a
+        // GoError at runtime. Matches OemGuidanceScreen._onDone's canPop
+        // pattern.
+        if (context.canPop()) {
+          // Push the denied screen; when it returns (user tapped Retour),
+          // pop the rationale route with `false` so the caller doesn't
+          // try to start a session on a denied permission.
+          await context.push<void>('/permissions/denied');
+          if (!mounted) return;
+          context.pop(false);
+        } else {
+          context.go('/permissions/denied');
+        }
     }
   }
 }

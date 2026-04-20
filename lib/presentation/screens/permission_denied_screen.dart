@@ -25,12 +25,23 @@ class PermissionDeniedScreen extends StatelessWidget {
   /// Test seam — defaults to the real [openLocationSettings].
   final OpenLocationSettingsFn? openLocationSettingsFn;
 
+  /// Phase 06 Should #16 (Agent #3 #1) — pop back to whoever pushed this
+  /// route rather than replacing the stack with `/`. Deep-link / cold-
+  /// start origins (no parent) fall back to go('/') to avoid GoError.
+  void _dismiss(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Permission refusée'),
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => context.go('/')),
+        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => _dismiss(context)),
       ),
       body: SafeArea(
         child: Padding(
@@ -60,7 +71,7 @@ class PermissionDeniedScreen extends StatelessWidget {
                 child: const Text('Ouvrir les paramètres'),
               ),
               const SizedBox(height: 8.0),
-              TextButton(onPressed: () => context.go('/'), child: const Text('Retour')),
+              TextButton(onPressed: () => _dismiss(context), child: const Text('Retour')),
             ],
           ),
         ),

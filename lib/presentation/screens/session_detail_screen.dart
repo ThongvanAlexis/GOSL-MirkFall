@@ -203,7 +203,14 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
     try {
       await store.delete(session.id);
       if (!mounted) return;
-      context.go('/');
+      // Phase 06 Could #35 (Agent #3 #11) — consistent canPop pattern so
+      // the list route is restored from the navigation stack rather than
+      // replaced with /. Deep-link origin falls back to go('/').
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/');
+      }
     } catch (err) {
       if (!mounted) return;
       setState(() => _inlineError = 'Erreur à la suppression : $err');
@@ -211,6 +218,10 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
   }
 
   Future<void> _handleStart(Session session) async {
+    // Phase 06 Should #22 (Agent #3 #7) — when invoked from the auto-start
+    // path inside _loadSession, an unlucky dispose can fire before we get
+    // here. Guard the entry setState so we never setState-after-dispose.
+    if (!mounted) return;
     setState(() => _inlineError = null);
     try {
       final settings = await ref.read(sessionSettingsProvider.future);
