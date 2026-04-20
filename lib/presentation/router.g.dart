@@ -45,7 +45,9 @@ final appRouterProvider = AppRouterProvider._();
 /// render the cross-route active-session banner (hidden on
 /// `/sessions/:id`).
 
-final class AppRouterProvider extends $FunctionalProvider<GoRouter, GoRouter, GoRouter> with $Provider<GoRouter> {
+final class AppRouterProvider
+    extends $FunctionalProvider<GoRouter, GoRouter, GoRouter>
+    with $Provider<GoRouter> {
   /// Root GoRouter exposed via Riverpod so consumers get it through DI.
   ///
   /// Phase 05 route map:
@@ -63,14 +65,23 @@ final class AppRouterProvider extends $FunctionalProvider<GoRouter, GoRouter, Go
   /// render the cross-route active-session banner (hidden on
   /// `/sessions/:id`).
   AppRouterProvider._()
-    : super(from: null, argument: null, retry: null, name: r'appRouterProvider', isAutoDispose: true, dependencies: null, $allTransitiveDependencies: null);
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'appRouterProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$appRouterHash();
 
   @$internal
   @override
-  $ProviderElement<GoRouter> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+  $ProviderElement<GoRouter> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
   GoRouter create(Ref ref) {
@@ -79,8 +90,11 @@ final class AppRouterProvider extends $FunctionalProvider<GoRouter, GoRouter, Go
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(GoRouter value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<GoRouter>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GoRouter>(value),
+    );
   }
 }
 
-String _$appRouterHash() => r'9c351696ddbfbf59dd9be3521e086a46c2352ae9';
+String _$appRouterHash() => r'5692ec21be9c026fc5f18f745fc1f2575177a815';

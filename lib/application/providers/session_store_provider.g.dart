@@ -35,7 +35,13 @@ final sessionStoreProvider = SessionStoreProvider._();
 /// never used it (all session ids are pre-allocated by the caller). If a
 /// future insert-without-id path emerges, inject the generator then.
 
-final class SessionStoreProvider extends $FunctionalProvider<AsyncValue<SessionStore>, SessionStore, FutureOr<SessionStore>>
+final class SessionStoreProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<SessionStore>,
+          SessionStore,
+          FutureOr<SessionStore>
+        >
     with $FutureModifier<SessionStore>, $FutureProvider<SessionStore> {
   /// Production [SessionStore] — wraps [`DriftSessionStore`] around the
   /// app database.
@@ -49,14 +55,24 @@ final class SessionStoreProvider extends $FunctionalProvider<AsyncValue<SessionS
   /// never used it (all session ids are pre-allocated by the caller). If a
   /// future insert-without-id path emerges, inject the generator then.
   SessionStoreProvider._()
-    : super(from: null, argument: null, retry: null, name: r'sessionStoreProvider', isAutoDispose: false, dependencies: null, $allTransitiveDependencies: null);
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'sessionStoreProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$sessionStoreHash();
 
   @$internal
   @override
-  $FutureProviderElement<SessionStore> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<SessionStore> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<SessionStore> create(Ref ref) {

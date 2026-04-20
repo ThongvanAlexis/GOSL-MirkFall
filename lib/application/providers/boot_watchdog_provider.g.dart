@@ -17,7 +17,8 @@ part of 'boot_watchdog_provider.dart';
 /// graph.
 
 @ProviderFor(iosSignificantChangeWatchdog)
-final iosSignificantChangeWatchdogProvider = IosSignificantChangeWatchdogProvider._();
+final iosSignificantChangeWatchdogProvider =
+    IosSignificantChangeWatchdogProvider._();
 
 /// Process-singleton [IosSignificantChangeWatchdog] wired over the
 /// `app.gosl.mirkfall/boot_watchdog` MethodChannel.
@@ -28,7 +29,12 @@ final iosSignificantChangeWatchdogProvider = IosSignificantChangeWatchdogProvide
 /// graph.
 
 final class IosSignificantChangeWatchdogProvider
-    extends $FunctionalProvider<IosSignificantChangeWatchdog, IosSignificantChangeWatchdog, IosSignificantChangeWatchdog>
+    extends
+        $FunctionalProvider<
+          IosSignificantChangeWatchdog,
+          IosSignificantChangeWatchdog,
+          IosSignificantChangeWatchdog
+        >
     with $Provider<IosSignificantChangeWatchdog> {
   /// Process-singleton [IosSignificantChangeWatchdog] wired over the
   /// `app.gosl.mirkfall/boot_watchdog` MethodChannel.
@@ -53,7 +59,9 @@ final class IosSignificantChangeWatchdogProvider
 
   @$internal
   @override
-  $ProviderElement<IosSignificantChangeWatchdog> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+  $ProviderElement<IosSignificantChangeWatchdog> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
 
   @override
   IosSignificantChangeWatchdog create(Ref ref) {
@@ -62,8 +70,12 @@ final class IosSignificantChangeWatchdogProvider
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(IosSignificantChangeWatchdog value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<IosSignificantChangeWatchdog>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<IosSignificantChangeWatchdog>(value),
+    );
   }
 }
 
-String _$iosSignificantChangeWatchdogHash() => r'e359cbf08d7ffdb19a857b0db4c6780b6e2e7f0c';
+String _$iosSignificantChangeWatchdogHash() =>
+    r'e359cbf08d7ffdb19a857b0db4c6780b6e2e7f0c';

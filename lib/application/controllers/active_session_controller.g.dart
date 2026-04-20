@@ -58,7 +58,9 @@ final activeSessionControllerProvider = ActiveSessionControllerProvider._();
 ///   [`ConcurrentActivationException`](../../domain/errors/concurrent_errors.dart))
 ///   propagate untyped via Riverpod's `AsyncError` so the UI layer can
 ///   pattern-match and apply its "stop current first" policy.
-final class ActiveSessionControllerProvider extends $AsyncNotifierProvider<ActiveSessionController, ActiveSessionState> {
+final class ActiveSessionControllerProvider
+    extends
+        $AsyncNotifierProvider<ActiveSessionController, ActiveSessionState> {
   /// Orchestrator for a session's GPS tracking lifecycle.
   ///
   /// Owns the single [StreamSubscription] over [LocationStream.positions];
@@ -101,7 +103,8 @@ final class ActiveSessionControllerProvider extends $AsyncNotifierProvider<Activ
   ActiveSessionController create() => ActiveSessionController();
 }
 
-String _$activeSessionControllerHash() => r'682763fdcf2a623a6b380668bc089ef24b5d6623';
+String _$activeSessionControllerHash() =>
+    r'c9941aa8a011d47c8603c8510823258526c794f9';
 
 /// Orchestrator for a session's GPS tracking lifecycle.
 ///
@@ -127,14 +130,22 @@ String _$activeSessionControllerHash() => r'682763fdcf2a623a6b380668bc089ef24b5d
 ///   propagate untyped via Riverpod's `AsyncError` so the UI layer can
 ///   pattern-match and apply its "stop current first" policy.
 
-abstract class _$ActiveSessionController extends $AsyncNotifier<ActiveSessionState> {
+abstract class _$ActiveSessionController
+    extends $AsyncNotifier<ActiveSessionState> {
   FutureOr<ActiveSessionState> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<ActiveSessionState>, ActiveSessionState>;
+    final ref =
+        this.ref as $Ref<AsyncValue<ActiveSessionState>, ActiveSessionState>;
     final element =
-        ref.element as $ClassProviderElement<AnyNotifier<AsyncValue<ActiveSessionState>, ActiveSessionState>, AsyncValue<ActiveSessionState>, Object?, Object?>;
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<ActiveSessionState>, ActiveSessionState>,
+              AsyncValue<ActiveSessionState>,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }

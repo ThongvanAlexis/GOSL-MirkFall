@@ -21,20 +21,31 @@ final oemDetectorProvider = OemDetectorProvider._();
 /// `keepAlive: true` keeps the detection result path consistent across
 /// consumers (guidance screen + debug menu).
 
-final class OemDetectorProvider extends $FunctionalProvider<OemDetector, OemDetector, OemDetector> with $Provider<OemDetector> {
+final class OemDetectorProvider
+    extends $FunctionalProvider<OemDetector, OemDetector, OemDetector>
+    with $Provider<OemDetector> {
   /// Production [OemDetector] — wraps a fresh [`DeviceInfoPlugin`]. The
   /// plugin is a stateless handle; re-constructing is ~free but
   /// `keepAlive: true` keeps the detection result path consistent across
   /// consumers (guidance screen + debug menu).
   OemDetectorProvider._()
-    : super(from: null, argument: null, retry: null, name: r'oemDetectorProvider', isAutoDispose: false, dependencies: null, $allTransitiveDependencies: null);
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'oemDetectorProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$oemDetectorHash();
 
   @$internal
   @override
-  $ProviderElement<OemDetector> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+  $ProviderElement<OemDetector> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
   OemDetector create(Ref ref) {
@@ -43,7 +54,10 @@ final class OemDetectorProvider extends $FunctionalProvider<OemDetector, OemDete
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(OemDetector value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<OemDetector>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<OemDetector>(value),
+    );
   }
 }
 
