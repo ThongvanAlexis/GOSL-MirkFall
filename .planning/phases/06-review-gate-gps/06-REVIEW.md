@@ -384,32 +384,160 @@ CLAUDE.md sweep clean across all three Phase 05 `lib/infrastructure/platform/` f
 ### Test 1: MethodChannel triple-source drift regression guard (permanent unit test)
 *File `test/infrastructure/platform/method_channel_sync_test.dart` — scans Kotlin `BootCompletedReceiver.kt` + Dart `boot_completed_watchdog.dart` + Dart `ios_significant_change_watchdog.dart` (and Swift `AppDelegate.swift` IF the literal still exists post-Xcode 26 strip — Open Question 1 from RESEARCH) for `'app.gosl.mirkfall/boot_watchdog'` verbatim. Inertness guard verifies all listed source files exist on disk before asserting content.*
 
-(pending)
+- **Type:** permanent regression guard (NOT a throwaway branch)
+- **File:** `test/infrastructure/platform/method_channel_sync_test.dart`
+- **Commit:** `a02550c` on `main` — `test(06-rev): add MethodChannel triple-source drift regression guard (Test #1)`
+- **File map scope (Open Question 1 closed):** Swift `AppDelegate.swift` literal confirmed **absent** post-Xcode 26 strip per Plan 06-03 Agent #4 verification (0 matches for `app.gosl.mirkfall/boot_watchdog` in that file). File map = 3 files: Kotlin `BootCompletedReceiver.kt` + Dart `boot_completed_watchdog.dart` + Dart `ios_significant_change_watchdog.dart`. Docstring cross-refs Phase 15 FlutterImplicitEngineDelegate rewire; when the iOS wiring is restored, a future plan adds the Swift entry back to `sourcePaths`.
+- **Test result (local `flutter test`):**
+  ```
+  00:00 +0: MethodChannel triple-source drift regression guard (Phase 06 Test #1) all source files exist and contain the channel literal verbatim
+  00:00 +1: All tests passed!
+  ```
+- **Behavior proven:** A rename / move of any one of the 3 source-of-truth files OR an accidental change to the Dart / Kotlin literal surfaces loudly via the inertness-guard File.existsSync check followed by a per-file `contents.contains(channelLiteral)` scan. No compiler enforces this cross-language consistency — the test is the only safety net.
+- **Inertness guard quote:**
+  ```dart
+  for (final MapEntry<String, String> entry in sourcePaths.entries) {
+    expect(
+      File(entry.value).existsSync(),
+      isTrue,
+      reason: '${entry.key} path moved or deleted — test would be silently inert. Path: ${entry.value}',
+    );
+  }
+  ```
+- **Mutation experiment** (author-time): renamed `lib/infrastructure/platform/boot_completed_watchdog.dart` → `boot_completed_watchdog.dart.bak`; test failed LOUDLY with reason `Dart (boot_completed_watchdog) path moved or deleted — test would be silently inert. Path: lib/infrastructure/platform/boot_completed_watchdog.dart`. File restored; test green again.
+- **Confirms:** MethodChannel literal drift across Kotlin + Dart source-of-truth files is detected at unit-test time, not at device runtime.
 
 ### Test 2: Permission cascade regression guard (permanent unit test)
 *File `test/application/permissions/location_permission_cascade_test.dart` — drives `requestLocationAlways` through 4 scenarios (denied → permanentlyDenied → restricted → granted) with `PermissionRequester` typedef seam fake capturing invocations. Inertness guard asserts the fake received N expected invocations before checking the outcome.*
 
-(pending)
+- **Type:** permanent regression guard (NOT a throwaway branch)
+- **File:** `test/application/permissions/location_permission_cascade_test.dart`
+- **Commit:** `406e9b3` on `main` — `test(06-rev): add permission cascade regression guard (Test #2)`
+- **Test result (local `flutter test`):**
+  ```
+  00:00 +5: All tests passed!
+  ```
+  (5 scenarios: notification-denied / whenInUse-denied / whenInUse-permanentlyDenied / always-denied / always-permanentlyDenied; the plan specified 4 minimum — restricted-status proxy collapsed into always-permanentlyDenied per `permission_handler` iOS mapping.)
+- **Behavior proven:** The three-step cascade order (`notification` → `locationWhenInUse` → `locationAlways`) is enforced at every branch. A future refactor that silently skips a step (e.g. jumps from notification straight to always, or removes the whenInUse short-circuit on denial) surfaces via the `invocationCount` inertness check regardless of whether the outcome value remains plausibly correct.
+- **Inertness guard quote:**
+  ```dart
+  expect(
+    fake.invocationCount,
+    3,
+    reason: 'permission flow skipped at least one step — silent ignore regression returned, test would be silently inert. Invocations: ${fake.invocations}',
+  );
+  ```
+- **Mutation experiment** (author-time): commented out the `await requestPermission(Permission.notification);` step in `location_permission_flow.dart`; all 5 tests failed LOUDLY with the invocationCount-mismatch reason (e.g. `Expected: <3> Actual: <2> always-denied path must still invoke all 3 steps; test silently inert if count != 3`). File restored.
+- **Confirms:** Silent reorder / skip-a-step regressions in the permission cascade fail loudly via the inertness-count check before reaching the outcome assertion.
 
 ### Test 3: OemDetector ambiguous match regression guard (permanent unit test)
 *File `test/infrastructure/platform/oem_detector_ambiguous_test.dart` — 3-5 ambiguous AndroidDeviceInfo fixtures (e.g. manufacturer=aosp brand=oneplus, manufacturer=xiaomi brand=redmi build=miui, manufacturer=huawei brand=honor) assert `OemDetector.detect()` returns deterministic OemFamily resolution. Inertness guard asserts the fake DeviceInfoPlugin was consumed.*
 
-(pending)
+- **Type:** permanent regression guard (NOT a throwaway branch)
+- **File:** `test/infrastructure/platform/oem_detector_ambiguous_test.dart`
+- **Commit:** `367bc8f` on `main` — `test(06-rev): add OemDetector ambiguous match regression guard (Test #3)`
+- **Fixture matrix (6 ambiguous rows per Plan 06-03 Agent #4 sketch):**
+  1. manufacturer=Google brand=aosp → OtherOem (regression vs future aosp matcher)
+  2. manufacturer=Xiaomi brand=Redmi → XiaomiFamily (first-regex-wins)
+  3. manufacturer=HUAWEI brand=HONOR → HuaweiFamily (parent + sub-brand)
+  4. manufacturer=OPPO brand=Realme → OppoFamily (OnePlus must not shadow Oppo)
+  5. manufacturer=OnePlus brand=OnePlus → OnePlusFamily (canonical)
+  6. manufacturer=samsung brand=xiaomi → XiaomiFamily (deterministic tie-break; Xiaomi ordered first)
+- **Test result (local `flutter test`):**
+  ```
+  00:00 +6: All tests passed!
+  ```
+- **Behavior proven:** The `OemDetector.detect()` regex resolution priority (Xiaomi → Samsung → Huawei → OnePlus → Oppo → OtherOem) is deterministic and first-match-wins on ambiguous needles. A reorder regression fails loudly against the expected family name on every fixture.
+- **Inertness guard quote:**
+  ```dart
+  expect(
+    fake.androidInfoReadCount,
+    1,
+    reason: 'OemDetector did not consume the device-info fixture — test would silently pass on detection short-circuit regression. readCount=${fake.androidInfoReadCount}',
+  );
+  ```
+- **Mutation experiment** (author-time): injected an `if (!iosNow) return const OtherOem();` short-circuit in `OemDetector.detect()` BEFORE the `await _plugin.androidInfo` line; all 6 tests failed LOUDLY with `fixture unread — test silently inert. readCount=0`. File restored.
+- **Confirms:** A future short-circuit / cache regression that skips the fixture read would fail the inertness count guard even if the returned family happens to match by coincidence.
 
 ### Test 4: Platform manifest drift regression guard (permanent unit test)
 *File `test/tooling/platform_manifests_test.dart` — parses `android/app/src/main/AndroidManifest.xml` + `ios/Runner/Info.plist`, asserts all required uses-permission entries (ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION / ACCESS_BACKGROUND_LOCATION / FOREGROUND_SERVICE / FOREGROUND_SERVICE_LOCATION / WAKE_LOCK / POST_NOTIFICATIONS / RECEIVE_BOOT_COMPLETED) + BootCompletedReceiver declaration + Info.plist required keys (NSLocationWhenInUseUsageDescription / NSLocationAlwaysAndWhenInUseUsageDescription) + UIBackgroundModes location array entry. Inertness guard verifies both manifest files exist + parse OK before asserting content.*
 
-(pending)
+- **Type:** permanent regression guard (NOT a throwaway branch)
+- **File:** `test/tooling/platform_manifests_test.dart`
+- **Commit:** `abe60c8` on `main` — `test(06-rev): add platform manifest drift regression guard (Test #4)`
+- **Parser:** pure-Dart regex (no `package:xml` / `package:plist_parser` dev_dependency added) per RESEARCH recommendation — avoids expanding the dep surface for a simple family-consistent scan.
+- **Test result (local `flutter test`):**
+  ```
+  00:00 +1: All tests passed!
+  ```
+- **Behavior proven:** All 8 AndroidManifest uses-permission entries (ACCESS_FINE/COARSE/BACKGROUND_LOCATION, FOREGROUND_SERVICE(+_LOCATION), WAKE_LOCK, POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED), the BootCompletedReceiver declaration + BOOT_COMPLETED intent-filter, both Info.plist location usage-description keys (non-empty, no TODO placeholder), and the UIBackgroundModes location array entry are present. Any accidental removal surfaces loudly at `flutter test` time (and also at CI push-time via the paired `tool/check_platform_manifests.dart` gate).
+- **Inertness guard quote (two-part):**
+  ```dart
+  expect(
+    File(_androidManifestPath).existsSync() && File(_infoPlistPath).existsSync(),
+    isTrue,
+    reason: '1 of 2 platform manifests moved — test silently inert. android=$_androidManifestPath ios=$_infoPlistPath',
+  );
+
+  final List<RegExpMatch> usesPermissionMatches = RegExp(r'<uses-permission').allMatches(androidContents).toList();
+  expect(
+    usesPermissionMatches.isNotEmpty,
+    isTrue,
+    reason: 'AndroidManifest.xml parsed but contained zero <uses-permission> elements — test silently inert on regex regression',
+  );
+  ```
+- **Mutation experiment** (author-time): temporarily removed `<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>` from `AndroidManifest.xml`; test failed LOUDLY with `Phase 05 platform-manifest contract drift detected: AndroidManifest.xml missing required uses-permission: android.permission.ACCESS_FINE_LOCATION`. Manifest restored.
+- **Confirms:** Phase 05 platform-manifest contract enforced at unit-test time; works in symbiosis with the CI-push-time `Check platform manifests (Android + iOS)` gate step added in this same plan.
 
 ### Test 5: Android BootCompletedReceiver contract test (permanent unit test)
 *File `test/infrastructure/platform/android_boot_receiver_contract_test.dart` — Android-scoped complement to Test #1: parses AndroidManifest.xml + greps BootCompletedReceiver.kt + asserts MethodChannel string literal in Kotlin matches Dart constant verbatim. Inertness guard verifies both source files exist on disk.*
 
-(pending)
+- **Type:** permanent regression guard (NOT a throwaway branch)
+- **File:** `test/infrastructure/platform/android_boot_receiver_contract_test.dart`
+- **Commit:** `68dd251` on `main` — `test(06-rev): add Android BootCompletedReceiver contract test (Test #5)`
+- **Test result (local `flutter test`):**
+  ```
+  00:00 +1: All tests passed!
+  ```
+- **Behavior proven:** 3-way Android contract: (1) AndroidManifest declares `<receiver android:name=".BootCompletedReceiver">` with BOOT_COMPLETED intent-filter; (2) Kotlin file under `app/gosl/mirkfall/` has `package app.gosl.mirkfall` + `class BootCompletedReceiver`; (3) The EXTRACTED Kotlin `private const val CHANNEL` value equals the EXTRACTED Dart `MethodChannel("…")` value AND both equal the canonical `'app.gosl.mirkfall/boot_watchdog'` literal. Complements Test #1 by comparing extracted values rather than just scanning for the canonical substring — catches a second-channel-introduction regression that Test #1 would miss.
+- **Inertness guard quote:**
+  ```dart
+  expect(
+    File(_androidManifestPath).existsSync() && File(_kotlinReceiverPath).existsSync() && File(_dartChannelPath).existsSync(),
+    isTrue,
+    reason:
+        'manifest or Kotlin receiver or Dart channel constant path moved — test silently inert. '
+        'manifest=$_androidManifestPath kotlin=$_kotlinReceiverPath dart=$_dartChannelPath',
+  );
+  ```
+- **Mutation experiment** (author-time): drifted the Kotlin `CHANNEL` constant to `"MUTATION_DRIFT"`; test failed LOUDLY with `Kotlin CHANNEL literal drifted from canonical: extracted="MUTATION_DRIFT" expected="app.gosl.mirkfall/boot_watchdog"`. Kotlin file restored.
+- **Confirms:** Android applicationId resolution of the relative receiver class path stays intact AND the MethodChannel literal is byte-for-byte identical across Kotlin and Dart source-of-truth files. Note: iOS equivalent deferred Phase 15 FlutterImplicitEngineDelegate rewire (see Test #1 file map note).
 
 ### Test 6: tool/check_platform_manifests.dart adversarial CI run (throwaway branch adversarial/06-manifest-drift)
 *Branch `adversarial/06-manifest-drift`: poison commit removes `ACCESS_BACKGROUND_LOCATION` from AndroidManifest.xml OR removes `<string>location</string>` from Info.plist UIBackgroundModes array. CI step `Check platform manifests (Android + iOS)` (added to .github/workflows/ci.yml `gates` job in Plan 06-04) MUST fail with exit 1 and stderr identifying file + missing entry. Branch deleted local + remote post-archivage; main `on.push.branches` stays `[main]`-only.*
 
-(pending)
+- **Branch:** `adversarial/06-manifest-drift` (deleted 2026-04-20, local + remote — verified `git branch -a | grep adversarial/06-` empty + `gh api repos/:owner/:repo/branches` empty)
+- **Poison commit:** `bb64f0f` — `test(adversarial): remove ACCESS_BACKGROUND_LOCATION to exercise check_platform_manifests gate`
+  - Removed `<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>` from `android/app/src/main/AndroidManifest.xml`
+  - Chose Android-side poison over iOS-side (cleaner single-string stderr grep target; matches Test #4 mutation experiment orientation — see 06-04-SUMMARY.md §"Adversarial poison choice rationale")
+- **CI-trigger commit:** `bb64f0f` — same as poison (Option B per Phase 02 + 04 precedent: poison + inline `on.push.branches` expansion in one commit; main trigger stays `[main]`-only after branch deletion).
+- **Run URL:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24657371949
+- **Job:** `Lint / Licence / Headers / Deps` (the `gates` job, conclusion=failure); `android` + `ios` jobs skipped because they `needs: gates`.
+- **Gate step:** `Check platform manifests (Android + iOS)` — exit code **1** (policy violation, NOT exit 2 misconfiguration). All earlier gate steps (Dart format, Flutter analyze, check_headers, check_licenses, check_dependencies_md, check_domain_purity, Tool scripts unit tests, Check drift schema) completed successfully; the new gate is the first and only step to fail on the poisoned branch.
+- **Error excerpt (stderr from `gh run view 24657371949 --log-failed`):**
+  ```
+  ##[group]Run dart run tool/check_platform_manifests.dart
+  dart run tool/check_platform_manifests.dart
+  shell: /usr/bin/bash -e {0}
+  ##[endgroup]
+  check_platform_manifests: 1 violation(s):
+    - AndroidManifest.xml missing required uses-permission: android.permission.ACCESS_BACKGROUND_LOCATION
+
+  Rule: Phase 05 GPS contract requires the listed manifest entries on both platforms.
+  Restore the missing entries; see lib/infrastructure/gps/ + Phase 05 SUMMARY for context.
+  ##[error]Process completed with exit code 1.
+  ```
+- **Confirms:** New platform-manifests guard catches a real removal of a Phase 05 contract entry, not just a synthetic fixture. Tool exits **1** with actionable stderr identifying the missing entry by name. Gate-script family contract (exit 0/1/2) upheld: exit 1 = policy violation (real), NOT exit 2 (script misconfig).
 
 ## 5. CI-green confirmation
 
