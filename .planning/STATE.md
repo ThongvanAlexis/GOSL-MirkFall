@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 05 plans complete, awaiting Phase 06 Review Gate
-status: verifying
-stopped_at: Phase 06 context gathered
-last_updated: "2026-04-19T22:28:03.092Z"
-last_activity: 2026-04-19
+current_plan: "06-02 (POC evidence review — Agent #4 extracts docs/qual-01-02-poc.md + poc-artifacts + store-review-rationale.md into §1b)"
+status: executing
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-04-20T00:27:37.182Z"
+last_activity: 2026-04-20
 progress:
   total_phases: 16
   completed_phases: 5
-  total_plans: 25
-  completed_plans: 25
-  percent: 100
+  total_plans: 30
+  completed_plans: 26
+  percent: 87
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 05 CODE COMPLETE (all 6 plans delivered, Pixel 4a POC PASS + iPhone 17 Pro POC PASS-with-caveat, risk #1 empirically validated). Awaiting Phase 06 Review Gate — GPS to audit evidence and sign off before unblocking Phase 07 Map Integration.
+**Current focus:** Phase 06 Review Gate — GPS IN PROGRESS. Plan 06-01 complete (06-REVIEW.md scaffolded + §1 captured with "Aucune observation utilisateur" marker). Ready for Plan 06-02 POC evidence review.
 
 ## Current Position
 
-Phase: 05 of 16 (GPS & Session Lifecycle) CODE COMPLETE — 6 / 6 plans done — awaiting Phase 06 Review Gate verification
-Current Plan: Phase 05 plans complete, awaiting Phase 06 Review Gate
-Total Plans in Phase 05: 6 / 6 done
-Status: Awaiting phase verification (Phase 06 Review Gate — GPS)
-Last Activity: 2026-04-19
+Phase: 06 of 16 (Review Gate — GPS) IN PROGRESS — 1 / 5 plans done
+Current Plan: 06-02 (POC evidence review — Agent #4 extracts docs/qual-01-02-poc.md + poc-artifacts + store-review-rationale.md into §1b)
+Total Plans in Phase 06: 5
+Status: In progress
+Last Activity: 2026-04-20
 
-Progress: [██████████] 100% of plans across 4 completed phases + Phase 05 (all 6 plans: 05-01 + 05-02 + 05-03 + 05-04 + 05-05 + 05-06) — 25 / 25 plans executed. Phase 05 pending formal closure via Phase 06 Review Gate.
+Progress: [█████████░] 87% — 26 / 30 plans executed across phases 01-05 + Plan 06-01.
 
 ## Performance Metrics
 
@@ -76,6 +76,7 @@ Progress: [██████████] 100% of plans across 4 completed phas
 | Phase 05-gps-session-lifecycle P04 | 2h 12m | 2 tasks | 21 files |
 | Phase 05-gps-session-lifecycle P05 | 13 min | 2 tasks | 13 files |
 | Phase 05-gps-session-lifecycle P06 | ~13h elapsed | 3 tasks | 20 files |
+| Phase 06-review-gate-gps P01 | ~3 min (Task 2 continuation) | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -205,6 +206,8 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 05-gps-session-lifecycle]: Plan 05-06: Python POC tool deps (staticmap 0.5.x + Pillow) live in tool/requirements.txt only — DEPENDENCIES.md is binary-ship-scoped per CONTEXT.md; tool-side deps audited in tool/README.md instead.
 - [Phase 05-gps-session-lifecycle]: Plan 05-06: Android POC DB extraction must pull mirkfall.db-wal + mirkfall.db-shm alongside the main file — WAL sidecar held 123 of 342 rows during the first Pixel 4a pull. Protocol updated in qual-01-02-poc.md step 9.
 - [Phase 05-gps-session-lifecycle]: Plan 05-06: iOS FlutterImplicitEngineDelegate bridge stripped after Xcode 26 move — Flutter 3.41+ stabilised scene-based API surface, bridge was no longer necessary for current boot-watchdog path. Auto-resume-post-kill full iOS validation deferred to Phase 15 with user approval.
+- [Phase 06-review-gate-gps]: Plan 06-01: Apply Phase 04 'Aucune observation utilisateur' marker verbatim in §1 when user reports 'rien vu' — explicit marker keeps the user-first gate documented and satisfies the grep sanity check (3rd cycle validating review-gate Plan 01 template)
+- [Phase 06-review-gate-gps]: Plan 06-01: No forward leakage into §1b / §2 / §4 — Plan 06-01 strictly scaffolds skeleton + captures §1; §1b stays pending for Plan 06-02, §2 sub-sections for Plan 06-03, §4 test blocks for Plan 06-04. Respects wave sequencing in 06-CONTEXT.md.
 
 ### Pending Todos
 
@@ -231,6 +234,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-19T22:28:03.087Z
-Stopped at: Phase 06 context gathered
-Resume file: .planning/phases/06-review-gate-gps/06-CONTEXT.md
+Last session: 2026-04-20T00:27:37.179Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: .planning/phases/06-review-gate-gps/06-02-PLAN.md
