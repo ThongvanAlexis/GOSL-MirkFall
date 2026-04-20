@@ -97,6 +97,16 @@ jobs:
             exit 1;
           }
 
+      # Phase 06 Plan 06-04 adversarial wave — platform-manifest drift gate.
+      # Enforces that Phase 05 GPS contract entries stay present on both
+      # platforms: AndroidManifest uses-permission + BootCompletedReceiver
+      # declaration, and Info.plist location usage-description keys +
+      # UIBackgroundModes location array entry. Unit test complement
+      # under test/tooling/platform_manifests_test.dart + paired tool
+      # test under tool/test/check_platform_manifests_test.dart.
+      - name: Check platform manifests (Android + iOS)
+        run: dart run tool/check_platform_manifests.dart
+
       - name: Flutter unit + widget tests
         run: flutter test
 
