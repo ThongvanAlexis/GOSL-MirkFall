@@ -132,11 +132,24 @@ Format: `[severity] Title — 1-line explanation — file:line`. Severities: Blo
 
 ### SC#4 OEM workaround plan
 
-*Filled by Plan 06-03 Task 2 from `lib/presentation/screens/oem_guidance_screen.dart::_copyFor` switch + `lib/infrastructure/platform/oem_detector.dart` OemFamily variants + `permission_handler.openAppSettings` reachability + dontkillmyapp.com URLs. The "Tracking interrompu on next launch" banner is explicitly DEFERRED to Phase 15 SC#4 recovery flow per CONTEXT.md.*
+*Built from `lib/presentation/screens/oem_guidance_screen.dart::_copyFor` + `lib/infrastructure/platform/oem_detector.dart` OemFamily variants + `permission_handler.openAppSettings` reachability + dontkillmyapp.com URLs. Self-contained: future maintainer reads §2 and understands the Phase 06 signed-off OEM workaround baseline. Source linked: `docs/store-review-rationale.md` (no content overlap — the store rationale addresses data-handling + privacy for reviewers; OEM guidance is an in-app runtime concern).*
+
+**_copyFor() coverage check: 7/7 variants explicitly handled** — `OemGuidanceScreen::_copyFor()` switches exhaustively over all 7 sealed `OemFamily` variants (XiaomiFamily / SamsungFamily / HuaweiFamily / OnePlusFamily / OppoFamily / OtherOem / IosDevice) with a dedicated `case X() =>` arm each. Dart's sealed-class exhaustiveness check enforces this at compile-time (any missing variant would be a static error). No escalations to `Should (gap)`; all rows baseline `Noted (covered)`.
 
 | OemFamily | OemGuidanceScreen copy summary | dontkillmyapp.com URL | openLocationSettings reachability | Pre-class severity |
 |-----------|--------------------------------|-----------------------|----------------------------------|-------------------|
-| (pending) | | | | |
+| XiaomiFamily | MIUI battery-saver kills MirkFall; 2 steps: Battery > App battery saver > MirkFall > No restrictions; then Apps > Permission management > Autostart > enable MirkFall. | https://dontkillmyapp.com/xiaomi | reachable via `permission_denied_screen.dart` → `openAppSettings()` (permission_handler); OemGuidanceScreen itself does NOT expose a direct settings deep-link, relies on share_plus to open dontkillmyapp URL. | Noted (covered) |
+| SamsungFamily | Samsung Device Care may sleep MirkFall; 2 steps: Battery & device care > Battery > App battery usage > MirkFall > Allow in background; then Apps > MirkFall > Battery > Unrestricted. | https://dontkillmyapp.com/samsung | reachable via `permission_denied_screen.dart` → `openAppSettings()`; no direct deep-link from OemGuidanceScreen. | Noted (covered) |
+| HuaweiFamily | EMUI / Magic UI aggressive kills; 2 steps: Battery > App launch > MirkFall > manual management + enable Autostart, Secondary launch, Background activity; then Battery > More battery settings > disable Close heavy-usage apps. | https://dontkillmyapp.com/huawei | reachable via `permission_denied_screen.dart` → `openAppSettings()`; no direct deep-link from OemGuidanceScreen. | Noted (covered) |
+| OnePlusFamily | OxygenOS App startup manager kills background; 2 steps: Battery > Battery optimization > MirkFall > Don't optimize; then Apps > MirkFall > Battery usage > Allow background activity. | https://dontkillmyapp.com/oneplus | reachable via `permission_denied_screen.dart` → `openAppSettings()`; no direct deep-link from OemGuidanceScreen. | Noted (covered) |
+| OppoFamily | ColorOS cuts background without warning; 2 steps: Battery > App battery optimization > MirkFall > Allow; then Apps > MirkFall > Battery usage > Allow background. | https://dontkillmyapp.com/oppo | reachable via `permission_denied_screen.dart` → `openAppSettings()`; no direct deep-link from OemGuidanceScreen. | Noted (covered) |
+| OtherOem | Generic Android (Pixel / stock AOSP): no known-aggressive battery manager, no specific steps required. Guidance screen renders the title + intro only (empty steps list). | n/a (empty `learnMoreUrl`) | reachable via `permission_denied_screen.dart` → `openAppSettings()`; OemGuidanceScreen is effectively a no-op for this family. | Noted (covered) |
+| IosDevice | iOS: OS handles background automatically, no steps required on iPhone or iPad. Guidance screen renders title + intro only (empty steps list). | n/a (empty `learnMoreUrl`) | reachable via `permission_denied_screen.dart` → `openAppSettings()` (permission_handler's iOS implementation opens the Settings app at the app-specific pane via `prefs:root=LOCATION_SERVICES` / App Settings URL). | Noted (covered) |
+
+**Deferred Phase 15 (Noted):**
+- "Tracking interrompu on next launch" banner — Phase 15 SC#4 recovery flow (overlaps Phase 15 plan).
+- Native per-OEM battery-settings intent deep-links (MIUI Security / Huawei PhoneManager / Samsung DeviceCare / OnePlus Battery) — maintenance drift across OS versions; dontkillmyapp.com link suffices V1.0.
+- Second iOS POC walk reaching 30 min target (also pre-class item 1).
 
 ### Agent #1 — GPS infra + notifications + Drift V3 + manifest declarations
 (pending)
