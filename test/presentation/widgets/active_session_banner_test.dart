@@ -85,7 +85,9 @@ void main() {
           child: MaterialApp.router(routerConfig: _buildRouter(const ActiveSessionBanner())),
         ),
       );
-      await tester.pumpAndSettle();
+      // Phase 06 Should #17 (Agent #3 #2) — bounded pump.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 30));
 
       // Banner collapses to SizedBox.shrink in Idle — no visible text.
       expect(find.text('Session active'), findsNothing);
@@ -117,14 +119,21 @@ void main() {
           child: MaterialApp.router(routerConfig: _buildRouter(const ActiveSessionBanner())),
         ),
       );
-      await tester.pumpAndSettle();
+      // Phase 06 Should #17 (Agent #3 #2) — bounded pump instead of
+      // pumpAndSettle. The banner itself has no ticker today, but
+      // pumpAndSettle would deadlock the moment a future sibling
+      // (chrono, live fix counter) adds a Stream.periodic. Matches
+      // session_detail_screen_test's bounded-pump pattern.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 30));
 
       // Grab the container and trigger start.
       final element = tester.element(find.byType(ActiveSessionBanner));
       final container = ProviderScope.containerOf(element);
       await container.read(activeSessionControllerProvider.future);
       await container.read(activeSessionControllerProvider.notifier).start(sessionId);
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 30));
 
       expect(find.text('Session active'), findsOneWidget);
       expect(find.byIcon(Icons.stop_circle_outlined), findsOneWidget);
@@ -165,13 +174,17 @@ void main() {
           child: MaterialApp.router(routerConfig: _buildRouter(const ActiveSessionBanner())),
         ),
       );
-      await tester.pumpAndSettle();
+      // Phase 06 Should #17 (Agent #3 #2) — bounded pump (see sibling
+      // test's rationale). Matches session_detail_screen_test:125-127.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 30));
 
       final element = tester.element(find.byType(ActiveSessionBanner));
       final container = ProviderScope.containerOf(element);
       await container.read(activeSessionControllerProvider.future);
       await container.read(activeSessionControllerProvider.notifier).start(sessionId);
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 30));
 
       expect(find.byType(IconButton), findsOneWidget);
       final IconButton button = tester.widget<IconButton>(find.byType(IconButton));
