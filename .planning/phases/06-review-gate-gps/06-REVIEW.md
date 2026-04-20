@@ -8,7 +8,7 @@
 
 *Captured verbatim at phase start, BEFORE Claude reads any POC artefact and BEFORE Claude spawns any audit sub-agent.*
 
-(awaiting user input — Task 2 of this plan fills this section)
+*Aucune observation utilisateur — l'user n'a pas identifié de point à revoir dans son IDE.*
 
 ### 1b. POC evidence review
 
