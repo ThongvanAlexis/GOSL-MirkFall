@@ -36,7 +36,7 @@ Projet-cadeau personnel de l'auteur (pour explorer sa ville et matérialiser ses
 - [ ] Mirk effacé = effacé définitivement pour la durée de la session
 - [ ] Rendu vivant/atmosphérique (nuageux, mouvant) — pas un simple aplat noir
 - [ ] Architecture de rendu générique/découplée pour ajouter d'autres styles sans toucher au cœur
-- [ ] Plusieurs styles de mirk prédéfinis, sélectionnables dans les options
+- [ ] Plusieurs styles de mirk prédéfinis, sélectionnables **par session** (menu in-session)
 - [ ] Import d'un style de mirk depuis un fichier JSON
 
 **Markers**
@@ -64,7 +64,9 @@ Projet-cadeau personnel de l'auteur (pour explorer sa ville et matérialiser ses
 - [ ] Architecture carte découplée (`MapView` domain-level + `PmtilesSource` local-only)
 
 **Options / paramètres globaux**
-- [ ] Écran dédié regroupant : rayon de révélation, style de mirk actif, gestion des styles importés, gestion des catégories de markers, import/export global
+- [ ] Écran dédié regroupant : rayon de révélation, style de mirk par défaut pour nouvelles sessions, gestion des styles importés, gestion des catégories de markers, import/export global
+
+*Note : le style de mirk actif **par session** se choisit dans le menu in-session (pas dans les options globales). L'option globale ne fait que fixer le défaut appliqué aux nouvelles sessions.*
 
 **Qualité / distribution**
 - [ ] Pipeline GitHub Actions (build Android ubuntu-latest + build iOS non-signé macos-latest)
@@ -82,7 +84,6 @@ Projet-cadeau personnel de l'auteur (pour explorer sa ville et matérialiser ses
 - **Re-brumage temporel des zones révélées** — contraire au design (le territoire exploré reste exploré)
 - **Achievements / gamification** — pas dans l'esprit du projet
 - **Intégrations tierces (Strava, Google Photos, etc.)** — viole les principes GOSL et complique le scope
-- **Rendu du mirk par session** — le choix de style est global à l'app en V1.0
 - **Analytics, crash reporting automatique, télémétrie quelconque** — interdit par la GOSL et le CLAUDE.md du projet
 - **Abonnement / monétisation / pub** — interdit par la GOSL
 
@@ -122,6 +123,9 @@ Projet-cadeau personnel de l'auteur (pour explorer sa ville et matérialiser ses
 | CI = **GitHub Actions** (Android ubuntu + iOS non-signé macos) | Cohérent avec CLAUDE.md, gratuit, permet distribution via GitHub Releases | — Pending |
 | Distribution **hors stores officiels** (sideload iOS, APK direct Android) | Évite les frais Apple Developer, cohérent avec GOSL (pas de monétisation) | — Pending |
 | **Un seul système de state management** à choisir en début de projet | Imposé par CLAUDE.md, évite mélange `Provider`+`Riverpod`+`Bloc` | — Pending |
+| **Style (carte + mirk) par session** (amendement 2026-04-20 Phase 07 CONTEXT) | L'ancien "style global à l'app" ne colle pas avec le menu in-session décidé en Phase 07 (burger → change style). Chaque session choisit son style carte + son style mirk ; l'option globale ne garde qu'un "défaut pour nouvelles sessions". MIRK-10 amendé, OPT-03 repurposé. | — Recorded |
+| **Catalog map bundlé en asset** (amendement 2026-04-20 Phase 07 CONTEXT) | L'ancien plan `kMapCatalogUrl` distant a été simplifié : le catalog.json (~132 KB) est bundlé dans `assets/maps/catalog.json`, update = rebuild app. Évite un remote fetch au démarrage + élimine la dépendance à une URL externe pour le listing des pays. Les chunks binaires des `.pmtiles` restent hébergés sur GitHub Release (`ThongvanAlexis/countries-pmtiles`). | — Recorded |
+| **Chunks binaires multi-parts (pas ZIP)** (amendement 2026-04-20 Phase 07 CONTEXT) | Les fichiers `.pmtiles` par pays sont découpés en chunks binaires bruts (`partNN`) de 1.5 GB max (limite GitHub Release 2 GB/asset), réassemblés par concat binaire. Le terme "ZIP" du ROADMAP initial était imprécis : aucune archive à extraire, pas besoin du package `archive`. `dart:io HttpClient` brut + concat binaire suffisent. MAP-08/09 + ROADMAP Phase 07/08 amendés. | — Recorded |
 
 ---
-*Last updated: 2026-04-17 after initialization*
+*Last updated: 2026-04-20 after Phase 07 CONTEXT amendments*

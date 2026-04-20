@@ -51,14 +51,14 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 - [ ] **MIRK-04**: Le mirk a un rendu vivant / atmosphérique (nuageux, mouvant, animé) — pas un simple aplat noir
 - [ ] **MIRK-05**: L'architecture de rendu expose une interface `MirkRenderer` abstraite : ajouter un style ne demande qu'un nouveau fichier, zéro modification du cœur
 - [ ] **MIRK-06**: L'app fournit au moins un style de mirk par défaut (atmosphérique)
-- [ ] **MIRK-07**: Un écran d'options permet de sélectionner le style de mirk actif parmi les styles installés
+- [ ] **MIRK-07**: Un sélecteur dans le menu in-session (burger menu Phase 07) permet de choisir le style de mirk actif **pour la session courante** parmi les styles installés ; le changement s'applique immédiatement à la carte
 - [ ] **MIRK-08**: Utilisateur peut importer un style de mirk depuis un fichier JSON (format versionné)
 - [ ] **MIRK-09**: Utilisateur peut supprimer un style de mirk importé
-- [ ] **MIRK-10**: Le choix du style est global à l'application (pas par session en V1.0)
+- [ ] **MIRK-10**: Le choix du style (carte + mirk) est **par session** — chaque session mémorise son style carte + mirk actif ; l'écran options global (OPT-03) fixe seulement le défaut appliqué aux nouvelles sessions (amendé 2026-04-20 Phase 07 CONTEXT)
 
 ### Map (MAP)
 
-<!-- Pivot 2026-04-19 : cartographie 100 % offline. Abandon du modèle PMTiles hébergé sur bucket object-storage (coûts + streaming). Remplacé par : bundle world low-zoom dans l'APK + téléchargement par pays depuis un GitHub Release du repo projet (ZIPs multi-parts). Aucune requête réseau pour les tuiles — jamais, ni en dev ni en prod. Les anciens OFFL-01..04 v2 sont absorbés dans cette section. -->
+<!-- Pivot 2026-04-19 : cartographie 100 % offline. Abandon du modèle PMTiles hébergé sur bucket object-storage (coûts + streaming). Remplacé par : bundle world low-zoom dans l'APK + téléchargement par pays depuis un GitHub Release externe (chunks binaires multi-parts). Aucune requête réseau pour les tuiles — jamais, ni en dev ni en prod. Les anciens OFFL-01..04 v2 sont absorbés dans cette section. Amendement 2026-04-20 Phase 07 CONTEXT : catalog JSON bundlé en asset (pas fetch remote), chunks binaires bruts (pas ZIPs) réassemblés par concat binaire. -->
 
 - [ ] **MAP-01**: La carte s'affiche sur un fond vectoriel PMTiles (données Protomaps dérivées d'OSM) **100 % local** — fichier `.pmtiles` sur le disque de l'appareil, consommé via une URI `pmtiles:///<path>` par `maplibre_gl`. Aucune requête réseau de tuiles, jamais, ni en dev ni en prod. Mode airplane = carte pleinement fonctionnelle sur la zone couverte par les fichiers installés.
 - [ ] **MAP-02**: La carte reste interactive (pan, zoom) sous le mirk.
@@ -67,8 +67,8 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 - [ ] **MAP-05**: Le chemin de données des tuiles est derrière un `PmtilesSource` minimal qui expose **uniquement** des URI locales (`pmtiles:///<path>`). Aucune implémentation "hosted / remote" n'existe dans le code — un lint custom `avoid_remote_pmtiles` interdit tout `pmtiles://https?://...`. Un country resolver sélectionne le bon fichier selon la zone affichée (fallback world bundle si le pays visualisé n'est pas téléchargé). Validé par mock test.
 - [ ] **MAP-06**: L'app code (controllers, screens, services) ne dépend que d'une interface `MapView` **domain-level** exprimée dans le vocabulaire MirkFall : `showMap(region)`, `moveCameraTo(location)`, `markVisited(polygon)`, `getUnvisitedAreas()`, `addLocationMarker(user)`, `addPointOfInterest(poi)`, `setTheme(standard | rpgParchment)`. Les types du SDK (`MapLibreMapController`, `SymbolOptions`, `CameraUpdate`, le schéma du `style.json`) **ne remontent jamais** au-dessus de `lib/infrastructure/map/`. Règle d'odeur : toute méthode dont la signature révèle un type MapLibre est disqualifiée (interdiction mécanique via lint custom `avoid_maplibre_leak`). Validé par un `FakeMapView` qui implémente l'interface en mémoire et par lequel passent tous les tests Phase 07+ qui touchent à la carte.
 - [ ] **MAP-07**: Un world map PMTiles low-zoom (zoom 0-5, fichier fourni par l'utilisateur) est **bundlé dans l'APK/IPA** sous `assets/maps/world.pmtiles` et copié vers `<app_support>/maps/world.pmtiles` au premier lancement. Day-1 UX : l'utilisateur voit une carte monde dès l'ouverture de l'app, sans aucun téléchargement requis. Ce fichier ne peut pas être supprimé par l'utilisateur (hardcoded floor).
-- [ ] **MAP-08**: Un écran "Télécharger une carte" (accessible depuis l'écran options + depuis une bannière carte quand l'utilisateur navigue sur un pays non téléchargé) liste les pays disponibles à partir d'un catalogue JSON distant pinné via `kMapCatalogUrl` (constante dans `lib/config/constants.dart`, URL à fournir avant le build Phase 07). Chaque entrée du catalogue déclare : `countryCode`, `displayName`, `zipUrls[]` (ordonnés, N parts hébergées sur GitHub Release du repo projet — limite 2 GB / asset), `sha256` par chunk et global, `sizeBytesTotal`, `pmtilesVersion`.
-- [ ] **MAP-09**: Le téléchargement d'un pays suit un protocole atomique : (1) download séquentiel des N ZIP parts vers `<app_support>/maps/staging/<countryCode>/`, (2) vérification `sha256` par chunk, (3) extraction + concaténation pour reconstituer l'unique `.pmtiles` du pays, (4) vérification `sha256` global du fichier reconstitué, (5) commit atomique par rename vers `<app_support>/maps/countries/<countryCode>.pmtiles`. Interruption à n'importe quelle étape laisse le pays **soit absent soit complet** en base — jamais partiellement installé. Téléchargements interrompus reprennent au chunk échoué (HTTP Range ou redownload du chunk seul, pas redownload total). Staging nettoyé en cas d'abandon explicite par l'utilisateur.
+- [ ] **MAP-08**: Un écran "Télécharger une carte" (accessible depuis l'écran options + depuis une bannière carte quand l'utilisateur navigue sur un pays non téléchargé) liste les pays disponibles à partir d'un catalogue JSON **bundlé en asset** (`assets/maps/catalog.json`, lu via `kMapCatalogAssetPath` dans `lib/config/constants.dart` ; update = rebuild app). Chaque entrée du catalogue déclare : `alpha3` (ISO 3166-1 alpha-3), `name` (display), `parts[]` (ordonnés, chacun `{sha256, size, url}` — chunks binaires bruts de 1.5 GB max hébergés sur GitHub Release externe `ThongvanAlexis/countries-pmtiles` pour contourner la limite 2 GB/asset), et `reassembled {sha256, size}` (hash + taille du `.pmtiles` final après concat). La version globale = tag du GitHub Release (ex `v20260419`). (amendé 2026-04-20 Phase 07 CONTEXT)
+- [ ] **MAP-09**: Le téléchargement d'un pays suit un protocole atomique : (1) download séquentiel des N **chunks binaires** (`.partNN`) vers `<app_support>/maps/staging/<alpha3>/`, (2) vérification `sha256` par chunk contre la valeur déclarée dans le catalog, (3) **concaténation binaire** (pas d'extraction d'archive — les chunks sont des morceaux binaires bruts du fichier `.pmtiles` final) vers un `.pmtiles` reconstitué en staging, (4) vérification `sha256` global contre `reassembled.sha256`, (5) commit atomique par rename vers `<app_support>/maps/countries/<alpha3>.pmtiles` + update du manifest `<app_support>/maps/installed.json`. Interruption à n'importe quelle étape laisse le pays **soit absent soit complet** — jamais partiellement installé. Téléchargements interrompus reprennent au chunk échoué (HTTP Range si le serveur supporte, sinon re-download du chunk seul — pas redownload total). Staging nettoyé en cas d'abandon explicite par l'utilisateur. (amendé 2026-04-20 Phase 07 CONTEXT)
 - [ ] **MAP-10**: Écran de gestion des cartes : liste les pays installés avec leur espace disque consommé et leur `pmtilesVersion` ; l'utilisateur peut supprimer un pays (libère l'espace, le pays redeviendra téléchargeable) ; le world bundle est présent en lecture seule et ne peut pas être supprimé. Affichage de l'espace disque total utilisé par les cartes.
 
 ### Markers (MARK)
@@ -113,7 +113,7 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 
 - [ ] **OPT-01**: Écran d'options global accessible depuis l'écran principal
 - [ ] **OPT-02**: Option : rayon de révélation du mirk (slider ou input avec valeur défaut)
-- [ ] **OPT-03**: Option : style de mirk actif (sélecteur parmi les styles installés)
+- [ ] **OPT-03**: Option : style de mirk **par défaut pour nouvelles sessions** (sélecteur parmi les styles installés) — chaque session peut override via le menu in-session (MIRK-07) ; amendé 2026-04-20 Phase 07 CONTEXT
 - [ ] **OPT-04**: Écran : gestion des styles de mirk importés (liste + suppression)
 - [ ] **OPT-05**: Écran : gestion des catégories de markers (CRUD)
 - [ ] **OPT-06**: Écran : import / export global (déclenche les flows PORT-*)
@@ -152,9 +152,7 @@ Différé à V1.1+, non couvert par la V1.0. Architecture V1.0 prépare ces exte
 - **I18N-01**: Sélecteur de langue dans les options
 - **I18N-02**: Sélecteur d'unités de mesure (métrique / impérial)
 
-### Mirk par session
-
-- **MIRK2-01**: Style de mirk configurable par session (pas seulement global)
+<!-- Section "Mirk par session" retirée 2026-04-20 Phase 07 CONTEXT : MIRK2-01 absorbé dans V1 via amendement de MIRK-10 (le choix du style carte + mirk est désormais par session en V1.0). -->
 
 ## Out of Scope
 
@@ -299,4 +297,4 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 ---
 *Requirements defined: 2026-04-17*
 *Traceability filled by gsd-roadmapper: 2026-04-17 (also corrected the 77→86 arithmetic)*
-*Last updated: 2026-04-17 after roadmap creation*
+*Last updated: 2026-04-20 — Phase 07 CONTEXT amendments : MAP-08 (catalog en asset bundlé, schema `alpha3/name/parts/reassembled`), MAP-09 (chunks binaires bruts + concat binaire, pas ZIP), MIRK-07 (sélecteur in-session menu), MIRK-10 (style carte + mirk par session, plus global), OPT-03 (défaut pour nouvelles sessions).*
