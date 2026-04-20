@@ -1,0 +1,21 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"alpha3": "gbr", "source": "test-fixture (coarse bbox for unit tests)"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-8.6, 49.9],
+            [1.8, 49.9],
+            [1.8, 60.9],
+            [-8.6, 60.9],
+            [-8.6, 49.9]
+          ]
+        ]
+      }
+    }
+  ]
+}

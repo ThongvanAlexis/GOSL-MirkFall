@@ -1,0 +1,124 @@
+{
+  "countries": [
+    {
+      "alpha3": "aru",
+      "name": "Aruba",
+      "parts": [
+        {
+          "sha256": "5d2bafc266e711ed1e303de871e5b281fea2083d96e579dd504798bba5a34b42",
+          "size": 4194304,
+          "url": "https://example.test/countries-pmtiles/fixture/aru.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "5d2bafc266e711ed1e303de871e5b281fea2083d96e579dd504798bba5a34b42",
+        "size": 4194304
+      }
+    },
+    {
+      "alpha3": "esp",
+      "name": "Spain",
+      "parts": [
+        {
+          "sha256": "2f020339b834e3c2355548f13d343ca4d4fa215cba5b68bcbcba73a35b4be6c3",
+          "size": 10485760,
+          "url": "https://example.test/countries-pmtiles/fixture/esp.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "2f020339b834e3c2355548f13d343ca4d4fa215cba5b68bcbcba73a35b4be6c3",
+        "size": 10485760
+      }
+    },
+    {
+      "alpha3": "deu",
+      "name": "Germany",
+      "parts": [
+        {
+          "sha256": "8841f5680ac0e71add9dc16a76ceeece577c6edbd8235402547047a534a5073a",
+          "size": 20971520,
+          "url": "https://example.test/countries-pmtiles/fixture/deu.part01"
+        },
+        {
+          "sha256": "d0c806d9b0f1d49b9e5e5dbb5d6ce9fc43e5c84d00258952cb1bb0109fd504df",
+          "size": 20971520,
+          "url": "https://example.test/countries-pmtiles/fixture/deu.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f568c1a4b337fef577fc11319e0edc48f7b92aaf55f4c704b48c523cf39bd6d4",
+        "size": 41943040
+      }
+    },
+    {
+      "alpha3": "gbr",
+      "name": "United Kingdom",
+      "parts": [
+        {
+          "sha256": "4e7aac52ae8a0adf85387bf5dfc877f3db340951824a21a59b3a8f11fac38cf5",
+          "size": 31457280,
+          "url": "https://example.test/countries-pmtiles/fixture/gbr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "4e7aac52ae8a0adf85387bf5dfc877f3db340951824a21a59b3a8f11fac38cf5",
+        "size": 31457280
+      }
+    },
+    {
+      "alpha3": "fra",
+      "name": "France",
+      "parts": [
+        {
+          "sha256": "0ca6c16ce66e8bbb8ed2716a72eda0b65dfb30f95213ff99abafdee148db0d88",
+          "size": 41943040,
+          "url": "https://example.test/countries-pmtiles/fixture/fra.part01"
+        },
+        {
+          "sha256": "bfd1b483f7dbeac112f74c31c80c5e586d93eaf8130110b7a6053658a09c328b",
+          "size": 41943040,
+          "url": "https://example.test/countries-pmtiles/fixture/fra.part02"
+        },
+        {
+          "sha256": "7a0aec36f054b19d18c408e2f088be9291c807394898e1bd00d500426c74e03b",
+          "size": 41943040,
+          "url": "https://example.test/countries-pmtiles/fixture/fra.part03"
+        }
+      ],
+      "reassembled": {
+        "sha256": "1396f2bbad98a976d268a581c8d9714eb9bff6b1e0795ebcbfd2cead98759717",
+        "size": 125829120
+      }
+    },
+    {
+      "alpha3": "usa",
+      "name": "United States",
+      "parts": [
+        {
+          "sha256": "55fc4b50f5ce8e722843e010f77500aeb96baec6ea76c98b9226276176e8fd57",
+          "size": 52428800,
+          "url": "https://example.test/countries-pmtiles/fixture/usa.part01"
+        },
+        {
+          "sha256": "74697b633045ac0edfd2ed26ecec45621b952b3f0881afde4b397a15fca79d36",
+          "size": 52428800,
+          "url": "https://example.test/countries-pmtiles/fixture/usa.part02"
+        },
+        {
+          "sha256": "c4feb77643bcc3e4457d395584ec1b0b03358d3b62023d3da833cb1004c517e6",
+          "size": 52428800,
+          "url": "https://example.test/countries-pmtiles/fixture/usa.part03"
+        },
+        {
+          "sha256": "40a85265b793e899a6eb74fabe9bcfbe53b731d83cbdb6f5781521e24eb6ac74",
+          "size": 52428800,
+          "url": "https://example.test/countries-pmtiles/fixture/usa.part04"
+        }
+      ],
+      "reassembled": {
+        "sha256": "2dc1199f87f7189fb5ffbaeb70b9b83def7d4efb32835793a1e7111652a82ed3",
+        "size": 209715200
+      }
+    }
+  ]
+}
