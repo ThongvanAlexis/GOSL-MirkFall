@@ -2,8 +2,11 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'package:logging/logging.dart';
 import 'package:mirkfall/domain/errors/location_permission_errors.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+final Logger _log = Logger('application.permissions.location_permission_flow');
 
 /// Signature of a function that requests a single platform [Permission]
 /// and returns its [PermissionStatus].
@@ -54,10 +57,14 @@ Future<LocationPermissionOutcome> requestLocationAlways({PermissionRequester req
   // Best-effort. Notification denial does not block the flow : the
   // session will track fine, only the persistent foreground notification
   // is missing. Exceptions from the plugin (very rare, typically only
-  // on misconfigured test channels) are swallowed for the same reason.
+  // on misconfigured test channels) are logged + swallowed so the
+  // location cascade proceeds (CLAUDE.md §Error handling — no empty
+  // catch; fine-level so production logs stay clean).
   try {
     await requestPermission(Permission.notification);
-  } catch (_) {}
+  } catch (e, st) {
+    _log.fine('requestLocationAlways.notification_request_failed', e, st);
+  }
 
   final whenInUse = await requestPermission(Permission.locationWhenInUse);
   if (whenInUse.isPermanentlyDenied) {

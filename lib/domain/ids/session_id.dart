@@ -15,6 +15,19 @@ extension type const SessionId(String value) {
   /// a copy-pasted ID is self-describing.
   static const String prefix = 'sess_';
 
+  /// Parses a raw string into a [SessionId], validating the prefix. Throws
+  /// [ArgumentError] on mismatch — use the plain constructor when the
+  /// value is already known-good (e.g. hydrating a DB row). Mirrors
+  /// [FixId.parse]; callers hydrating from notification `resume:<id>`
+  /// payloads or import files need a parse-with-validation helper rather
+  /// than a best-effort `isValid` check after construction.
+  factory SessionId.parse(String raw) {
+    if (!raw.startsWith(prefix)) {
+      throw ArgumentError.value(raw, 'raw', 'Expected $prefix prefix');
+    }
+    return SessionId(raw);
+  }
+
   /// True iff [value] starts with [prefix] and the ULID body has the
   /// canonical 26-char length.
   bool get isValid => value.startsWith(prefix) && value.length == prefix.length + 26;

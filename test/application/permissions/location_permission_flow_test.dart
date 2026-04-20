@@ -128,5 +128,36 @@ void main() {
         reason: 'Notification must be requested FIRST so both OS dialogs appear back-to-back in the rationale flow',
       );
     });
+
+    test('notificationRequestFailureDoesNotBlockLocationFlowOutcome', () async {
+      // Phase 06 Should #7 (cross-lens Agent #1 #3 + Agent #2 #6 + Agent
+      // #2 #12) regression guard: if the notification request throws
+      // (very rare, typically misconfigured test channels), the failure
+      // is log-and-swallowed — location cascade still runs and the
+      // outcome is derived entirely from the location steps.
+      final recorded = <Permission>[];
+      Future<PermissionStatus> throwingNotificationRequester(Permission permission) async {
+        recorded.add(permission);
+        if (permission == Permission.notification) {
+          throw Exception('synthetic permission_handler plugin misconfig');
+        }
+        if (permission == Permission.locationWhenInUse) return PermissionStatus.granted;
+        if (permission == Permission.locationAlways) return PermissionStatus.granted;
+        fail('unexpected permission $permission');
+      }
+
+      final outcome = await requestLocationAlways(requestPermission: throwingNotificationRequester);
+
+      expect(
+        outcome,
+        LocationPermissionOutcome.granted,
+        reason: 'Notification failure must NOT short-circuit the location cascade — outcome derived from location steps only',
+      );
+      expect(recorded, <Permission>[
+        Permission.notification,
+        Permission.locationWhenInUse,
+        Permission.locationAlways,
+      ], reason: 'All 3 permissions must still be requested in order even when notification throws');
+    });
   });
 }
