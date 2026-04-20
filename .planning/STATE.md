@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 06 review-gate closed, Phase 07 Map Integration unblocked
-status: completed
-stopped_at: Phase 07 context gathered
-last_updated: "2026-04-20T20:53:19.128Z"
+current_plan: Phase 07 plan 07-01 (Wave 0 Scaffolding) done — 07-02 unblocked
+status: in_progress
+stopped_at: Completed 07-01-wave-0-scaffolding-PLAN.md
+last_updated: "2026-04-20T23:44:47.749Z"
 last_activity: 2026-04-20
 progress:
   total_phases: 16
   completed_phases: 6
-  total_plans: 30
-  completed_plans: 30
-  percent: 100
+  total_plans: 37
+  completed_plans: 31
+  percent: 84
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 06 Review Gate — GPS CLOSED 2026-04-20. All 5 plans complete; 06-REVIEW.md §§1–5 filled; 2 Blockers + 20 Shoulds fixed across 6 CI-green batches (Strategy B), 1 Should waived (iOS auto-resume → Phase 15), 20 Coulds deferred/won't-fix, 45 Noteds observation. Phase 07 Map Integration unblocked; next step `/gsd:discuss-phase 07`.
+**Current focus:** Phase 07 Map Integration — Plan 07-01 (Wave 0 Scaffolding) done 2026-04-20. maplibre_gl 0.25.0 pinned, flutter_map+latlong2 dropped; assets/maps/ populated (world.pmtiles + catalog.json + style.json with frozen 8-layer order + 249 bbox polygons + glyph/sprite placeholders); kWorldBundleSha256 emitted; two new CI gates (avoid_maplibre_leak + avoid_remote_pmtiles) live with 15/15 paired tests; 5 test fakes forward-declared; 14 Phase 07 constants in lib/config/constants.dart. All 7 existing + 2 new gates green. Plan 07-02 (domain interfaces) unblocked.
 
 ## Current Position
 
-Phase: 06 of 16 (Review Gate — GPS) Complete — 5 / 5 plans done — Phase 07 Map Integration unblocked
-Current Plan: Phase 06 review-gate closed, Phase 07 Map Integration unblocked
-Total Plans in Phase 06: 5 / 5 done
-Status: Phase complete; ready for /gsd:discuss-phase or /gsd:plan-phase Phase 07
+Phase: 07 of 16 (Map Integration) — 1 / 7 plans done — Plan 07-02 (domain interfaces) unblocked
+Current Plan: Phase 07 plan 07-01 (Wave 0 Scaffolding) done — 07-02 unblocked
+Total Plans in Phase 07: 1 / 7 done
+Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-02
 Last Activity: 2026-04-20
 
-Progress: [██████████] 100% — 30 / 30 plans executed across phases 01-06.
+Progress: [████████░░] 84% — 31 / 37 plans executed across phases 01-07.
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ Progress: [██████████] 100% — 30 / 30 plans executed acros
 | Phase 06-review-gate-gps P02 | 4 min | 2 tasks | 1 files |
 | Phase 06-review-gate-gps P06-03 | 5 min | 5 tasks | 2 files |
 | Phase 06-review-gate-gps P06-04 | 68 min | 5 tasks | 9 files (7 created + 2 modified) |
+| Phase 07-map-integration P01 | 22min | 3 tasks | 267 files |
 
 ## Accumulated Context
 
@@ -228,6 +229,12 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 06-review-gate-gps]: Plan 06-04 deviation: combined §4 Tests 1-5 + Test 6 evidence into one docs commit (c712f3e) instead of plan's two separate commits — same file touched within seconds, splitting adds noise to bisect surface without bisectability benefit. Plan Tasks 2+3 commit granularity reduced by 1; plan outcome unchanged.
 - [Phase 06-review-gate-gps]: Plan 06-04 deviation: CI `concurrency.cancel-in-progress: true` cancelled Test #1 run mid-watch when Test #2 was pushed. Plan's per-commit CI-green gating not strictly achieved; substitute: each test locally pre-verified via `flutter test` + mutation experiment; subsequent commits' CI runs validated cumulative state. No broken state reached permanent main-branch CI failure.
 - [Phase 06-review-gate-gps]: review-gate closed 2026-04-20 — 2 Blockers fixed (controller partial-activation leak + GpsError→ErrorState contract) + 20 Shoulds fixed (Batches 0-5) + 1 Should waived (iOS auto-resume MethodChannel deferral → Phase 15 FlutterImplicitEngineDelegate rewire). Fix strategy: batched Strategy B (6 batches × ~8 min CI, Phase 04 Plan 04-05 precedent) — rationale: 23 §3 fix rows, wall-clock vs bisect-granularity trade-off favoured batches. iOS PASS-with-caveat formally accepted via §3 row 43 (Noted observation). Surprise findings caught by Plan 06-04 mutation experiments + Agent #2 controller lens: 2 unexpected Blockers (partial-activation leak + GpsError contract drift) — both absorbed into Batch 1 without architectural decision. Plan 06-04 5 permanent unit tests (MethodChannel sync / permission cascade / OemDetector ambiguous / platform manifests / Android boot receiver) + 1 new CI gate (tool/check_platform_manifests.dart) live on main. 20 new Plan 06-05 regression-guard tests added (3 controller + 1 permission + 3 SessionId.parse + 11 SessionSettings + 1 autoStart widget + 1 strengthened notMaintenant). Phase 07 Map Integration unblocked.
+- [Phase 07-map-integration]: Phase 07 plan 07-01: pubspec swap clean (flutter_map+latlong2 → maplibre_gl 0.25.0 + crypto 3.0.7 promoted direct + shelf 1.4.2 promoted dev); 10 transitives dropped; maplibre_gl_platform_interface + maplibre_gl_web + image added; DEPENDENCIES.md reconciled with new Bundled assets section (Protomaps basemaps-assets OFL+CC0 + OSM ODbL + world bundle)
+- [Phase 07-map-integration]: Phase 07 plan 07-01: polygon simplification = bbox-only via tool/simplify_polygons.dart (pure-Dart, zero new dep). 249 countries × axis-aligned bounding box = 176.2 KB total (5 MB budget). Drawback: overlap at shared latitudes + enclaves (Lesotho in ZAF) — country resolver tie-breaks by installed-order, acceptable per 07-CONTEXT glitch-frontiere. Follow-up plan can swap to real mapshaper output without churning consumer path
+- [Phase 07-map-integration]: Phase 07 plan 07-01: World bundle sha256 closed RESEARCH Open Question #5 — `tool/generate_world_sha256.dart` emits `const String kWorldBundleSha256 = '62782f3bbc16bc3d3d005299007374d3e281dcdc97e5282ec04c027e867f38d6';` to `lib/config/world_bundle_sha256.dart`. Build-time computation, zero-runtime-cost verification + auto-heal on disk corruption (Plan 07-03 consumer).
+- [Phase 07-map-integration]: Phase 07 plan 07-01: mirk_fog layer in style.json = `type: background` with `background-opacity: 0` (not `type: fill`). MapLibre fill/line/symbol layers require a bound source; a dummy empty-GeoJSON source for a layer that paints nothing is wasteful. Phase 09 replaces with `type: fill` + MirkRenderer source at the same z-index position (layer ORDER stays frozen, content is tuned).
+- [Phase 07-map-integration]: Phase 07 plan 07-01: Forward-declared fake pattern validated — each `test/fakes/fake_*.dart` is a GOSL-headered doc-only `library;` shell. Downstream plans (07-02, 07-03, 07-04) list the paths in their own `files_modified` and fill the bodies without a two-step creation dance or git-diff churn. Five fakes scaffolded: FakeMapView, FakePmtilesSource, FakeInstalledManifestRepository, FakeDownloadController, FakeCountryResolver.
+- [Phase 07-map-integration]: Phase 07 plan 07-01: Two new CI gates + paired-test inertness-guard idiom validated 4th cycle (Phase 02/04/06/07). `tool/check_avoid_maplibre_leak.dart` (MAP-06, scans lib/**/*.dart, allowed prefix lib/infrastructure/map/) + `tool/check_avoid_remote_pmtiles.dart` (MAP-05, scans lib/**/*.dart + test/**/*.dart + assets/**/*.json for `pmtiles://http[s]` case-insensitive). Real-tree scan: 101 dart files + 440 total files, 0 violations. 15/15 paired tests pass (includes catalog-false-positive guard: `https://github.com/...` in parts[].url URLs do NOT match the `pmtiles://http` pattern).
 
 ### Pending Todos
 
@@ -254,6 +261,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-20T20:53:19.124Z
-Stopped at: Phase 07 context gathered
-Resume file: .planning/phases/07-map-integration/07-CONTEXT.md
+Last session: 2026-04-20T23:44:13.002Z
+Stopped at: Completed 07-01-wave-0-scaffolding-PLAN.md
+Resume file: None
