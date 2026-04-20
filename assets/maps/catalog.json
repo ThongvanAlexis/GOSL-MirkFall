@@ -1,0 +1,4003 @@
+{
+  "countries": [
+    {
+      "alpha3": "abw",
+      "name": "Aruba",
+      "parts": [
+        {
+          "sha256": "bdc05c56c4219684716b138329c316b8fb29ad28df54dce870eb2f8c9e4104bc",
+          "size": 4265261,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/abw.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "bdc05c56c4219684716b138329c316b8fb29ad28df54dce870eb2f8c9e4104bc",
+        "size": 4265261
+      }
+    },
+    {
+      "alpha3": "afg",
+      "name": "Afghanistan",
+      "parts": [
+        {
+          "sha256": "638f3e2ca0191506bb3525bb958b14eb4f89a2c65ac6a408f70b45b52b31d703",
+          "size": 253686200,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/afg.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "638f3e2ca0191506bb3525bb958b14eb4f89a2c65ac6a408f70b45b52b31d703",
+        "size": 253686200
+      }
+    },
+    {
+      "alpha3": "ago",
+      "name": "Angola",
+      "parts": [
+        {
+          "sha256": "8326b6316aa5791e1df681403f4d1ba3cb2a573c276f1ddc4f5615e953d9e3cf",
+          "size": 245098247,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ago.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "8326b6316aa5791e1df681403f4d1ba3cb2a573c276f1ddc4f5615e953d9e3cf",
+        "size": 245098247
+      }
+    },
+    {
+      "alpha3": "aia",
+      "name": "Anguilla",
+      "parts": [
+        {
+          "sha256": "bd7dd8cebf52c5e9c9c95542b52e67b5e941bfcfd879079010f86e801ab34d04",
+          "size": 1224395,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/aia.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "bd7dd8cebf52c5e9c9c95542b52e67b5e941bfcfd879079010f86e801ab34d04",
+        "size": 1224395
+      }
+    },
+    {
+      "alpha3": "ala",
+      "name": "Åland Islands",
+      "parts": [
+        {
+          "sha256": "6865a2ee20773246cdb434f9d489a4157d577eed6b1aa55cea45fa749d558a67",
+          "size": 8659245,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ala.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "6865a2ee20773246cdb434f9d489a4157d577eed6b1aa55cea45fa749d558a67",
+        "size": 8659245
+      }
+    },
+    {
+      "alpha3": "alb",
+      "name": "Albania",
+      "parts": [
+        {
+          "sha256": "fc65d8652f017683c1e386098aaf44768448c52ecb230608aa98f05676794e10",
+          "size": 89829332,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/alb.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "fc65d8652f017683c1e386098aaf44768448c52ecb230608aa98f05676794e10",
+        "size": 89829332
+      }
+    },
+    {
+      "alpha3": "and",
+      "name": "Andorra",
+      "parts": [
+        {
+          "sha256": "559d09e90682a7c79f1525d4cdeab7efca02f61195940f02fb33907d9882a1b2",
+          "size": 6103847,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/and.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "559d09e90682a7c79f1525d4cdeab7efca02f61195940f02fb33907d9882a1b2",
+        "size": 6103847
+      }
+    },
+    {
+      "alpha3": "are",
+      "name": "United Arab Emirates",
+      "parts": [
+        {
+          "sha256": "9d2502297556dd37c8c45ca850abb7e8b97b9270e8c898059ee06e51fb6fbe7c",
+          "size": 83386810,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/are.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "9d2502297556dd37c8c45ca850abb7e8b97b9270e8c898059ee06e51fb6fbe7c",
+        "size": 83386810
+      }
+    },
+    {
+      "alpha3": "arg",
+      "name": "Argentina",
+      "parts": [
+        {
+          "sha256": "f6f11bcff349b3265413107d83c2c4d80466d95db7777306f311cc5df5098e68",
+          "size": 1180598643,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/arg.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f6f11bcff349b3265413107d83c2c4d80466d95db7777306f311cc5df5098e68",
+        "size": 1180598643
+      }
+    },
+    {
+      "alpha3": "arm",
+      "name": "Armenia",
+      "parts": [
+        {
+          "sha256": "6dc9d70f6302601362e8f458f0d58289cd454aeff59452315095f22ba93d7f1e",
+          "size": 88999110,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/arm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "6dc9d70f6302601362e8f458f0d58289cd454aeff59452315095f22ba93d7f1e",
+        "size": 88999110
+      }
+    },
+    {
+      "alpha3": "asm",
+      "name": "American Samoa",
+      "parts": [
+        {
+          "sha256": "00c77bdc059746392d11668397ef240a79f51f9d0544ea789f86a5d1e6b6eff6",
+          "size": 1545411,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/asm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "00c77bdc059746392d11668397ef240a79f51f9d0544ea789f86a5d1e6b6eff6",
+        "size": 1545411
+      }
+    },
+    {
+      "alpha3": "ata",
+      "name": "Antarctica",
+      "parts": [
+        {
+          "sha256": "b141aac73296cd3b2bcd9843a1910f6300ae5d0d51eaef6f8a908fba9f71b1cc",
+          "size": 335607768,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ata.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b141aac73296cd3b2bcd9843a1910f6300ae5d0d51eaef6f8a908fba9f71b1cc",
+        "size": 335607768
+      }
+    },
+    {
+      "alpha3": "atf",
+      "name": "French Southern and Antarctic Lands",
+      "parts": [
+        {
+          "sha256": "49272fb6caf21c4cc07c54578ba6dae77c32a0a2fd037860354ef26438c77948",
+          "size": 12241540,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/atf.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "49272fb6caf21c4cc07c54578ba6dae77c32a0a2fd037860354ef26438c77948",
+        "size": 12241540
+      }
+    },
+    {
+      "alpha3": "atg",
+      "name": "Antigua and Barbuda",
+      "parts": [
+        {
+          "sha256": "3bd9d379ef58275d26ee815d5b8d7edb481691d402c8fa58f9f03ef7d513cb94",
+          "size": 3144065,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/atg.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "3bd9d379ef58275d26ee815d5b8d7edb481691d402c8fa58f9f03ef7d513cb94",
+        "size": 3144065
+      }
+    },
+    {
+      "alpha3": "aus",
+      "name": "Australia",
+      "parts": [
+        {
+          "sha256": "dae09bb987c23617dc25c126a2ba8f48789349f4462d7fe01efa7e063905062d",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/aus.part01"
+        },
+        {
+          "sha256": "8052e16d0143324f9e8ed7869501a911ae3eca6d96c2319261773dacb0351840",
+          "size": 526942156,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/aus.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "0512dd9b69f317b9802428960ebe8ea3358dba6d614fd85a1590f215846ad44f",
+        "size": 2026942156
+      }
+    },
+    {
+      "alpha3": "aut",
+      "name": "Austria",
+      "parts": [
+        {
+          "sha256": "309b0ee2590bc7109f5e65267d0f8a9faf91bfa18a37168bdd19e504d3de6117",
+          "size": 1016936642,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/aut.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "309b0ee2590bc7109f5e65267d0f8a9faf91bfa18a37168bdd19e504d3de6117",
+        "size": 1016936642
+      }
+    },
+    {
+      "alpha3": "aze",
+      "name": "Azerbaijan",
+      "parts": [
+        {
+          "sha256": "b74a60a4524efb90e621044959a566f9e6d39ab57dfebbe57c2b709e40cbdbf2",
+          "size": 110350608,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/aze.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b74a60a4524efb90e621044959a566f9e6d39ab57dfebbe57c2b709e40cbdbf2",
+        "size": 110350608
+      }
+    },
+    {
+      "alpha3": "bdi",
+      "name": "Burundi",
+      "parts": [
+        {
+          "sha256": "04c5a79d720d10a6fbe0d52e9dd3c47d9e3ffc03fbdd2d7a471f9d2ec1918beb",
+          "size": 60545155,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bdi.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "04c5a79d720d10a6fbe0d52e9dd3c47d9e3ffc03fbdd2d7a471f9d2ec1918beb",
+        "size": 60545155
+      }
+    },
+    {
+      "alpha3": "bel",
+      "name": "Belgium",
+      "parts": [
+        {
+          "sha256": "8e58dd64faff2d8de4370dd7c2b53d7b6928f35be2454592b7afa6ab8a7003cf",
+          "size": 744302185,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bel.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "8e58dd64faff2d8de4370dd7c2b53d7b6928f35be2454592b7afa6ab8a7003cf",
+        "size": 744302185
+      }
+    },
+    {
+      "alpha3": "ben",
+      "name": "Benin",
+      "parts": [
+        {
+          "sha256": "4db080253d9c2c77daaa14c03db3806cf8667603a529b7a98b0fdf589afaec82",
+          "size": 70269080,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ben.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "4db080253d9c2c77daaa14c03db3806cf8667603a529b7a98b0fdf589afaec82",
+        "size": 70269080
+      }
+    },
+    {
+      "alpha3": "bes",
+      "name": "Caribbean Netherlands",
+      "parts": [
+        {
+          "sha256": "c01bc442917e96f3cacf41941c9a4ae97a66b8bea8254a746e087be2c4283f7b",
+          "size": 2389692,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bes.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c01bc442917e96f3cacf41941c9a4ae97a66b8bea8254a746e087be2c4283f7b",
+        "size": 2389692
+      }
+    },
+    {
+      "alpha3": "bfa",
+      "name": "Burkina Faso",
+      "parts": [
+        {
+          "sha256": "fad3530fe4e4b2dca2b8d6848013aabbb6d24ad03434d25c1253d96e991195fd",
+          "size": 156353392,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bfa.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "fad3530fe4e4b2dca2b8d6848013aabbb6d24ad03434d25c1253d96e991195fd",
+        "size": 156353392
+      }
+    },
+    {
+      "alpha3": "bgd",
+      "name": "Bangladesh",
+      "parts": [
+        {
+          "sha256": "14dcba7cca579dd1aeff594efa2c72a85813f6caafa99039700f9f7f25819010",
+          "size": 368324173,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bgd.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "14dcba7cca579dd1aeff594efa2c72a85813f6caafa99039700f9f7f25819010",
+        "size": 368324173
+      }
+    },
+    {
+      "alpha3": "bgr",
+      "name": "Bulgaria",
+      "parts": [
+        {
+          "sha256": "cb4ff26a6b1c2d0831410dd4e821bda5c29877a81def71ade296a46fdd107b09",
+          "size": 332552322,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bgr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "cb4ff26a6b1c2d0831410dd4e821bda5c29877a81def71ade296a46fdd107b09",
+        "size": 332552322
+      }
+    },
+    {
+      "alpha3": "bhr",
+      "name": "Bahrain",
+      "parts": [
+        {
+          "sha256": "8dba2b89e93bf2c94866d3a6cace84b6c7b7444fbe2ef0794aa118f90f168781",
+          "size": 6366467,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bhr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "8dba2b89e93bf2c94866d3a6cace84b6c7b7444fbe2ef0794aa118f90f168781",
+        "size": 6366467
+      }
+    },
+    {
+      "alpha3": "bhs",
+      "name": "Bahamas",
+      "parts": [
+        {
+          "sha256": "b8fd2021e53cd73b2f98dc2344ade5fbe11e881a5ceca21d995fc503cabf6019",
+          "size": 18448990,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bhs.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b8fd2021e53cd73b2f98dc2344ade5fbe11e881a5ceca21d995fc503cabf6019",
+        "size": 18448990
+      }
+    },
+    {
+      "alpha3": "bih",
+      "name": "Bosnia and Herzegovina",
+      "parts": [
+        {
+          "sha256": "afb94e0655c74a7b718e469326a709c3fbbd1a2fbe102f8bc1ceb81e77f7f168",
+          "size": 318310531,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bih.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "afb94e0655c74a7b718e469326a709c3fbbd1a2fbe102f8bc1ceb81e77f7f168",
+        "size": 318310531
+      }
+    },
+    {
+      "alpha3": "blm",
+      "name": "Saint Barthélemy",
+      "parts": [
+        {
+          "sha256": "f1439156217b9988ca58226bdde95d272a603f897c303e9686e652bac8f6c46e",
+          "size": 1184471,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/blm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f1439156217b9988ca58226bdde95d272a603f897c303e9686e652bac8f6c46e",
+        "size": 1184471
+      }
+    },
+    {
+      "alpha3": "blr",
+      "name": "Belarus",
+      "parts": [
+        {
+          "sha256": "70dfa68da8b4bd7285e6e2632b93d6659e40905645c710026d0e4cea07f17594",
+          "size": 781438020,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/blr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "70dfa68da8b4bd7285e6e2632b93d6659e40905645c710026d0e4cea07f17594",
+        "size": 781438020
+      }
+    },
+    {
+      "alpha3": "blz",
+      "name": "Belize",
+      "parts": [
+        {
+          "sha256": "6d559c5ece1ad66360ea49e9cc81185067aa75e789920f76080c7fe66ca9febc",
+          "size": 47736676,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/blz.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "6d559c5ece1ad66360ea49e9cc81185067aa75e789920f76080c7fe66ca9febc",
+        "size": 47736676
+      }
+    },
+    {
+      "alpha3": "bmu",
+      "name": "Bermuda",
+      "parts": [
+        {
+          "sha256": "702524d6e4725af6b481707906654f8d2ba5587a4c108965380fc66fb7eccd2c",
+          "size": 2102128,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bmu.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "702524d6e4725af6b481707906654f8d2ba5587a4c108965380fc66fb7eccd2c",
+        "size": 2102128
+      }
+    },
+    {
+      "alpha3": "bol",
+      "name": "Bolivia",
+      "parts": [
+        {
+          "sha256": "0d52ccca4d3532419dd3e06c27eab2a7ced5362b6dd342be4afe67d00bd7593c",
+          "size": 408376661,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bol.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "0d52ccca4d3532419dd3e06c27eab2a7ced5362b6dd342be4afe67d00bd7593c",
+        "size": 408376661
+      }
+    },
+    {
+      "alpha3": "bra",
+      "name": "Brazil",
+      "parts": [
+        {
+          "sha256": "e5c459d9458d4e7c2ed553ef1e697a888cee20a7778c616045a38aabdd5dae73",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bra.part01"
+        },
+        {
+          "sha256": "b9945449d78b7ec668c942784802ef5422bce42a2291a57272eb9ea4596d6adf",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bra.part02"
+        },
+        {
+          "sha256": "5cfb2ceb19fa38d72aeb05dbdd104a27537f364f2c4c1b21bc19edfc9d65cb0c",
+          "size": 1102686012,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bra.part03"
+        }
+      ],
+      "reassembled": {
+        "sha256": "4652da32515536263744699be7fe04ecc5dbaffb31729cfa6726d5b0c8c1c2d4",
+        "size": 4102686012
+      }
+    },
+    {
+      "alpha3": "brb",
+      "name": "Barbados",
+      "parts": [
+        {
+          "sha256": "032885ac4fa435e50bf525248e4d3231db69d1bfb164a40f2c71c5c04275f72b",
+          "size": 7189402,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/brb.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "032885ac4fa435e50bf525248e4d3231db69d1bfb164a40f2c71c5c04275f72b",
+        "size": 7189402
+      }
+    },
+    {
+      "alpha3": "brn",
+      "name": "Brunei",
+      "parts": [
+        {
+          "sha256": "7bd1b26b67c500373272eabcef2b916eb921a774092c9939305af805e1536473",
+          "size": 8585585,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/brn.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "7bd1b26b67c500373272eabcef2b916eb921a774092c9939305af805e1536473",
+        "size": 8585585
+      }
+    },
+    {
+      "alpha3": "btn",
+      "name": "Bhutan",
+      "parts": [
+        {
+          "sha256": "edf470ec5c2359ebd28f77ebadc50781627ea63c0929ef94478ba4a961edb371",
+          "size": 56918713,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/btn.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "edf470ec5c2359ebd28f77ebadc50781627ea63c0929ef94478ba4a961edb371",
+        "size": 56918713
+      }
+    },
+    {
+      "alpha3": "bvt",
+      "name": "Bouvet Island",
+      "parts": [
+        {
+          "sha256": "6d4bc6739a96732fce6c46c9f04ff05d867657578c69bf0b49ff2253dab17402",
+          "size": 183054,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bvt.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "6d4bc6739a96732fce6c46c9f04ff05d867657578c69bf0b49ff2253dab17402",
+        "size": 183054
+      }
+    },
+    {
+      "alpha3": "bwa",
+      "name": "Botswana",
+      "parts": [
+        {
+          "sha256": "5171daf660082207cfc62610e60492a9c3848a656ceecf0e3443902a93ce0847",
+          "size": 136721710,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/bwa.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "5171daf660082207cfc62610e60492a9c3848a656ceecf0e3443902a93ce0847",
+        "size": 136721710
+      }
+    },
+    {
+      "alpha3": "caf",
+      "name": "Central African Republic",
+      "parts": [
+        {
+          "sha256": "2e5b8a63f2bca42906ab7666d7547cbd94d05490a1b58915378d6168cb0dcd88",
+          "size": 336248260,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/caf.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "2e5b8a63f2bca42906ab7666d7547cbd94d05490a1b58915378d6168cb0dcd88",
+        "size": 336248260
+      }
+    },
+    {
+      "alpha3": "can",
+      "name": "Canada",
+      "parts": [
+        {
+          "sha256": "6c4608ac6afbb2e987e99dcdd037e58c80d49242115657016086f2eb20e3ae78",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/can.part01"
+        },
+        {
+          "sha256": "0f2515b61ef56ed1ce58d2045c09e3ee6af287352f17a7e478730b805d47a973",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/can.part02"
+        },
+        {
+          "sha256": "b22710652f6588f6545de8a641bfd0adfd8bf3fa617aac0d98b8a5271d893150",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/can.part03"
+        },
+        {
+          "sha256": "251f55810ffec86418f115e01a748f5aa201c299eb7796b2368b9ca3b6380c3d",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/can.part04"
+        },
+        {
+          "sha256": "32334f4afc2d82405ff8197d1ec7f1f63c9ce702c93b091d147d53813ca9f7c9",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/can.part05"
+        },
+        {
+          "sha256": "014a0336e21ef46852ccb98386dc3c64f20a35bfe58d9e67c2a7d4b6e388711f",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/can.part06"
+        },
+        {
+          "sha256": "7c5b6f647834df710159a6a9fab8ae762ed628dc29461a66fb752d5984a6271d",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/can.part07"
+        },
+        {
+          "sha256": "eea8c90f9df1d674a00e0542bb312814610574a94794cc7ca3226f658ced86b4",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/can.part08"
+        },
+        {
+          "sha256": "6168e94935608833e5923c870c6f3772203b60e8344a76b8db899e197df6237d",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/can.part09"
+        },
+        {
+          "sha256": "1306e16e1de2406d39578181476c51350e92ac71847503ab0dd261444aecbbb5",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/can.part10"
+        },
+        {
+          "sha256": "c07901469d5070db465819f7190c2a6c6bc50f3e74e43bbcd23b775370d9290b",
+          "size": 171279238,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/can.part11"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f2981665c1fc0ce5f9b5103094f50cadcf7cacd30581817c5895dae62d9182c9",
+        "size": 15171279238
+      }
+    },
+    {
+      "alpha3": "cck",
+      "name": "Cocos (Keeling) Islands",
+      "parts": [
+        {
+          "sha256": "61e96beab1de8c4cd16e9119755c6be8a34dbb511c12a316bb386bae89d05695",
+          "size": 464128,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cck.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "61e96beab1de8c4cd16e9119755c6be8a34dbb511c12a316bb386bae89d05695",
+        "size": 464128
+      }
+    },
+    {
+      "alpha3": "che",
+      "name": "Switzerland",
+      "parts": [
+        {
+          "sha256": "ea97d205069d00608b10e3ba18e21ee7213fea892608f07e81297cae743d61ef",
+          "size": 575419148,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/che.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "ea97d205069d00608b10e3ba18e21ee7213fea892608f07e81297cae743d61ef",
+        "size": 575419148
+      }
+    },
+    {
+      "alpha3": "chl",
+      "name": "Chile",
+      "parts": [
+        {
+          "sha256": "674140517edfb7930c354474e5214f6dae2eb27a5a3ea16f3e161a6d1786db32",
+          "size": 604481157,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/chl.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "674140517edfb7930c354474e5214f6dae2eb27a5a3ea16f3e161a6d1786db32",
+        "size": 604481157
+      }
+    },
+    {
+      "alpha3": "chn",
+      "name": "China",
+      "parts": [
+        {
+          "sha256": "62b5077c9702b6b2de1fa46dbfedce2bb8a834608245c7f6e3bec9588fd4424d",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/chn.part01"
+        },
+        {
+          "sha256": "f298899f05471d51f478b25c1611e7f734d57edd3bd507c1e71a43ae3848260e",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/chn.part02"
+        },
+        {
+          "sha256": "57a7988518e158040b9e7fd1dd14404bea0cd6d1ba41c9f67f48a359db5ffa55",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/chn.part03"
+        },
+        {
+          "sha256": "a9c3e10e918c3f3d7cbb9d81041ab391bd4527ac9c2b47fa0ebc11880993caf5",
+          "size": 365106107,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/chn.part04"
+        }
+      ],
+      "reassembled": {
+        "sha256": "80a94b9060a66507540afea703002cc9949e279c5d23f7dff940a2b5a16b6f8f",
+        "size": 4865106107
+      }
+    },
+    {
+      "alpha3": "civ",
+      "name": "Ivory Coast",
+      "parts": [
+        {
+          "sha256": "08c01e4e25eef1482d6cd5b3117a1b81bd2062410e8131bfbdb3866b6b007cde",
+          "size": 182515028,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/civ.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "08c01e4e25eef1482d6cd5b3117a1b81bd2062410e8131bfbdb3866b6b007cde",
+        "size": 182515028
+      }
+    },
+    {
+      "alpha3": "cmr",
+      "name": "Cameroon",
+      "parts": [
+        {
+          "sha256": "fb49bd75b61ddd0f4aa883b422b513d07ff30a13563c1e32f24b137ae9b5c5ee",
+          "size": 504945517,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cmr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "fb49bd75b61ddd0f4aa883b422b513d07ff30a13563c1e32f24b137ae9b5c5ee",
+        "size": 504945517
+      }
+    },
+    {
+      "alpha3": "cod",
+      "name": "DR Congo",
+      "parts": [
+        {
+          "sha256": "7faffe24aa841c5262eeabfe9670a8dc34d27ce46af334bb73d0078ba310d1e0",
+          "size": 814482281,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cod.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "7faffe24aa841c5262eeabfe9670a8dc34d27ce46af334bb73d0078ba310d1e0",
+        "size": 814482281
+      }
+    },
+    {
+      "alpha3": "cog",
+      "name": "Congo",
+      "parts": [
+        {
+          "sha256": "932c3956d1f236855e7ffd31a37f146bdb1bd08aa9d7493150b6abd562978dae",
+          "size": 74174743,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cog.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "932c3956d1f236855e7ffd31a37f146bdb1bd08aa9d7493150b6abd562978dae",
+        "size": 74174743
+      }
+    },
+    {
+      "alpha3": "cok",
+      "name": "Cook Islands",
+      "parts": [
+        {
+          "sha256": "981d96f7d9ba1c2e3d2471106d3c03f7cbea9b4d0b9083f91415e0501c9816f8",
+          "size": 1237473,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cok.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "981d96f7d9ba1c2e3d2471106d3c03f7cbea9b4d0b9083f91415e0501c9816f8",
+        "size": 1237473
+      }
+    },
+    {
+      "alpha3": "col",
+      "name": "Colombia",
+      "parts": [
+        {
+          "sha256": "e41242974e79b8b9553d8ff5f807cceb459927f2e64466e1c0c89a3cf2a85bd3",
+          "size": 561909404,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/col.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "e41242974e79b8b9553d8ff5f807cceb459927f2e64466e1c0c89a3cf2a85bd3",
+        "size": 561909404
+      }
+    },
+    {
+      "alpha3": "com",
+      "name": "Comoros",
+      "parts": [
+        {
+          "sha256": "ff1a711b5cb726ae5b79d27b523d696c3e880249411fe995af78603f696f0291",
+          "size": 4596680,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/com.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "ff1a711b5cb726ae5b79d27b523d696c3e880249411fe995af78603f696f0291",
+        "size": 4596680
+      }
+    },
+    {
+      "alpha3": "cpv",
+      "name": "Cape Verde",
+      "parts": [
+        {
+          "sha256": "27a1c84274ea3c28493d034f8d949e30de4b5a9eadddc45601ad72d37f204f98",
+          "size": 13374311,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cpv.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "27a1c84274ea3c28493d034f8d949e30de4b5a9eadddc45601ad72d37f204f98",
+        "size": 13374311
+      }
+    },
+    {
+      "alpha3": "cri",
+      "name": "Costa Rica",
+      "parts": [
+        {
+          "sha256": "c31ad37b40666427a03e3dece7398d46cdc29a198b1387ee67d6b549c1e31fee",
+          "size": 77370616,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cri.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c31ad37b40666427a03e3dece7398d46cdc29a198b1387ee67d6b549c1e31fee",
+        "size": 77370616
+      }
+    },
+    {
+      "alpha3": "cub",
+      "name": "Cuba",
+      "parts": [
+        {
+          "sha256": "50ba9420994efe2592099932ab3f551005992c39455a7178cd959b83e1bc916e",
+          "size": 122677566,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cub.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "50ba9420994efe2592099932ab3f551005992c39455a7178cd959b83e1bc916e",
+        "size": 122677566
+      }
+    },
+    {
+      "alpha3": "cuw",
+      "name": "Curaçao",
+      "parts": [
+        {
+          "sha256": "ac7ebc75480e3e644168595a1bf584ce224a64cd232cb0d2e710d189bc10e520",
+          "size": 5499025,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cuw.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "ac7ebc75480e3e644168595a1bf584ce224a64cd232cb0d2e710d189bc10e520",
+        "size": 5499025
+      }
+    },
+    {
+      "alpha3": "cxr",
+      "name": "Christmas Island",
+      "parts": [
+        {
+          "sha256": "39d2e1eb5a054ab91567ad6b9d74d1f906ecda38298a0dfbcd9cd0536bc091cb",
+          "size": 453327,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cxr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "39d2e1eb5a054ab91567ad6b9d74d1f906ecda38298a0dfbcd9cd0536bc091cb",
+        "size": 453327
+      }
+    },
+    {
+      "alpha3": "cym",
+      "name": "Cayman Islands",
+      "parts": [
+        {
+          "sha256": "f0e21387936d2e1e1837ce204e480dcbb7599a74bba838077f602c3925a06bd8",
+          "size": 1850058,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cym.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f0e21387936d2e1e1837ce204e480dcbb7599a74bba838077f602c3925a06bd8",
+        "size": 1850058
+      }
+    },
+    {
+      "alpha3": "cyp",
+      "name": "Cyprus",
+      "parts": [
+        {
+          "sha256": "f76290f63527de84e975f43437958a6a6b6354d641ede7f32ce1abe9e849d95b",
+          "size": 53839346,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cyp.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f76290f63527de84e975f43437958a6a6b6354d641ede7f32ce1abe9e849d95b",
+        "size": 53839346
+      }
+    },
+    {
+      "alpha3": "cze",
+      "name": "Czechia",
+      "parts": [
+        {
+          "sha256": "cc5774af844ac720752a1851e9b0bc9a025f66bb4ed3202ef98571132f8e3bf5",
+          "size": 1057719669,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/cze.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "cc5774af844ac720752a1851e9b0bc9a025f66bb4ed3202ef98571132f8e3bf5",
+        "size": 1057719669
+      }
+    },
+    {
+      "alpha3": "deu",
+      "name": "Germany",
+      "parts": [
+        {
+          "sha256": "af4463ed7f28174b04b606ba2f6c7aa902506a3faf07edeecec412a7ccdc3a20",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/deu.part01"
+        },
+        {
+          "sha256": "5feddbaaecded14758e57a6a956c6ec25279efdca9895c67248f3924e5a742b9",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/deu.part02"
+        },
+        {
+          "sha256": "8b06764e51eab51846ad74d3a65f150e7836ec683be3512903fcdcb064e58a10",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/deu.part03"
+        },
+        {
+          "sha256": "fb782b82c443735228656aac8eae461cc1adc3a91c844855e6ef4773e6533095",
+          "size": 684236461,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/deu.part04"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f49202f005c74c5731bf96108fd102bf5776cf642d70ced4c0c40dcd49bd99e7",
+        "size": 5184236461
+      }
+    },
+    {
+      "alpha3": "dji",
+      "name": "Djibouti",
+      "parts": [
+        {
+          "sha256": "09151e63f9451b726027c9fce78014a054923b96107997609692e085ca05270f",
+          "size": 11290588,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/dji.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "09151e63f9451b726027c9fce78014a054923b96107997609692e085ca05270f",
+        "size": 11290588
+      }
+    },
+    {
+      "alpha3": "dma",
+      "name": "Dominica",
+      "parts": [
+        {
+          "sha256": "85189189b422b81824e1669e4358660a63488697b9399a6179b795fd2b5cf01c",
+          "size": 3424716,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/dma.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "85189189b422b81824e1669e4358660a63488697b9399a6179b795fd2b5cf01c",
+        "size": 3424716
+      }
+    },
+    {
+      "alpha3": "dnk",
+      "name": "Denmark",
+      "parts": [
+        {
+          "sha256": "088245adf5dbfab0e3d28f61ab68f7d9f152dd926e7b9f84e4a93bc840fddcd2",
+          "size": 566766194,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/dnk.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "088245adf5dbfab0e3d28f61ab68f7d9f152dd926e7b9f84e4a93bc840fddcd2",
+        "size": 566766194
+      }
+    },
+    {
+      "alpha3": "dom",
+      "name": "Dominican Republic",
+      "parts": [
+        {
+          "sha256": "0fa6bc8163c4e274923639ef706c102c948cdb05c8edb21db7a51a64904dd9cf",
+          "size": 50718858,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/dom.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "0fa6bc8163c4e274923639ef706c102c948cdb05c8edb21db7a51a64904dd9cf",
+        "size": 50718858
+      }
+    },
+    {
+      "alpha3": "dza",
+      "name": "Algeria",
+      "parts": [
+        {
+          "sha256": "4efd92d404f3893f80bb0d8cdaa9dc29926ad740ec22ef078de42716960d6da5",
+          "size": 457487514,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/dza.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "4efd92d404f3893f80bb0d8cdaa9dc29926ad740ec22ef078de42716960d6da5",
+        "size": 457487514
+      }
+    },
+    {
+      "alpha3": "ecu",
+      "name": "Ecuador",
+      "parts": [
+        {
+          "sha256": "0674b8d8ff5d14c719648a2a8a7b990e9c7ba216aad1c75313adbae3195375d5",
+          "size": 202720288,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ecu.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "0674b8d8ff5d14c719648a2a8a7b990e9c7ba216aad1c75313adbae3195375d5",
+        "size": 202720288
+      }
+    },
+    {
+      "alpha3": "egy",
+      "name": "Egypt",
+      "parts": [
+        {
+          "sha256": "ef48dbb061c04f0bf76eee7af1596482cc63642ed45b4cd52478e2c96842d5d1",
+          "size": 261027817,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/egy.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "ef48dbb061c04f0bf76eee7af1596482cc63642ed45b4cd52478e2c96842d5d1",
+        "size": 261027817
+      }
+    },
+    {
+      "alpha3": "eri",
+      "name": "Eritrea",
+      "parts": [
+        {
+          "sha256": "8778189129827e992d12d8c67b0ff10ff03d97e6be58d95f0a77c9e9f3138f56",
+          "size": 42522929,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/eri.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "8778189129827e992d12d8c67b0ff10ff03d97e6be58d95f0a77c9e9f3138f56",
+        "size": 42522929
+      }
+    },
+    {
+      "alpha3": "esh",
+      "name": "Western Sahara",
+      "parts": [
+        {
+          "sha256": "08b47697872fba621eb4177c1e098df58e9e4e26529dabb9de19581f15fc5880",
+          "size": 27570225,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/esh.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "08b47697872fba621eb4177c1e098df58e9e4e26529dabb9de19581f15fc5880",
+        "size": 27570225
+      }
+    },
+    {
+      "alpha3": "esp",
+      "name": "Spain",
+      "parts": [
+        {
+          "sha256": "0906dd08b9a398c7f90fa64735153b95e311e6717d642cf3d64621e13ef8b261",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/esp.part01"
+        },
+        {
+          "sha256": "75fd9a78127b9c569f5d0378b0659d4f5ffdd12be9681485cc51114495d2eba4",
+          "size": 655428828,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/esp.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "5f7e2bd16ca4a5955be2a6c0c727b1416f2855cf350215caf18ad04d98673eb6",
+        "size": 2155428828
+      }
+    },
+    {
+      "alpha3": "est",
+      "name": "Estonia",
+      "parts": [
+        {
+          "sha256": "2bb8640042e78b6d29f9453fc8373c7dd5f25a6f17d9bcd6a1960e7cfc511e14",
+          "size": 223949646,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/est.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "2bb8640042e78b6d29f9453fc8373c7dd5f25a6f17d9bcd6a1960e7cfc511e14",
+        "size": 223949646
+      }
+    },
+    {
+      "alpha3": "eth",
+      "name": "Ethiopia",
+      "parts": [
+        {
+          "sha256": "818414b515c72b767d4bbb735f5b0d8f0ef0dea1d9a95ce46e1e35e83beeecc4",
+          "size": 281771756,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/eth.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "818414b515c72b767d4bbb735f5b0d8f0ef0dea1d9a95ce46e1e35e83beeecc4",
+        "size": 281771756
+      }
+    },
+    {
+      "alpha3": "fin",
+      "name": "Finland",
+      "parts": [
+        {
+          "sha256": "1f7bbd0141c3635b93aa2d4ece6f866ca5315774c0fa74adb6dc5f21ed386562",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/fin.part01"
+        },
+        {
+          "sha256": "717c5803a58e8268982e4e3a69898df27ff341d24cf4299013e146d872493339",
+          "size": 135320521,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/fin.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "6ac3a7245e9719a895149cbbe590126fcf27fff6be725d099a3cbd5e00ffe0b2",
+        "size": 1635320521
+      }
+    },
+    {
+      "alpha3": "fji",
+      "name": "Fiji",
+      "parts": [
+        {
+          "sha256": "ed50c6898e0a9d019d67c53ec292c535220d9d754950309a6881d47052f6dd26",
+          "size": 22390455,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/fji.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "ed50c6898e0a9d019d67c53ec292c535220d9d754950309a6881d47052f6dd26",
+        "size": 22390455
+      }
+    },
+    {
+      "alpha3": "flk",
+      "name": "Falkland Islands",
+      "parts": [
+        {
+          "sha256": "80fd73c73d42f4b342d77c32de20f6cce83d67e037ecd6031b0b41e4d21168ee",
+          "size": 14097076,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/flk.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "80fd73c73d42f4b342d77c32de20f6cce83d67e037ecd6031b0b41e4d21168ee",
+        "size": 14097076
+      }
+    },
+    {
+      "alpha3": "fra",
+      "name": "France",
+      "parts": [
+        {
+          "sha256": "f7670dd451ea599fa673f6214f63465f119acbf5fe792f8cf8eb687e3acfec34",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/fra.part01"
+        },
+        {
+          "sha256": "1ca00ba663fe3e66731a6860b84df021c18adfbdc4b01f3c0cdb9a436fdb0812",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/fra.part02"
+        },
+        {
+          "sha256": "e8e00f4513e4a2f3e6d3d1d53fcbc13e77e80ef0cf866453ea49937466e0ccbe",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/fra.part03"
+        },
+        {
+          "sha256": "1b9ca108e2ef3052fb231ac3c2b64237bacd57f91ca67c43217b42ab4b45eebc",
+          "size": 742225731,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/fra.part04"
+        }
+      ],
+      "reassembled": {
+        "sha256": "48539ca977eb6fc6c97c50b8a5a82c17010bd9c0a1624548192eba6b34c61e36",
+        "size": 5242225731
+      }
+    },
+    {
+      "alpha3": "fro",
+      "name": "Faroe Islands",
+      "parts": [
+        {
+          "sha256": "ea7af916e018a0f497bfe7929609d1b2f8ac0a007068d52340357d775f61c7f9",
+          "size": 12258693,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/fro.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "ea7af916e018a0f497bfe7929609d1b2f8ac0a007068d52340357d775f61c7f9",
+        "size": 12258693
+      }
+    },
+    {
+      "alpha3": "fsm",
+      "name": "Micronesia",
+      "parts": [
+        {
+          "sha256": "801d8c7fc1811086d2f404d171d18e23a96f214115d02576ed17484b151cff22",
+          "size": 2698976,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/fsm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "801d8c7fc1811086d2f404d171d18e23a96f214115d02576ed17484b151cff22",
+        "size": 2698976
+      }
+    },
+    {
+      "alpha3": "gab",
+      "name": "Gabon",
+      "parts": [
+        {
+          "sha256": "1d7b4c4cc9d75b263b2d196e90684d162c62bb4957a9bda4ca6e47fcb9c490e7",
+          "size": 79443043,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/gab.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "1d7b4c4cc9d75b263b2d196e90684d162c62bb4957a9bda4ca6e47fcb9c490e7",
+        "size": 79443043
+      }
+    },
+    {
+      "alpha3": "gbr",
+      "name": "United Kingdom",
+      "parts": [
+        {
+          "sha256": "3701744c11992dd6373ad487c765ab80d6a614a1d39f514b63693cef4bfe96b0",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/gbr.part01"
+        },
+        {
+          "sha256": "83eedeb3d0214dc0fad07a1736ccb6f341a832cfaba950c793fa429dfa2603db",
+          "size": 1005544449,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/gbr.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c14e426d5555d19933008801481800f60a12b9e143e4d108e805b0ec39182609",
+        "size": 2505544449
+      }
+    },
+    {
+      "alpha3": "geo",
+      "name": "Georgia",
+      "parts": [
+        {
+          "sha256": "f48514b2208546f768ee7166ae53a8b25b3c9e6beb4adea646387d4cfbd57e29",
+          "size": 188603719,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/geo.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f48514b2208546f768ee7166ae53a8b25b3c9e6beb4adea646387d4cfbd57e29",
+        "size": 188603719
+      }
+    },
+    {
+      "alpha3": "ggy",
+      "name": "Guernsey",
+      "parts": [
+        {
+          "sha256": "a9379b92bd336ab518703e37cf6b4fd3ca42a51887f62072e3f23bd457b04183",
+          "size": 2049949,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ggy.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "a9379b92bd336ab518703e37cf6b4fd3ca42a51887f62072e3f23bd457b04183",
+        "size": 2049949
+      }
+    },
+    {
+      "alpha3": "gha",
+      "name": "Ghana",
+      "parts": [
+        {
+          "sha256": "7a0189adb1d6f36ab2a1741397df42fc1e3d8b0fa10e3f858a84454c229223e9",
+          "size": 159650138,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/gha.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "7a0189adb1d6f36ab2a1741397df42fc1e3d8b0fa10e3f858a84454c229223e9",
+        "size": 159650138
+      }
+    },
+    {
+      "alpha3": "gib",
+      "name": "Gibraltar",
+      "parts": [
+        {
+          "sha256": "16eb68b201c5da1a091befde31b040c4514f22161a18769aaaa2a696ca1141fd",
+          "size": 1222519,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/gib.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "16eb68b201c5da1a091befde31b040c4514f22161a18769aaaa2a696ca1141fd",
+        "size": 1222519
+      }
+    },
+    {
+      "alpha3": "gin",
+      "name": "Guinea",
+      "parts": [
+        {
+          "sha256": "2719603a6f0e103e791d3ff87b862c0411b89f12e4cd418af04e28e864f9316c",
+          "size": 179539661,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/gin.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "2719603a6f0e103e791d3ff87b862c0411b89f12e4cd418af04e28e864f9316c",
+        "size": 179539661
+      }
+    },
+    {
+      "alpha3": "glp",
+      "name": "Guadeloupe",
+      "parts": [
+        {
+          "sha256": "538c74b2f9116a3e62e31adfa9a37950d20d8b5c85cd7054a61887b9e16c3f1f",
+          "size": 18153390,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/glp.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "538c74b2f9116a3e62e31adfa9a37950d20d8b5c85cd7054a61887b9e16c3f1f",
+        "size": 18153390
+      }
+    },
+    {
+      "alpha3": "gmb",
+      "name": "Gambia",
+      "parts": [
+        {
+          "sha256": "1182c351e6a6b9c087590e0cba054d4ba2efb7b84ed6f21faa05e359feb1a74e",
+          "size": 22487904,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/gmb.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "1182c351e6a6b9c087590e0cba054d4ba2efb7b84ed6f21faa05e359feb1a74e",
+        "size": 22487904
+      }
+    },
+    {
+      "alpha3": "gnb",
+      "name": "Guinea-Bissau",
+      "parts": [
+        {
+          "sha256": "1b4d0c32e03de88982b77faf27a8b3d42d20d3f26e7054beb47bddbf1f7ea59b",
+          "size": 25470620,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/gnb.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "1b4d0c32e03de88982b77faf27a8b3d42d20d3f26e7054beb47bddbf1f7ea59b",
+        "size": 25470620
+      }
+    },
+    {
+      "alpha3": "gnq",
+      "name": "Equatorial Guinea",
+      "parts": [
+        {
+          "sha256": "44481cb8cb4362a415866b1656a29cc4ce612bfaef07c503675bd46ac18b8e02",
+          "size": 14563902,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/gnq.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "44481cb8cb4362a415866b1656a29cc4ce612bfaef07c503675bd46ac18b8e02",
+        "size": 14563902
+      }
+    },
+    {
+      "alpha3": "grc",
+      "name": "Greece",
+      "parts": [
+        {
+          "sha256": "2a2fc24ca180daeb3fb95952fcac8d2ee2cc7a5a63937931b393bc2b0a58215f",
+          "size": 465941685,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/grc.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "2a2fc24ca180daeb3fb95952fcac8d2ee2cc7a5a63937931b393bc2b0a58215f",
+        "size": 465941685
+      }
+    },
+    {
+      "alpha3": "grd",
+      "name": "Grenada",
+      "parts": [
+        {
+          "sha256": "c945f7fd0cc3835259a354ace0428c1ec72aa098b1cf6a969e496fed27f40b74",
+          "size": 3141580,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/grd.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c945f7fd0cc3835259a354ace0428c1ec72aa098b1cf6a969e496fed27f40b74",
+        "size": 3141580
+      }
+    },
+    {
+      "alpha3": "grl",
+      "name": "Greenland",
+      "parts": [
+        {
+          "sha256": "3b71882e0de06f445f85c36dc7f5499d552c87b9f0f9ca9b32da720e495364a9",
+          "size": 337136735,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/grl.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "3b71882e0de06f445f85c36dc7f5499d552c87b9f0f9ca9b32da720e495364a9",
+        "size": 337136735
+      }
+    },
+    {
+      "alpha3": "gtm",
+      "name": "Guatemala",
+      "parts": [
+        {
+          "sha256": "e58ef3b66c59aaa736e5482ed487a0b8159d38d3990062e7ac03ac1e39afdac5",
+          "size": 158566134,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/gtm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "e58ef3b66c59aaa736e5482ed487a0b8159d38d3990062e7ac03ac1e39afdac5",
+        "size": 158566134
+      }
+    },
+    {
+      "alpha3": "guf",
+      "name": "French Guiana",
+      "parts": [
+        {
+          "sha256": "739eeb633a3ba23155bebb514546e314805b72645e3a0b58d1bdcdb2b08ce0fd",
+          "size": 31283974,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/guf.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "739eeb633a3ba23155bebb514546e314805b72645e3a0b58d1bdcdb2b08ce0fd",
+        "size": 31283974
+      }
+    },
+    {
+      "alpha3": "gum",
+      "name": "Guam",
+      "parts": [
+        {
+          "sha256": "bc840f94decc950c6834f51d11cb40e6c2398742cf3e19c26b49bdd64d4972aa",
+          "size": 3185426,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/gum.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "bc840f94decc950c6834f51d11cb40e6c2398742cf3e19c26b49bdd64d4972aa",
+        "size": 3185426
+      }
+    },
+    {
+      "alpha3": "guy",
+      "name": "Guyana",
+      "parts": [
+        {
+          "sha256": "0831aa7dba6de0637d669f0af0eab0073056b47a918194b466c4dda2e1968b4f",
+          "size": 32614166,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/guy.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "0831aa7dba6de0637d669f0af0eab0073056b47a918194b466c4dda2e1968b4f",
+        "size": 32614166
+      }
+    },
+    {
+      "alpha3": "hkg",
+      "name": "Hong Kong",
+      "parts": [
+        {
+          "sha256": "14424575580d45f0c024276fa54ee935c008873ce30772ea89ebd5000490a449",
+          "size": 28244143,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/hkg.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "14424575580d45f0c024276fa54ee935c008873ce30772ea89ebd5000490a449",
+        "size": 28244143
+      }
+    },
+    {
+      "alpha3": "hmd",
+      "name": "Heard Island and McDonald Islands",
+      "parts": [
+        {
+          "sha256": "409d59b52f09f72f93414ca334337ce2727cf081664e918f05d070aa2ef02318",
+          "size": 569546,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/hmd.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "409d59b52f09f72f93414ca334337ce2727cf081664e918f05d070aa2ef02318",
+        "size": 569546
+      }
+    },
+    {
+      "alpha3": "hnd",
+      "name": "Honduras",
+      "parts": [
+        {
+          "sha256": "0617c0e6bfb950159f941294eec3180efbbfb17040e1dfb737d3fae5f4907076",
+          "size": 107437030,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/hnd.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "0617c0e6bfb950159f941294eec3180efbbfb17040e1dfb737d3fae5f4907076",
+        "size": 107437030
+      }
+    },
+    {
+      "alpha3": "hrv",
+      "name": "Croatia",
+      "parts": [
+        {
+          "sha256": "5b90c58e2ba280a89acd01cf86e711740ed9c3163a772de6bb362887e89ea757",
+          "size": 350028566,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/hrv.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "5b90c58e2ba280a89acd01cf86e711740ed9c3163a772de6bb362887e89ea757",
+        "size": 350028566
+      }
+    },
+    {
+      "alpha3": "hti",
+      "name": "Haiti",
+      "parts": [
+        {
+          "sha256": "9317d90827889dcc7f632bfc092d221f93e9e627c298fc7c6c0e4bbf1187e5b6",
+          "size": 59501859,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/hti.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "9317d90827889dcc7f632bfc092d221f93e9e627c298fc7c6c0e4bbf1187e5b6",
+        "size": 59501859
+      }
+    },
+    {
+      "alpha3": "hun",
+      "name": "Hungary",
+      "parts": [
+        {
+          "sha256": "40300863cac6bc727962d8b4fc7aba7867356229185a5cdc543a0ea1897a4286",
+          "size": 482021218,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/hun.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "40300863cac6bc727962d8b4fc7aba7867356229185a5cdc543a0ea1897a4286",
+        "size": 482021218
+      }
+    },
+    {
+      "alpha3": "idn",
+      "name": "Indonesia",
+      "parts": [
+        {
+          "sha256": "0c403dec39cf86eeff7d18d259877be127041ffd2f7cb427447d6c03a6294ffc",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/idn.part01"
+        },
+        {
+          "sha256": "d44492f04edd2f6d1e62df328ad201de318fe92febdcd8221152888c3bcfec49",
+          "size": 368337843,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/idn.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "9b2fe462b68f3ef7410baac008bf80558f4b827dea1ced74b1e4427a3ee227d5",
+        "size": 1868337843
+      }
+    },
+    {
+      "alpha3": "imn",
+      "name": "Isle of Man",
+      "parts": [
+        {
+          "sha256": "a2fb7403a91c8f13310d1edefe0a99d0aedabebebd572526d01c2388a26d162c",
+          "size": 9124446,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/imn.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "a2fb7403a91c8f13310d1edefe0a99d0aedabebebd572526d01c2388a26d162c",
+        "size": 9124446
+      }
+    },
+    {
+      "alpha3": "ind",
+      "name": "India",
+      "parts": [
+        {
+          "sha256": "2e10bb62931f8538bc39bc117f9a584702ceeb231d9fcde4bfa4ab8b536a5f50",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ind.part01"
+        },
+        {
+          "sha256": "71e1dbe38f64664f5a44a4ee9ade3b2190a8ec101a159819e00500b7257797e2",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ind.part02"
+        },
+        {
+          "sha256": "4e6f8e080e7a03750f2f72a7a51bc21f58048b50a058dfdf8fd39de9ae70535f",
+          "size": 75397934,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ind.part03"
+        }
+      ],
+      "reassembled": {
+        "sha256": "5d7ae12e9ef0c6afbc599c28c62f587c61ee0ec72097337fc8f4b253d1642502",
+        "size": 3075397934
+      }
+    },
+    {
+      "alpha3": "iot",
+      "name": "British Indian Ocean Territory",
+      "parts": [
+        {
+          "sha256": "40e001a5808aefbc5f01c55791a7968584578a29c45dd25d85e91dbfd6a02adb",
+          "size": 727398,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/iot.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "40e001a5808aefbc5f01c55791a7968584578a29c45dd25d85e91dbfd6a02adb",
+        "size": 727398
+      }
+    },
+    {
+      "alpha3": "irl",
+      "name": "Ireland",
+      "parts": [
+        {
+          "sha256": "4f7aee115cc708fbab0a0cace8e683678ab393725deb295f81c1c28f25b5da85",
+          "size": 432165026,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/irl.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "4f7aee115cc708fbab0a0cace8e683678ab393725deb295f81c1c28f25b5da85",
+        "size": 432165026
+      }
+    },
+    {
+      "alpha3": "irn",
+      "name": "Iran",
+      "parts": [
+        {
+          "sha256": "29069bc228c34aa0cb5c32cca2e366cd1afeac8240973d30938f1264232c3494",
+          "size": 681303430,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/irn.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "29069bc228c34aa0cb5c32cca2e366cd1afeac8240973d30938f1264232c3494",
+        "size": 681303430
+      }
+    },
+    {
+      "alpha3": "irq",
+      "name": "Iraq",
+      "parts": [
+        {
+          "sha256": "afa0ea177db77b1f079c7fbec04c1caa093ddd7bedf2f8d52ead154dedc20b0b",
+          "size": 220104535,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/irq.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "afa0ea177db77b1f079c7fbec04c1caa093ddd7bedf2f8d52ead154dedc20b0b",
+        "size": 220104535
+      }
+    },
+    {
+      "alpha3": "isl",
+      "name": "Iceland",
+      "parts": [
+        {
+          "sha256": "cb6c9efd521fcd64d9f82fc2808461a1d8fa23685c72f80698ed71646977f137",
+          "size": 258362552,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/isl.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "cb6c9efd521fcd64d9f82fc2808461a1d8fa23685c72f80698ed71646977f137",
+        "size": 258362552
+      }
+    },
+    {
+      "alpha3": "isr",
+      "name": "Israel",
+      "parts": [
+        {
+          "sha256": "82c7f4f9959e3d7321d452ea674ed802a94105f9202d45f4b26f18c03d59c30e",
+          "size": 103910581,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/isr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "82c7f4f9959e3d7321d452ea674ed802a94105f9202d45f4b26f18c03d59c30e",
+        "size": 103910581
+      }
+    },
+    {
+      "alpha3": "ita",
+      "name": "Italy",
+      "parts": [
+        {
+          "sha256": "73f5a706601b91c02905280dc88ed7c296ecfa96097dfc24038a10ef8f541794",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ita.part01"
+        },
+        {
+          "sha256": "5b0a780a95dd621cecbd6f23cc03231d460a175c249aa3de74f4bf679cfe54b2",
+          "size": 1088013372,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ita.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "31476d19ef15e68009effbc5f1d6d8dca5d03b39ba505b1a3c2c098873987bb5",
+        "size": 2588013372
+      }
+    },
+    {
+      "alpha3": "jam",
+      "name": "Jamaica",
+      "parts": [
+        {
+          "sha256": "f50e07750d24ae623ceb88d163cb8c986b600f4a565a63665e53b9e0ccc40ad4",
+          "size": 39265824,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/jam.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f50e07750d24ae623ceb88d163cb8c986b600f4a565a63665e53b9e0ccc40ad4",
+        "size": 39265824
+      }
+    },
+    {
+      "alpha3": "jey",
+      "name": "Jersey",
+      "parts": [
+        {
+          "sha256": "93c21cce7bd45331fdc641db1f3d50d2daa2be224575afeddf6888debebabbbc",
+          "size": 3076828,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/jey.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "93c21cce7bd45331fdc641db1f3d50d2daa2be224575afeddf6888debebabbbc",
+        "size": 3076828
+      }
+    },
+    {
+      "alpha3": "jor",
+      "name": "Jordan",
+      "parts": [
+        {
+          "sha256": "ad54a4e92e2e3d2e54f4715f278bf0b38db1e5449d0505486bed0dadf52442bf",
+          "size": 50568941,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/jor.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "ad54a4e92e2e3d2e54f4715f278bf0b38db1e5449d0505486bed0dadf52442bf",
+        "size": 50568941
+      }
+    },
+    {
+      "alpha3": "jpn",
+      "name": "Japan",
+      "parts": [
+        {
+          "sha256": "2e8051fbafc3bdd67be45333e3e652c40e843f98b3cfa75749c4c6a7ceb9c6ac",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/jpn.part01"
+        },
+        {
+          "sha256": "dffc8ec3a2144d7e05aeaebcdef17151d69210b490f9ea7e37f067684d013959",
+          "size": 928601338,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/jpn.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "05ec614bdf5816ecc690ad0a82b325639397e08f56d487ccb4e158ffbca5c2df",
+        "size": 2428601338
+      }
+    },
+    {
+      "alpha3": "kaz",
+      "name": "Kazakhstan",
+      "parts": [
+        {
+          "sha256": "5843427b1220bfb676461137843295581b9454b705af2c867b7e06d7d8252bab",
+          "size": 673365891,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/kaz.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "5843427b1220bfb676461137843295581b9454b705af2c867b7e06d7d8252bab",
+        "size": 673365891
+      }
+    },
+    {
+      "alpha3": "ken",
+      "name": "Kenya",
+      "parts": [
+        {
+          "sha256": "42be0d3d1ce300964469302db2738205f529f1f5c0276706402c91d835417eb9",
+          "size": 398615327,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ken.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "42be0d3d1ce300964469302db2738205f529f1f5c0276706402c91d835417eb9",
+        "size": 398615327
+      }
+    },
+    {
+      "alpha3": "kgz",
+      "name": "Kyrgyzstan",
+      "parts": [
+        {
+          "sha256": "2083ce6e615894609349a4c03e8d7cec52a05ecfcd613dbc6ba0a3499f0eda44",
+          "size": 117042996,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/kgz.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "2083ce6e615894609349a4c03e8d7cec52a05ecfcd613dbc6ba0a3499f0eda44",
+        "size": 117042996
+      }
+    },
+    {
+      "alpha3": "khm",
+      "name": "Cambodia",
+      "parts": [
+        {
+          "sha256": "b42da8a662ab5a517a0444c11fef418a93de80e302a1567bfa475d2fad056cec",
+          "size": 86010299,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/khm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b42da8a662ab5a517a0444c11fef418a93de80e302a1567bfa475d2fad056cec",
+        "size": 86010299
+      }
+    },
+    {
+      "alpha3": "kir",
+      "name": "Kiribati",
+      "parts": [
+        {
+          "sha256": "f3eb49a8b2b1639a1128f7bdd22102f748f8716b24a777d3eb134a38e959d652",
+          "size": 2632591,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/kir.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f3eb49a8b2b1639a1128f7bdd22102f748f8716b24a777d3eb134a38e959d652",
+        "size": 2632591
+      }
+    },
+    {
+      "alpha3": "kna",
+      "name": "Saint Kitts and Nevis",
+      "parts": [
+        {
+          "sha256": "5787efe0be44c7b2d6733b2e28bc30f443252eb6df754f3281efe86c7594de41",
+          "size": 2153244,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/kna.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "5787efe0be44c7b2d6733b2e28bc30f443252eb6df754f3281efe86c7594de41",
+        "size": 2153244
+      }
+    },
+    {
+      "alpha3": "kor",
+      "name": "South Korea",
+      "parts": [
+        {
+          "sha256": "8223f7ecaca90e04e775817f4f3b595b78f476569733008315fa93c1a31f6ff0",
+          "size": 455797070,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/kor.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "8223f7ecaca90e04e775817f4f3b595b78f476569733008315fa93c1a31f6ff0",
+        "size": 455797070
+      }
+    },
+    {
+      "alpha3": "kwt",
+      "name": "Kuwait",
+      "parts": [
+        {
+          "sha256": "6fbecccae93f42786a73c53950e10910b591f908d8db44b2ce4333e23ff6be6d",
+          "size": 19898723,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/kwt.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "6fbecccae93f42786a73c53950e10910b591f908d8db44b2ce4333e23ff6be6d",
+        "size": 19898723
+      }
+    },
+    {
+      "alpha3": "lao",
+      "name": "Laos",
+      "parts": [
+        {
+          "sha256": "fe4d77bcf55d37bcd7b78aa72bc7c60e1f52a14448d49c22d89af1221996c1d6",
+          "size": 127041575,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/lao.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "fe4d77bcf55d37bcd7b78aa72bc7c60e1f52a14448d49c22d89af1221996c1d6",
+        "size": 127041575
+      }
+    },
+    {
+      "alpha3": "lbn",
+      "name": "Lebanon",
+      "parts": [
+        {
+          "sha256": "fb50c56fbc8316d8239b346ed305aae4a5749a3d9934823715d6cfdd7ea5be33",
+          "size": 59508645,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/lbn.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "fb50c56fbc8316d8239b346ed305aae4a5749a3d9934823715d6cfdd7ea5be33",
+        "size": 59508645
+      }
+    },
+    {
+      "alpha3": "lbr",
+      "name": "Liberia",
+      "parts": [
+        {
+          "sha256": "8d12e2bf41e8d7703f5d9d39c97a488eedecc731fed45b1acfc9525a135161cf",
+          "size": 55219307,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/lbr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "8d12e2bf41e8d7703f5d9d39c97a488eedecc731fed45b1acfc9525a135161cf",
+        "size": 55219307
+      }
+    },
+    {
+      "alpha3": "lby",
+      "name": "Libya",
+      "parts": [
+        {
+          "sha256": "bd26b157aaaeba27e5a62dd1101003a57d5418904fed2308c30d0d23d5237d77",
+          "size": 152501024,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/lby.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "bd26b157aaaeba27e5a62dd1101003a57d5418904fed2308c30d0d23d5237d77",
+        "size": 152501024
+      }
+    },
+    {
+      "alpha3": "lca",
+      "name": "Saint Lucia",
+      "parts": [
+        {
+          "sha256": "05ca188c3b55383ccbb8ea7f76edd315907f9625e4b8f856017e3cb1747eb36b",
+          "size": 4593037,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/lca.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "05ca188c3b55383ccbb8ea7f76edd315907f9625e4b8f856017e3cb1747eb36b",
+        "size": 4593037
+      }
+    },
+    {
+      "alpha3": "lie",
+      "name": "Liechtenstein",
+      "parts": [
+        {
+          "sha256": "b9f15478ad083016e720d0286468a829c87427a82f4790747b49c2941ea86396",
+          "size": 6984224,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/lie.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b9f15478ad083016e720d0286468a829c87427a82f4790747b49c2941ea86396",
+        "size": 6984224
+      }
+    },
+    {
+      "alpha3": "lka",
+      "name": "Sri Lanka",
+      "parts": [
+        {
+          "sha256": "9b2f479aab4bb0d1fd59758f10c0ff7f37382e2a640fd43020eaa76425acc391",
+          "size": 172158224,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/lka.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "9b2f479aab4bb0d1fd59758f10c0ff7f37382e2a640fd43020eaa76425acc391",
+        "size": 172158224
+      }
+    },
+    {
+      "alpha3": "lso",
+      "name": "Lesotho",
+      "parts": [
+        {
+          "sha256": "1537946d3bc6c09d4ed71a3e1c7f961e7b0d7becf2d47dca03f4405ce5ad80a3",
+          "size": 147304247,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/lso.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "1537946d3bc6c09d4ed71a3e1c7f961e7b0d7becf2d47dca03f4405ce5ad80a3",
+        "size": 147304247
+      }
+    },
+    {
+      "alpha3": "ltu",
+      "name": "Lithuania",
+      "parts": [
+        {
+          "sha256": "c82749bcf301ab92c43fde4fc408525e4b3e86fc10b8ac28f95eb000d8853f8a",
+          "size": 433472199,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ltu.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c82749bcf301ab92c43fde4fc408525e4b3e86fc10b8ac28f95eb000d8853f8a",
+        "size": 433472199
+      }
+    },
+    {
+      "alpha3": "lux",
+      "name": "Luxembourg",
+      "parts": [
+        {
+          "sha256": "fe8732b47f4488af23b2b439efa19afbcb9bbaa8383bd653192b8c4301cccce6",
+          "size": 67174401,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/lux.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "fe8732b47f4488af23b2b439efa19afbcb9bbaa8383bd653192b8c4301cccce6",
+        "size": 67174401
+      }
+    },
+    {
+      "alpha3": "lva",
+      "name": "Latvia",
+      "parts": [
+        {
+          "sha256": "c0bc9f1f91bb8afcdedd0f10431cd72d7f161334bacc6e445a8f0e4c3bf77d58",
+          "size": 278141264,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/lva.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c0bc9f1f91bb8afcdedd0f10431cd72d7f161334bacc6e445a8f0e4c3bf77d58",
+        "size": 278141264
+      }
+    },
+    {
+      "alpha3": "mac",
+      "name": "Macau",
+      "parts": [
+        {
+          "sha256": "749164990c676cd70bdaf2be7f68b363eb9a4054d9b02e2b7fd812218df52e1c",
+          "size": 2804952,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mac.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "749164990c676cd70bdaf2be7f68b363eb9a4054d9b02e2b7fd812218df52e1c",
+        "size": 2804952
+      }
+    },
+    {
+      "alpha3": "maf",
+      "name": "Saint Martin",
+      "parts": [
+        {
+          "sha256": "1168521cf7be703f56bd1ecb3ef92bb65fdd62bbbf3310c350b67197013b32ab",
+          "size": 1522654,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/maf.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "1168521cf7be703f56bd1ecb3ef92bb65fdd62bbbf3310c350b67197013b32ab",
+        "size": 1522654
+      }
+    },
+    {
+      "alpha3": "mar",
+      "name": "Morocco",
+      "parts": [
+        {
+          "sha256": "e7bee655eab44f41af100a8b509bc5a7e6e216bb192bd907b999b63bae6d21fe",
+          "size": 379259027,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mar.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "e7bee655eab44f41af100a8b509bc5a7e6e216bb192bd907b999b63bae6d21fe",
+        "size": 379259027
+      }
+    },
+    {
+      "alpha3": "mco",
+      "name": "Monaco",
+      "parts": [
+        {
+          "sha256": "3cdf40421366023465c8a4f380a89d5806d3591d0acd24f1cc659e3ba143d91d",
+          "size": 2102436,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mco.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "3cdf40421366023465c8a4f380a89d5806d3591d0acd24f1cc659e3ba143d91d",
+        "size": 2102436
+      }
+    },
+    {
+      "alpha3": "mda",
+      "name": "Moldova",
+      "parts": [
+        {
+          "sha256": "de8b4d4b6b8c105917fd1dbd1396433a21b767ddbe3b3ac8db59275c60b80801",
+          "size": 157212644,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mda.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "de8b4d4b6b8c105917fd1dbd1396433a21b767ddbe3b3ac8db59275c60b80801",
+        "size": 157212644
+      }
+    },
+    {
+      "alpha3": "mdg",
+      "name": "Madagascar",
+      "parts": [
+        {
+          "sha256": "11da5d35bc3a0b32f8d7f298ce733e55d9773d2db8e6ace4fbc33161a995742b",
+          "size": 580164682,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mdg.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "11da5d35bc3a0b32f8d7f298ce733e55d9773d2db8e6ace4fbc33161a995742b",
+        "size": 580164682
+      }
+    },
+    {
+      "alpha3": "mdv",
+      "name": "Maldives",
+      "parts": [
+        {
+          "sha256": "1bf61efd621e5a23c6e10e38c03e4b80777db20ac4fa5bc8b6885b4d3b595cbe",
+          "size": 1933749,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mdv.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "1bf61efd621e5a23c6e10e38c03e4b80777db20ac4fa5bc8b6885b4d3b595cbe",
+        "size": 1933749
+      }
+    },
+    {
+      "alpha3": "mex",
+      "name": "Mexico",
+      "parts": [
+        {
+          "sha256": "8c6cbbc9fb242261b38c52845390467e9fabb5d249a05e8526f88c099f8c66cf",
+          "size": 1169897000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mex.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "8c6cbbc9fb242261b38c52845390467e9fabb5d249a05e8526f88c099f8c66cf",
+        "size": 1169897000
+      }
+    },
+    {
+      "alpha3": "mhl",
+      "name": "Marshall Islands",
+      "parts": [
+        {
+          "sha256": "06823f28a0bae62729d5860f158b70c32cd232d4cc1a5fa3ae6b9050ef305eb0",
+          "size": 791992,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mhl.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "06823f28a0bae62729d5860f158b70c32cd232d4cc1a5fa3ae6b9050ef305eb0",
+        "size": 791992
+      }
+    },
+    {
+      "alpha3": "mkd",
+      "name": "North Macedonia",
+      "parts": [
+        {
+          "sha256": "4647ccffb3e03d5ab26cf1274c8ec3c5f1d430d8db20cdac5987ec567ebb9088",
+          "size": 64065409,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mkd.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "4647ccffb3e03d5ab26cf1274c8ec3c5f1d430d8db20cdac5987ec567ebb9088",
+        "size": 64065409
+      }
+    },
+    {
+      "alpha3": "mli",
+      "name": "Mali",
+      "parts": [
+        {
+          "sha256": "c6a05c6df36c86aab954f89fbc532ab4056ba0debb2a7d59c54981a5832fae78",
+          "size": 387505276,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mli.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c6a05c6df36c86aab954f89fbc532ab4056ba0debb2a7d59c54981a5832fae78",
+        "size": 387505276
+      }
+    },
+    {
+      "alpha3": "mlt",
+      "name": "Malta",
+      "parts": [
+        {
+          "sha256": "33717d44858c7b297a5cce0f8ba15bfdcecca7f0626a2db9e7f4393621f42b3d",
+          "size": 8011896,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mlt.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "33717d44858c7b297a5cce0f8ba15bfdcecca7f0626a2db9e7f4393621f42b3d",
+        "size": 8011896
+      }
+    },
+    {
+      "alpha3": "mmr",
+      "name": "Myanmar",
+      "parts": [
+        {
+          "sha256": "decf0fb67dc648d2938bd741837b296f4940fef3dfe2df4a62f11bf8aa3b07e7",
+          "size": 495690002,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mmr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "decf0fb67dc648d2938bd741837b296f4940fef3dfe2df4a62f11bf8aa3b07e7",
+        "size": 495690002
+      }
+    },
+    {
+      "alpha3": "mne",
+      "name": "Montenegro",
+      "parts": [
+        {
+          "sha256": "f9ef782f7b985fc017623da46ec40a0fa7b7b342846ab136f6478ce29dd8eff6",
+          "size": 63705612,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mne.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f9ef782f7b985fc017623da46ec40a0fa7b7b342846ab136f6478ce29dd8eff6",
+        "size": 63705612
+      }
+    },
+    {
+      "alpha3": "mng",
+      "name": "Mongolia",
+      "parts": [
+        {
+          "sha256": "48fb145c91f040f45ee2dc82a72c570743a40012639597cce1b29c5697e9a1d2",
+          "size": 217704878,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mng.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "48fb145c91f040f45ee2dc82a72c570743a40012639597cce1b29c5697e9a1d2",
+        "size": 217704878
+      }
+    },
+    {
+      "alpha3": "mnp",
+      "name": "Northern Mariana Islands",
+      "parts": [
+        {
+          "sha256": "c517c3d35a12d561f7a646776d96a37e5d4a233b89bed1a5819b91cb2d4d4c67",
+          "size": 1911460,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mnp.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c517c3d35a12d561f7a646776d96a37e5d4a233b89bed1a5819b91cb2d4d4c67",
+        "size": 1911460
+      }
+    },
+    {
+      "alpha3": "moz",
+      "name": "Mozambique",
+      "parts": [
+        {
+          "sha256": "be5ffdf16190bb0774c067ebcb78e815cf5a0bc11835d1b5e4b2ad86c523a8c7",
+          "size": 312894530,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/moz.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "be5ffdf16190bb0774c067ebcb78e815cf5a0bc11835d1b5e4b2ad86c523a8c7",
+        "size": 312894530
+      }
+    },
+    {
+      "alpha3": "mrt",
+      "name": "Mauritania",
+      "parts": [
+        {
+          "sha256": "fd4581e01e7d3dce955f8ef99c388d5fcd43e1a38c60a37e97b880ba47955268",
+          "size": 77075139,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mrt.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "fd4581e01e7d3dce955f8ef99c388d5fcd43e1a38c60a37e97b880ba47955268",
+        "size": 77075139
+      }
+    },
+    {
+      "alpha3": "msr",
+      "name": "Montserrat",
+      "parts": [
+        {
+          "sha256": "e3d39182241ce8f9e263a26d323499525b900f5d7f10158d650181a9f609ea37",
+          "size": 964830,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/msr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "e3d39182241ce8f9e263a26d323499525b900f5d7f10158d650181a9f609ea37",
+        "size": 964830
+      }
+    },
+    {
+      "alpha3": "mtq",
+      "name": "Martinique",
+      "parts": [
+        {
+          "sha256": "6e125478aa28d7cdcc9fccc94afd0f24229690da0bafa0d02a866f27a3a5732e",
+          "size": 13312513,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mtq.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "6e125478aa28d7cdcc9fccc94afd0f24229690da0bafa0d02a866f27a3a5732e",
+        "size": 13312513
+      }
+    },
+    {
+      "alpha3": "mus",
+      "name": "Mauritius",
+      "parts": [
+        {
+          "sha256": "0bb1493364a6dba8dac78881d83f20a31e56876ddf3b371ae58511f7838c122b",
+          "size": 13971886,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mus.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "0bb1493364a6dba8dac78881d83f20a31e56876ddf3b371ae58511f7838c122b",
+        "size": 13971886
+      }
+    },
+    {
+      "alpha3": "mwi",
+      "name": "Malawi",
+      "parts": [
+        {
+          "sha256": "d1db59bb5e661e7840a023075a0c04f9dd7376c241a24abce4e3640cf8110586",
+          "size": 157234869,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mwi.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "d1db59bb5e661e7840a023075a0c04f9dd7376c241a24abce4e3640cf8110586",
+        "size": 157234869
+      }
+    },
+    {
+      "alpha3": "mys",
+      "name": "Malaysia",
+      "parts": [
+        {
+          "sha256": "0cd84e49afc279b7539979d03b851510b19438917a530b6d9d8148433a4a45e3",
+          "size": 296733633,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/mys.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "0cd84e49afc279b7539979d03b851510b19438917a530b6d9d8148433a4a45e3",
+        "size": 296733633
+      }
+    },
+    {
+      "alpha3": "myt",
+      "name": "Mayotte",
+      "parts": [
+        {
+          "sha256": "8a78735a369513d31276e65e84cfcfee3ff10e819429c9c21171f7687bb0cab1",
+          "size": 8407503,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/myt.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "8a78735a369513d31276e65e84cfcfee3ff10e819429c9c21171f7687bb0cab1",
+        "size": 8407503
+      }
+    },
+    {
+      "alpha3": "nam",
+      "name": "Namibia",
+      "parts": [
+        {
+          "sha256": "604f5e1b8c846b9b66497f756e0b5cb53c61bf1f3f46bb04c9f37c794719fcd3",
+          "size": 152148506,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/nam.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "604f5e1b8c846b9b66497f756e0b5cb53c61bf1f3f46bb04c9f37c794719fcd3",
+        "size": 152148506
+      }
+    },
+    {
+      "alpha3": "ncl",
+      "name": "New Caledonia",
+      "parts": [
+        {
+          "sha256": "0286d4bdbb501cbf61216419c5a3754c6653c4d84e495f4046b02db98db2145e",
+          "size": 20202537,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ncl.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "0286d4bdbb501cbf61216419c5a3754c6653c4d84e495f4046b02db98db2145e",
+        "size": 20202537
+      }
+    },
+    {
+      "alpha3": "ner",
+      "name": "Niger",
+      "parts": [
+        {
+          "sha256": "5c433c7702309532fc90fba8c835cae59ff5791b909bd1e29c5b3e36019df1b1",
+          "size": 169834561,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ner.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "5c433c7702309532fc90fba8c835cae59ff5791b909bd1e29c5b3e36019df1b1",
+        "size": 169834561
+      }
+    },
+    {
+      "alpha3": "nfk",
+      "name": "Norfolk Island",
+      "parts": [
+        {
+          "sha256": "159dbf0d647d9649c517a052c8547c988a4c2da77c7bd0ce9b67d400606eb0ae",
+          "size": 547935,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/nfk.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "159dbf0d647d9649c517a052c8547c988a4c2da77c7bd0ce9b67d400606eb0ae",
+        "size": 547935
+      }
+    },
+    {
+      "alpha3": "nga",
+      "name": "Nigeria",
+      "parts": [
+        {
+          "sha256": "f6adb927c8ec65590664a3916dd8308eafffb38a59891b5d58af8cb0b5405f6f",
+          "size": 831509573,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/nga.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f6adb927c8ec65590664a3916dd8308eafffb38a59891b5d58af8cb0b5405f6f",
+        "size": 831509573
+      }
+    },
+    {
+      "alpha3": "nic",
+      "name": "Nicaragua",
+      "parts": [
+        {
+          "sha256": "1e53ef8b494f43465ae045a0742d8efc2802989ff43b04ccf20c03d9d0ec078f",
+          "size": 122722849,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/nic.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "1e53ef8b494f43465ae045a0742d8efc2802989ff43b04ccf20c03d9d0ec078f",
+        "size": 122722849
+      }
+    },
+    {
+      "alpha3": "niu",
+      "name": "Niue",
+      "parts": [
+        {
+          "sha256": "242408550c50a44bb2d0f617b325a5372c271b3935faa50bb86551e731532ea6",
+          "size": 774725,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/niu.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "242408550c50a44bb2d0f617b325a5372c271b3935faa50bb86551e731532ea6",
+        "size": 774725
+      }
+    },
+    {
+      "alpha3": "nld",
+      "name": "Netherlands",
+      "parts": [
+        {
+          "sha256": "9a15e810558128ff5f0d2570b6c7d34a42d778083ea2c69894b533200fb2e167",
+          "size": 1126455681,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/nld.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "9a15e810558128ff5f0d2570b6c7d34a42d778083ea2c69894b533200fb2e167",
+        "size": 1126455681
+      }
+    },
+    {
+      "alpha3": "nor",
+      "name": "Norway",
+      "parts": [
+        {
+          "sha256": "d20e4a4f62a457f7857d392f10122f5a2476c7a0b5a50181ddf38e5f68a5f1aa",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/nor.part01"
+        },
+        {
+          "sha256": "f4a70fc9273e277ad979321ec4dbd50044012e675d2b9e38b0b60fdb37b61f3d",
+          "size": 1228558902,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/nor.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "4d32529278c4544545a6b48f98c4185bd51588d3e3a44871f20bd4920065440a",
+        "size": 2728558902
+      }
+    },
+    {
+      "alpha3": "npl",
+      "name": "Nepal",
+      "parts": [
+        {
+          "sha256": "caed3cba38f8067b9dcf4ca0c32a95afec8f3ffd144044e1c429251643bf7720",
+          "size": 536146516,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/npl.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "caed3cba38f8067b9dcf4ca0c32a95afec8f3ffd144044e1c429251643bf7720",
+        "size": 536146516
+      }
+    },
+    {
+      "alpha3": "nru",
+      "name": "Nauru",
+      "parts": [
+        {
+          "sha256": "8f36e06393ce1854d2a1409e3a1d290da1080296073c15226e999ad2f815af18",
+          "size": 506225,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/nru.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "8f36e06393ce1854d2a1409e3a1d290da1080296073c15226e999ad2f815af18",
+        "size": 506225
+      }
+    },
+    {
+      "alpha3": "nzl",
+      "name": "New Zealand",
+      "parts": [
+        {
+          "sha256": "9b32d34563cef53ffb36b8a93236cddf0c0a1169c47b39459c9cfd420cc0936b",
+          "size": 607079699,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/nzl.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "9b32d34563cef53ffb36b8a93236cddf0c0a1169c47b39459c9cfd420cc0936b",
+        "size": 607079699
+      }
+    },
+    {
+      "alpha3": "omn",
+      "name": "Oman",
+      "parts": [
+        {
+          "sha256": "4935ac3fb37fb38d5ccdecd46bf963ed5eb1b5a67ac36ef33ec49c9d30b45af2",
+          "size": 66490448,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/omn.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "4935ac3fb37fb38d5ccdecd46bf963ed5eb1b5a67ac36ef33ec49c9d30b45af2",
+        "size": 66490448
+      }
+    },
+    {
+      "alpha3": "pak",
+      "name": "Pakistan",
+      "parts": [
+        {
+          "sha256": "75b3441532f051cf2fdbecca3f898cbf5aa31a4e8e403f9456d5fd00cee2b62c",
+          "size": 425694322,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/pak.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "75b3441532f051cf2fdbecca3f898cbf5aa31a4e8e403f9456d5fd00cee2b62c",
+        "size": 425694322
+      }
+    },
+    {
+      "alpha3": "pan",
+      "name": "Panama",
+      "parts": [
+        {
+          "sha256": "987ff0ea371f77079805102f35cab8e0625e29e51b7d3f357e12dac72cf76905",
+          "size": 65593652,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/pan.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "987ff0ea371f77079805102f35cab8e0625e29e51b7d3f357e12dac72cf76905",
+        "size": 65593652
+      }
+    },
+    {
+      "alpha3": "pcn",
+      "name": "Pitcairn Islands",
+      "parts": [
+        {
+          "sha256": "e89115cff7f10c3374ebc28589ac4cfde279c29e10876037ca1880cb246516d7",
+          "size": 264870,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/pcn.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "e89115cff7f10c3374ebc28589ac4cfde279c29e10876037ca1880cb246516d7",
+        "size": 264870
+      }
+    },
+    {
+      "alpha3": "per",
+      "name": "Peru",
+      "parts": [
+        {
+          "sha256": "1cde8c07635ab94b6b65f27aa98e5233d02f6562a5b89dbb2719a61406b52444",
+          "size": 491349388,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/per.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "1cde8c07635ab94b6b65f27aa98e5233d02f6562a5b89dbb2719a61406b52444",
+        "size": 491349388
+      }
+    },
+    {
+      "alpha3": "phl",
+      "name": "Philippines",
+      "parts": [
+        {
+          "sha256": "427c718325b4f3b3e8cfd83a7e9a8d05e9b414dc2ed615a3c3ac75c0fb6a672d",
+          "size": 652785961,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/phl.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "427c718325b4f3b3e8cfd83a7e9a8d05e9b414dc2ed615a3c3ac75c0fb6a672d",
+        "size": 652785961
+      }
+    },
+    {
+      "alpha3": "plw",
+      "name": "Palau",
+      "parts": [
+        {
+          "sha256": "b84e7647e831f743bafcf39b68baa0e97daee28b6566e432afce9ea4de0e7adf",
+          "size": 2129403,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/plw.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b84e7647e831f743bafcf39b68baa0e97daee28b6566e432afce9ea4de0e7adf",
+        "size": 2129403
+      }
+    },
+    {
+      "alpha3": "png",
+      "name": "Papua New Guinea",
+      "parts": [
+        {
+          "sha256": "3cd219d4f4f8145226e0e81a9305c58fbd9cedc675638a488a2ed6d3c8296db6",
+          "size": 136247851,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/png.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "3cd219d4f4f8145226e0e81a9305c58fbd9cedc675638a488a2ed6d3c8296db6",
+        "size": 136247851
+      }
+    },
+    {
+      "alpha3": "pol",
+      "name": "Poland",
+      "parts": [
+        {
+          "sha256": "b3b8d8e5d361240c8666e9d1f46b6acc419161ac9583621ac3ccda819aec1a29",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/pol.part01"
+        },
+        {
+          "sha256": "1efb144476d163d78b9a322d0f860ae4118232f038c0914a45c0df7f80407a29",
+          "size": 1290224515,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/pol.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "4516056485b6b05d1d98ab571a23e8ff1c34e2af508d78bf69c35c3c79645144",
+        "size": 2790224515
+      }
+    },
+    {
+      "alpha3": "pri",
+      "name": "Puerto Rico",
+      "parts": [
+        {
+          "sha256": "14ea95b2f899237b01e031b07ae6b4c4bf5f732a5d671ba274c742b950fbcb86",
+          "size": 68346239,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/pri.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "14ea95b2f899237b01e031b07ae6b4c4bf5f732a5d671ba274c742b950fbcb86",
+        "size": 68346239
+      }
+    },
+    {
+      "alpha3": "prk",
+      "name": "North Korea",
+      "parts": [
+        {
+          "sha256": "2731ca56ada696228aba289a16dd7ff6cd2f3c32c7b5fbb74f639e7fbed747ab",
+          "size": 189168167,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/prk.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "2731ca56ada696228aba289a16dd7ff6cd2f3c32c7b5fbb74f639e7fbed747ab",
+        "size": 189168167
+      }
+    },
+    {
+      "alpha3": "prt",
+      "name": "Portugal",
+      "parts": [
+        {
+          "sha256": "bcc5452fc83bc51c0eb764f1ca5d8bb3c80246cc6329e217d1b756f552f78047",
+          "size": 539581284,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/prt.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "bcc5452fc83bc51c0eb764f1ca5d8bb3c80246cc6329e217d1b756f552f78047",
+        "size": 539581284
+      }
+    },
+    {
+      "alpha3": "pry",
+      "name": "Paraguay",
+      "parts": [
+        {
+          "sha256": "be7667ea95bb2d92eb42644ddd9737596768a3ef14bc43e37c64ff8d7f5ef8e3",
+          "size": 191125381,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/pry.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "be7667ea95bb2d92eb42644ddd9737596768a3ef14bc43e37c64ff8d7f5ef8e3",
+        "size": 191125381
+      }
+    },
+    {
+      "alpha3": "pse",
+      "name": "Palestine",
+      "parts": [
+        {
+          "sha256": "2c6e80df75172947a0b045c2319d5ddf8a4fd325aa30b604d56eda0f1adfbf6d",
+          "size": 44499344,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/pse.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "2c6e80df75172947a0b045c2319d5ddf8a4fd325aa30b604d56eda0f1adfbf6d",
+        "size": 44499344
+      }
+    },
+    {
+      "alpha3": "pyf",
+      "name": "French Polynesia",
+      "parts": [
+        {
+          "sha256": "999188abc0ebb83b77e5d94c272e7750002ccf1a501e10b36d80c917ed4ee54e",
+          "size": 11131453,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/pyf.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "999188abc0ebb83b77e5d94c272e7750002ccf1a501e10b36d80c917ed4ee54e",
+        "size": 11131453
+      }
+    },
+    {
+      "alpha3": "qat",
+      "name": "Qatar",
+      "parts": [
+        {
+          "sha256": "b1a6cbca04cc5ef82e41ced07788c70d6870d3c1c7312a188981af40f7092a8a",
+          "size": 25857711,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/qat.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b1a6cbca04cc5ef82e41ced07788c70d6870d3c1c7312a188981af40f7092a8a",
+        "size": 25857711
+      }
+    },
+    {
+      "alpha3": "reu",
+      "name": "Réunion",
+      "parts": [
+        {
+          "sha256": "44ff8d40b746d0e4137fc56defc9a6d9417e0fe2ddcf882378b89fa15b8b1820",
+          "size": 22904832,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/reu.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "44ff8d40b746d0e4137fc56defc9a6d9417e0fe2ddcf882378b89fa15b8b1820",
+        "size": 22904832
+      }
+    },
+    {
+      "alpha3": "rou",
+      "name": "Romania",
+      "parts": [
+        {
+          "sha256": "d876bb38932a92c8387ac3b631353a48cead1742b6e1dbc1fbf46977a6947927",
+          "size": 696719537,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/rou.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "d876bb38932a92c8387ac3b631353a48cead1742b6e1dbc1fbf46977a6947927",
+        "size": 696719537
+      }
+    },
+    {
+      "alpha3": "rus",
+      "name": "Russia",
+      "parts": [
+        {
+          "sha256": "0477aa57e5a2b86ee7e5694a1bece23f5899ba59849d5f5f1de94d11f5504192",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/rus.part01"
+        },
+        {
+          "sha256": "0567d37d4bba0dad217bee781d3217fae6a78e6c764c96cbde421a6dc1833856",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/rus.part02"
+        },
+        {
+          "sha256": "83396ff59596ca801c94060c43559f0c3b5dc5ab91f4dd03d5c1f520acd3aa69",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/rus.part03"
+        },
+        {
+          "sha256": "3b112e407fdf6640277572d163bcd4df746e1a1118dbfe07b9c261ba882e396b",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/rus.part04"
+        },
+        {
+          "sha256": "285f3ea7adc2d97941d441f6a2512ef3d0d57b313aa777a6bb98fd8839e39d13",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/rus.part05"
+        },
+        {
+          "sha256": "c5375d0fcc2a825ad956774e1c1ac517ad0b46fafe3b861da7a11b529d2bea12",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/rus.part06"
+        },
+        {
+          "sha256": "2a6efa140fe34f922df93185f7eb5de2a1ab8c04810cdf28e31806f2c943d913",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/rus.part07"
+        },
+        {
+          "sha256": "09bff3e80e89da66e59ffac2ff43ce3e5dc5428421cc92f3a523c44cd3ae338f",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/rus.part08"
+        },
+        {
+          "sha256": "f2ce626b41eac27352eda61b6c17f52bf0c0a204964197cb3a3dd3ec89d906b8",
+          "size": 645488353,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/rus.part09"
+        }
+      ],
+      "reassembled": {
+        "sha256": "2c7a580c852b7dab6670274c416ac8f36bbb882c5c3c8b87729430cdd246f9e7",
+        "size": 12645488353
+      }
+    },
+    {
+      "alpha3": "rwa",
+      "name": "Rwanda",
+      "parts": [
+        {
+          "sha256": "c04acd16aae8bc37cb7898a5878ebdb69e9d793eb4f90d712f495db9d9f7b69b",
+          "size": 82561858,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/rwa.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c04acd16aae8bc37cb7898a5878ebdb69e9d793eb4f90d712f495db9d9f7b69b",
+        "size": 82561858
+      }
+    },
+    {
+      "alpha3": "sau",
+      "name": "Saudi Arabia",
+      "parts": [
+        {
+          "sha256": "8d4e0c8ee52e1313251dc2fbc7575dd2d609100c6f61da1abd26eeb00de28f1c",
+          "size": 429495230,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/sau.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "8d4e0c8ee52e1313251dc2fbc7575dd2d609100c6f61da1abd26eeb00de28f1c",
+        "size": 429495230
+      }
+    },
+    {
+      "alpha3": "sdn",
+      "name": "Sudan",
+      "parts": [
+        {
+          "sha256": "0001ceb1ffcab6b83ae949666afe1af52ee1f1bb215f48cd87b8791d6133dc98",
+          "size": 335152767,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/sdn.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "0001ceb1ffcab6b83ae949666afe1af52ee1f1bb215f48cd87b8791d6133dc98",
+        "size": 335152767
+      }
+    },
+    {
+      "alpha3": "sen",
+      "name": "Senegal",
+      "parts": [
+        {
+          "sha256": "b800d66056f6b8baaccb15a148ab158ac96ecd3e704a80888cad6d290cf48852",
+          "size": 163395352,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/sen.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b800d66056f6b8baaccb15a148ab158ac96ecd3e704a80888cad6d290cf48852",
+        "size": 163395352
+      }
+    },
+    {
+      "alpha3": "sgp",
+      "name": "Singapore",
+      "parts": [
+        {
+          "sha256": "98e42e0058b58fb6623491cb6f257532f338877ad5b19e6c9e5b09b49eb0a94b",
+          "size": 20022145,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/sgp.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "98e42e0058b58fb6623491cb6f257532f338877ad5b19e6c9e5b09b49eb0a94b",
+        "size": 20022145
+      }
+    },
+    {
+      "alpha3": "sgs",
+      "name": "South Georgia",
+      "parts": [
+        {
+          "sha256": "8fa1c93094c5f08e3f3388ed4a00f6d10102c8b7c74085c88430330ed1f971d3",
+          "size": 4743960,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/sgs.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "8fa1c93094c5f08e3f3388ed4a00f6d10102c8b7c74085c88430330ed1f971d3",
+        "size": 4743960
+      }
+    },
+    {
+      "alpha3": "shn",
+      "name": "Saint Helena, Ascension and Tristan da Cunha",
+      "parts": [
+        {
+          "sha256": "fba3917ec955ba866cc1f75550d062230fb6bbba73389520cdb9f48d26a3ed97",
+          "size": 1170027,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/shn.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "fba3917ec955ba866cc1f75550d062230fb6bbba73389520cdb9f48d26a3ed97",
+        "size": 1170027
+      }
+    },
+    {
+      "alpha3": "sjm",
+      "name": "Svalbard and Jan Mayen",
+      "parts": [
+        {
+          "sha256": "dd2e382c823340771f36262a7b0fdd3dfc11b23b50ab0f0b3c425469aeed5442",
+          "size": 37749101,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/sjm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "dd2e382c823340771f36262a7b0fdd3dfc11b23b50ab0f0b3c425469aeed5442",
+        "size": 37749101
+      }
+    },
+    {
+      "alpha3": "slb",
+      "name": "Solomon Islands",
+      "parts": [
+        {
+          "sha256": "504453918a42c2e972f7ff52504ea6b0eec501ae6b7b8035ed3576e7adc3e2d0",
+          "size": 24658613,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/slb.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "504453918a42c2e972f7ff52504ea6b0eec501ae6b7b8035ed3576e7adc3e2d0",
+        "size": 24658613
+      }
+    },
+    {
+      "alpha3": "sle",
+      "name": "Sierra Leone",
+      "parts": [
+        {
+          "sha256": "849c8cf4c23e194dc2a0f076192c0d8642ef426d0dd663aa1fb54950ed929690",
+          "size": 62758886,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/sle.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "849c8cf4c23e194dc2a0f076192c0d8642ef426d0dd663aa1fb54950ed929690",
+        "size": 62758886
+      }
+    },
+    {
+      "alpha3": "slv",
+      "name": "El Salvador",
+      "parts": [
+        {
+          "sha256": "2b104d10704a85b7453bee748eae48206ead35d4e1f4ab130701e6e0534ef808",
+          "size": 47915921,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/slv.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "2b104d10704a85b7453bee748eae48206ead35d4e1f4ab130701e6e0534ef808",
+        "size": 47915921
+      }
+    },
+    {
+      "alpha3": "smr",
+      "name": "San Marino",
+      "parts": [
+        {
+          "sha256": "b614c5322f2c0074de7cf092d8654ad70e70e6f22b83e636e4b34a61109bfd30",
+          "size": 3398131,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/smr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b614c5322f2c0074de7cf092d8654ad70e70e6f22b83e636e4b34a61109bfd30",
+        "size": 3398131
+      }
+    },
+    {
+      "alpha3": "som",
+      "name": "Somalia",
+      "parts": [
+        {
+          "sha256": "cd06299e016cfc7727b375e0ce94f002a7c99b586ef4750bf92923e3557691c8",
+          "size": 438443676,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/som.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "cd06299e016cfc7727b375e0ce94f002a7c99b586ef4750bf92923e3557691c8",
+        "size": 438443676
+      }
+    },
+    {
+      "alpha3": "spm",
+      "name": "Saint Pierre and Miquelon",
+      "parts": [
+        {
+          "sha256": "c86667955170bb60ddb599532b43da2dd8bac084c52657170d2111c23dc511d2",
+          "size": 3085005,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/spm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c86667955170bb60ddb599532b43da2dd8bac084c52657170d2111c23dc511d2",
+        "size": 3085005
+      }
+    },
+    {
+      "alpha3": "srb",
+      "name": "Serbia",
+      "parts": [
+        {
+          "sha256": "08a92e04640801f2b04eb96e3896622f3b4eeaa9ec525b5cee6180785efa6941",
+          "size": 399655232,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/srb.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "08a92e04640801f2b04eb96e3896622f3b4eeaa9ec525b5cee6180785efa6941",
+        "size": 399655232
+      }
+    },
+    {
+      "alpha3": "ssd",
+      "name": "South Sudan",
+      "parts": [
+        {
+          "sha256": "b11d711ac12eb5e54be29cbbb8bfbb3bf15c519a177829e3b8f07e25dcdec61e",
+          "size": 177534294,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ssd.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b11d711ac12eb5e54be29cbbb8bfbb3bf15c519a177829e3b8f07e25dcdec61e",
+        "size": 177534294
+      }
+    },
+    {
+      "alpha3": "stp",
+      "name": "São Tomé and Príncipe",
+      "parts": [
+        {
+          "sha256": "227d214017423e40123bfc1bc9408f1fadb9b24e712552af8df20bb03468ac53",
+          "size": 2980318,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/stp.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "227d214017423e40123bfc1bc9408f1fadb9b24e712552af8df20bb03468ac53",
+        "size": 2980318
+      }
+    },
+    {
+      "alpha3": "sur",
+      "name": "Suriname",
+      "parts": [
+        {
+          "sha256": "48210ff0ec42b99c78cea45bdee75a7a5e9d8bf3a8962480df58dfb093e6ba53",
+          "size": 47458632,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/sur.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "48210ff0ec42b99c78cea45bdee75a7a5e9d8bf3a8962480df58dfb093e6ba53",
+        "size": 47458632
+      }
+    },
+    {
+      "alpha3": "svk",
+      "name": "Slovakia",
+      "parts": [
+        {
+          "sha256": "ec827141f81de1c2618cf63869a9a9dd067da7498ee4e71930a2f4971bd0e0b8",
+          "size": 423341884,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/svk.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "ec827141f81de1c2618cf63869a9a9dd067da7498ee4e71930a2f4971bd0e0b8",
+        "size": 423341884
+      }
+    },
+    {
+      "alpha3": "svn",
+      "name": "Slovenia",
+      "parts": [
+        {
+          "sha256": "d91740164324e8602bcd39d6e32dfb39c05e498a6fc73ecdd50aeebd0f803f8d",
+          "size": 424152566,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/svn.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "d91740164324e8602bcd39d6e32dfb39c05e498a6fc73ecdd50aeebd0f803f8d",
+        "size": 424152566
+      }
+    },
+    {
+      "alpha3": "swe",
+      "name": "Sweden",
+      "parts": [
+        {
+          "sha256": "a210514a3f18a0ba807c4cdc5af0d476b25ec92ea50e0b7306f2daec68f7253d",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/swe.part01"
+        },
+        {
+          "sha256": "975498ee7403b06d5949b09fc8324f34c24ac3638fee7a39d2d266e3724cc561",
+          "size": 403327365,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/swe.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "44d919f0a7f03a1428191b9199b2470d8ba166195d1a0d082508f129db6ff67a",
+        "size": 1903327365
+      }
+    },
+    {
+      "alpha3": "swz",
+      "name": "Eswatini",
+      "parts": [
+        {
+          "sha256": "40169356ab136a72e63c583ec737c7e5c1769421b36e1a390e1e58dd5c307197",
+          "size": 36197410,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/swz.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "40169356ab136a72e63c583ec737c7e5c1769421b36e1a390e1e58dd5c307197",
+        "size": 36197410
+      }
+    },
+    {
+      "alpha3": "sxm",
+      "name": "Sint Maarten",
+      "parts": [
+        {
+          "sha256": "e313ce8f2b43d08cfbc95498e6eddf22bb0b1c66194c9b65648c33bb414d9428",
+          "size": 1920309,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/sxm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "e313ce8f2b43d08cfbc95498e6eddf22bb0b1c66194c9b65648c33bb414d9428",
+        "size": 1920309
+      }
+    },
+    {
+      "alpha3": "syc",
+      "name": "Seychelles",
+      "parts": [
+        {
+          "sha256": "7ac80cb75c7308d0bd2cc1dbcd9d636f53c5eeaf07dc511dbbcf9042cb425ddd",
+          "size": 2461091,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/syc.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "7ac80cb75c7308d0bd2cc1dbcd9d636f53c5eeaf07dc511dbbcf9042cb425ddd",
+        "size": 2461091
+      }
+    },
+    {
+      "alpha3": "syr",
+      "name": "Syria",
+      "parts": [
+        {
+          "sha256": "4d7093d60ac3bb0d6895ae117de75d0c8529cf777a06e6fad61fd5affc6a317a",
+          "size": 160952023,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/syr.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "4d7093d60ac3bb0d6895ae117de75d0c8529cf777a06e6fad61fd5affc6a317a",
+        "size": 160952023
+      }
+    },
+    {
+      "alpha3": "tca",
+      "name": "Turks and Caicos Islands",
+      "parts": [
+        {
+          "sha256": "82ae7d85cc8d04f88d1ac37f1f0a3bc789350b42e3513f46d3d987a4f56c116d",
+          "size": 1454577,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tca.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "82ae7d85cc8d04f88d1ac37f1f0a3bc789350b42e3513f46d3d987a4f56c116d",
+        "size": 1454577
+      }
+    },
+    {
+      "alpha3": "tcd",
+      "name": "Chad",
+      "parts": [
+        {
+          "sha256": "e4f3d3f992072a18375e261be3a765dc34b65326cf2629553d7821e0001266b6",
+          "size": 239552124,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tcd.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "e4f3d3f992072a18375e261be3a765dc34b65326cf2629553d7821e0001266b6",
+        "size": 239552124
+      }
+    },
+    {
+      "alpha3": "tgo",
+      "name": "Togo",
+      "parts": [
+        {
+          "sha256": "835e15c046d086516ad1024e48e0928fab46740cc3a6301d0dacdb6b501084cb",
+          "size": 67622433,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tgo.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "835e15c046d086516ad1024e48e0928fab46740cc3a6301d0dacdb6b501084cb",
+        "size": 67622433
+      }
+    },
+    {
+      "alpha3": "tha",
+      "name": "Thailand",
+      "parts": [
+        {
+          "sha256": "403af35ef90e5908187f26fbd61bf41426dd9190ab207d44558ef96e7bb892d2",
+          "size": 581897867,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tha.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "403af35ef90e5908187f26fbd61bf41426dd9190ab207d44558ef96e7bb892d2",
+        "size": 581897867
+      }
+    },
+    {
+      "alpha3": "tjk",
+      "name": "Tajikistan",
+      "parts": [
+        {
+          "sha256": "39e64071955eb7d6131b12c595a9c007b37bd9939b21c79a057dda3b16712d56",
+          "size": 116568959,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tjk.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "39e64071955eb7d6131b12c595a9c007b37bd9939b21c79a057dda3b16712d56",
+        "size": 116568959
+      }
+    },
+    {
+      "alpha3": "tkl",
+      "name": "Tokelau",
+      "parts": [
+        {
+          "sha256": "aa89ef10fd7ed3f7f1338239cbfa022645bb06880f641b4c6cd7cb4a44709917",
+          "size": 255152,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tkl.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "aa89ef10fd7ed3f7f1338239cbfa022645bb06880f641b4c6cd7cb4a44709917",
+        "size": 255152
+      }
+    },
+    {
+      "alpha3": "tkm",
+      "name": "Turkmenistan",
+      "parts": [
+        {
+          "sha256": "ca41a33f57cbae371b9bb62a6e7854ca123185c1c580fe5a81b310cbac939e69",
+          "size": 71910720,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tkm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "ca41a33f57cbae371b9bb62a6e7854ca123185c1c580fe5a81b310cbac939e69",
+        "size": 71910720
+      }
+    },
+    {
+      "alpha3": "tls",
+      "name": "Timor-Leste",
+      "parts": [
+        {
+          "sha256": "a4e1f005c97b096f84ca6ab25da26b88ed7dbd6d8e0ca47b02274f4617dbcc38",
+          "size": 23504036,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tls.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "a4e1f005c97b096f84ca6ab25da26b88ed7dbd6d8e0ca47b02274f4617dbcc38",
+        "size": 23504036
+      }
+    },
+    {
+      "alpha3": "ton",
+      "name": "Tonga",
+      "parts": [
+        {
+          "sha256": "84f11e0e496ef50d9a87f3146b53ea38c0d29cf9a16a4af0c967acdbf09f4f96",
+          "size": 4665633,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ton.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "84f11e0e496ef50d9a87f3146b53ea38c0d29cf9a16a4af0c967acdbf09f4f96",
+        "size": 4665633
+      }
+    },
+    {
+      "alpha3": "tto",
+      "name": "Trinidad and Tobago",
+      "parts": [
+        {
+          "sha256": "b673cb56dfbf96037f15cb87c77e32a3cc62b49fa74c11d12fa8f1d7ff558629",
+          "size": 14916734,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tto.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b673cb56dfbf96037f15cb87c77e32a3cc62b49fa74c11d12fa8f1d7ff558629",
+        "size": 14916734
+      }
+    },
+    {
+      "alpha3": "tun",
+      "name": "Tunisia",
+      "parts": [
+        {
+          "sha256": "c3d7915c5fc59307b56d36fa05fcfd824484a341fdcfb0939c5863b9d386364a",
+          "size": 131368220,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tun.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c3d7915c5fc59307b56d36fa05fcfd824484a341fdcfb0939c5863b9d386364a",
+        "size": 131368220
+      }
+    },
+    {
+      "alpha3": "tur",
+      "name": "Türkiye",
+      "parts": [
+        {
+          "sha256": "09d5dc413cdad9b013b2eb0a53fcfbedc6386ef7086befdb2c40d6bc5e0e0b0d",
+          "size": 1239423168,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tur.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "09d5dc413cdad9b013b2eb0a53fcfbedc6386ef7086befdb2c40d6bc5e0e0b0d",
+        "size": 1239423168
+      }
+    },
+    {
+      "alpha3": "tuv",
+      "name": "Tuvalu",
+      "parts": [
+        {
+          "sha256": "b99e87bfd0cc1bf33104aa565f592e13f708c874d05125af4d0da0ca58af7b27",
+          "size": 376433,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tuv.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b99e87bfd0cc1bf33104aa565f592e13f708c874d05125af4d0da0ca58af7b27",
+        "size": 376433
+      }
+    },
+    {
+      "alpha3": "twn",
+      "name": "Taiwan",
+      "parts": [
+        {
+          "sha256": "c008d695d628871f2b760186059232ec99180f24132324674b08744609aa3617",
+          "size": 241197792,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/twn.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c008d695d628871f2b760186059232ec99180f24132324674b08744609aa3617",
+        "size": 241197792
+      }
+    },
+    {
+      "alpha3": "tza",
+      "name": "Tanzania",
+      "parts": [
+        {
+          "sha256": "c02bccc95a0be8208b285f39798099a334e4b3aea57cc64f6c17784a23b08cc3",
+          "size": 703931910,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/tza.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "c02bccc95a0be8208b285f39798099a334e4b3aea57cc64f6c17784a23b08cc3",
+        "size": 703931910
+      }
+    },
+    {
+      "alpha3": "uga",
+      "name": "Uganda",
+      "parts": [
+        {
+          "sha256": "bf131bd0cef6566b4e52b60e544db9d42736063b028479a9e4a364490dce838d",
+          "size": 386817070,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/uga.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "bf131bd0cef6566b4e52b60e544db9d42736063b028479a9e4a364490dce838d",
+        "size": 386817070
+      }
+    },
+    {
+      "alpha3": "ukr",
+      "name": "Ukraine",
+      "parts": [
+        {
+          "sha256": "dc4a7335ef17d6d365b91687ee3d80be8aea0be73faafcd8141bf219639af2ef",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ukr.part01"
+        },
+        {
+          "sha256": "93079d15e1645a2ef51634c62481fc18b5359485a56695cd8ace6384965864ef",
+          "size": 408115539,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ukr.part02"
+        }
+      ],
+      "reassembled": {
+        "sha256": "a062dd7c70ec7478be1caed344a7b68ae2692dc5b576967054798f46bb07604f",
+        "size": 1908115539
+      }
+    },
+    {
+      "alpha3": "umi",
+      "name": "United States Minor Outlying Islands",
+      "parts": [
+        {
+          "sha256": "9306d4ab38f89d614649d851f1e22aea9d38a5852b9f0cbc377b2cf7765bc966",
+          "size": 631187,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/umi.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "9306d4ab38f89d614649d851f1e22aea9d38a5852b9f0cbc377b2cf7765bc966",
+        "size": 631187
+      }
+    },
+    {
+      "alpha3": "ury",
+      "name": "Uruguay",
+      "parts": [
+        {
+          "sha256": "0ff9f8256d6dc78ee82b23f4917e513af296e5b798faf6f580cf90dfabac56a0",
+          "size": 110285503,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ury.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "0ff9f8256d6dc78ee82b23f4917e513af296e5b798faf6f580cf90dfabac56a0",
+        "size": 110285503
+      }
+    },
+    {
+      "alpha3": "usa",
+      "name": "United States",
+      "parts": [
+        {
+          "sha256": "95e95ceef561ea8c254718e522bd08ee42975c84ddf52062eeb75a250b82ab08",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/usa.part01"
+        },
+        {
+          "sha256": "89609fb68e926de0eb2d05bb5e1efecd1da5dafed912cc982e0d08764e323605",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/usa.part02"
+        },
+        {
+          "sha256": "83899d8a1e192e1e2924699a697d11c5a62f29cb833ae224c9ff7a98d3ee05da",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/usa.part03"
+        },
+        {
+          "sha256": "7e08eaa2aae5d59fd62872dd817df12007e058dc6132a86e097082b379944644",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/usa.part04"
+        },
+        {
+          "sha256": "96257cc96e1fe3eb9f3b8b960d134047ff75d10d7c96561bc7146bcb6d66337d",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/usa.part05"
+        },
+        {
+          "sha256": "0fde90f5c63fc049f53b8af4f1b31f91b7108ab7dda8bfe42cebad119d52e4a1",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/usa.part06"
+        },
+        {
+          "sha256": "e9e0d311e0158f10ddd288502d207aef063e4c54be385316c8de0e5e2e4490da",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/usa.part07"
+        },
+        {
+          "sha256": "bd4c9cd98b96071f0d9fa36a30bf11179c06b740a1df92f91f52d0136d1d96b7",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/usa.part08"
+        },
+        {
+          "sha256": "d53262fb804cbfbdb7859a771d886a00272b350f0f55c9ffff85095173ecb137",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/usa.part09"
+        },
+        {
+          "sha256": "4841917e64f6cd861477dc71072e323b9f9928cf47f2c22a27d03950bbaaa823",
+          "size": 1500000000,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/usa.part10"
+        },
+        {
+          "sha256": "6ba096b5799d27f6e96ac63add74a64fb26c460e6f4440abb1dad5b6eee44348",
+          "size": 1405220059,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/usa.part11"
+        }
+      ],
+      "reassembled": {
+        "sha256": "b524e40279b6909d4d629842e54e3af05b6dc74db0a243fdfaa0fc58e35ff16f",
+        "size": 16405220059
+      }
+    },
+    {
+      "alpha3": "uzb",
+      "name": "Uzbekistan",
+      "parts": [
+        {
+          "sha256": "f49ce871e998e3e653e991dfb7b70c8374d170b45b2833b1419501a3ec10f222",
+          "size": 241515328,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/uzb.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "f49ce871e998e3e653e991dfb7b70c8374d170b45b2833b1419501a3ec10f222",
+        "size": 241515328
+      }
+    },
+    {
+      "alpha3": "vat",
+      "name": "Vatican City",
+      "parts": [
+        {
+          "sha256": "fa8c4658d02a8487f3c9ef9e33724a3486c56b12024be8c1d7637628db073988",
+          "size": 2094145,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/vat.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "fa8c4658d02a8487f3c9ef9e33724a3486c56b12024be8c1d7637628db073988",
+        "size": 2094145
+      }
+    },
+    {
+      "alpha3": "vct",
+      "name": "Saint Vincent and the Grenadines",
+      "parts": [
+        {
+          "sha256": "70f057b6efb374f2b209b17d42e18dfb44ecb72625e3cf29b500641acbcec0d2",
+          "size": 2767355,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/vct.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "70f057b6efb374f2b209b17d42e18dfb44ecb72625e3cf29b500641acbcec0d2",
+        "size": 2767355
+      }
+    },
+    {
+      "alpha3": "ven",
+      "name": "Venezuela",
+      "parts": [
+        {
+          "sha256": "4f38400a997980d2c085f93cad6c0bc94163eb614a3421af098d9a01a43a53da",
+          "size": 290279577,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/ven.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "4f38400a997980d2c085f93cad6c0bc94163eb614a3421af098d9a01a43a53da",
+        "size": 290279577
+      }
+    },
+    {
+      "alpha3": "vgb",
+      "name": "British Virgin Islands",
+      "parts": [
+        {
+          "sha256": "009a7b4e20b6f5ddea62996b8a5b432eb228e8d9220410aa14a2c1f83c54277e",
+          "size": 1453693,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/vgb.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "009a7b4e20b6f5ddea62996b8a5b432eb228e8d9220410aa14a2c1f83c54277e",
+        "size": 1453693
+      }
+    },
+    {
+      "alpha3": "vir",
+      "name": "United States Virgin Islands",
+      "parts": [
+        {
+          "sha256": "82120d7097eae7278ddcc1785590f6c8afe35a233e2ff1dc63bac3516554ce7c",
+          "size": 3638267,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/vir.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "82120d7097eae7278ddcc1785590f6c8afe35a233e2ff1dc63bac3516554ce7c",
+        "size": 3638267
+      }
+    },
+    {
+      "alpha3": "vnm",
+      "name": "Vietnam",
+      "parts": [
+        {
+          "sha256": "ee9ee81f679300701e37bb11f272bfe7d4fd02f57b4aafafa578cfe94a739a38",
+          "size": 467360320,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/vnm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "ee9ee81f679300701e37bb11f272bfe7d4fd02f57b4aafafa578cfe94a739a38",
+        "size": 467360320
+      }
+    },
+    {
+      "alpha3": "vut",
+      "name": "Vanuatu",
+      "parts": [
+        {
+          "sha256": "9ed45e3c3206766dd7afa95334339183dfd2bc74cd4295df96a1343034fa8dea",
+          "size": 10123866,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/vut.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "9ed45e3c3206766dd7afa95334339183dfd2bc74cd4295df96a1343034fa8dea",
+        "size": 10123866
+      }
+    },
+    {
+      "alpha3": "wlf",
+      "name": "Wallis and Futuna",
+      "parts": [
+        {
+          "sha256": "7ae03d1f66cb4c4c6846432fbcd84305c8fb6f7278f8cf76517d4cd008097c12",
+          "size": 911268,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/wlf.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "7ae03d1f66cb4c4c6846432fbcd84305c8fb6f7278f8cf76517d4cd008097c12",
+        "size": 911268
+      }
+    },
+    {
+      "alpha3": "wsm",
+      "name": "Samoa",
+      "parts": [
+        {
+          "sha256": "6566b728cc71a45b6e98c230cbd5ceb718361d1173c8f3a66a8ac98ae91e4cae",
+          "size": 4144919,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/wsm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "6566b728cc71a45b6e98c230cbd5ceb718361d1173c8f3a66a8ac98ae91e4cae",
+        "size": 4144919
+      }
+    },
+    {
+      "alpha3": "yem",
+      "name": "Yemen",
+      "parts": [
+        {
+          "sha256": "aca5763a8280c04ba29bff74a0be28cb5bc94db6bfda89e5dcab0546b782567e",
+          "size": 129395626,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/yem.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "aca5763a8280c04ba29bff74a0be28cb5bc94db6bfda89e5dcab0546b782567e",
+        "size": 129395626
+      }
+    },
+    {
+      "alpha3": "zaf",
+      "name": "South Africa",
+      "parts": [
+        {
+          "sha256": "21cc93219c78bf3955a2963d79fa938f8c0f6e28d1b5b337f607f5952c497e71",
+          "size": 712342557,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/zaf.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "21cc93219c78bf3955a2963d79fa938f8c0f6e28d1b5b337f607f5952c497e71",
+        "size": 712342557
+      }
+    },
+    {
+      "alpha3": "zmb",
+      "name": "Zambia",
+      "parts": [
+        {
+          "sha256": "5f212c75db7ce295a2eec6a517511d3d06108a78effc562345c95f0aa4717894",
+          "size": 359683271,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/zmb.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "5f212c75db7ce295a2eec6a517511d3d06108a78effc562345c95f0aa4717894",
+        "size": 359683271
+      }
+    },
+    {
+      "alpha3": "zwe",
+      "name": "Zimbabwe",
+      "parts": [
+        {
+          "sha256": "e447f4cbbdc5a2e38deddf834b916c37bd430bd883c655e9050d0bb32f6a476b",
+          "size": 242230236,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/zwe.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "e447f4cbbdc5a2e38deddf834b916c37bd430bd883c655e9050d0bb32f6a476b",
+        "size": 242230236
+      }
+    }
+  ],
+  "generated_at": "2026-04-20T18:35:13Z",
+  "max_zoom": 15,
+  "release_tag": "v20260419",
+  "source_pmtiles": "20260419.pmtiles"
+}
