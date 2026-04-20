@@ -39,9 +39,18 @@ dependencies:
   shared_preferences: 2.5.5
   share_plus: 12.0.2
 
+  # Phase 07 (Map Integration) — replaced the day-1 flutter_map + latlong2
+  # pins with maplibre_gl 0.25.0 + crypto 3.0.7 (promoted from transitive →
+  # direct runtime for chunk sha256 verification on the download pipeline).
+  # Rationale + audit rows in DEPENDENCIES.md. Native SDKs bundled by
+  # maplibre_gl: MapLibre Native Android 12.3.0 (BSD-2-Clause) + iOS 6.14.0
+  # (BSD-2-Clause). Zero built-in telemetry; tile fetches happen only when
+  # the style source URL is HTTP(S). Phase 07 enforces `pmtiles://file://…`
+  # local-only via `tool/check_avoid_remote_pmtiles.dart`. Publisher:
+  # maplibre.org (verified on pub.dev).
+  maplibre_gl: 0.25.0
+  crypto: 3.0.7
   # Pinned for later phases (declared day-1 to lock + audit)
-  flutter_map: 8.3.0
-  latlong2: 0.9.1
   geolocator: 14.0.2
   permission_handler: 12.0.1
   flutter_local_notifications: 21.0.0
@@ -109,6 +118,14 @@ dev_dependencies:
   # imports pass `depend_on_referenced_packages`.
   test: 1.30.0
 
+  # Phase 07 (Map Integration) — `shelf` is already transitive via `test`
+  # (1.4.2, BSD-3-Clause, Dart-team). Promoted to a direct dev_dependency
+  # so Phase 07 download soak tests that spin up a MockHTTPServer can
+  # import `package:shelf/shelf.dart` + `package:shelf/shelf_io.dart`
+  # explicitly, satisfying `depend_on_referenced_packages` (Phase 03
+  # convention — same reason `test` + `yaml` were promoted earlier).
+  shelf: 1.4.2
+
   # Phase 03: custom_lint + riverpod_lint re-adopted after version resolution.
   # Pinning notes:
   # - Resolved against analyzer <9 to stay compatible with flutter_lints 6.0.0
@@ -149,3 +166,20 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
+
+  # Phase 07 (Map Integration) — bundled map assets. The `assets/maps/`
+  # directory ships in the APK/IPA:
+  #   - world.pmtiles (Day-1 z0-2 world bundle, 856 KB)
+  #   - catalog.json (192+ country catalog with GitHub Release download URLs)
+  #   - style.json (Protomaps basemaps neutral style with frozen 8-layer
+  #     order and `pmtiles://file:///…` placeholder rewritten at runtime)
+  #   - glyphs/ (Protomaps basemaps-assets fonts, OFL license)
+  #   - sprites/ (Protomaps basemaps-assets sprites, CC0 license)
+  #   - polygons/ (simplified country bounding polygons for the resolver)
+  # Every asset under `assets/maps/` — including recursive subdirectories —
+  # is bundled via the explicit trailing-slash asset entry below.
+  assets:
+    - assets/maps/
+    - assets/maps/glyphs/
+    - assets/maps/sprites/
+    - assets/maps/polygons/
