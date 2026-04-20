@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 06-03 (pre-classify 8 CONTEXT handoff items + spawn 4-agent audit wave)
+current_plan: 06-04 (adversarial wave — 5 permanent unit tests + 1 throwaway CI branch)
 status: executing
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-04-20T00:35:02.478Z"
+stopped_at: Completed 06-03-PLAN.md
+last_updated: "2026-04-20T07:45:40.211Z"
 last_activity: 2026-04-20
 progress:
   total_phases: 16
   completed_phases: 5
   total_plans: 30
-  completed_plans: 27
-  percent: 90
+  completed_plans: 28
+  percent: 93
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 06 Review Gate — GPS IN PROGRESS. Plans 06-01 + 06-02 complete (06-REVIEW.md §1 'Aucune observation utilisateur' + §1b POC evidence review archived). Ready for Plan 06-03 pre-class + 4-agent audit wave.
+**Current focus:** Phase 06 Review Gate — GPS IN PROGRESS. Plans 06-01 + 06-02 + 06-03 complete (06-REVIEW.md §1 + §1b + §2 + §3 triage populated: 87 findings triaged — 2 Blockers + 19 Shoulds fix + 1 waived + 2 Coulds won't-fix + 18 Coulds deferred + 45 Noteds observation). Ready for Plan 06-04 adversarial wave.
 
 ## Current Position
 
-Phase: 06 of 16 (Review Gate — GPS) IN PROGRESS — 2 / 5 plans done
-Current Plan: 06-03 (pre-classify 8 CONTEXT handoff items + spawn 4-agent audit wave)
+Phase: 06 of 16 (Review Gate — GPS) IN PROGRESS — 3 / 5 plans done
+Current Plan: 06-04 (adversarial wave — 5 permanent unit tests + 1 throwaway CI branch)
 Total Plans in Phase 06: 5
 Status: In progress
 Last Activity: 2026-04-20
 
-Progress: [█████████░] 90% — 27 / 30 plans executed across phases 01-05 + Plans 06-01 + 06-02.
+Progress: [█████████░] 93% — 28 / 30 plans executed across phases 01-05 + Plans 06-01 + 06-02 + 06-03.
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Progress: [█████████░] 90% — 27 / 30 plans executed across
 | Phase 05-gps-session-lifecycle P06 | ~13h elapsed | 3 tasks | 20 files |
 | Phase 06-review-gate-gps P01 | ~3 min (Task 2 continuation) | 2 tasks | 2 files |
 | Phase 06-review-gate-gps P02 | 4 min | 2 tasks | 1 files |
+| Phase 06-review-gate-gps P06-03 | 5 min | 5 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -212,6 +213,10 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 06-review-gate-gps]: Plan 06-02: Variant B battery waiver — fix-cadence stability (6s/fix iOS, <10s Android with one 66.4s satellite-geometry dip) used as proxy for battery-healthy GPS path; dumpsys battery_stats deferred Phase 15 release-confidence per CONTEXT.md pre-class item 3. POC artefacts contain zero numeric battery readings.
 - [Phase 06-review-gate-gps]: Plan 06-02: Store rationale language is English on disk (ground truth) — CONTEXT item 6 'French copy, English polish deferred Phase 15' is stale vs actual docs/store-review-rationale.md committed Plan 05-06. §1b records truth + inline note; Plan 06-03 to re-class from 'English polish deferred' to 'English copy already committed, final polish optional Phase 15'. Surface-and-flag pattern, not silent-correct.
 - [Phase 06-review-gate-gps]: Plan 06-02: §1b POC evidence review format locked — summary table (7 metrics × 2 devices) + collapsible <details> per device verbatim + embedded POC plot via relative path + battery Variant A/B row + QUAL-03 5-section snapshot + verbatim iOS PASS-with-caveat rationale + POC protocol acceptance checklist + OEM coverage note + gate-closure confirms. Reusable pattern for future GPS-focused review gates where POC artefacts ARE the runtime observation.
+- [Phase 06-review-gate-gps]: Plan 06-03: 87 findings triaged — 2 Blockers fix / 19 Shoulds fix / 1 Should waived (Agent #1 #2 iOS auto-resume, Phase 15 FlutterImplicitEngineDelegate rewire deferral per Phase 05 STATE.md Xcode 26 strip decision) / 2 Coulds won't-fix (Agent #4 #11 kDefaultDistanceFilterMeters name correct as-is + Agent #4 #13 Python zoom conditional style only) / 18 Coulds deferred (15 Phase 15 + 3 Phase 14 l10n) / 45 Noteds observation
+- [Phase 06-review-gate-gps]: Plan 06-03: Blanket 'fix blocker and should' triage decision applied per Phase 04 precedent — user default-lean-to-fix over waive; only 1 waiver (Agent #1 #2 iOS auto-resume, genuine Phase 15 scope) + 2 won't-fix (style-only items). Pattern validated third cycle: 4-agent parallel audit + cross-lens preservation + blanket triage is now the locked template for review gates (Phases 02/04/06 → Phases 08/10/12/14/16 reuse)
+- [Phase 06-review-gate-gps]: Plan 06-03: Swift AppDelegate channel literal confirmed ABSENT post-Xcode 26 strip (grep 'app.gosl.mirkfall/boot_watchdog' ios/Runner/AppDelegate.swift → 0 matches). RESEARCH Open Question 1 CLOSED. Plan 06-04 Test #1 file map MUST exclude Swift (double-source: Kotlin + Dart×2 + test mirror). iOS-side coverage cross-refs Phase 15 FlutterImplicitEngineDelegate rewire docstring
+- [Phase 06-review-gate-gps]: Plan 06-03: 2 surprise Blockers NOT in CONTEXT pre-class surfaced by Agent #2 controller lens — (1) partial-activation DB row leak on start() failure (Agent #2 #1) + (2) GpsError in start() sets AsyncError instead of ErrorState contra docstring (Agent #2 #2). Both architecturally self-contained (controller lifecycle invariants); Plan 06-05 Batch A resolves both in ONE commit. No Rule 4 architectural decision required
 
 ### Pending Todos
 
@@ -238,6 +243,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-20T00:34:28.319Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-04-20T07:45:40.207Z
+Stopped at: Completed 06-03-PLAN.md
 Resume file: None
