@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 06-04 (adversarial wave — 5 permanent unit tests + 1 throwaway CI branch)
+current_plan: 06-05 (fix loop + closure)
 status: executing
-stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-04-20T07:45:40.211Z"
+stopped_at: Completed 06-04-PLAN.md
+last_updated: "2026-04-20T08:57:20Z"
 last_activity: 2026-04-20
 progress:
   total_phases: 16
   completed_phases: 5
   total_plans: 30
-  completed_plans: 28
-  percent: 93
+  completed_plans: 29
+  percent: 97
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 06 Review Gate — GPS IN PROGRESS. Plans 06-01 + 06-02 + 06-03 complete (06-REVIEW.md §1 + §1b + §2 + §3 triage populated: 87 findings triaged — 2 Blockers + 19 Shoulds fix + 1 waived + 2 Coulds won't-fix + 18 Coulds deferred + 45 Noteds observation). Ready for Plan 06-04 adversarial wave.
+**Current focus:** Phase 06 Review Gate — GPS IN PROGRESS. Plans 06-01 through 06-04 complete (06-REVIEW.md §1 + §1b + §2 + §3 + §4 populated: 87 findings triaged in §3 + 5 permanent unit-test evidence blocks + 1 adversarial CI evidence block in §4; tool/check_platform_manifests.dart + ci.yml gate step live on main; 5 new tests green in CI). Ready for Plan 06-05 fix loop + closure.
 
 ## Current Position
 
-Phase: 06 of 16 (Review Gate — GPS) IN PROGRESS — 3 / 5 plans done
-Current Plan: 06-04 (adversarial wave — 5 permanent unit tests + 1 throwaway CI branch)
+Phase: 06 of 16 (Review Gate — GPS) IN PROGRESS — 4 / 5 plans done
+Current Plan: 06-05 (fix loop + closure)
 Total Plans in Phase 06: 5
 Status: In progress
 Last Activity: 2026-04-20
 
-Progress: [█████████░] 93% — 28 / 30 plans executed across phases 01-05 + Plans 06-01 + 06-02 + 06-03.
+Progress: [█████████░] 97% — 29 / 30 plans executed across phases 01-05 + Plans 06-01 + 06-02 + 06-03 + 06-04.
 
 ## Performance Metrics
 
@@ -79,6 +79,7 @@ Progress: [█████████░] 93% — 28 / 30 plans executed across
 | Phase 06-review-gate-gps P01 | ~3 min (Task 2 continuation) | 2 tasks | 2 files |
 | Phase 06-review-gate-gps P02 | 4 min | 2 tasks | 1 files |
 | Phase 06-review-gate-gps P06-03 | 5 min | 5 tasks | 2 files |
+| Phase 06-review-gate-gps P06-04 | 68 min | 5 tasks | 9 files (7 created + 2 modified) |
 
 ## Accumulated Context
 
@@ -217,6 +218,15 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 06-review-gate-gps]: Plan 06-03: Blanket 'fix blocker and should' triage decision applied per Phase 04 precedent — user default-lean-to-fix over waive; only 1 waiver (Agent #1 #2 iOS auto-resume, genuine Phase 15 scope) + 2 won't-fix (style-only items). Pattern validated third cycle: 4-agent parallel audit + cross-lens preservation + blanket triage is now the locked template for review gates (Phases 02/04/06 → Phases 08/10/12/14/16 reuse)
 - [Phase 06-review-gate-gps]: Plan 06-03: Swift AppDelegate channel literal confirmed ABSENT post-Xcode 26 strip (grep 'app.gosl.mirkfall/boot_watchdog' ios/Runner/AppDelegate.swift → 0 matches). RESEARCH Open Question 1 CLOSED. Plan 06-04 Test #1 file map MUST exclude Swift (double-source: Kotlin + Dart×2 + test mirror). iOS-side coverage cross-refs Phase 15 FlutterImplicitEngineDelegate rewire docstring
 - [Phase 06-review-gate-gps]: Plan 06-03: 2 surprise Blockers NOT in CONTEXT pre-class surfaced by Agent #2 controller lens — (1) partial-activation DB row leak on start() failure (Agent #2 #1) + (2) GpsError in start() sets AsyncError instead of ErrorState contra docstring (Agent #2 #2). Both architecturally self-contained (controller lifecycle invariants); Plan 06-05 Batch A resolves both in ONE commit. No Rule 4 architectural decision required
+- [Phase 06-review-gate-gps]: Plan 06-04: Test #1 MethodChannel file map scope = Dart×2 + Kotlin (3 files), Swift AppDelegate excluded post-Xcode 26 strip (Open Question 1 CLOSED by Plan 06-03 Agent #4). When Phase 15 FlutterImplicitEngineDelegate rewire lands, a future plan adds Swift entry back to sourcePaths map.
+- [Phase 06-review-gate-gps]: Plan 06-04: Pure-Dart regex for Test #4 + tool/check_platform_manifests.dart — no package:xml / package:plist_parser dev_dependency added. RESEARCH recommendation: family-consistent with existing tool/check_*.dart scripts (exit 0/1/2 contract, pure-Dart scan surface).
+- [Phase 06-review-gate-gps]: Plan 06-04: Adversarial poison = Android-side (ACCESS_BACKGROUND_LOCATION removal) over iOS-side (UIBackgroundModes location removal) — cleaner single-string stderr grep target; iOS-side coverage retained synthetically via Test #4 + paired tool test. Run 24657371949 exit 1 on `Check platform manifests (Android + iOS)` step.
+- [Phase 06-review-gate-gps]: Plan 06-04: Paired tool test lives in `tool/test/` (Phase 02 convention — 6 sibling tests) NOT `test/tooling/` as originally referenced by CONTEXT/RESEARCH. CI step `Tool scripts unit tests` at ci.yml:76-77 runs `dart test tool/test/` — no ci.yml amendment needed for this file.
+- [Phase 06-review-gate-gps]: Plan 06-04: ci.yml `Plain-Dart domain + infra tests` narrow runner (line 136) NOT updated for Phase 06 — Flutter-binding tests (Tests #1-#3) can't load under plain `dart test`; pure-Dart Tests #4-#5 already covered by `flutter test` at line 110. Narrow runner allow-list stays: domain/ + infrastructure/{db,stores,ids,migration}/.
+- [Phase 06-review-gate-gps]: Plan 06-04: Phase 04 inertness-guard idiom validated third cycle (Phase 02/04/06) — every new regression-guard unit test combines intermediate expect BEFORE main expect + author-time mutation experiment verifying loud-fail. Pattern locked for Phases 08/10/12/14/16 review gates.
+- [Phase 06-review-gate-gps]: Plan 06-04: Adversarial Option B (poison + `on.push.branches` expansion in single commit on throwaway branch; main trigger stays [main]-only) validated third cycle (Phase 02/04/06). 0 cleanup cost; branch deletion sufficient to return main ci.yml to canonical state.
+- [Phase 06-review-gate-gps]: Plan 06-04 deviation: combined §4 Tests 1-5 + Test 6 evidence into one docs commit (c712f3e) instead of plan's two separate commits — same file touched within seconds, splitting adds noise to bisect surface without bisectability benefit. Plan Tasks 2+3 commit granularity reduced by 1; plan outcome unchanged.
+- [Phase 06-review-gate-gps]: Plan 06-04 deviation: CI `concurrency.cancel-in-progress: true` cancelled Test #1 run mid-watch when Test #2 was pushed. Plan's per-commit CI-green gating not strictly achieved; substitute: each test locally pre-verified via `flutter test` + mutation experiment; subsequent commits' CI runs validated cumulative state. No broken state reached permanent main-branch CI failure.
 
 ### Pending Todos
 
@@ -243,6 +253,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-20T07:45:40.207Z
-Stopped at: Completed 06-03-PLAN.md
+Last session: 2026-04-20T08:57:20Z
+Stopped at: Completed 06-04-PLAN.md
 Resume file: None
