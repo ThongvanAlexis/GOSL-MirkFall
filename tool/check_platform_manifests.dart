@@ -4,10 +4,11 @@
 
 import 'dart:io';
 
-/// Platform-manifest gate for the Phase 05 GPS contract.
+/// Platform-manifest gate for the Phase 05 GPS contract + Phase 07 download pipeline.
 ///
 /// `android/app/src/main/AndroidManifest.xml` MUST contain (Phase 05
-/// GPS-01..08 + auto-resume per Plan 05-02 + 05-06):
+/// GPS-01..08 + auto-resume per Plan 05-02 + 05-06, extended Phase 07
+/// Plan 07-01 with INTERNET for the per-country PMTiles download flow):
 ///
 ///   - android.permission.ACCESS_FINE_LOCATION
 ///   - android.permission.ACCESS_COARSE_LOCATION
@@ -17,6 +18,9 @@ import 'dart:io';
 ///   - android.permission.WAKE_LOCK
 ///   - android.permission.POST_NOTIFICATIONS
 ///   - android.permission.RECEIVE_BOOT_COMPLETED
+///   - android.permission.INTERNET (Phase 07 — HTTP downloads for
+///     per-country PMTiles bundles; without it, the download controller
+///     throws SecurityException on the first GET)
 ///   - `<receiver android:name=".BootCompletedReceiver">` with the
 ///     BOOT_COMPLETED intent-filter action.
 ///
@@ -46,6 +50,7 @@ const List<String> _requiredAndroidPermissions = <String>[
   'android.permission.WAKE_LOCK',
   'android.permission.POST_NOTIFICATIONS',
   'android.permission.RECEIVE_BOOT_COMPLETED',
+  'android.permission.INTERNET',
 ];
 
 const List<String> _requiredInfoPlistKeys = <String>['NSLocationWhenInUseUsageDescription', 'NSLocationAlwaysAndWhenInUseUsageDescription'];
@@ -112,7 +117,7 @@ Future<int> runCheck({String? androidManifestPath, String? infoPlistPath}) async
   }
 
   if (violations.isEmpty) {
-    stdout.writeln('check_platform_manifests: OK (Android + iOS manifests contain all required Phase 05 entries)');
+    stdout.writeln('check_platform_manifests: OK (Android + iOS manifests contain all required Phase 05 + Phase 07 entries)');
     return 0;
   }
 
@@ -121,8 +126,8 @@ Future<int> runCheck({String? androidManifestPath, String? infoPlistPath}) async
     stderr.writeln('  - $v');
   }
   stderr.writeln();
-  stderr.writeln('Rule: Phase 05 GPS contract requires the listed manifest entries on both platforms.');
-  stderr.writeln('Restore the missing entries; see lib/infrastructure/gps/ + Phase 05 SUMMARY for context.');
+  stderr.writeln('Rule: Phase 05 GPS contract + Phase 07 download pipeline require the listed manifest entries on both platforms.');
+  stderr.writeln('Restore the missing entries; see lib/infrastructure/gps/ + Phase 05 SUMMARY + Phase 07 plan 07-01 SUMMARY for context.');
   return 1;
 }
 

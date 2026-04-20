@@ -27,7 +27,7 @@ import '../check_platform_manifests.dart' as check_platform_manifests;
 /// substring, not full stderr transcripts.
 
 /// Synthetic clean AndroidManifest.xml content — every required Phase 05
-/// entry present, minimum structure for the regex anchors.
+/// + Phase 07 entry present, minimum structure for the regex anchors.
 const String _cleanAndroidManifest = '''
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
@@ -38,6 +38,7 @@ const String _cleanAndroidManifest = '''
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application android:label="Test">
         <receiver android:name=".BootCompletedReceiver" android:exported="true">
             <intent-filter>
@@ -113,6 +114,17 @@ void main() {
     test('returns 1 when AndroidManifest is missing ACCESS_BACKGROUND_LOCATION', () async {
       // Clean manifest minus the ACCESS_BACKGROUND_LOCATION line.
       final String poisoned = _cleanAndroidManifest.replaceFirst('    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>\n', '');
+      await File(androidPath).writeAsString(poisoned);
+      await File(iosPath).writeAsString(_cleanInfoPlist);
+
+      final int code = await check_platform_manifests.runCheck(androidManifestPath: androidPath, infoPlistPath: iosPath);
+      expect(code, 1);
+    });
+
+    test('returns 1 when AndroidManifest is missing INTERNET '
+        '(Phase 07 plan 07-01 — required for the per-country PMTiles download pipeline)', () async {
+      // Strip the INTERNET uses-permission line; everything else stays clean.
+      final String poisoned = _cleanAndroidManifest.replaceFirst('    <uses-permission android:name="android.permission.INTERNET"/>\n', '');
       await File(androidPath).writeAsString(poisoned);
       await File(iosPath).writeAsString(_cleanInfoPlist);
 

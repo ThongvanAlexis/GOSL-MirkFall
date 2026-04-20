@@ -42,6 +42,18 @@
          SecurityException). -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
+    <!-- Phase 07 (Map Integration) — HTTP downloads for per-country PMTiles
+         bundles hosted on a GitHub Release (catalog-driven, MAP-08/09).
+         Android 9+ enforces cleartext-traffic policy separately; we only
+         ever hit https://github.com URLs, so no networkSecurityConfig
+         override is needed. This permission is the Android-side gate for
+         any outbound HttpClient request — without it, the download
+         controller (Phase 07 plan 07-04) would throw SecurityException at
+         the first GET. iOS grants HTTP access by default (Info.plist
+         NSAppTransportSecurity not required because GitHub serves TLS
+         1.2+). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <!-- NOTE: geolocator_android ships its own <service> declaration for
          com.baseflow.geolocator.GeolocatorLocationService via manifest
          merge. Verify post-build (apkanalyzer or unzip the APK's
