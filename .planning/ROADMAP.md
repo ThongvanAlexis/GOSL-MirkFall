@@ -124,7 +124,7 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 **Depends on**: Phase 05
 **Requirements**: —
 **Success Criteria** (what must be TRUE):
-  1. Les artefacts POC (vidéo ou log extrait) des sessions background 30 min sur Android OEM et iOS sont archivés dans `.planning/pocs/phase-05/`
+  1. Les artefacts POC (vidéo ou log extrait) des sessions background 30 min sur Android OEM et iOS sont archivés dans `docs/qual-01-02-poc.md` + `docs/poc-artifacts/` (updated Phase 06: docs/ is the natural home for narrative + screenshots; .planning/ is process-internal)
   2. La consommation batterie mesurée sur le POC est dans un ordre de grandeur acceptable (< 15 %/h en walking mode avec `distanceFilter` configuré), conforme à la mesure de référence geolocator
   3. Le protocole review (user d'abord, titres + explications courtes) est appliqué
   4. Un plan de contournement pour les OEM les plus agressifs (Xiaomi / Huawei) est documenté — deep-links settings, instructions utilisateur, bannière "tracking interrompu" sur prochain launch
