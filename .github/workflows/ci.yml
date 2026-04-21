@@ -187,11 +187,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup JDK 17
+      - name: Setup JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          # Phase 07 — maplibre_gl 0.25.0 `:maplibre_gl:compileDebugJavaWithJavac`
+          # emits `source release: 21`; JDK 17 fails the compile. Bumped
+          # 2026-04-21 alongside the first APK build of Phase 07.
+          java-version: '21'
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
