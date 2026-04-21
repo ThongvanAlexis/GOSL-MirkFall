@@ -236,4 +236,55 @@ void main() {
       expect(fakeMapView.cameraMovesObserved.length, equals(movesBefore + 1));
     });
   });
+
+  group('MapCameraController — user location puck', () {
+    test('every incoming fix pushes setUserLocation(fix) into the MapView', () async {
+      final Fix firstFix = _mkFix(lat: 48.0, lon: 2.0, sessionId: sid);
+      final container = makeContainer(initialFix: firstFix);
+      addTearDown(container.dispose);
+
+      final FakeMapView fakeMapView = FakeMapView();
+      container.read(mapViewProvider.notifier).set(fakeMapView);
+      container.read(mapCameraControllerProvider);
+      await container.read(mapCameraControllerProvider.notifier).openForSession(sid);
+
+      // openForSession routes through the initial-fix path; _onFix not
+      // fired. The listener drives subsequent fixes.
+      final fake = container.read(activeSessionControllerProvider.notifier) as _FakeActiveSessionController;
+      final Fix nextFix = _mkFix(lat: 48.1, lon: 2.1, sessionId: sid);
+      fake.pushFix(nextFix);
+      await Future<void>.delayed(Duration.zero);
+      // setUserLocation is fire-and-forget; let the microtask drain twice
+      // so the inner `unawaited(() async { await ... }())` lambda runs.
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeMapView.lastUserLocationSet, equals(nextFix));
+      expect(fakeMapView.methodLog.where((s) => s.startsWith('setUserLocation(')).length, greaterThanOrEqualTo(1));
+    });
+
+    test('session drops from Tracking to Idle → setUserLocation(null) clears the puck', () async {
+      final Fix firstFix = _mkFix(lat: 48.0, lon: 2.0, sessionId: sid);
+      final container = makeContainer(initialFix: firstFix);
+      addTearDown(container.dispose);
+
+      final FakeMapView fakeMapView = FakeMapView();
+      container.read(mapViewProvider.notifier).set(fakeMapView);
+      container.read(mapCameraControllerProvider);
+      await container.read(mapCameraControllerProvider.notifier).openForSession(sid);
+
+      // Push one in-session fix so the puck is set.
+      final fake = container.read(activeSessionControllerProvider.notifier) as _FakeActiveSessionController;
+      fake.pushFix(_mkFix(lat: 48.1, lon: 2.1, sessionId: sid));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(fakeMapView.lastUserLocationSet, isNotNull);
+
+      // Transition to Idle (session stopped externally).
+      fake.state = const AsyncData(Idle());
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeMapView.lastUserLocationSet, isNull);
+    });
+  });
 }

@@ -184,19 +184,49 @@ class MapCameraController extends _$MapCameraController {
       final value = next.value;
       if (value is Tracking) {
         _onFix(value.lastFix);
+        return;
       }
+      // Session dropped to Idle (or any non-Tracking variant) — clear
+      // the location puck. Without this the blue dot would stay
+      // painted at the last-known fix forever after the user stops
+      // tracking.
+      final MapView? mapView = _mapView;
+      if (mapView == null) return;
+      unawaited(() async {
+        try {
+          await mapView.setUserLocation(null);
+        } on Object catch (e, st) {
+          _log.warning('setUserLocation(null) failed on session-stop (non-fatal)', e, st);
+        }
+      }());
     });
   }
 
-  /// Handles a new fix from the active session. In [MapCameraFollowing]
-  /// state, pans the camera to the fix (preserves zoom). In
-  /// [MapCameraCentering], triggers the initial centre + transitions to
-  /// Following. Otherwise no-op.
+  /// Handles a new fix from the active session. Always pushes the fix
+  /// into [MapView.setUserLocation] so the location-puck stays in sync,
+  /// independently of the camera follow-me state — the dot tracks the
+  /// user even when they're free-panning.
+  ///
+  /// Camera behaviour:
+  /// - [MapCameraCentering] → initial centre + transition to Following.
+  /// - [MapCameraFollowing] → pan to the fix (preserves zoom).
+  /// - [MapCameraFreePan] / [MapCameraIdle] → observe + update the puck
+  ///   only.
   Future<void> _onFix(Fix? fix) async {
     if (fix == null) return;
     _attachMapViewIfReady();
     final MapView? mapView = _mapView;
     if (mapView == null) return;
+    // Update the location puck on every fix, regardless of state. This
+    // was the missing piece in the 2026-04-21 device smoke: the adapter
+    // had setUserLocation wired but no one called it.
+    unawaited(() async {
+      try {
+        await mapView.setUserLocation(fix);
+      } on Object catch (e, st) {
+        _log.warning('setUserLocation failed (non-fatal — puck will update on next fix)', e, st);
+      }
+    }());
     final current = state;
     if (current is MapCameraCentering) {
       await _moveCameraTo(mapView, latitude: fix.latitude, longitude: fix.longitude, zoom: kInitialSessionMapZoom.toDouble());
@@ -208,7 +238,8 @@ class MapCameraController extends _$MapCameraController {
       await _moveCameraTo(mapView, latitude: fix.latitude, longitude: fix.longitude, zoom: _currentZoom);
       return;
     }
-    // FreePan / Idle: observe but do not move the camera.
+    // FreePan / Idle: observe but do not move the camera — the puck
+    // has already been updated above.
   }
 
   /// Wraps [MapView.moveCameraTo] with the pending-flag bookkeeping so

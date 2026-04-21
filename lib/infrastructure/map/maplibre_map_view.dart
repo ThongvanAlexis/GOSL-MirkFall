@@ -209,9 +209,19 @@ class _MapLibreMapViewAdapter implements MapView {
   /// string ID so [removePointOfInterest] can look them up.
   final Map<String, Symbol> _poiSymbols = <String, Symbol>{};
 
-  /// Single symbol tracking the user-location indicator; `null` when no
+  /// Single circle tracking the user-location indicator; `null` when no
   /// fix has been supplied yet.
-  Symbol? _userLocationSymbol;
+  ///
+  /// Deliberately a `Circle` (runtime MapLibre annotation) rather than a
+  /// `Symbol` backed by a sprite image. Reasons:
+  /// - Phase 07-01 ships `assets/maps/sprites/` as a placeholder
+  ///   directory (`README.md` only — no real sprite sheet yet). A
+  ///   Symbol with `iconImage: 'dot'` would resolve to a missing icon
+  ///   and render invisibly. A Circle needs nothing but a fill colour.
+  /// - The final UX design (medieval-style PNG icon) will swap this
+  ///   for a Symbol once the sprite pack lands, touching only this
+  ///   adapter — the [MapView] port signature stays identical.
+  Circle? _userLocationCircle;
 
   late final VoidCallback _cameraListener;
   bool _followMe = false;
@@ -257,19 +267,25 @@ class _MapLibreMapViewAdapter implements MapView {
   Future<void> setUserLocation(Fix? fix) async {
     _ensureNotDisposed();
     if (fix == null) {
-      final Symbol? existing = _userLocationSymbol;
+      final Circle? existing = _userLocationCircle;
       if (existing != null) {
-        await _controller.removeSymbol(existing);
-        _userLocationSymbol = null;
+        await _controller.removeCircle(existing);
+        _userLocationCircle = null;
       }
       return;
     }
     final LatLng pos = LatLng(fix.latitude, fix.longitude);
-    final Symbol? existing = _userLocationSymbol;
+    // Default MapLibre location-puck colours: solid blue fill + white
+    // stroke. Matches the convention every major GPS app uses (Google
+    // Maps, Apple Maps, OsmAnd) — future swap to the medieval-style
+    // PNG icon is a one-file adapter change, the MapView port stays
+    // the same.
+    final CircleOptions options = CircleOptions(geometry: pos, circleRadius: 7.0, circleColor: '#2b7cd6', circleStrokeColor: '#ffffff', circleStrokeWidth: 2.0);
+    final Circle? existing = _userLocationCircle;
     if (existing == null) {
-      _userLocationSymbol = await _controller.addSymbol(SymbolOptions(geometry: pos, iconImage: 'dot', iconSize: 1.0));
+      _userLocationCircle = await _controller.addCircle(options);
     } else {
-      await _controller.updateSymbol(existing, SymbolOptions(geometry: pos));
+      await _controller.updateCircle(existing, options);
     }
     // Follow-me: centre the camera on the new fix. Uses animateCamera
     // so the motion is smooth rather than a jarring jump.
