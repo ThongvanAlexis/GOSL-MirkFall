@@ -19,6 +19,12 @@ Widget _wrap(Widget child) {
         path: '/permissions/oem',
         builder: (_, _) => const Scaffold(body: Text('oem')),
       ),
+      // Phase 07 — the Cartes + Styles sections push to these routes.
+      GoRoute(path: '/maps/download', builder: (_, _) => const Scaffold(body: Text('maps-download'))),
+      GoRoute(path: '/maps/manage', builder: (_, _) => const Scaffold(body: Text('maps-manage'))),
+      GoRoute(path: '/styles/import', builder: (_, _) => const Scaffold(body: Text('styles-import'))),
+      GoRoute(path: '/styles/export', builder: (_, _) => const Scaffold(body: Text('styles-export'))),
+      GoRoute(path: '/debug', builder: (_, _) => const Scaffold(body: Text('debug'))),
     ],
   );
   return ProviderScope(child: MaterialApp.router(routerConfig: router));
@@ -78,6 +84,64 @@ void main() {
 
       // Reached the /permissions/oem stub.
       expect(find.text('oem'), findsOneWidget);
+    });
+
+    // Phase 07 extensions.
+
+    testWidgets('Cartes section shows 2 ListTiles with correct labels', (tester) async {
+      SharedPreferences.setMockInitialValues(const <String, Object>{});
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cartes'), findsOneWidget);
+      expect(find.text('Télécharger une carte'), findsOneWidget);
+      expect(find.text('Gérer les cartes installées'), findsOneWidget);
+    });
+
+    testWidgets('Styles section shows 2 Phase-13 placeholders', (tester) async {
+      SharedPreferences.setMockInitialValues(const <String, Object>{});
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Styles'), findsOneWidget);
+      expect(find.text('Importer un style de mirk'), findsOneWidget);
+      expect(find.text('Exporter un style de mirk'), findsOneWidget);
+      // Subtitles mention Phase 13.
+      expect(find.text('En construction (Phase 13)'), findsNWidgets(2));
+    });
+
+    testWidgets('tap "Télécharger une carte" navigates to /maps/download', (tester) async {
+      SharedPreferences.setMockInitialValues(const <String, Object>{});
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ListTile, 'Télécharger une carte'));
+      await tester.pumpAndSettle();
+      expect(find.text('maps-download'), findsOneWidget);
+    });
+
+    testWidgets('tap "Gérer les cartes installées" navigates to /maps/manage', (tester) async {
+      SharedPreferences.setMockInitialValues(const <String, Object>{});
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ListTile, 'Gérer les cartes installées'));
+      await tester.pumpAndSettle();
+      expect(find.text('maps-manage'), findsOneWidget);
+    });
+
+    testWidgets('tap "Importer un style de mirk" navigates to /styles/import', (tester) async {
+      SharedPreferences.setMockInitialValues(const <String, Object>{});
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      // The Styles section sits below the Cartes cards — scroll into view.
+      final tileFinder = find.widgetWithText(ListTile, 'Importer un style de mirk');
+      await tester.ensureVisible(tileFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(tileFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.text('styles-import'), findsOneWidget);
     });
   });
 }

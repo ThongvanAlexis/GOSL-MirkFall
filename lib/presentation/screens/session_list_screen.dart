@@ -33,7 +33,20 @@ class SessionListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mes sessions'),
-        actions: <Widget>[IconButton(tooltip: 'Paramètres', icon: const Icon(Icons.settings_outlined), onPressed: () => context.push('/settings'))],
+        actions: <Widget>[
+          // Phase 07 (map-integration): open the map directly when the
+          // user has at least one session. The button is conditional on
+          // the AsyncValue data — when the list is empty (or loading),
+          // the map entry is hidden to keep the first-run funnel focused
+          // on creating the first session.
+          if (asyncSessions.value?.isNotEmpty ?? false)
+            IconButton(
+              tooltip: 'Ouvrir la carte',
+              icon: const Icon(Icons.map_outlined),
+              onPressed: () => context.push('/map'),
+            ),
+          IconButton(tooltip: 'Paramètres', icon: const Icon(Icons.settings_outlined), onPressed: () => context.push('/settings')),
+        ],
       ),
       floatingActionButton: FloatingActionButton(tooltip: 'Créer une session', onPressed: () => _openCreateDialog(context, ref), child: const Icon(Icons.add)),
       body: asyncSessions.when(

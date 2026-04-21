@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mirkfall/application/providers/session_settings_provider.dart';
 
+import '../widgets/map_download_progress_chip.dart';
+
 /// `/settings` — minimal Phase 05 settings screen.
 ///
 /// Exposes:
@@ -52,7 +54,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final asyncSettings = ref.watch(sessionSettingsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Paramètres')),
+      appBar: AppBar(
+        title: const Text('Paramètres'),
+        actions: const <Widget>[MapDownloadProgressChip()],
+      ),
       body: asyncSettings.when(
         loading: () => const Center(child: CircularProgressIndicator.adaptive()),
         error: (err, st) => Center(child: Text('Erreur : $err')),
@@ -116,6 +121,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 16.0),
+              // Phase 07 — Cartes section.
+              const _SectionHeader(label: 'Cartes'),
+              Card(
+                child: Column(
+                  children: <Widget>[
+                    ListTile(
+                      leading: const Icon(Icons.download_outlined),
+                      title: const Text('Télécharger une carte'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/maps/download'),
+                    ),
+                    const Divider(height: 1.0),
+                    ListTile(
+                      leading: const Icon(Icons.folder_outlined),
+                      title: const Text('Gérer les cartes installées'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/maps/manage'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              // Phase 07 — Styles section (Phase 13 placeholders).
+              const _SectionHeader(label: 'Styles'),
+              Card(
+                child: Column(
+                  children: <Widget>[
+                    ListTile(
+                      leading: const Icon(Icons.file_upload_outlined),
+                      title: const Text('Importer un style de mirk'),
+                      subtitle: const Text('En construction (Phase 13)'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/styles/import'),
+                    ),
+                    const Divider(height: 1.0),
+                    ListTile(
+                      leading: const Icon(Icons.file_download_outlined),
+                      title: const Text('Exporter un style de mirk'),
+                      subtitle: const Text('En construction (Phase 13)'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/styles/export'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16.0),
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.bug_report_outlined),
@@ -128,6 +179,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Small section header reused across the settings screen sections.
+/// Hoisted as a private widget so each Card keeps a predictable shape.
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4.0, 0.0, 0.0, 8.0),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.primary),
       ),
     );
   }

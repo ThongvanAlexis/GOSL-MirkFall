@@ -293,6 +293,20 @@ class _TrackingDashboard extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 16.0),
+          // Phase 07 — primary entry point to the full-screen map from a
+          // live session. Preserves Phase 05 layout / stop-button
+          // reachability; embedding the MapLibreMapViewWidget directly in
+          // the detail dashboard would require plumbing the map providers
+          // through every Phase 05 widget test (they currently don't
+          // override styleRewriter / pmtilesSource). The /map route has
+          // its own burger menu + follow-me FAB, so the user workflow
+          // carries through without loss.
+          OutlinedButton.icon(
+            onPressed: () => context.push('/map'),
+            icon: const Icon(Icons.map_outlined),
+            label: const Text('Carte plein écran'),
+          ),
           const Spacer(),
           FilledButton.icon(
             style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error, foregroundColor: Theme.of(context).colorScheme.onError),
@@ -434,6 +448,15 @@ class _StoppedSummary extends ConsumerWidget {
           ),
           if (inlineError != null) ...<Widget>[const SizedBox(height: 12.0), Text(inlineError!, style: TextStyle(color: Theme.of(context).colorScheme.error))],
           const Spacer(),
+          // Phase 07 — /map entry from a stopped session. Phase 09 will
+          // paint the fix trajectory on the map once the session ends;
+          // for now the link lets the user browse the world basemap.
+          OutlinedButton.icon(
+            onPressed: () => context.push('/map'),
+            icon: const Icon(Icons.map_outlined),
+            label: const Text('Carte plein écran'),
+          ),
+          const SizedBox(height: 8.0),
           FilledButton.icon(onPressed: onStart, icon: const Icon(Icons.play_arrow_outlined), label: const Text('Démarrer')),
           const SizedBox(height: 8.0),
           OutlinedButton.icon(onPressed: onDelete, icon: const Icon(Icons.delete_outline), label: const Text('Supprimer')),

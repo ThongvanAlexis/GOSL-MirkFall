@@ -254,6 +254,41 @@ void main() {
       expect(find.text('Créer et démarrer'), findsOneWidget);
     });
 
+    // Phase 07 — /map AppBar entry surfaces only when sessions exist.
+
+    testWidgets('emptyState hides the /map AppBar button', (tester) async {
+      final sessionStore = FakeSessionStore();
+      addTearDown(sessionStore.disposeController);
+      final fixStore = FakeFixStore();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          child: const MaterialApp(home: SessionListScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Map button is conditionally rendered — absent when sessions is empty.
+      expect(find.byIcon(Icons.map_outlined), findsNothing);
+    });
+
+    testWidgets('one session surfaces the /map AppBar button', (tester) async {
+      final sessionStore = FakeSessionStore(<Session>[buildSession(id: 'sess_00000000000000000000000001')]);
+      addTearDown(sessionStore.disposeController);
+      final fixStore = FakeFixStore();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          child: const MaterialApp(home: SessionListScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.map_outlined), findsOneWidget);
+    });
+
     testWidgets('hundredSessionsRenderWithoutTimeout', (tester) async {
       // SESS-09 stress: 100 sessions render via ListView.separated.
       final seeded = <Session>[

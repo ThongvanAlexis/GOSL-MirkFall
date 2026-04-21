@@ -101,6 +101,8 @@ void main() {
 
       expect(find.text('Démarrer'), findsOneWidget);
       expect(find.text('Supprimer'), findsOneWidget);
+      // Phase 07 — 'Carte plein écran' link in the stopped summary.
+      expect(find.text('Carte plein écran'), findsOneWidget);
     });
 
     testWidgets('rendersStatusDashboardWhenActive', (tester) async {
