@@ -360,6 +360,44 @@ Verified 2026-04-21T02:45:18Z after SUMMARY.md write:
 - **All 3 lint gates exit 0** on real tree scan: `check_avoid_maplibre_leak` (149 files), `check_avoid_remote_pmtiles` (532 files), `check_headers` (286 files).
 
 ---
+
+## Post-ship amendments (device smoke feedback, 2026-04-21)
+
+Applied after the human-device smoke surfaced visual issues on real MapLibre rendering. These are fix-forward commits on top of the Plan 07-06 baseline, not new scope — they correct defects the unit tests couldn't catch.
+
+### `assets/maps/style.json` — water-layer paint tweaks (commit `7425c37`)
+
+**What changed**
+
+1. Added `"filter": ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false]` on the `water` layer.
+2. Added `"fill-antialias": false` on the same layer.
+
+Layer count unchanged (still 8); frozen layer order unchanged; `test/presentation/map_style_layer_order_test.dart` still passes.
+
+**Why — root cause analysis**
+
+The Protomaps `water` source-layer contains BOTH polygon features (oceans, lakes) AND linestring features (rivers at some zoom tiers). Without a geometry-type filter, MapLibre's `type: fill` layer tried to paint linestrings as degenerate fill wedges — scattering blue triangular artifacts across the map at certain zooms. Third-party PMTiles viewers rendered the same file correctly, which isolated the bug to our style, not the data.
+
+`fill-antialias: false` eliminates the thin white seams that MapLibre anti-aliasing can draw along tile boundaries between identically-painted fill polygons.
+
+**Consequence — rivers-as-lines are currently invisible**
+
+Rivers that Protomaps encodes as LineString geometries in the `water` source-layer no longer render. This is intentional for Phase 07 (minimal neutral basemap); future style-completeness work will need to add a dedicated `type: line` layer filtering on the LineString subset of `water` (or a different source-layer if the Protomaps schema has moved). See `07-CONTEXT.md §<deferred>` — "Complétude du style (rivières, POIs riches, bâtiments, labels de rue, relief/altitude)".
+
+### Future phase hand-off
+
+A dedicated phase in V1.x will own:
+- `rivers` layer (type: line, LineString-only filter on `water`)
+- `buildings` layer (fill ± fill-extrusion per UX call)
+- POI enrichment (categorised icons, per-category minzoom — the current single `dot` symbol is a placeholder)
+- street labels (text-field on `roads` with collision)
+- relief / hillshade / contours (likely a new source)
+- landcover kinds (forest / grass / urban differentiated, instead of the current single beige fill)
+
+Schema caveat: the exact property names on Protomaps basemaps source-layers (`kind`, `class`, `pmap:kind`) must be verified against the bundled PMTiles version before writing filters — Protomaps has changed these between versions. The frozen layer order from Plan 07-01 (`lib/infrastructure/map/style_layer_order.dart` + regression test) must be updated alongside any new layers.
+
+---
 *Phase: 07-map-integration*
 *Plan: 06-presentation*
 *Completed: 2026-04-21*
+*Amended: 2026-04-21 (device-smoke style fix)*

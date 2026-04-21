@@ -324,6 +324,14 @@ Un amendement optionnel supplémentaire : **ROADMAP.md Phase 07 SC#6** mentionne
 - **iOS Dynamic Island pour download progress** → nice-to-have, probablement jamais (pattern déjà discuté Phase 05 deferred Dynamic Island session).
 - **Storage quota UI global (total map storage)** → Phase 07 montre per-country + total cumul, pas de graph / tendance. Ajouts Phase 15 polish éventuels.
 - **Onboarding tutorial pour first download** → Phase 15 polish.
+- **Complétude du style (rivières, POIs riches, bâtiments, labels de rue, relief/altitude)** → **V1.x (phase dédiée à créer)**. Le style livré Phase 07 est intentionnellement minimal (8 couches : background, landcover, water (polygones uniquement), boundaries, roads, pois basique, mirk_fog, user_location). Amendement post-device-smoke 2026-04-21 (commit `7425c37`) : la couche `water` filtre désormais `geometry-type in [Polygon, MultiPolygon]` parce que le source-layer `water` de Protomaps contient aussi des LineString (rivières), que MapLibre peignait en wedges bleus dégénérés quand on laissait un `type: fill` sans filtre. **Résultat : les rivières-en-ligne sont donc actuellement invisibles**. Par ailleurs `fill-antialias: false` a été ajouté sur `water` pour éliminer les coutures blanches fines aux bordures de tuiles. Les fonctionnalités suivantes sont volontairement hors-scope Phase 07 et devront être ajoutées par une phase future consacrée à la richesse du rendu :
+  - couche dédiée `rivers` (`type: line`, filtrée sur le sous-ensemble LineString du source-layer `water` avec le `kind`/`class` approprié selon le schéma Protomaps basemaps)
+  - couche `buildings` (fill + éventuellement fill-extrusion pour la 3D selon décision UX)
+  - enrichissement des POIs (catégories multiples, icons contextuels, minzoom par catégorie — la couche actuelle est une symbol monolithique `dot` à partir de zoom 12)
+  - labels de rues (symbol sur `roads` avec `text-field` + collision detection)
+  - relief / hillshade / contours (nécessite une source raster ou un source-layer dédié — probablement un autre PMTiles que celui actuellement bundlé)
+  - landcover enrichi (forêt, prairie, urbain — les différents `kind` du source-layer au lieu d'un unique fill beige)
+  Lors de l'ajout, respecter l'ordre de couches gelé (Phase 07 : background → landcover → water → boundaries → roads → pois → mirk_fog → user_location ; test de régression `test/presentation/map_style_layer_order_test.dart` à mettre à jour en même temps que `lib/infrastructure/map/style_layer_order.dart`). Attention aussi : le schéma exact des source-layers Protomaps basemaps (noms de propriétés `kind`, `class`, `pmap:kind`) doit être vérifié contre la version PMTiles effectivement bundlée avant de définir les filtres — les schémas ont changé entre les versions Protomaps basemaps.
 
 </deferred>
 
