@@ -5,7 +5,8 @@
 import Flutter
 import UIKit
 
-/// Minimal iOS app delegate — standard Flutter bootstrap only.
+/// Minimal iOS app delegate — standard Flutter bootstrap + Phase 07
+/// MethodChannel registrations.
 ///
 /// Phase 05 Plan 05-05 initially landed a scene-based
 /// `FlutterImplicitEngineDelegate` wiring here to support the iOS
@@ -18,8 +19,8 @@ import UIKit
 /// delegate and the previous code no longer compiled.
 ///
 /// Rather than chase the API across Flutter patch versions during a
-/// POC-validation phase, the MethodChannel + CLLocationManager wiring
-/// is deliberately dropped here. Consequences :
+/// POC-validation phase, the boot-watchdog MethodChannel + CLLocationManager
+/// wiring is deliberately dropped here. Consequences :
 ///
 /// - The Dart side (`IosSignificantChangeWatchdog.startMonitoring` /
 ///   `stopMonitoring`) now gets `MissingPluginException` — the Dart
@@ -38,6 +39,15 @@ import UIKit
 /// up pinning at release. Until then, the Android half
 /// (BroadcastReceiver) still covers GPS-06 for the majority of
 /// devices.
+///
+/// ## Phase 07 additions
+///
+/// Two new MethodChannels are registered here against the main
+/// FlutterEngine:
+/// - `app.gosl.mirkfall/disk_space` — iOS side of [DiskSpaceChannel].
+/// - `app.gosl.mirkfall/ios_backup_excluder` — iOS side of
+///   [IosBackupExcluderChannel]. Marks per-country PMTiles bundles as
+///   excluded from iCloud backup (closes RESEARCH Open Question #3).
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   override func application(
@@ -45,6 +55,17 @@ import UIKit
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+
+    // Register Phase 07 hand-rolled MethodChannels. The main-engine
+    // binary messenger is reached via the application's root view
+    // controller, which is always a `FlutterViewController` in the
+    // Flutter iOS template.
+    if let controller = window?.rootViewController as? FlutterViewController {
+      let messenger = controller.binaryMessenger
+      DiskSpaceChannel.register(with: messenger)
+      IosBackupExcluderChannel.register(with: messenger)
+    }
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }
