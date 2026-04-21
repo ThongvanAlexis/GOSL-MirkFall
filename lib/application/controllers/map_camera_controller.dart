@@ -122,6 +122,18 @@ class MapCameraController extends _$MapCameraController {
 
     if (mapView != null && latestFix != null) {
       await _moveCameraTo(mapView, latitude: latestFix.latitude, longitude: latestFix.longitude, zoom: kInitialSessionMapZoom.toDouble());
+      // Prime the user-location puck on the initial fix. Without this
+      // the blue dot waits for the second fix to arrive before
+      // rendering — on a stationary device that second fix can take
+      // minutes (or never arrives while the user is indoors with GPS
+      // filtered to distanceFilter > 0).
+      unawaited(() async {
+        try {
+          await mapView.setUserLocation(latestFix);
+        } on Object catch (e, st) {
+          _log.warning('setUserLocation on openForSession failed (non-fatal)', e, st);
+        }
+      }());
       await mapView.setFollowMeEnabled(true);
       state = MapCameraFollowing(sessionId: sessionId);
       return;

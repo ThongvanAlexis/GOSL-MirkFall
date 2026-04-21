@@ -116,6 +116,13 @@ void main() {
       expect(fakeMapView.cameraMovesObserved.single.zoom, equals(kInitialSessionMapZoom.toDouble()));
       expect(fakeMapView.followMeEnabled, isTrue);
       expect(container.read(mapCameraControllerProvider), isA<MapCameraFollowing>());
+      // Wait a microtask for the fire-and-forget setUserLocation to
+      // drain. Regression guard for the 2026-04-21 device-smoke bug:
+      // openForSession used to move the camera without priming the
+      // puck, so the blue dot only appeared on the second fix.
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(fakeMapView.lastUserLocationSet, equals(fix));
     });
 
     test('openForSession WITHOUT a fix transitions to Centering; next fix drives Centering → Following', () async {

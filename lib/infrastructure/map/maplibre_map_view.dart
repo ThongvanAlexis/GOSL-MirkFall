@@ -223,6 +223,13 @@ class _MapLibreMapViewAdapter implements MapView {
   ///   adapter — the [MapView] port signature stays identical.
   Circle? _userLocationCircle;
 
+  /// Last fix pushed through [setUserLocation]. Retained so [showMap] can
+  /// re-apply the puck after a `setStyle` swap — MapLibre wipes every
+  /// runtime annotation (addCircle/addSymbol) during a style change, so
+  /// the Circle pointer goes stale and a fresh `addCircle` is required
+  /// once the new style has loaded.
+  Fix? _lastUserLocationFix;
+
   late final VoidCallback _cameraListener;
   bool _followMe = false;
   bool _disposed = false;
@@ -246,6 +253,18 @@ class _MapLibreMapViewAdapter implements MapView {
     // edge case where a style carries its own initial camera.
     await _controller.moveCamera(CameraUpdate.newCameraPosition(preserved));
     _log.info('showMap(${country?.value ?? 'world'}): camera re-applied after setStyle');
+
+    // Re-apply the user-location puck — setStyle wiped the annotation
+    // layer. The stale Circle pointer is invalid; null it out so the
+    // next setUserLocation call takes the "add" branch, not the
+    // "update" branch (updateCircle on a wiped Circle is a no-op at
+    // best, a crash at worst depending on maplibre_gl version).
+    _userLocationCircle = null;
+    final Fix? restore = _lastUserLocationFix;
+    if (restore != null) {
+      _log.info('showMap(${country?.value ?? 'world'}): re-applying user-location puck');
+      await setUserLocation(restore);
+    }
   }
 
   @override
@@ -266,12 +285,14 @@ class _MapLibreMapViewAdapter implements MapView {
   @override
   Future<void> setUserLocation(Fix? fix) async {
     _ensureNotDisposed();
+    _lastUserLocationFix = fix;
     if (fix == null) {
       final Circle? existing = _userLocationCircle;
       if (existing != null) {
         await _controller.removeCircle(existing);
         _userLocationCircle = null;
       }
+      _log.info('setUserLocation(null): puck cleared');
       return;
     }
     final LatLng pos = LatLng(fix.latitude, fix.longitude);
@@ -284,8 +305,10 @@ class _MapLibreMapViewAdapter implements MapView {
     final Circle? existing = _userLocationCircle;
     if (existing == null) {
       _userLocationCircle = await _controller.addCircle(options);
+      _log.info('setUserLocation: puck ADDED at (${fix.latitude}, ${fix.longitude})');
     } else {
       await _controller.updateCircle(existing, options);
+      _log.fine('setUserLocation: puck UPDATED at (${fix.latitude}, ${fix.longitude})');
     }
     // Follow-me: centre the camera on the new fix. Uses animateCamera
     // so the motion is smooth rather than a jarring jump.
