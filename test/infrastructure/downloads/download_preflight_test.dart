@@ -47,10 +47,7 @@ void main() {
 
       final DiskSpaceChecker checker = DiskSpaceChecker();
       // 1 GB needed → margin-adjusted 1.1 GB. Only 10 MB free → throws.
-      await expectLater(
-        preflightOrThrow(checker: checker, path: '/sandbox', neededBytes: 1_000_000_000),
-        throwsA(isA<DiskSpaceInsufficientException>()),
-      );
+      await expectLater(preflightOrThrow(checker: checker, path: '/sandbox', neededBytes: 1_000_000_000), throwsA(isA<DiskSpaceInsufficientException>()));
     });
 
     test('honours the safety-margin multiplier — passes at exactly needed × 1.1', () async {

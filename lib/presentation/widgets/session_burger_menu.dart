@@ -41,8 +41,7 @@ class SessionBurgerMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final Size screenSize = MediaQuery.of(context).size;
     final bool isLandscape = screenSize.width > screenSize.height;
-    final double drawerWidth =
-        screenSize.width * (isLandscape ? _kDrawerWidthLandscapeFraction : _kDrawerWidthPortraitFraction);
+    final double drawerWidth = screenSize.width * (isLandscape ? _kDrawerWidthLandscapeFraction : _kDrawerWidthPortraitFraction);
 
     final asyncSession = ref.watch(activeSessionControllerProvider);
     final ActiveSessionState? sessionState = asyncSession.value;
@@ -111,15 +110,9 @@ class _DrawerHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            'MirkFall',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: cs.onPrimaryContainer),
-          ),
+          Text('MirkFall', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: cs.onPrimaryContainer)),
           const SizedBox(height: 4.0),
-          Text(
-            isTracking ? 'Session active' : 'Aucune session',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onPrimaryContainer),
-          ),
+          Text(isTracking ? 'Session active' : 'Aucune session', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onPrimaryContainer)),
         ],
       ),
     );

@@ -54,10 +54,7 @@ class DownloadQueueStore {
         _log.warning('load: expected top-level JSON list, got ${decoded.runtimeType} — returning empty queue');
         return <DownloadJob>[];
       }
-      return decoded
-          .whereType<Map<String, Object?>>()
-          .map(DownloadJob.fromJson)
-          .toList(growable: false);
+      return decoded.whereType<Map<String, Object?>>().map(DownloadJob.fromJson).toList(growable: false);
     } on Object catch (e) {
       _log.warning('load: JSON decode failed for $_filename: $e — returning empty queue');
       return <DownloadJob>[];

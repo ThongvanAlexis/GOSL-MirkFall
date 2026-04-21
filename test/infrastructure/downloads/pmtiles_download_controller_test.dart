@@ -62,36 +62,21 @@ void _stubDiskSpaceChannel(int freeBytes) {
   addTearDown(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null));
 }
 
-CountryEntry _entryFor({
-  required String alpha3Raw,
-  required List<Uint8List> chunkPayloads,
-  required List<String> chunkUrls,
-}) {
+CountryEntry _entryFor({required String alpha3Raw, required List<Uint8List> chunkPayloads, required List<String> chunkUrls}) {
   final List<ChunkPart> parts = <ChunkPart>[];
   for (int i = 0; i < chunkPayloads.length; i++) {
-    parts.add(ChunkPart(
-      sha256: sha256.convert(chunkPayloads[i]).toString(),
-      size: chunkPayloads[i].length,
-      url: chunkUrls[i],
-    ));
+    parts.add(ChunkPart(sha256: sha256.convert(chunkPayloads[i]).toString(), size: chunkPayloads[i].length, url: chunkUrls[i]));
   }
   final Uint8List reassembled = Uint8List.fromList(chunkPayloads.expand((Uint8List b) => b).toList());
   return CountryEntry(
     alpha3: CountryCode.parse(alpha3Raw),
     name: alpha3Raw.toUpperCase(),
     parts: parts,
-    reassembled: ReassembledMeta(
-      sha256: sha256.convert(reassembled).toString(),
-      size: reassembled.length,
-    ),
+    reassembled: ReassembledMeta(sha256: sha256.convert(reassembled).toString(), size: reassembled.length),
   );
 }
 
-typedef _Harness = ({
-  PmtilesDownloadController controller,
-  FakeInstalledManifestRepository manifestRepo,
-  _FakeIosBackupExcluder excluder,
-});
+typedef _Harness = ({PmtilesDownloadController controller, FakeInstalledManifestRepository manifestRepo, _FakeIosBackupExcluder excluder});
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -108,10 +93,7 @@ void main() {
     }
   });
 
-  Future<_Harness> makeController({
-    required HttpChunkDownloader httpDownloader,
-    int freeBytes = 100_000_000,
-  }) async {
+  Future<_Harness> makeController({required HttpChunkDownloader httpDownloader, int freeBytes = 100_000_000}) async {
     _stubDiskSpaceChannel(freeBytes);
     final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository();
     addTearDown(manifest.close);
@@ -195,11 +177,7 @@ void main() {
         final CountryEntry entry = _entryFor(
           alpha3Raw: 'deu',
           chunkPayloads: <Uint8List>[a, b, c],
-          chunkUrls: <String>[
-            srvA.base.resolve('/a').toString(),
-            srvB.base.resolve('/b').toString(),
-            srvC.base.resolve('/c').toString(),
-          ],
+          chunkUrls: <String>[srvA.base.resolve('/a').toString(), srvB.base.resolve('/b').toString(), srvC.base.resolve('/c').toString()],
         );
         final Future<DownloadState> completedFuture = result.controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
         await result.controller.enqueueCountry(entry);
@@ -223,11 +201,7 @@ void main() {
       final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
       final _Harness result = await makeController(httpDownloader: httpDownloader, freeBytes: 100);
 
-      final CountryEntry entry = _entryFor(
-        alpha3Raw: 'fra',
-        chunkPayloads: <Uint8List>[chunk],
-        chunkUrls: <String>[server.base.resolve('/fra').toString()],
-      );
+      final CountryEntry entry = _entryFor(alpha3Raw: 'fra', chunkPayloads: <Uint8List>[chunk], chunkUrls: <String>[server.base.resolve('/fra').toString()]);
       final Future<DownloadState> errFuture = result.controller.stateStream.firstWhere((DownloadState s) => s is DownloadError);
       await result.controller.enqueueCountry(entry);
 

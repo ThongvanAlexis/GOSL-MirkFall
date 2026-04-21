@@ -192,7 +192,6 @@ class FirstLaunchBootstrap {
     return current;
   }
 
-
   Future<List<String>> _scanStagingOrphans(InstalledManifest manifest) async {
     final Directory staging = Directory(stagingDirFilename);
     if (!staging.existsSync()) return <String>[];

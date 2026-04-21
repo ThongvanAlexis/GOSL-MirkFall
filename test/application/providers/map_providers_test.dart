@@ -253,20 +253,16 @@ void main() {
             // A minimal catalog with one synthetic country so the heal-path
             // code under bootstrap does not crash on missing data. No real
             // asset is consumed.
-            return CountryCatalog(countries: [
-              CountryEntry(
-                alpha3: CountryCode.parse('abw'),
-                name: 'Aruba',
-                parts: [
-                  ChunkPart(
-                    sha256: 'a' * 64,
-                    size: 1024,
-                    url: 'https://github.com/example/mirkfall/releases/download/v20260419/abw.part01',
-                  ),
-                ],
-                reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1024),
-              ),
-            ]);
+            return CountryCatalog(
+              countries: [
+                CountryEntry(
+                  alpha3: CountryCode.parse('abw'),
+                  name: 'Aruba',
+                  parts: [ChunkPart(sha256: 'a' * 64, size: 1024, url: 'https://github.com/example/mirkfall/releases/download/v20260419/abw.part01')],
+                  reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1024),
+                ),
+              ],
+            );
           }),
         ],
       );
@@ -296,26 +292,16 @@ void main() {
       final copier = FirstLaunchWorldCopierTestSeam.withAssetLoader(
         appSupportDir: tempDir.path,
         expectedSha256: 'c' * 64,
-        loader: (path) async => throw const MapAssetMissingException(
-          assetPath: 'assets/maps/world.pmtiles',
-          reason: 'simulated missing',
-        ),
+        loader: (path) async => throw const MapAssetMissingException(assetPath: 'assets/maps/world.pmtiles', reason: 'simulated missing'),
       );
 
       final container = ProviderContainer();
       addTearDown(container.dispose);
       final repo = await container.read(installedManifestRepositoryProvider.future);
 
-      final bootstrap = FirstLaunchBootstrap(
-        worldCopier: copier,
-        appSupportDir: tempDir.path,
-        manifestRepository: repo,
-      );
+      final bootstrap = FirstLaunchBootstrap(worldCopier: copier, appSupportDir: tempDir.path, manifestRepository: repo);
 
-      await expectLater(
-        bootstrap.run(),
-        throwsA(isA<MapAssetMissingException>()),
-      );
+      await expectLater(bootstrap.run(), throwsA(isA<MapAssetMissingException>()));
     });
   });
 
@@ -344,4 +330,3 @@ void main() {
 // Reuse the project's FakeMapView for the identity-publish smoke; it
 // already implements every MapView method with in-memory observables.
 // See `test/fakes/fake_map_view.dart`.
-

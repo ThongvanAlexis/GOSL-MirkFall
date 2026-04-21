@@ -28,22 +28,19 @@ class _FakePathProvider extends PathProviderPlatform with MockPlatformInterfaceM
   Future<String?> getTemporaryPath() async => _root.path;
 }
 
-InstalledCountry _mkInstalled(String alpha3, {int fileSize = 1024, String pmtilesVersion = 'v20260419'}) =>
-    InstalledCountry(
-      alpha3: CountryCode.parse(alpha3),
-      installedAtUtc: DateTime.utc(2026, 4, 21),
-      fileSize: fileSize,
-      pmtilesVersion: pmtilesVersion,
-      sha256: 'a' * 64,
-      filePath: '$kCountriesDir/$alpha3.pmtiles',
-    );
+InstalledCountry _mkInstalled(String alpha3, {int fileSize = 1024, String pmtilesVersion = 'v20260419'}) => InstalledCountry(
+  alpha3: CountryCode.parse(alpha3),
+  installedAtUtc: DateTime.utc(2026, 4, 21),
+  fileSize: fileSize,
+  pmtilesVersion: pmtilesVersion,
+  sha256: 'a' * 64,
+  filePath: '$kCountriesDir/$alpha3.pmtiles',
+);
 
 CountryEntry _mkEntry(String alpha3, {String tag = 'v20260419'}) => CountryEntry(
   alpha3: CountryCode.parse(alpha3),
   name: alpha3.toUpperCase(),
-  parts: [
-    ChunkPart(sha256: 'a' * 64, size: 1024, url: 'https://github.com/example/mirkfall/releases/download/$tag/$alpha3.part01'),
-  ],
+  parts: [ChunkPart(sha256: 'a' * 64, size: 1024, url: 'https://github.com/example/mirkfall/releases/download/$tag/$alpha3.part01')],
   reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1024),
 );
 
@@ -73,16 +70,11 @@ void main() {
   Future<ProviderContainer> buildContainer({required List<InstalledCountry> installed, required String catalogTag}) async {
     final CountryCatalog syntheticCatalog = CountryCatalog(
       countries: <CountryEntry>[
-        for (final String code in <String>['fra', 'esp', 'deu'])
-          _mkEntry(code, tag: catalogTag),
+        for (final String code in <String>['fra', 'esp', 'deu']) _mkEntry(code, tag: catalogTag),
       ],
     );
 
-    final container = ProviderContainer(
-      overrides: [
-        countryCatalogProvider.overrideWith((ref) async => syntheticCatalog),
-      ],
-    );
+    final container = ProviderContainer(overrides: [countryCatalogProvider.overrideWith((ref) async => syntheticCatalog)]);
     addTearDown(container.dispose);
 
     final repo = await container.read(installedManifestRepositoryProvider.future);
@@ -135,13 +127,7 @@ void main() {
     });
 
     test('all installed countries current → updatesAvailable is empty', () async {
-      final container = await buildContainer(
-        installed: <InstalledCountry>[
-          _mkInstalled('fra'),
-          _mkInstalled('esp'),
-        ],
-        catalogTag: 'v20260419',
-      );
+      final container = await buildContainer(installed: <InstalledCountry>[_mkInstalled('fra'), _mkInstalled('esp')], catalogTag: 'v20260419');
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       final state = container.read(installedMapsControllerProvider);
@@ -151,13 +137,7 @@ void main() {
 
   group('InstalledMapsController — deleteCountry', () {
     test('delete FRA removes it from the manifest + state recomputes', () async {
-      final container = await buildContainer(
-        installed: <InstalledCountry>[
-          _mkInstalled('fra'),
-          _mkInstalled('esp'),
-        ],
-        catalogTag: 'v20260419',
-      );
+      final container = await buildContainer(installed: <InstalledCountry>[_mkInstalled('fra'), _mkInstalled('esp')], catalogTag: 'v20260419');
       await Future<void>.delayed(const Duration(milliseconds: 100));
       expect(container.read(installedMapsControllerProvider).installed, hasLength(2));
 
@@ -171,10 +151,7 @@ void main() {
     });
 
     test('delete CountryCode.world throws CannotDeleteWorldBundleException', () async {
-      final container = await buildContainer(
-        installed: <InstalledCountry>[_mkInstalled('fra')],
-        catalogTag: 'v20260419',
-      );
+      final container = await buildContainer(installed: <InstalledCountry>[_mkInstalled('fra')], catalogTag: 'v20260419');
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       await expectLater(

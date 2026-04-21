@@ -21,9 +21,7 @@ DownloadJob makeJob(String alpha3Raw, {bool paused = false}) {
     entry: CountryEntry(
       alpha3: CountryCode.parse(alpha3Raw),
       name: alpha3Raw.toUpperCase(),
-      parts: <ChunkPart>[
-        ChunkPart(sha256: sha, size: 1024, url: 'https://example.test/$alpha3Raw.part01'),
-      ],
+      parts: <ChunkPart>[ChunkPart(sha256: sha, size: 1024, url: 'https://example.test/$alpha3Raw.part01')],
       reassembled: ReassembledMeta(sha256: sha, size: 1024),
     ),
     enqueuedAtUtc: DateTime.utc(2026, 4, 21, 12),
@@ -54,11 +52,7 @@ void main() {
 
     test('3-job queue preserves order + fields', () async {
       final DownloadQueueStore store = DownloadQueueStore(appSupportDir: tempDir.path);
-      final List<DownloadJob> seed = <DownloadJob>[
-        makeJob('fra'),
-        makeJob('deu', paused: true),
-        makeJob('esp'),
-      ];
+      final List<DownloadJob> seed = <DownloadJob>[makeJob('fra'), makeJob('deu', paused: true), makeJob('esp')];
       await store.save(seed);
 
       final List<DownloadJob> loaded = await store.load();

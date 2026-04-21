@@ -62,9 +62,7 @@ Future<CountryCatalog> countryCatalog(Ref ref) async {
   final raw = await rootBundle.loadString(kMapCatalogAssetPath);
   final decoded = jsonDecode(raw);
   if (decoded is! Map<String, Object?>) {
-    throw FormatException(
-      'countryCatalogProvider: expected top-level JSON object in $kMapCatalogAssetPath, got ${decoded.runtimeType}',
-    );
+    throw FormatException('countryCatalogProvider: expected top-level JSON object in $kMapCatalogAssetPath, got ${decoded.runtimeType}');
   }
   return CountryCatalog.fromJson(decoded);
 }

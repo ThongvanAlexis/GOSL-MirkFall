@@ -22,25 +22,23 @@ class _FakeResolverController extends CountryResolverController {
 }
 
 CountryCatalog _twoCountryCatalog() {
-  final ChunkPart part = ChunkPart(
-    sha256: 'a' * 64,
-    size: 1000,
-    url: 'https://example.com/releases/download/v1/fra.part01',
+  final ChunkPart part = ChunkPart(sha256: 'a' * 64, size: 1000, url: 'https://example.com/releases/download/v1/fra.part01');
+  return CountryCatalog(
+    countries: <CountryEntry>[
+      CountryEntry(
+        alpha3: CountryCode.parse('fra'),
+        name: 'France',
+        parts: <ChunkPart>[part],
+        reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1000),
+      ),
+      CountryEntry(
+        alpha3: CountryCode.parse('deu'),
+        name: 'Allemagne',
+        parts: <ChunkPart>[part],
+        reassembled: ReassembledMeta(sha256: 'c' * 64, size: 1000),
+      ),
+    ],
   );
-  return CountryCatalog(countries: <CountryEntry>[
-    CountryEntry(
-      alpha3: CountryCode.parse('fra'),
-      name: 'France',
-      parts: <ChunkPart>[part],
-      reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1000),
-    ),
-    CountryEntry(
-      alpha3: CountryCode.parse('deu'),
-      name: 'Allemagne',
-      parts: <ChunkPart>[part],
-      reassembled: ReassembledMeta(sha256: 'c' * 64, size: 1000),
-    ),
-  ]);
 }
 
 void main() {
@@ -80,9 +78,7 @@ void main() {
     });
 
     testWidgets('visible with correct copy when viewport country is NOT installed', (tester) async {
-      final CountryResolverState seed = CountryResolverState(
-        viewportCountry: CountryCode.parse('deu'),
-      );
+      final CountryResolverState seed = CountryResolverState(viewportCountry: CountryCode.parse('deu'));
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -93,10 +89,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(
-        find.text('Carte détaillée de Allemagne disponible dans Paramètres › Télécharger une carte'),
-        findsOneWidget,
-      );
+      expect(find.text('Carte détaillée de Allemagne disponible dans Paramètres › Télécharger une carte'), findsOneWidget);
     });
   });
 }

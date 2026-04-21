@@ -29,7 +29,8 @@ part 'installed_manifest.g.dart';
 @freezed
 abstract class InstalledManifest with _$InstalledManifest {
   @Assert('schemaVersion == 1', 'InstalledManifest.schemaVersion must be 1 in Phase 07')
-  factory InstalledManifest({required int schemaVersion, required String catalogVersion, required Map<String, InstalledCountry> installed}) = _InstalledManifest;
+  factory InstalledManifest({required int schemaVersion, required String catalogVersion, required Map<String, InstalledCountry> installed}) =
+      _InstalledManifest;
 
   factory InstalledManifest.fromJson(Map<String, Object?> json) => _$InstalledManifestFromJson(json);
 

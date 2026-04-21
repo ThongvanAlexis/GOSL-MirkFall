@@ -54,10 +54,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final asyncSettings = ref.watch(sessionSettingsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Paramètres'),
-        actions: const <Widget>[MapDownloadProgressChip()],
-      ),
+      appBar: AppBar(title: const Text('Paramètres'), actions: const <Widget>[MapDownloadProgressChip()]),
       body: asyncSettings.when(
         loading: () => const Center(child: CircularProgressIndicator.adaptive()),
         error: (err, st) => Center(child: Text('Erreur : $err')),
@@ -195,10 +192,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4.0, 0.0, 0.0, 8.0),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.primary),
-      ),
+      child: Text(label, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.primary)),
     );
   }
 }

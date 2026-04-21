@@ -103,17 +103,11 @@ void main() {
 
   group('MirkPaintContext @Assert invariants', () {
     test('rejects negative zoomLevel', () {
-      expect(
-        () => MirkPaintContext(zoomLevel: -0.1, pixelRatio: 1.0, sessionElapsed: Duration.zero),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => MirkPaintContext(zoomLevel: -0.1, pixelRatio: 1.0, sessionElapsed: Duration.zero), throwsA(isA<AssertionError>()));
     });
 
     test('rejects zero pixelRatio', () {
-      expect(
-        () => MirkPaintContext(zoomLevel: 0.0, pixelRatio: 0.0, sessionElapsed: Duration.zero),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => MirkPaintContext(zoomLevel: 0.0, pixelRatio: 0.0, sessionElapsed: Duration.zero), throwsA(isA<AssertionError>()));
     });
   });
 }

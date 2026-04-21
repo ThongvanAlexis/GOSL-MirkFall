@@ -100,34 +100,23 @@ class _StubInstalledMapsController extends InstalledMapsController {
   InstalledMapsState build() => seed;
 }
 
-
 CountryCatalog _buildCatalog() {
-  return CountryCatalog(countries: <CountryEntry>[
-    CountryEntry(
-      alpha3: CountryCode.parse('abw'),
-      name: 'Aruba',
-      parts: <ChunkPart>[
-        ChunkPart(
-          sha256: 'a' * 64,
-          size: 4 * 1024 * 1024,
-          url: 'https://example.test/releases/download/v20260419/abw.part01',
-        ),
-      ],
-      reassembled: ReassembledMeta(sha256: 'b' * 64, size: 4 * 1024 * 1024),
-    ),
-    CountryEntry(
-      alpha3: CountryCode.parse('fra'),
-      name: 'France',
-      parts: <ChunkPart>[
-        ChunkPart(
-          sha256: 'c' * 64,
-          size: 50 * 1024 * 1024,
-          url: 'https://example.test/releases/download/v20260419/fra.part01',
-        ),
-      ],
-      reassembled: ReassembledMeta(sha256: 'd' * 64, size: 50 * 1024 * 1024),
-    ),
-  ]);
+  return CountryCatalog(
+    countries: <CountryEntry>[
+      CountryEntry(
+        alpha3: CountryCode.parse('abw'),
+        name: 'Aruba',
+        parts: <ChunkPart>[ChunkPart(sha256: 'a' * 64, size: 4 * 1024 * 1024, url: 'https://example.test/releases/download/v20260419/abw.part01')],
+        reassembled: ReassembledMeta(sha256: 'b' * 64, size: 4 * 1024 * 1024),
+      ),
+      CountryEntry(
+        alpha3: CountryCode.parse('fra'),
+        name: 'France',
+        parts: <ChunkPart>[ChunkPart(sha256: 'c' * 64, size: 50 * 1024 * 1024, url: 'https://example.test/releases/download/v20260419/fra.part01')],
+        reassembled: ReassembledMeta(sha256: 'd' * 64, size: 50 * 1024 * 1024),
+      ),
+    ],
+  );
 }
 
 InstalledMapsState _installedStateFor(List<String> alpha3s) {
@@ -146,11 +135,7 @@ InstalledMapsState _installedStateFor(List<String> alpha3s) {
     map[code] = entry;
     total += entry.fileSize;
   }
-  return InstalledMapsState(
-    installed: map,
-    updatesAvailable: const <CountryCode>{},
-    totalDiskUsageBytes: total,
-  );
+  return InstalledMapsState(installed: map, updatesAvailable: const <CountryCode>{}, totalDiskUsageBytes: total);
 }
 
 void main() {
@@ -204,9 +189,7 @@ void main() {
     // Simulate the post-install state that the infrastructure
     // controller's step 6 (manifest write) would produce in
     // production.
-    final _StubInstalledMapsController fakeInstalled = _StubInstalledMapsController(
-      seed: _installedStateFor(<String>['abw']),
-    );
+    final _StubInstalledMapsController fakeInstalled = _StubInstalledMapsController(seed: _installedStateFor(<String>['abw']));
 
     await tester.pumpWidget(
       ProviderScope(

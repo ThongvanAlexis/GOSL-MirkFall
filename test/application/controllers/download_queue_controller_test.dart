@@ -96,17 +96,11 @@ class _FakeInnerController implements PmtilesDownloadController {
 CountryEntry _mkEntry(String alpha3) => CountryEntry(
   alpha3: CountryCode.parse(alpha3),
   name: alpha3.toUpperCase(),
-  parts: [
-    ChunkPart(sha256: 'a' * 64, size: 1024, url: 'https://github.com/example/mirkfall/releases/download/v20260419/$alpha3.part01'),
-  ],
+  parts: [ChunkPart(sha256: 'a' * 64, size: 1024, url: 'https://github.com/example/mirkfall/releases/download/v20260419/$alpha3.part01')],
   reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1024),
 );
 
-DownloadJob _mkJob(String alpha3) => DownloadJob(
-  alpha3: CountryCode.parse(alpha3),
-  entry: _mkEntry(alpha3),
-  enqueuedAtUtc: DateTime.utc(2026, 4, 21),
-);
+DownloadJob _mkJob(String alpha3) => DownloadJob(alpha3: CountryCode.parse(alpha3), entry: _mkEntry(alpha3), enqueuedAtUtc: DateTime.utc(2026, 4, 21));
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -129,11 +123,7 @@ void main() {
   });
 
   ProviderContainer makeContainer({required _FakeInnerController inner}) {
-    return ProviderContainer(
-      overrides: [
-        pmtilesDownloadControllerProvider.overrideWith((ref) async => inner),
-      ],
-    );
+    return ProviderContainer(overrides: [pmtilesDownloadControllerProvider.overrideWith((ref) async => inner)]);
   }
 
   group('DownloadQueueController — enqueue + rehydrate', () {
@@ -178,11 +168,13 @@ void main() {
 
       final DownloadState before = container.read(downloadQueueControllerProvider);
       // Push an InProgress state from the fake inner.
-      inner.pushState(DownloadInProgress(
-        active: _mkJob('fra'),
-        progress: DownloadProgress(bytesDownloaded: 512, totalBytes: 1024, currentPartIndex: 0, totalParts: 1),
-        remaining: const <DownloadJob>[],
-      ));
+      inner.pushState(
+        DownloadInProgress(
+          active: _mkJob('fra'),
+          progress: DownloadProgress(bytesDownloaded: 512, totalBytes: 1024, currentPartIndex: 0, totalParts: 1),
+          remaining: const <DownloadJob>[],
+        ),
+      );
       await Future<void>.delayed(Duration.zero);
       final DownloadState after = container.read(downloadQueueControllerProvider);
       expect(before, isNot(isA<DownloadInProgress>()));
@@ -206,11 +198,13 @@ void main() {
       final ctrl = container.read(downloadQueueControllerProvider.notifier);
       await ctrl.enqueue(_mkEntry('fra'));
 
-      inner.pushState(DownloadInProgress(
-        active: _mkJob('fra'),
-        progress: DownloadProgress(bytesDownloaded: 512, totalBytes: 1024, currentPartIndex: 0, totalParts: 1),
-        remaining: <DownloadJob>[_mkJob('esp')],
-      ));
+      inner.pushState(
+        DownloadInProgress(
+          active: _mkJob('fra'),
+          progress: DownloadProgress(bytesDownloaded: 512, totalBytes: 1024, currentPartIndex: 0, totalParts: 1),
+          remaining: <DownloadJob>[_mkJob('esp')],
+        ),
+      );
       await Future<void>.delayed(Duration.zero);
 
       // Expected: active job's fractionDone (0.5) — NOT a sum across the queue.
@@ -224,11 +218,13 @@ void main() {
       final ctrl = container.read(downloadQueueControllerProvider.notifier);
       await ctrl.enqueue(_mkEntry('fra'));
 
-      inner.pushState(DownloadPaused(
-        active: _mkJob('fra'),
-        snapshot: DownloadProgress(bytesDownloaded: 300, totalBytes: 1000, currentPartIndex: 0, totalParts: 1),
-        reason: PauseReason.manual,
-      ));
+      inner.pushState(
+        DownloadPaused(
+          active: _mkJob('fra'),
+          snapshot: DownloadProgress(bytesDownloaded: 300, totalBytes: 1000, currentPartIndex: 0, totalParts: 1),
+          reason: PauseReason.manual,
+        ),
+      );
       await Future<void>.delayed(Duration.zero);
 
       expect(ctrl.aggregateProgressFraction, closeTo(0.3, 1e-9));

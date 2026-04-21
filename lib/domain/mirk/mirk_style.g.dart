@@ -14,11 +14,10 @@ _MirkStyle _$MirkStyleFromJson(Map<String, dynamic> json) => _MirkStyle(
   createdAtOffsetMinutes: (json['createdAtOffsetMinutes'] as num).toInt(),
 );
 
-Map<String, dynamic> _$MirkStyleToJson(_MirkStyle instance) =>
-    <String, dynamic>{
-      'id': mirkStyleIdToJson(instance.id),
-      'displayName': instance.displayName,
-      'config': instance.config,
-      'createdAtUtc': instance.createdAtUtc.toIso8601String(),
-      'createdAtOffsetMinutes': instance.createdAtOffsetMinutes,
-    };
+Map<String, dynamic> _$MirkStyleToJson(_MirkStyle instance) => <String, dynamic>{
+  'id': mirkStyleIdToJson(instance.id),
+  'displayName': instance.displayName,
+  'config': instance.config,
+  'createdAtUtc': instance.createdAtUtc.toIso8601String(),
+  'createdAtOffsetMinutes': instance.createdAtOffsetMinutes,
+};

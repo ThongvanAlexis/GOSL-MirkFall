@@ -159,19 +159,17 @@ class _FakeMapWidgetState extends State<_FakeMapWidget> {
 }
 
 CountryCatalog _oneCountryCatalog() {
-  final ChunkPart part = ChunkPart(
-    sha256: 'a' * 64,
-    size: 1000,
-    url: 'https://example.test/releases/download/v1/deu.part01',
+  final ChunkPart part = ChunkPart(sha256: 'a' * 64, size: 1000, url: 'https://example.test/releases/download/v1/deu.part01');
+  return CountryCatalog(
+    countries: <CountryEntry>[
+      CountryEntry(
+        alpha3: CountryCode.parse('deu'),
+        name: 'Allemagne',
+        parts: <ChunkPart>[part],
+        reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1000),
+      ),
+    ],
   );
-  return CountryCatalog(countries: <CountryEntry>[
-    CountryEntry(
-      alpha3: CountryCode.parse('deu'),
-      name: 'Allemagne',
-      parts: <ChunkPart>[part],
-      reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1000),
-    ),
-  ]);
 }
 
 void main() {
@@ -198,16 +196,11 @@ void main() {
         appSupportDirProvider.overrideWith((ref) async => tmpDir.path),
         installedManifestRepositoryProvider.overrideWith((ref) async => fakeRepo),
         countryCatalogProvider.overrideWith((ref) async => _oneCountryCatalog()),
-        if (resolverSeed != null)
-          countryResolverControllerProvider.overrideWith(() => _FakeResolverController(seed: resolverSeed)),
+        if (resolverSeed != null) countryResolverControllerProvider.overrideWith(() => _FakeResolverController(seed: resolverSeed)),
       ],
       child: MaterialApp(
         home: MapScreen(
-          mapViewBuilderForTest: ({
-            required StyleRewriter styleRewriter,
-            required PmtilesSource pmtilesSource,
-            required ValueChanged<MapView> onReady,
-          }) {
+          mapViewBuilderForTest: ({required StyleRewriter styleRewriter, required PmtilesSource pmtilesSource, required ValueChanged<MapView> onReady}) {
             return _FakeMapWidget(onReady: onReady, fakeMapView: fakeMapView);
           },
         ),
@@ -221,39 +214,26 @@ void main() {
     // Run the pump body under HttpOverrides.runZoned so every new
     // HttpClient construction inside the widget lifecycle funnels
     // through failClient.
-    await HttpOverrides.runZoned<Future<void>>(
-      () async {
-        final fakeMapView = FakeMapView();
-        final CountryResolverState seed = CountryResolverState(
-          viewportCountry: CountryCode.parse('deu'),
-        );
+    await HttpOverrides.runZoned<Future<void>>(() async {
+      final fakeMapView = FakeMapView();
+      final CountryResolverState seed = CountryResolverState(viewportCountry: CountryCode.parse('deu'));
 
-        await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed));
+      await tester.pumpAndSettle();
 
-        // Pan + zoom: push viewport updates.
-        for (int i = 0; i < 10; i++) {
-          fakeMapView.pushViewport(
-            latitude: 48.0 + i * 0.1,
-            longitude: 2.0 + i * 0.1,
-            zoom: 8.0 + (i % 3).toDouble(),
-          );
-          await tester.pump(const Duration(milliseconds: 1));
-        }
+      // Pan + zoom: push viewport updates.
+      for (int i = 0; i < 10; i++) {
+        fakeMapView.pushViewport(latitude: 48.0 + i * 0.1, longitude: 2.0 + i * 0.1, zoom: 8.0 + (i % 3).toDouble());
+        await tester.pump(const Duration(milliseconds: 1));
+      }
 
-        // Country-switch path on the adapter surface.
-        await fakeMapView.showMap(CountryCode.parse('deu'));
-        await fakeMapView.showMap(CountryCode.parse('fra'));
-        await fakeMapView.showMap(null);
-        await tester.pump(const Duration(milliseconds: 10));
-      },
-      createHttpClient: (SecurityContext? ctx) => failClient,
-    );
+      // Country-switch path on the adapter surface.
+      await fakeMapView.showMap(CountryCode.parse('deu'));
+      await fakeMapView.showMap(CountryCode.parse('fra'));
+      await fakeMapView.showMap(null);
+      await tester.pump(const Duration(milliseconds: 10));
+    }, createHttpClient: (SecurityContext? ctx) => failClient);
 
-    expect(
-      failClient.invocationCount,
-      0,
-      reason: 'Expected no HTTP request from the Phase 07 code path under airplane conditions',
-    );
+    expect(failClient.invocationCount, 0, reason: 'Expected no HTTP request from the Phase 07 code path under airplane conditions');
   });
 }

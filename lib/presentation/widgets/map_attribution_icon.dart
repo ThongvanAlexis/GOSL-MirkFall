@@ -61,19 +61,10 @@ class MapAttributionIcon extends StatelessWidget {
               children: <Widget>[
                 Text('Attribution', style: Theme.of(sheetContext).textTheme.titleMedium),
                 const SizedBox(height: 12.0),
-                TextButton(
-                  onPressed: () => openAttributionLink(sheetContext, kOpenStreetMapCopyrightUrl),
-                  child: const Text('© OpenStreetMap contributors'),
-                ),
-                TextButton(
-                  onPressed: () => openAttributionLink(sheetContext, kProtomapsUrl),
-                  child: const Text('© Protomaps'),
-                ),
+                TextButton(onPressed: () => openAttributionLink(sheetContext, kOpenStreetMapCopyrightUrl), child: const Text('© OpenStreetMap contributors')),
+                TextButton(onPressed: () => openAttributionLink(sheetContext, kProtomapsUrl), child: const Text('© Protomaps')),
                 const SizedBox(height: 8.0),
-                Text(
-                  'Les liens ouvrent le presse-papier; colle dans ton navigateur.',
-                  style: Theme.of(sheetContext).textTheme.bodySmall,
-                ),
+                Text('Les liens ouvrent le presse-papier; colle dans ton navigateur.', style: Theme.of(sheetContext).textTheme.bodySmall),
               ],
             ),
           ),

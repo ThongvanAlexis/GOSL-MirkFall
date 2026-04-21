@@ -40,11 +40,7 @@ class SessionListScreen extends ConsumerWidget {
           // the map entry is hidden to keep the first-run funnel focused
           // on creating the first session.
           if (asyncSessions.value?.isNotEmpty ?? false)
-            IconButton(
-              tooltip: 'Ouvrir la carte',
-              icon: const Icon(Icons.map_outlined),
-              onPressed: () => context.push('/map'),
-            ),
+            IconButton(tooltip: 'Ouvrir la carte', icon: const Icon(Icons.map_outlined), onPressed: () => context.push('/map')),
           IconButton(tooltip: 'Paramètres', icon: const Icon(Icons.settings_outlined), onPressed: () => context.push('/settings')),
         ],
       ),

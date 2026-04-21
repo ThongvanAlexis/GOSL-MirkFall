@@ -36,29 +36,21 @@ class MapsDownloadScreen extends ConsumerWidget {
     final DownloadState downloadState = ref.watch(downloadQueueControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Télécharger une carte'),
-        actions: const <Widget>[MapDownloadProgressChip()],
-      ),
+      appBar: AppBar(title: const Text('Télécharger une carte'), actions: const <Widget>[MapDownloadProgressChip()]),
       body: catalogAsync.when(
         loading: () => const Center(child: CircularProgressIndicator.adaptive()),
-        error: (err, st) => Center(child: Padding(padding: const EdgeInsets.all(24.0), child: Text('Erreur : $err'))),
+        error: (err, st) => Center(
+          child: Padding(padding: const EdgeInsets.all(24.0), child: Text('Erreur : $err')),
+        ),
         data: (catalog) => _buildList(context, ref, catalog, installedState, downloadState),
       ),
     );
   }
 
-  Widget _buildList(
-    BuildContext context,
-    WidgetRef ref,
-    CountryCatalog catalog,
-    InstalledMapsState installedState,
-    DownloadState downloadState,
-  ) {
+  Widget _buildList(BuildContext context, WidgetRef ref, CountryCatalog catalog, InstalledMapsState installedState, DownloadState downloadState) {
     // Alphabetic sort over a fresh list — never mutate the catalog's own
     // `countries` list.
-    final List<CountryEntry> sorted = <CountryEntry>[...catalog.countries]
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final List<CountryEntry> sorted = <CountryEntry>[...catalog.countries]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     final CountryCode? activeDownloadAlpha3 = _activeDownloadAlpha3(downloadState);
     final double? activeFraction = _activeFraction(downloadState);
 
@@ -136,10 +128,7 @@ class _CountryTile extends ConsumerWidget {
 
     if (isDownloading) {
       final int percent = ((activeFraction ?? 0.0) * 100).clamp(0, 100).round();
-      trailing = SizedBox(
-        width: 72.0,
-        child: Text('$percent %', textAlign: TextAlign.end),
-      );
+      trailing = SizedBox(width: 72.0, child: Text('$percent %', textAlign: TextAlign.end));
       subtitle = 'En téléchargement $percent %';
       onTap = null;
       leading = Icons.downloading_outlined;

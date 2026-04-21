@@ -12,11 +12,7 @@ import 'package:test/test.dart';
 CountryEntry _mkEntry(String alpha3, {int parts = 1, int chunkSize = 1024}) {
   final List<ChunkPart> chunks = <ChunkPart>[
     for (int i = 0; i < parts; i++)
-      ChunkPart(
-        sha256: 'a' * 64,
-        size: chunkSize,
-        url: 'https://github.com/example/releases/download/v20260419/$alpha3.part0${i + 1}',
-      ),
+      ChunkPart(sha256: 'a' * 64, size: chunkSize, url: 'https://github.com/example/releases/download/v20260419/$alpha3.part0${i + 1}'),
   ];
   return CountryEntry(
     alpha3: CountryCode.parse(alpha3),
@@ -80,7 +76,10 @@ void main() {
     });
 
     test('DownloadError carries the cause exception', () {
-      final DownloadError s = DownloadError(active: _mkJob('usa'), cause: const DownloadInterruptedException(reason: 'connection reset'));
+      final DownloadError s = DownloadError(
+        active: _mkJob('usa'),
+        cause: const DownloadInterruptedException(reason: 'connection reset'),
+      );
       expect(label(s), equals('error'));
       expect(s.cause, isA<DownloadInterruptedException>());
     });
@@ -114,31 +113,19 @@ void main() {
     });
 
     test('rejects negative bytesDownloaded via @Assert', () {
-      expect(
-        () => DownloadProgress(bytesDownloaded: -1, totalBytes: 1000, currentPartIndex: 0, totalParts: 1),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => DownloadProgress(bytesDownloaded: -1, totalBytes: 1000, currentPartIndex: 0, totalParts: 1), throwsA(isA<AssertionError>()));
     });
 
     test('rejects bytesDownloaded > totalBytes via @Assert', () {
-      expect(
-        () => DownloadProgress(bytesDownloaded: 2000, totalBytes: 1000, currentPartIndex: 0, totalParts: 1),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => DownloadProgress(bytesDownloaded: 2000, totalBytes: 1000, currentPartIndex: 0, totalParts: 1), throwsA(isA<AssertionError>()));
     });
 
     test('rejects zero totalBytes via @Assert', () {
-      expect(
-        () => DownloadProgress(bytesDownloaded: 0, totalBytes: 0, currentPartIndex: 0, totalParts: 1),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => DownloadProgress(bytesDownloaded: 0, totalBytes: 0, currentPartIndex: 0, totalParts: 1), throwsA(isA<AssertionError>()));
     });
 
     test('rejects currentPartIndex >= totalParts via @Assert', () {
-      expect(
-        () => DownloadProgress(bytesDownloaded: 0, totalBytes: 1000, currentPartIndex: 3, totalParts: 3),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => DownloadProgress(bytesDownloaded: 0, totalBytes: 1000, currentPartIndex: 3, totalParts: 3), throwsA(isA<AssertionError>()));
     });
   });
 

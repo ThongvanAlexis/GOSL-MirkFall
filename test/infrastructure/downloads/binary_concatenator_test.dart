@@ -91,10 +91,7 @@ void main() {
   group('BinaryConcatenator — error paths', () {
     test('empty parts list throws ConcatFailureException', () async {
       final File dest = File(p.join(tempDir.path, 'out_empty.bin'));
-      await expectLater(
-        const BinaryConcatenator().concat(parts: const <File>[], destination: dest),
-        throwsA(isA<ConcatFailureException>()),
-      );
+      await expectLater(const BinaryConcatenator().concat(parts: const <File>[], destination: dest), throwsA(isA<ConcatFailureException>()));
     });
 
     test('missing part file throws ConcatFailureException + destination unlinked', () async {
@@ -103,10 +100,7 @@ void main() {
       final File missing = File(p.join(tempDir.path, 'ghost.bin'));
 
       final File dest = File(p.join(tempDir.path, 'out_missing.bin'));
-      await expectLater(
-        const BinaryConcatenator().concat(parts: <File>[ok, missing], destination: dest),
-        throwsA(isA<ConcatFailureException>()),
-      );
+      await expectLater(const BinaryConcatenator().concat(parts: <File>[ok, missing], destination: dest), throwsA(isA<ConcatFailureException>()));
       // Destination did not get partially-written bytes — concat guards
       // against half-writes before the stream opens.
       expect(dest.existsSync(), isFalse);

@@ -19,11 +19,8 @@ import '../widgets/session_burger_menu.dart';
 /// Builder signature used for injecting a fake map widget in widget tests
 /// without dragging MapLibre into the test runner. Production code always
 /// goes through the default [MapLibreMapViewWidget] constructor.
-typedef MapViewWidgetBuilder = Widget Function({
-  required StyleRewriter styleRewriter,
-  required PmtilesSource pmtilesSource,
-  required ValueChanged<MapView> onReady,
-});
+typedef MapViewWidgetBuilder =
+    Widget Function({required StyleRewriter styleRewriter, required PmtilesSource pmtilesSource, required ValueChanged<MapView> onReady});
 
 /// Full-screen map route (`/map`).
 ///
@@ -112,14 +109,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         Positioned(
           right: 16.0,
           bottom: MediaQuery.of(context).padding.bottom + 80.0,
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              MapFollowMeFab(),
-              SizedBox(height: 12.0),
-              MapAttributionIcon(),
-            ],
-          ),
+          child: const Column(mainAxisSize: MainAxisSize.min, children: <Widget>[MapFollowMeFab(), SizedBox(height: 12.0), MapAttributionIcon()]),
         ),
         // Bottom-centre country banner (hidden by default — the widget
         // returns SizedBox.shrink() when the viewport IS installed).

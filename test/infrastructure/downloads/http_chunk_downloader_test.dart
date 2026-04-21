@@ -40,10 +40,7 @@ void main() {
       addTearDown(downloader.close);
 
       final File dest = File(p.join(tempDir.path, 'fresh.bin'));
-      final DownloadChunkResult result = await downloader.downloadWithResume(
-        url: server.base.resolve('/fresh'),
-        destination: dest,
-      );
+      final DownloadChunkResult result = await downloader.downloadWithResume(url: server.base.resolve('/fresh'), destination: dest);
       expect(result, DownloadChunkResult.downloadedFresh);
       expect(await dest.readAsBytes(), server.bytes);
       expect(server.recordedRequests.length, 1);
@@ -79,10 +76,7 @@ void main() {
       final HttpChunkDownloader downloader = HttpChunkDownloader();
       addTearDown(downloader.close);
 
-      final DownloadChunkResult result = await downloader.downloadWithResume(
-        url: server.base.resolve('/resume'),
-        destination: dest,
-      );
+      final DownloadChunkResult result = await downloader.downloadWithResume(url: server.base.resolve('/resume'), destination: dest);
 
       expect(result, DownloadChunkResult.resumedWith206);
       expect(server.recordedRequests.single.rangeHeader, 'bytes=1024-');
@@ -102,10 +96,7 @@ void main() {
       final HttpChunkDownloader downloader = HttpChunkDownloader();
       addTearDown(downloader.close);
 
-      final DownloadChunkResult result = await downloader.downloadWithResume(
-        url: server.base.resolve('/restart'),
-        destination: dest,
-      );
+      final DownloadChunkResult result = await downloader.downloadWithResume(url: server.base.resolve('/restart'), destination: dest);
 
       expect(result, DownloadChunkResult.restartedFrom200);
       final Uint8List onDisk = await dest.readAsBytes();
@@ -124,10 +115,7 @@ void main() {
       final HttpChunkDownloader downloader = HttpChunkDownloader();
       addTearDown(downloader.close);
 
-      await expectLater(
-        downloader.downloadWithResume(url: server.base.resolve('/expired'), destination: dest),
-        throwsA(isA<DownloadInterruptedException>()),
-      );
+      await expectLater(downloader.downloadWithResume(url: server.base.resolve('/expired'), destination: dest), throwsA(isA<DownloadInterruptedException>()));
     });
 
     test('500 error → DownloadInterruptedException', () async {
@@ -137,10 +125,7 @@ void main() {
       addTearDown(downloader.close);
 
       await expectLater(
-        downloader.downloadWithResume(
-          url: server.base.resolve('/boom'),
-          destination: File(p.join(tempDir.path, 'boom.bin')),
-        ),
+        downloader.downloadWithResume(url: server.base.resolve('/boom'), destination: File(p.join(tempDir.path, 'boom.bin'))),
         throwsA(isA<DownloadInterruptedException>()),
       );
     });
@@ -152,10 +137,7 @@ void main() {
       addTearDown(downloader.close);
 
       final File dest = File(p.join(tempDir.path, 'drop.bin'));
-      await expectLater(
-        downloader.downloadWithResume(url: server.base.resolve('/drop'), destination: dest),
-        throwsA(isA<DownloadInterruptedException>()),
-      );
+      await expectLater(downloader.downloadWithResume(url: server.base.resolve('/drop'), destination: dest), throwsA(isA<DownloadInterruptedException>()));
 
       // The destination keeps whatever bytes were already flushed — that
       // is exactly what Plan 07-04's retry loop needs to send as the
@@ -172,18 +154,13 @@ void main() {
       // before drop, then reducing the timeout aggressively.
       server.behaviour = const ServeDropConnectionAfterBytes(bytesBeforeDrop: 0);
 
-      final HttpChunkDownloader downloader = HttpChunkDownloader(
-        timeout: const Duration(milliseconds: 50),
-      );
+      final HttpChunkDownloader downloader = HttpChunkDownloader(timeout: const Duration(milliseconds: 50));
       addTearDown(downloader.close);
 
       // Either we hit the stream timeout or we see the premature end as
       // an interrupted download; both surface the same exception type.
       await expectLater(
-        downloader.downloadWithResume(
-          url: server.base.resolve('/stall'),
-          destination: File(p.join(tempDir.path, 'stall.bin')),
-        ),
+        downloader.downloadWithResume(url: server.base.resolve('/stall'), destination: File(p.join(tempDir.path, 'stall.bin'))),
         throwsA(isA<DownloadInterruptedException>()),
       );
     });
@@ -202,10 +179,7 @@ void main() {
       addTearDown(downloader.close);
 
       final File dest = File(p.join(tempDir.path, 'redir.bin'));
-      final DownloadChunkResult result = await downloader.downloadWithResume(
-        url: server.base.resolve('/redir'),
-        destination: dest,
-      );
+      final DownloadChunkResult result = await downloader.downloadWithResume(url: server.base.resolve('/redir'), destination: dest);
       expect(result, DownloadChunkResult.downloadedFresh);
       expect(await dest.readAsBytes(), targetServer.bytes);
     });

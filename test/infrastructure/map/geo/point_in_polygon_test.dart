@@ -105,14 +105,7 @@ void main() {
     });
 
     test('two-point ring returns false', () {
-      expect(
-        pointInPolygon(
-          lat: 5.0,
-          lon: 5.0,
-          ring: const <({double lat, double lon})>[(lat: 0.0, lon: 0.0), (lat: 10.0, lon: 10.0)],
-        ),
-        isFalse,
-      );
+      expect(pointInPolygon(lat: 5.0, lon: 5.0, ring: const <({double lat, double lon})>[(lat: 0.0, lon: 0.0), (lat: 10.0, lon: 10.0)]), isFalse);
     });
   });
 

@@ -44,10 +44,7 @@ class MapDownloadProgressChip extends ConsumerWidget {
             style: TextStyle(color: cs.onSurface, fontSize: 12.0, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 2.0),
-          SizedBox(
-            width: 100.0,
-            child: LinearProgressIndicator(value: fraction),
-          ),
+          SizedBox(width: 100.0, child: LinearProgressIndicator(value: fraction)),
         ],
       ),
     );

@@ -51,10 +51,7 @@ Widget _wrapWithOverrides(Widget child, {required ActiveSessionController fakeCo
         drawer: child,
         body: Builder(
           builder: (context) => Center(
-            child: ElevatedButton(
-              onPressed: () => Scaffold.of(context).openDrawer(),
-              child: const Text('Open'),
-            ),
+            child: ElevatedButton(onPressed: () => Scaffold.of(context).openDrawer(), child: const Text('Open')),
           ),
         ),
       ),
@@ -93,12 +90,7 @@ void main() {
     });
 
     testWidgets('shows "En attente GPS..." when Tracking but no lastFix yet', (tester) async {
-      final Tracking tracking = Tracking(
-        sessionId: sid,
-        startedAtUtc: DateTime.now().toUtc(),
-        fixCount: 0,
-        distanceFilterMeters: kDefaultDistanceFilterMeters,
-      );
+      final Tracking tracking = Tracking(sessionId: sid, startedAtUtc: DateTime.now().toUtc(), fixCount: 0, distanceFilterMeters: kDefaultDistanceFilterMeters);
       final fake = _FakeActiveSessionController(seed: tracking);
       await tester.pumpWidget(_wrapWithOverrides(const SessionBurgerMenu(), fakeController: fake));
       await tester.tap(find.text('Open'));

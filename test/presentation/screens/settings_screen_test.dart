@@ -20,11 +20,26 @@ Widget _wrap(Widget child) {
         builder: (_, _) => const Scaffold(body: Text('oem')),
       ),
       // Phase 07 — the Cartes + Styles sections push to these routes.
-      GoRoute(path: '/maps/download', builder: (_, _) => const Scaffold(body: Text('maps-download'))),
-      GoRoute(path: '/maps/manage', builder: (_, _) => const Scaffold(body: Text('maps-manage'))),
-      GoRoute(path: '/styles/import', builder: (_, _) => const Scaffold(body: Text('styles-import'))),
-      GoRoute(path: '/styles/export', builder: (_, _) => const Scaffold(body: Text('styles-export'))),
-      GoRoute(path: '/debug', builder: (_, _) => const Scaffold(body: Text('debug'))),
+      GoRoute(
+        path: '/maps/download',
+        builder: (_, _) => const Scaffold(body: Text('maps-download')),
+      ),
+      GoRoute(
+        path: '/maps/manage',
+        builder: (_, _) => const Scaffold(body: Text('maps-manage')),
+      ),
+      GoRoute(
+        path: '/styles/import',
+        builder: (_, _) => const Scaffold(body: Text('styles-import')),
+      ),
+      GoRoute(
+        path: '/styles/export',
+        builder: (_, _) => const Scaffold(body: Text('styles-export')),
+      ),
+      GoRoute(
+        path: '/debug',
+        builder: (_, _) => const Scaffold(body: Text('debug')),
+      ),
     ],
   );
   return ProviderScope(child: MaterialApp.router(routerConfig: router));

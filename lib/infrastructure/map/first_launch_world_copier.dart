@@ -105,7 +105,11 @@ Future<ByteData> _defaultAssetLoader(String path) => rootBundle.load(path);
 /// Test-facing hook for [FirstLaunchWorldCopier]. Production call sites
 /// never see this injection point.
 extension FirstLaunchWorldCopierTestSeam on FirstLaunchWorldCopier {
-  static FirstLaunchWorldCopier withAssetLoader({required String appSupportDir, required String expectedSha256, required Future<ByteData> Function(String path) loader}) {
+  static FirstLaunchWorldCopier withAssetLoader({
+    required String appSupportDir,
+    required String expectedSha256,
+    required Future<ByteData> Function(String path) loader,
+  }) {
     return FirstLaunchWorldCopier(appSupportDir: appSupportDir, expectedSha256: expectedSha256, assetLoader: loader);
   }
 }

@@ -44,8 +44,7 @@ final installedMapsControllerProvider = InstalledMapsControllerProvider._();
 /// no update needed. New countries in the catalog that aren't installed
 /// are NOT in this set — they're handled by the Plan 07-06 "download"
 /// flow instead.
-final class InstalledMapsControllerProvider
-    extends $NotifierProvider<InstalledMapsController, InstalledMapsState> {
+final class InstalledMapsControllerProvider extends $NotifierProvider<InstalledMapsController, InstalledMapsState> {
   /// Presentation-facing view over the installed-maps manifest + catalog.
   ///
   /// Watches [installedManifestProvider] + [countryCatalogProvider] and
@@ -82,15 +81,11 @@ final class InstalledMapsControllerProvider
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(InstalledMapsState value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<InstalledMapsState>(value),
-    );
+    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<InstalledMapsState>(value));
   }
 }
 
-String _$installedMapsControllerHash() =>
-    r'e30289058a298c87e39c7aebfb11b34351843c0f';
+String _$installedMapsControllerHash() => r'e30289058a298c87e39c7aebfb11b34351843c0f';
 
 /// Presentation-facing view over the installed-maps manifest + catalog.
 ///
@@ -115,14 +110,7 @@ abstract class _$InstalledMapsController extends $Notifier<InstalledMapsState> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<InstalledMapsState, InstalledMapsState>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<InstalledMapsState, InstalledMapsState>,
-              InstalledMapsState,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<AnyNotifier<InstalledMapsState, InstalledMapsState>, InstalledMapsState, Object?, Object?>;
     element.handleCreate(ref, build);
   }
 }

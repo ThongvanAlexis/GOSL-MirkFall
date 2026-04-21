@@ -56,7 +56,9 @@ String localPmtilesUri(String absolutePath) {
 /// (viewport-update throttled resolver) where the caller already holds a
 /// manifest snapshot and does not want an extra `await` on every frame.
 class PmtilesSource {
-  PmtilesSource({required InstalledManifestRepository installedManifestPort, required String appSupportDir}) : _manifestPort = installedManifestPort, _appSupportDir = appSupportDir;
+  PmtilesSource({required InstalledManifestRepository installedManifestPort, required String appSupportDir})
+    : _manifestPort = installedManifestPort,
+      _appSupportDir = appSupportDir;
 
   final InstalledManifestRepository _manifestPort;
   final String _appSupportDir;

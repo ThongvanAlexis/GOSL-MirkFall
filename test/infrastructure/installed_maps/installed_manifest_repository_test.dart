@@ -167,9 +167,7 @@ void main() {
       addTearDown(sub.cancel);
 
       await repo.write(InstalledManifest.empty().copyWithInsert(_makeCountry('fra')));
-      await repo.write(InstalledManifest.empty()
-          .copyWithInsert(_makeCountry('fra'))
-          .copyWithInsert(_makeCountry('deu')));
+      await repo.write(InstalledManifest.empty().copyWithInsert(_makeCountry('fra')).copyWithInsert(_makeCountry('deu')));
       // Let broadcast stream microtasks drain.
       await Future<void>.delayed(Duration.zero);
 

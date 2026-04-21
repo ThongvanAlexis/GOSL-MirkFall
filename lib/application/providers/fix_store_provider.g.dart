@@ -33,9 +33,7 @@ final fixStoreProvider = FixStoreProvider._();
 /// re-creating on every consumer subscription would not reduce DB load
 /// (Drift holds the handle) but would churn the Riverpod graph.
 
-final class FixStoreProvider
-    extends
-        $FunctionalProvider<AsyncValue<FixStore>, FixStore, FutureOr<FixStore>>
+final class FixStoreProvider extends $FunctionalProvider<AsyncValue<FixStore>, FixStore, FutureOr<FixStore>>
     with $FutureModifier<FixStore>, $FutureProvider<FixStore> {
   /// Production [FixStore] — wraps [`DriftFixStore`] around the app database.
   ///
@@ -48,23 +46,14 @@ final class FixStoreProvider
   /// re-creating on every consumer subscription would not reduce DB load
   /// (Drift holds the handle) but would churn the Riverpod graph.
   FixStoreProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'fixStoreProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+    : super(from: null, argument: null, retry: null, name: r'fixStoreProvider', isAutoDispose: false, dependencies: null, $allTransitiveDependencies: null);
 
   @override
   String debugGetCreateSourceHash() => _$fixStoreHash();
 
   @$internal
   @override
-  $FutureProviderElement<FixStore> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
+  $FutureProviderElement<FixStore> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<FixStore> create(Ref ref) {

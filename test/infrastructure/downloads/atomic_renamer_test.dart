@@ -68,10 +68,7 @@ void main() {
       final File missing = File(p.join(tempDir.path, 'ghost.bin'));
       final File target = File(p.join(tempDir.path, 'target.bin'));
 
-      await expectLater(
-        AtomicRenamer().commit(source: missing, target: target),
-        throwsA(isA<FileSystemException>()),
-      );
+      await expectLater(AtomicRenamer().commit(source: missing, target: target), throwsA(isA<FileSystemException>()));
     });
   });
 }

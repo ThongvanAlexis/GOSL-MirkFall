@@ -13,10 +13,9 @@ _DownloadJob _$DownloadJobFromJson(Map<String, dynamic> json) => _DownloadJob(
   userPausedFlag: json['userPausedFlag'] as bool? ?? false,
 );
 
-Map<String, dynamic> _$DownloadJobToJson(_DownloadJob instance) =>
-    <String, dynamic>{
-      'alpha3': countryCodeToJson(instance.alpha3),
-      'entry': instance.entry,
-      'enqueuedAtUtc': instance.enqueuedAtUtc.toIso8601String(),
-      'userPausedFlag': instance.userPausedFlag,
-    };
+Map<String, dynamic> _$DownloadJobToJson(_DownloadJob instance) => <String, dynamic>{
+  'alpha3': countryCodeToJson(instance.alpha3),
+  'entry': instance.entry,
+  'enqueuedAtUtc': instance.enqueuedAtUtc.toIso8601String(),
+  'userPausedFlag': instance.userPausedFlag,
+};

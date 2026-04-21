@@ -40,9 +40,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [mapCameraControllerProvider.overrideWith(() => fake)],
-        child: const MaterialApp(
-          home: Scaffold(body: MapFollowMeFab()),
-        ),
+        child: const MaterialApp(home: Scaffold(body: MapFollowMeFab())),
       ),
     );
     await tester.pump();
@@ -58,9 +56,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [mapCameraControllerProvider.overrideWith(() => fake)],
-        child: const MaterialApp(
-          home: Scaffold(body: MapFollowMeFab()),
-        ),
+        child: const MaterialApp(home: Scaffold(body: MapFollowMeFab())),
       ),
     );
     await tester.pump();
@@ -73,9 +69,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [mapCameraControllerProvider.overrideWith(() => fake)],
-        child: const MaterialApp(
-          home: Scaffold(body: MapFollowMeFab()),
-        ),
+        child: const MaterialApp(home: Scaffold(body: MapFollowMeFab())),
       ),
     );
     await tester.pump();

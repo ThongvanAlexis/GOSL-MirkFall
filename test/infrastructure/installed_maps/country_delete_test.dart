@@ -45,15 +45,10 @@ void main() {
       await file.parent.create(recursive: true);
       await file.writeAsBytes(<int>[0x00, 0x01, 0x02]);
 
-      final FakeInstalledManifestRepository repo = FakeInstalledManifestRepository(
-        initial: InstalledManifest.empty().copyWithInsert(_makeCountry('fra')),
-      );
+      final FakeInstalledManifestRepository repo = FakeInstalledManifestRepository(initial: InstalledManifest.empty().copyWithInsert(_makeCountry('fra')));
       addTearDown(repo.close);
 
-      final CountryDeleteService service = CountryDeleteService(
-        manifestRepository: repo,
-        appSupportDir: tempDir.path,
-      );
+      final CountryDeleteService service = CountryDeleteService(manifestRepository: repo, appSupportDir: tempDir.path);
       await service.deleteCountry(CountryCode.parse('fra'));
 
       expect(file.existsSync(), isFalse);
@@ -64,10 +59,7 @@ void main() {
       final FakeInstalledManifestRepository repo = FakeInstalledManifestRepository();
       addTearDown(repo.close);
 
-      final CountryDeleteService service = CountryDeleteService(
-        manifestRepository: repo,
-        appSupportDir: tempDir.path,
-      );
+      final CountryDeleteService service = CountryDeleteService(manifestRepository: repo, appSupportDir: tempDir.path);
       // Does not throw, does not write to the manifest.
       await service.deleteCountry(CountryCode.parse('fra'));
       expect(repo.writesObserved, 0);
@@ -79,34 +71,22 @@ void main() {
       final FakeInstalledManifestRepository repo = FakeInstalledManifestRepository();
       addTearDown(repo.close);
 
-      final CountryDeleteService service = CountryDeleteService(
-        manifestRepository: repo,
-        appSupportDir: tempDir.path,
-      );
-      await expectLater(
-        service.deleteCountry(CountryCode.world),
-        throwsA(isA<CannotDeleteWorldBundleException>()),
-      );
+      final CountryDeleteService service = CountryDeleteService(manifestRepository: repo, appSupportDir: tempDir.path);
+      await expectLater(service.deleteCountry(CountryCode.world), throwsA(isA<CannotDeleteWorldBundleException>()));
     });
 
     test('CountryCode.parse("wld") — parse path — is ALSO rejected (sentinel equality proof)', () async {
       final FakeInstalledManifestRepository repo = FakeInstalledManifestRepository();
       addTearDown(repo.close);
 
-      final CountryDeleteService service = CountryDeleteService(
-        manifestRepository: repo,
-        appSupportDir: tempDir.path,
-      );
+      final CountryDeleteService service = CountryDeleteService(manifestRepository: repo, appSupportDir: tempDir.path);
       // Prove the comparison uses equality against the domain sentinel,
       // not a raw string literal — the reservation contract documented on
       // CountryCode must hold: parse('wld') == CountryCode.world.
       final CountryCode parsedWorld = CountryCode.parse('wld');
       expect(parsedWorld, CountryCode.world);
 
-      await expectLater(
-        service.deleteCountry(parsedWorld),
-        throwsA(isA<CannotDeleteWorldBundleException>()),
-      );
+      await expectLater(service.deleteCountry(parsedWorld), throwsA(isA<CannotDeleteWorldBundleException>()));
     });
   });
 }

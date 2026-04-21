@@ -99,27 +99,19 @@ void main() {
     // Synthesise a minimal CountryCatalog covering FRA + ESP + DEU so
     // the controller's resolver rebuild loads polygons for ALL three
     // (installed or not).
-    final CountryCatalog syntheticCatalog = CountryCatalog(countries: [
-      for (final String code in <String>['fra', 'esp', 'deu'])
-        CountryEntry(
-          alpha3: CountryCode.parse(code),
-          name: code.toUpperCase(),
-          parts: [
-            ChunkPart(
-              sha256: 'a' * 64,
-              size: 1024,
-              url: 'https://github.com/example/mirkfall/releases/download/v20260419/$code.part01',
-            ),
-          ],
-          reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1024),
-        ),
-    ]);
-
-    final container = ProviderContainer(
-      overrides: [
-        countryCatalogProvider.overrideWith((ref) async => syntheticCatalog),
+    final CountryCatalog syntheticCatalog = CountryCatalog(
+      countries: [
+        for (final String code in <String>['fra', 'esp', 'deu'])
+          CountryEntry(
+            alpha3: CountryCode.parse(code),
+            name: code.toUpperCase(),
+            parts: [ChunkPart(sha256: 'a' * 64, size: 1024, url: 'https://github.com/example/mirkfall/releases/download/v20260419/$code.part01')],
+            reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1024),
+          ),
       ],
     );
+
+    final container = ProviderContainer(overrides: [countryCatalogProvider.overrideWith((ref) async => syntheticCatalog)]);
     addTearDown(container.dispose);
 
     // Pre-resolve the catalog so the controller's resolver rebuild

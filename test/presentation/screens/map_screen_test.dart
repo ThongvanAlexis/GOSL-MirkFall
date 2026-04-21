@@ -58,19 +58,17 @@ class _FakeResolverController extends CountryResolverController {
 }
 
 CountryCatalog _oneCountryCatalog() {
-  final ChunkPart part = ChunkPart(
-    sha256: 'a' * 64,
-    size: 1000,
-    url: 'https://example.com/releases/download/v1/fra.part01',
+  final ChunkPart part = ChunkPart(sha256: 'a' * 64, size: 1000, url: 'https://example.com/releases/download/v1/fra.part01');
+  return CountryCatalog(
+    countries: <CountryEntry>[
+      CountryEntry(
+        alpha3: CountryCode.parse('deu'),
+        name: 'Allemagne',
+        parts: <ChunkPart>[part],
+        reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1000),
+      ),
+    ],
   );
-  return CountryCatalog(countries: <CountryEntry>[
-    CountryEntry(
-      alpha3: CountryCode.parse('deu'),
-      name: 'Allemagne',
-      parts: <ChunkPart>[part],
-      reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1000),
-    ),
-  ]);
 }
 
 void main() {
@@ -97,16 +95,11 @@ void main() {
         appSupportDirProvider.overrideWith((ref) async => tmpDir.path),
         installedManifestRepositoryProvider.overrideWith((ref) async => fakeRepo),
         countryCatalogProvider.overrideWith((ref) async => _oneCountryCatalog()),
-        if (resolverSeed != null)
-          countryResolverControllerProvider.overrideWith(() => _FakeResolverController(seed: resolverSeed)),
+        if (resolverSeed != null) countryResolverControllerProvider.overrideWith(() => _FakeResolverController(seed: resolverSeed)),
       ],
       child: MaterialApp(
         home: MapScreen(
-          mapViewBuilderForTest: ({
-            required StyleRewriter styleRewriter,
-            required PmtilesSource pmtilesSource,
-            required ValueChanged<MapView> onReady,
-          }) {
+          mapViewBuilderForTest: ({required StyleRewriter styleRewriter, required PmtilesSource pmtilesSource, required ValueChanged<MapView> onReady}) {
             return _FakeMapWidget(onReady: onReady, fakeMapView: fakeMapView);
           },
         ),
@@ -129,17 +122,12 @@ void main() {
 
   testWidgets('country banner surfaces when viewport NOT in installed', (tester) async {
     final fakeMapView = FakeMapView();
-    final CountryResolverState seed = CountryResolverState(
-      viewportCountry: CountryCode.parse('deu'),
-    );
+    final CountryResolverState seed = CountryResolverState(viewportCountry: CountryCode.parse('deu'));
     await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed));
     await tester.pumpAndSettle();
 
     expect(find.byType(MapCountryBanner), findsOneWidget);
-    expect(
-      find.text('Carte détaillée de Allemagne disponible dans Paramètres › Télécharger une carte'),
-      findsOneWidget,
-    );
+    expect(find.text('Carte détaillée de Allemagne disponible dans Paramètres › Télécharger une carte'), findsOneWidget);
   });
 
   testWidgets('country banner absent when viewport IS installed', (tester) async {

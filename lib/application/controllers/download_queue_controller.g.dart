@@ -48,8 +48,7 @@ final downloadQueueControllerProvider = DownloadQueueControllerProvider._();
 /// State stream: exposes the infra controller's broadcast stream
 /// verbatim; consumers pattern-match over the 7 `DownloadState`
 /// variants for UI rendering. `current` returns the latest snapshot.
-final class DownloadQueueControllerProvider
-    extends $NotifierProvider<DownloadQueueController, DownloadState> {
+final class DownloadQueueControllerProvider extends $NotifierProvider<DownloadQueueController, DownloadState> {
   /// UI-layer wrapper around [PmtilesDownloadController].
   ///
   /// The infrastructure controller is deliberately non-Riverpod
@@ -88,15 +87,11 @@ final class DownloadQueueControllerProvider
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(DownloadState value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<DownloadState>(value),
-    );
+    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<DownloadState>(value));
   }
 }
 
-String _$downloadQueueControllerHash() =>
-    r'bd2571aa602bdcf1fcf135106c80029c9e476eb5';
+String _$downloadQueueControllerHash() => r'bd2571aa602bdcf1fcf135106c80029c9e476eb5';
 
 /// UI-layer wrapper around [PmtilesDownloadController].
 ///
@@ -123,14 +118,7 @@ abstract class _$DownloadQueueController extends $Notifier<DownloadState> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<DownloadState, DownloadState>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<DownloadState, DownloadState>,
-              DownloadState,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<AnyNotifier<DownloadState, DownloadState>, DownloadState, Object?, Object?>;
     element.handleCreate(ref, build);
   }
 }

@@ -17,12 +17,7 @@ import 'package:flutter/services.dart';
 Future<void> openAttributionLink(BuildContext context, Uri url) async {
   await Clipboard.setData(ClipboardData(text: url.toString()));
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text('URL copiée dans le presse-papier : $url'),
-      duration: const Duration(seconds: 3),
-    ),
-  );
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('URL copiée dans le presse-papier : $url'), duration: const Duration(seconds: 3)));
 }
 
 /// Canonical OSM copyright URL for the attribution block. Single source of

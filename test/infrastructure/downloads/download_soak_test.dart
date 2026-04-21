@@ -51,35 +51,21 @@ void _stubDiskSpaceChannel(int freeBytes) {
 
 Uint8List _patternBytes(int byte, int size) => Uint8List(size)..fillRange(0, size, byte);
 
-CountryEntry _entryFor({
-  required String alpha3Raw,
-  required List<Uint8List> chunkPayloads,
-  required List<String> chunkUrls,
-}) {
+CountryEntry _entryFor({required String alpha3Raw, required List<Uint8List> chunkPayloads, required List<String> chunkUrls}) {
   final List<ChunkPart> parts = <ChunkPart>[];
   for (int i = 0; i < chunkPayloads.length; i++) {
-    parts.add(ChunkPart(
-      sha256: sha256.convert(chunkPayloads[i]).toString(),
-      size: chunkPayloads[i].length,
-      url: chunkUrls[i],
-    ));
+    parts.add(ChunkPart(sha256: sha256.convert(chunkPayloads[i]).toString(), size: chunkPayloads[i].length, url: chunkUrls[i]));
   }
   final Uint8List reassembled = Uint8List.fromList(chunkPayloads.expand((Uint8List b) => b).toList());
   return CountryEntry(
     alpha3: CountryCode.parse(alpha3Raw),
     name: alpha3Raw.toUpperCase(),
     parts: parts,
-    reassembled: ReassembledMeta(
-      sha256: sha256.convert(reassembled).toString(),
-      size: reassembled.length,
-    ),
+    reassembled: ReassembledMeta(sha256: sha256.convert(reassembled).toString(), size: reassembled.length),
   );
 }
 
-typedef _SoakHarness = ({
-  PmtilesDownloadController controller,
-  JsonFileInstalledManifestRepository manifestRepo,
-});
+typedef _SoakHarness = ({PmtilesDownloadController controller, JsonFileInstalledManifestRepository manifestRepo});
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -150,11 +136,7 @@ void main() {
   group('soak: multi_part', () {
     test('3-part 3 × 512 KB concat → reassembled sha256 verified + install committed', () async {
       await _withRealHttpClient(() async {
-        final List<Uint8List> chunks = <Uint8List>[
-          _patternBytes(0x11, 512 * 1024),
-          _patternBytes(0x22, 512 * 1024),
-          _patternBytes(0x33, 512 * 1024),
-        ];
+        final List<Uint8List> chunks = <Uint8List>[_patternBytes(0x11, 512 * 1024), _patternBytes(0x22, 512 * 1024), _patternBytes(0x33, 512 * 1024)];
         final List<FakeHttpServer> servers = <FakeHttpServer>[];
         for (final Uint8List c in chunks) {
           servers.add(await FakeHttpServer.bind(initialBytes: c));

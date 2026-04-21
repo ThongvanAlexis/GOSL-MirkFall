@@ -53,11 +53,15 @@ void assertStyleLayerOrder(String styleJson) {
   }
 
   if (actualIds.length != kStyleLayerOrder.length) {
-    throw MapStyleCorruptException(reason: 'style.layers count mismatch: expected=${kStyleLayerOrder.length}, actual=${actualIds.length} — expected=$kStyleLayerOrder actual=$actualIds');
+    throw MapStyleCorruptException(
+      reason: 'style.layers count mismatch: expected=${kStyleLayerOrder.length}, actual=${actualIds.length} — expected=$kStyleLayerOrder actual=$actualIds',
+    );
   }
   for (int i = 0; i < kStyleLayerOrder.length; i++) {
     if (actualIds[i] != kStyleLayerOrder[i]) {
-      throw MapStyleCorruptException(reason: 'style.layers[$i] id mismatch: expected="${kStyleLayerOrder[i]}", actual="${actualIds[i]}" — full expected=$kStyleLayerOrder actual=$actualIds');
+      throw MapStyleCorruptException(
+        reason: 'style.layers[$i] id mismatch: expected="${kStyleLayerOrder[i]}", actual="${actualIds[i]}" — full expected=$kStyleLayerOrder actual=$actualIds',
+      );
     }
   }
 }
@@ -99,7 +103,9 @@ void assertStyleLayerValidity(String styleJson) {
     switch (type) {
       case 'background':
         if (raw.containsKey('source')) {
-          throw MapStyleCorruptException(reason: 'style.layers[$id] (type=background) MUST NOT declare "source" — background layers paint to the entire map surface');
+          throw MapStyleCorruptException(
+            reason: 'style.layers[$id] (type=background) MUST NOT declare "source" — background layers paint to the entire map surface',
+          );
         }
         if (raw.containsKey('source-layer')) {
           throw MapStyleCorruptException(reason: 'style.layers[$id] (type=background) MUST NOT declare "source-layer"');

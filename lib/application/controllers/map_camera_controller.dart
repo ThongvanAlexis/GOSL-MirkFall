@@ -171,21 +171,21 @@ class MapCameraController extends _$MapCameraController {
     if (identical(current, _mapView)) return;
     _viewportSub?.cancel();
     _mapView = current;
-    _viewportSub = current.viewportUpdates.listen(_onViewportUpdate, onError: (Object e, StackTrace st) {
-      _log.warning('viewport stream error', e, st);
-    });
+    _viewportSub = current.viewportUpdates.listen(
+      _onViewportUpdate,
+      onError: (Object e, StackTrace st) {
+        _log.warning('viewport stream error', e, st);
+      },
+    );
   }
 
   void _attachSessionListenerIfNeeded() {
-    _sessionSub ??= ref.listen<AsyncValue<ActiveSessionState>>(
-      activeSessionControllerProvider,
-      (previous, next) {
-        final value = next.value;
-        if (value is Tracking) {
-          _onFix(value.lastFix);
-        }
-      },
-    );
+    _sessionSub ??= ref.listen<AsyncValue<ActiveSessionState>>(activeSessionControllerProvider, (previous, next) {
+      final value = next.value;
+      if (value is Tracking) {
+        _onFix(value.lastFix);
+      }
+    });
   }
 
   /// Handles a new fix from the active session. In [MapCameraFollowing]

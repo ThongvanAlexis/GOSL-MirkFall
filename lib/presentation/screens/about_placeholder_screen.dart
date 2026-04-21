@@ -73,14 +73,8 @@ class _AboutPlaceholderScreenState extends State<AboutPlaceholderScreen> {
                 // + snackbar via the shared helper `openAttributionLink`.
                 Text('Attribution', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 4.0),
-                TextButton(
-                  onPressed: () => openAttributionLink(context, kOpenStreetMapCopyrightUrl),
-                  child: const Text('© OpenStreetMap contributors'),
-                ),
-                TextButton(
-                  onPressed: () => openAttributionLink(context, kProtomapsUrl),
-                  child: const Text('© Protomaps'),
-                ),
+                TextButton(onPressed: () => openAttributionLink(context, kOpenStreetMapCopyrightUrl), child: const Text('© OpenStreetMap contributors')),
+                TextButton(onPressed: () => openAttributionLink(context, kProtomapsUrl), child: const Text('© Protomaps')),
               ],
             ),
           ),

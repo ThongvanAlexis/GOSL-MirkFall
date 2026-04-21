@@ -40,7 +40,14 @@ import 'style_rewriter.dart';
 /// of the fog render pass. Do not add one pre-emptively; it would mask a
 /// Phase 09 design decision.
 class MapLibreMapViewWidget extends StatefulWidget {
-  const MapLibreMapViewWidget({super.key, required this.styleRewriter, required this.pmtilesSource, required this.onReady, this.initialCountry, this.initialCamera = const CameraLatLngZoom(latitude: 0, longitude: 0, zoom: 2)});
+  const MapLibreMapViewWidget({
+    super.key,
+    required this.styleRewriter,
+    required this.pmtilesSource,
+    required this.onReady,
+    this.initialCountry,
+    this.initialCamera = const CameraLatLngZoom(latitude: 0, longitude: 0, zoom: 2),
+  });
 
   /// Style-rewriter used to swap the PMTiles URI into the bundled style
   /// at initial load and on every subsequent `showMap` call.
@@ -130,7 +137,11 @@ class _MapLibreMapViewWidgetState extends State<MapLibreMapViewWidget> {
         onStyleLoadedCallback: () {
           final MapLibreMapController? c = _controller;
           if (c == null) return;
-          final _MapLibreMapViewAdapter adapter = _adapter ??= _MapLibreMapViewAdapter(controller: c, styleRewriter: widget.styleRewriter, pmtilesSource: widget.pmtilesSource);
+          final _MapLibreMapViewAdapter adapter = _adapter ??= _MapLibreMapViewAdapter(
+            controller: c,
+            styleRewriter: widget.styleRewriter,
+            pmtilesSource: widget.pmtilesSource,
+          );
           widget.onReady(adapter);
         },
       ),
@@ -191,7 +202,8 @@ class _MapLibreMapViewAdapter implements MapView {
   final StyleRewriter _styleRewriter;
   // ignore: unused_field — Phase 07 fallbacks to setStyle via the rewriter; kept for Phase 09 where source-swap becomes viable.
   final PmtilesSource _pmtilesSource;
-  final StreamController<({double latitude, double longitude, double zoom})> _viewportCtrl = StreamController<({double latitude, double longitude, double zoom})>.broadcast();
+  final StreamController<({double latitude, double longitude, double zoom})> _viewportCtrl =
+      StreamController<({double latitude, double longitude, double zoom})>.broadcast();
 
   /// In-memory registry of POI symbols — keyed by the caller-supplied
   /// string ID so [removePointOfInterest] can look them up.
@@ -212,7 +224,9 @@ class _MapLibreMapViewAdapter implements MapView {
     // Open Question #1: capture camera BEFORE setStyle.
     final CameraPosition? prev = _controller.cameraPosition;
     final CameraPosition preserved = prev ?? const CameraPosition(target: LatLng(0, 0), zoom: 2);
-    _log.info('showMap(${country?.value ?? 'world'}): preserving camera target=(${preserved.target.latitude},${preserved.target.longitude}) zoom=${preserved.zoom}');
+    _log.info(
+      'showMap(${country?.value ?? 'world'}): preserving camera target=(${preserved.target.latitude},${preserved.target.longitude}) zoom=${preserved.zoom}',
+    );
 
     final String rewritten = await _styleRewriter.rewriteStyleForCountry(country);
     await _controller.setStyle(rewritten);

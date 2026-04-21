@@ -23,40 +23,31 @@ class _FakeDownloadQueueController extends DownloadQueueController {
 }
 
 CountryCatalog _catalogWith(String alpha3, String name) {
-  final ChunkPart part = ChunkPart(
-    sha256: 'a' * 64,
-    size: 1000,
-    url: 'https://example.com/releases/download/v1/$alpha3.part01',
+  final ChunkPart part = ChunkPart(sha256: 'a' * 64, size: 1000, url: 'https://example.com/releases/download/v1/$alpha3.part01');
+  return CountryCatalog(
+    countries: <CountryEntry>[
+      CountryEntry(
+        alpha3: CountryCode.parse(alpha3),
+        name: name,
+        parts: <ChunkPart>[part],
+        reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1000),
+      ),
+    ],
   );
-  return CountryCatalog(countries: <CountryEntry>[
-    CountryEntry(
-      alpha3: CountryCode.parse(alpha3),
-      name: name,
-      parts: <ChunkPart>[part],
-      reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1000),
-    ),
-  ]);
 }
 
-DownloadJob _jobFor(String alpha3) => DownloadJob(
-  alpha3: CountryCode.parse(alpha3),
-  entry: _catalogWith(alpha3, alpha3.toUpperCase()).countries.first,
-  enqueuedAtUtc: DateTime.utc(2026, 4, 21),
-);
+DownloadJob _jobFor(String alpha3) =>
+    DownloadJob(alpha3: CountryCode.parse(alpha3), entry: _catalogWith(alpha3, alpha3.toUpperCase()).countries.first, enqueuedAtUtc: DateTime.utc(2026, 4, 21));
 
 void main() {
   testWidgets('invisible when queue is idle', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          downloadQueueControllerProvider.overrideWith(
-            () => _FakeDownloadQueueController(seed: const DownloadIdle()),
-          ),
+          downloadQueueControllerProvider.overrideWith(() => _FakeDownloadQueueController(seed: const DownloadIdle())),
           countryCatalogProvider.overrideWith((ref) async => _catalogWith('fra', 'France')),
         ],
-        child: const MaterialApp(
-          home: Scaffold(body: MapDownloadProgressChip()),
-        ),
+        child: const MaterialApp(home: Scaffold(body: MapDownloadProgressChip())),
       ),
     );
     await tester.pumpAndSettle();
@@ -77,9 +68,7 @@ void main() {
           downloadQueueControllerProvider.overrideWith(() => _FakeDownloadQueueController(seed: seed)),
           countryCatalogProvider.overrideWith((ref) async => _catalogWith('fra', 'France')),
         ],
-        child: const MaterialApp(
-          home: Scaffold(body: MapDownloadProgressChip()),
-        ),
+        child: const MaterialApp(home: Scaffold(body: MapDownloadProgressChip())),
       ),
     );
     await tester.pumpAndSettle();
@@ -100,9 +89,7 @@ void main() {
           downloadQueueControllerProvider.overrideWith(() => _FakeDownloadQueueController(seed: seed)),
           countryCatalogProvider.overrideWith((ref) async => _catalogWith('fra', 'France')),
         ],
-        child: const MaterialApp(
-          home: Scaffold(body: MapDownloadProgressChip()),
-        ),
+        child: const MaterialApp(home: Scaffold(body: MapDownloadProgressChip())),
       ),
     );
     await tester.pumpAndSettle();

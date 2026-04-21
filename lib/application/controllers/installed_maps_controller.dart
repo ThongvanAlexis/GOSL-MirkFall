@@ -28,10 +28,7 @@ part 'installed_maps_controller.g.dart';
 class InstalledMapsState {
   const InstalledMapsState({required this.installed, required this.updatesAvailable, required this.totalDiskUsageBytes});
 
-  const InstalledMapsState.empty()
-    : installed = const <CountryCode, InstalledCountry>{},
-      updatesAvailable = const <CountryCode>{},
-      totalDiskUsageBytes = 0;
+  const InstalledMapsState.empty() : installed = const <CountryCode, InstalledCountry>{}, updatesAvailable = const <CountryCode>{}, totalDiskUsageBytes = 0;
 
   final Map<CountryCode, InstalledCountry> installed;
   final Set<CountryCode> updatesAvailable;
@@ -132,11 +129,7 @@ class InstalledMapsController extends _$InstalledMapsController {
         catalogVersion = catalog.catalogVersion;
       } on FormatException catch (e) {
         _log.warning('catalog.catalogVersion extraction failed: $e — updatesAvailable will be empty');
-        return InstalledMapsState(
-          installed: installedByCode,
-          updatesAvailable: const <CountryCode>{},
-          totalDiskUsageBytes: totalBytes,
-        );
+        return InstalledMapsState(installed: installedByCode, updatesAvailable: const <CountryCode>{}, totalDiskUsageBytes: totalBytes);
       }
       for (final InstalledCountry entry in installedByCode.values) {
         if (entry.pmtilesVersion != catalogVersion) {
@@ -145,10 +138,6 @@ class InstalledMapsController extends _$InstalledMapsController {
       }
     }
 
-    return InstalledMapsState(
-      installed: installedByCode,
-      updatesAvailable: updates,
-      totalDiskUsageBytes: totalBytes,
-    );
+    return InstalledMapsState(installed: installedByCode, updatesAvailable: updates, totalDiskUsageBytes: totalBytes);
   }
 }

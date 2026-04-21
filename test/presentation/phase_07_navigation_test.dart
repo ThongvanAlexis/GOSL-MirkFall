@@ -60,11 +60,26 @@ GoRouter _buildHarnessRouter({required GlobalKey<NavigatorState> rootKey, requir
       // Phase 07 routes: verify each route matches its target constructor.
       // Builders intentionally return a trivial stub rather than the real
       // screen so route-reachability is the sole behaviour under test.
-      GoRoute(path: '/map', builder: (_, _) => const _RouteStub(targetType: MapScreen, label: '/map')),
-      GoRoute(path: '/maps/download', builder: (_, _) => const _RouteStub(targetType: MapsDownloadScreen, label: '/maps/download')),
-      GoRoute(path: '/maps/manage', builder: (_, _) => const _RouteStub(targetType: MapsManageScreen, label: '/maps/manage')),
-      GoRoute(path: '/styles/import', builder: (_, _) => const _RouteStub(targetType: StyleImportPlaceholderScreen, label: '/styles/import')),
-      GoRoute(path: '/styles/export', builder: (_, _) => const _RouteStub(targetType: StyleExportPlaceholderScreen, label: '/styles/export')),
+      GoRoute(
+        path: '/map',
+        builder: (_, _) => const _RouteStub(targetType: MapScreen, label: '/map'),
+      ),
+      GoRoute(
+        path: '/maps/download',
+        builder: (_, _) => const _RouteStub(targetType: MapsDownloadScreen, label: '/maps/download'),
+      ),
+      GoRoute(
+        path: '/maps/manage',
+        builder: (_, _) => const _RouteStub(targetType: MapsManageScreen, label: '/maps/manage'),
+      ),
+      GoRoute(
+        path: '/styles/import',
+        builder: (_, _) => const _RouteStub(targetType: StyleImportPlaceholderScreen, label: '/styles/import'),
+      ),
+      GoRoute(
+        path: '/styles/export',
+        builder: (_, _) => const _RouteStub(targetType: StyleExportPlaceholderScreen, label: '/styles/export'),
+      ),
     ],
   );
 }
@@ -103,13 +118,7 @@ class _RecordingObserver extends NavigatorObserver {
 }
 
 Future<void> _pumpRouter(WidgetTester tester, GoRouter router) async {
-  await tester.pumpWidget(
-    ProviderScope(
-      child: MaterialApp.router(
-        routerConfig: router,
-      ),
-    ),
-  );
+  await tester.pumpWidget(ProviderScope(child: MaterialApp.router(routerConfig: router)));
   await tester.pumpAndSettle();
 }
 

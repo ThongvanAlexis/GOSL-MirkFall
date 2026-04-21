@@ -142,9 +142,12 @@ class CountryResolverController extends _$CountryResolverController {
     if (identical(current, _mapView)) return;
     _viewportSub?.cancel();
     _mapView = current;
-    _viewportSub = current.viewportUpdates.listen(_onViewportUpdate, onError: (Object e, StackTrace st) {
-      _log.warning('viewport stream error', e, st);
-    });
+    _viewportSub = current.viewportUpdates.listen(
+      _onViewportUpdate,
+      onError: (Object e, StackTrace st) {
+        _log.warning('viewport stream error', e, st);
+      },
+    );
   }
 
   StreamSubscription<InstalledManifest>? _manifestStreamSub;
@@ -152,16 +155,12 @@ class CountryResolverController extends _$CountryResolverController {
   void _attachManifestListenerIfNeeded() {
     // Primary path: watch installedManifestProvider. Triggers a rebuild
     // whenever the StreamProvider emits a new manifest.
-    _manifestSub ??= ref.listen<AsyncValue<InstalledManifest>>(
-      installedManifestProvider,
-      (previous, next) {
-        final value = next.value;
-        if (value != null) {
-          unawaited(_rebuildResolver(value));
-        }
-      },
-      fireImmediately: true,
-    );
+    _manifestSub ??= ref.listen<AsyncValue<InstalledManifest>>(installedManifestProvider, (previous, next) {
+      final value = next.value;
+      if (value != null) {
+        unawaited(_rebuildResolver(value));
+      }
+    }, fireImmediately: true);
     // Secondary path: listen directly to the repo's broadcast stream —
     // ensures resolver rebuilds even if the StreamProvider layer has not
     // been subscribed (test scenarios that bypass the provider +

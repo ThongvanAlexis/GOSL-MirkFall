@@ -37,9 +37,7 @@ void main() {
   // asset is 856 KB; the test substitutes a smaller payload because
   // the copier's contract is agnostic to size, and CI hosts run faster
   // with tiny fixtures. Plan 07-07 Task 2 covers the real-asset path.
-  final Uint8List worldBytes = Uint8List.fromList(
-    List<int>.generate(32, (int i) => (i * 7) & 0xFF, growable: false),
-  );
+  final Uint8List worldBytes = Uint8List.fromList(List<int>.generate(32, (int i) => (i * 7) & 0xFF, growable: false));
   final String worldSha256 = sha256.convert(worldBytes).toString();
   final ByteData worldByteData = ByteData.sublistView(worldBytes);
 
@@ -124,11 +122,7 @@ void main() {
     final Uint8List corrupted = Uint8List.fromList(bytes);
     corrupted[0] = corrupted[0] ^ 0xFF;
     await target.writeAsBytes(corrupted, flush: true);
-    expect(
-      sha256.convert(await target.readAsBytes()).toString(),
-      isNot(worldSha256),
-      reason: 'precondition: file must be corrupted after the flip',
-    );
+    expect(sha256.convert(await target.readAsBytes()).toString(), isNot(worldSha256), reason: 'precondition: file must be corrupted after the flip');
 
     // Invoke again: copier detects sha mismatch + re-copies from the
     // loader. Post-heal: file bytes match the original + loader was

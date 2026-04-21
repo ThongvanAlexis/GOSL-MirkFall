@@ -75,7 +75,10 @@ class CountryResolver {
   /// alpha3 (or `null`) for each settled viewport. The 500 ms debounce
   /// keeps the resolver off the main-thread hot path during continuous
   /// gesture panning.
-  Stream<CountryCode?> resolveForViewportUpdates(Stream<({double latitude, double longitude, double zoom})> viewportUpdates, {Duration debounce = const Duration(milliseconds: 500)}) {
+  Stream<CountryCode?> resolveForViewportUpdates(
+    Stream<({double latitude, double longitude, double zoom})> viewportUpdates, {
+    Duration debounce = const Duration(milliseconds: 500),
+  }) {
     late final StreamController<CountryCode?> out;
     late final StreamSubscription<({double latitude, double longitude, double zoom})> sub;
     Timer? debounceTimer;

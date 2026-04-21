@@ -67,10 +67,7 @@ class FakeHttpServer {
 
   /// Spawns a bound server on a random free port.
   static Future<FakeHttpServer> bind({Uint8List? initialBytes}) async {
-    final FakeHttpServer holder = FakeHttpServer._(
-      await _bindSilently(),
-      initialBytes ?? Uint8List(0),
-    );
+    final FakeHttpServer holder = FakeHttpServer._(await _bindSilently(), initialBytes ?? Uint8List(0));
     shelf_io.serveRequests(holder._inner, holder._handle);
     return holder;
   }
@@ -79,11 +76,7 @@ class FakeHttpServer {
 
   Future<shelf.Response> _handle(shelf.Request req) async {
     final String? rangeHeader = req.headers['range'];
-    recordedRequests.add(RecordedRequest(
-      method: req.method,
-      path: req.requestedUri.path,
-      rangeHeader: rangeHeader,
-    ));
+    recordedRequests.add(RecordedRequest(method: req.method, path: req.requestedUri.path, rangeHeader: rangeHeader));
 
     final FakeServerBehaviour current = behaviour;
     switch (current) {
@@ -121,11 +114,7 @@ class FakeHttpServer {
     return shelf.Response(
       206,
       body: slice,
-      headers: <String, Object>{
-        'content-length': '${slice.length}',
-        'content-range': 'bytes $start-$end/${bytes.length}',
-        'accept-ranges': 'bytes',
-      },
+      headers: <String, Object>{'content-length': '${slice.length}', 'content-range': 'bytes $start-$end/${bytes.length}', 'accept-ranges': 'bytes'},
     );
   }
 

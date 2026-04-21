@@ -26,26 +26,24 @@ class _FakeInstalledMapsController extends InstalledMapsController {
   }
 }
 
-ChunkPart _partFor(String alpha3) => ChunkPart(
-  sha256: 'a' * 64,
-  size: 5 * 1024 * 1024,
-  url: 'https://example.com/releases/download/v20260419/$alpha3.part01',
-);
+ChunkPart _partFor(String alpha3) => ChunkPart(sha256: 'a' * 64, size: 5 * 1024 * 1024, url: 'https://example.com/releases/download/v20260419/$alpha3.part01');
 
-CountryCatalog _twoCountryCatalog() => CountryCatalog(countries: <CountryEntry>[
-  CountryEntry(
-    alpha3: CountryCode.parse('fra'),
-    name: 'France',
-    parts: <ChunkPart>[_partFor('fra')],
-    reassembled: ReassembledMeta(sha256: 'b' * 64, size: 5 * 1024 * 1024),
-  ),
-  CountryEntry(
-    alpha3: CountryCode.parse('deu'),
-    name: 'Allemagne',
-    parts: <ChunkPart>[_partFor('deu')],
-    reassembled: ReassembledMeta(sha256: 'c' * 64, size: 5 * 1024 * 1024),
-  ),
-]);
+CountryCatalog _twoCountryCatalog() => CountryCatalog(
+  countries: <CountryEntry>[
+    CountryEntry(
+      alpha3: CountryCode.parse('fra'),
+      name: 'France',
+      parts: <ChunkPart>[_partFor('fra')],
+      reassembled: ReassembledMeta(sha256: 'b' * 64, size: 5 * 1024 * 1024),
+    ),
+    CountryEntry(
+      alpha3: CountryCode.parse('deu'),
+      name: 'Allemagne',
+      parts: <ChunkPart>[_partFor('deu')],
+      reassembled: ReassembledMeta(sha256: 'c' * 64, size: 5 * 1024 * 1024),
+    ),
+  ],
+);
 
 InstalledCountry _installed(String alpha3, {String version = 'v20260419'}) => InstalledCountry(
   alpha3: CountryCode.parse(alpha3),
@@ -64,9 +62,7 @@ void main() {
         ProviderScope(
           overrides: [
             countryCatalogProvider.overrideWith((ref) async => _twoCountryCatalog()),
-            installedMapsControllerProvider.overrideWith(
-              () => _FakeInstalledMapsController(seed: seed),
-            ),
+            installedMapsControllerProvider.overrideWith(() => _FakeInstalledMapsController(seed: seed)),
           ],
           child: const MaterialApp(home: MapsManageScreen()),
         ),
@@ -78,9 +74,7 @@ void main() {
       expect(find.text('Monde (intégré)'), findsNWidgets(2));
       // The non-deletable IconButton: first (and only) delete icon when
       // no per-country rows are installed.
-      final IconButton worldDelete = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, Icons.delete_outline).first,
-      );
+      final IconButton worldDelete = tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.delete_outline).first);
       expect(worldDelete.onPressed, isNull);
     });
 
@@ -97,9 +91,7 @@ void main() {
         ProviderScope(
           overrides: [
             countryCatalogProvider.overrideWith((ref) async => _twoCountryCatalog()),
-            installedMapsControllerProvider.overrideWith(
-              () => _FakeInstalledMapsController(seed: seed),
-            ),
+            installedMapsControllerProvider.overrideWith(() => _FakeInstalledMapsController(seed: seed)),
           ],
           child: const MaterialApp(home: MapsManageScreen()),
         ),
@@ -121,10 +113,7 @@ void main() {
       final fake = _FakeInstalledMapsController(seed: seed);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            countryCatalogProvider.overrideWith((ref) async => _twoCountryCatalog()),
-            installedMapsControllerProvider.overrideWith(() => fake),
-          ],
+          overrides: [countryCatalogProvider.overrideWith((ref) async => _twoCountryCatalog()), installedMapsControllerProvider.overrideWith(() => fake)],
           child: const MaterialApp(home: MapsManageScreen()),
         ),
       );

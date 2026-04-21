@@ -50,8 +50,7 @@ final mapCameraControllerProvider = MapCameraControllerProvider._();
 /// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
 /// the widget publishes a [MapView] adapter via [mapViewProvider] and the
 /// controller lazily attaches its listeners on first use.
-final class MapCameraControllerProvider
-    extends $NotifierProvider<MapCameraController, MapCameraState> {
+final class MapCameraControllerProvider extends $NotifierProvider<MapCameraController, MapCameraState> {
   /// Orchestrates the map camera on the /map screen:
   /// - Opens a session view with Z=[kInitialSessionMapZoom] zoom centred on
   ///   the latest session fix (or the last-known fix from the active
@@ -91,15 +90,11 @@ final class MapCameraControllerProvider
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(MapCameraState value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<MapCameraState>(value),
-    );
+    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<MapCameraState>(value));
   }
 }
 
-String _$mapCameraControllerHash() =>
-    r'124a201698214e9286208f267b31ecd7d039e580';
+String _$mapCameraControllerHash() => r'124a201698214e9286208f267b31ecd7d039e580';
 
 /// Orchestrates the map camera on the /map screen:
 /// - Opens a session view with Z=[kInitialSessionMapZoom] zoom centred on
@@ -127,14 +122,7 @@ abstract class _$MapCameraController extends $Notifier<MapCameraState> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<MapCameraState, MapCameraState>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<MapCameraState, MapCameraState>,
-              MapCameraState,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<AnyNotifier<MapCameraState, MapCameraState>, MapCameraState, Object?, Object?>;
     element.handleCreate(ref, build);
   }
 }

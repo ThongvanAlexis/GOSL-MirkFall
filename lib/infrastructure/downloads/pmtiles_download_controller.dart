@@ -145,11 +145,7 @@ class PmtilesDownloadController {
   /// Enqueues [entry] for download. The first enqueue kicks off the
   /// processing loop; subsequent calls append to the queue.
   Future<void> enqueueCountry(CountryEntry entry) async {
-    final DownloadJob job = DownloadJob(
-      alpha3: entry.alpha3,
-      entry: entry,
-      enqueuedAtUtc: DateTime.now().toUtc(),
-    );
+    final DownloadJob job = DownloadJob(alpha3: entry.alpha3, entry: entry, enqueuedAtUtc: DateTime.now().toUtc());
     _queue.add(job);
     await _persistQueue();
     _emit(DownloadQueued(queue: List<DownloadJob>.unmodifiable(_queue)));
@@ -249,16 +245,18 @@ class PmtilesDownloadController {
           return;
         }
         if (_pauseRequested) {
-          _emit(DownloadPaused(
-            active: job,
-            snapshot: DownloadProgress(
-              bytesDownloaded: _accumulatedBytes,
-              totalBytes: job.entry.reassembled.size,
-              currentPartIndex: i,
-              totalParts: job.entry.parts.length,
+          _emit(
+            DownloadPaused(
+              active: job,
+              snapshot: DownloadProgress(
+                bytesDownloaded: _accumulatedBytes,
+                totalBytes: job.entry.reassembled.size,
+                currentPartIndex: i,
+                totalParts: job.entry.parts.length,
+              ),
+              reason: PauseReason.manual,
             ),
-            reason: PauseReason.manual,
-          ));
+          );
           return;
         }
 
@@ -275,11 +273,7 @@ class PmtilesDownloadController {
       // 4. Global sha256.
       final String reassembledHash = await _sha256Verifier.ofFile(reassembledStaging);
       if (reassembledHash != job.entry.reassembled.sha256) {
-        throw Sha256MismatchException(
-          expected: job.entry.reassembled.sha256,
-          actual: reassembledHash,
-          at: 'reassembled',
-        );
+        throw Sha256MismatchException(expected: job.entry.reassembled.sha256, actual: reassembledHash, at: 'reassembled');
       }
 
       // 5. Atomic rename.
@@ -335,26 +329,23 @@ class PmtilesDownloadController {
     }
   }
 
-  Future<void> _downloadChunkWithRetries({
-    required ChunkPart part,
-    required File destination,
-    required DownloadJob job,
-    required int partIndex,
-  }) async {
+  Future<void> _downloadChunkWithRetries({required ChunkPart part, required File destination, required DownloadJob job, required int partIndex}) async {
     DownloadInterruptedException? lastError;
     for (int attempt = 0; attempt < kDownloadRetryAttempts; attempt++) {
       if (_cancelRequested) return;
       try {
-        _emit(DownloadInProgress(
-          active: job,
-          progress: DownloadProgress(
-            bytesDownloaded: _accumulatedBytes,
-            totalBytes: job.entry.reassembled.size,
-            currentPartIndex: partIndex,
-            totalParts: job.entry.parts.length,
+        _emit(
+          DownloadInProgress(
+            active: job,
+            progress: DownloadProgress(
+              bytesDownloaded: _accumulatedBytes,
+              totalBytes: job.entry.reassembled.size,
+              currentPartIndex: partIndex,
+              totalParts: job.entry.parts.length,
+            ),
+            remaining: _queue.length > 1 ? List<DownloadJob>.unmodifiable(_queue.skip(1)) : <DownloadJob>[],
           ),
-          remaining: _queue.length > 1 ? List<DownloadJob>.unmodifiable(_queue.skip(1)) : <DownloadJob>[],
-        ));
+        );
         await _httpDownloader.downloadWithResume(
           url: Uri.parse(part.url),
           destination: destination,
@@ -375,12 +366,7 @@ class PmtilesDownloadController {
     throw lastError ?? const DownloadInterruptedException(reason: 'retry budget exhausted with no recorded cause');
   }
 
-  Future<void> _verifyChunkWithOneRetry({
-    required ChunkPart part,
-    required File partFile,
-    required DownloadJob job,
-    required int partIndex,
-  }) async {
+  Future<void> _verifyChunkWithOneRetry({required ChunkPart part, required File partFile, required DownloadJob job, required int partIndex}) async {
     final String first = await _sha256Verifier.ofFile(partFile);
     if (first == part.sha256) return;
     _log.warning('chunk ${job.alpha3.value}.part$partIndex sha256 mismatch — retrying once');

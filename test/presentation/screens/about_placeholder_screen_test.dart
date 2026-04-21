@@ -14,7 +14,10 @@ Widget _wrap(Widget child) {
     initialLocation: '/about',
     routes: <RouteBase>[
       GoRoute(path: '/about', builder: (_, _) => child),
-      GoRoute(path: '/debug', builder: (_, _) => const Scaffold(body: Text('debug'))),
+      GoRoute(
+        path: '/debug',
+        builder: (_, _) => const Scaffold(body: Text('debug')),
+      ),
     ],
   );
   return MaterialApp.router(routerConfig: router);

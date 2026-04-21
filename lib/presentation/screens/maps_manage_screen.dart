@@ -33,13 +33,12 @@ class MapsManageScreen extends ConsumerWidget {
     final AsyncValue<CountryCatalog> catalogAsync = ref.watch(countryCatalogProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gérer les cartes installées'),
-        actions: const <Widget>[MapDownloadProgressChip()],
-      ),
+      appBar: AppBar(title: const Text('Gérer les cartes installées'), actions: const <Widget>[MapDownloadProgressChip()]),
       body: catalogAsync.when(
         loading: () => const Center(child: CircularProgressIndicator.adaptive()),
-        error: (err, st) => Center(child: Padding(padding: const EdgeInsets.all(24.0), child: Text('Erreur : $err'))),
+        error: (err, st) => Center(
+          child: Padding(padding: const EdgeInsets.all(24.0), child: Text('Erreur : $err')),
+        ),
         data: (catalog) => _buildList(context, ref, catalog, state),
       ),
     );
@@ -69,10 +68,7 @@ class MapsManageScreen extends ConsumerWidget {
         const Divider(),
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Espace total utilisé : ${_formatBytes(state.totalDiskUsageBytes)}',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          child: Text('Espace total utilisé : ${_formatBytes(state.totalDiskUsageBytes)}', style: Theme.of(context).textTheme.bodyMedium),
         ),
       ],
     );
@@ -102,10 +98,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary),
-      ),
+      child: Text(label, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary)),
     );
   }
 }
@@ -119,11 +112,7 @@ class _WorldBundleRow extends StatelessWidget {
       leading: Icon(Icons.public),
       title: Text('Monde (intégré)'),
       subtitle: Text('Carte de base livrée avec l\'application · non supprimable'),
-      trailing: IconButton(
-        icon: Icon(Icons.delete_outline),
-        tooltip: 'Le monde ne peut pas être supprimé',
-        onPressed: null,
-      ),
+      trailing: IconButton(icon: Icon(Icons.delete_outline), tooltip: 'Le monde ne peut pas être supprimé', onPressed: null),
     );
   }
 }
@@ -139,21 +128,10 @@ class _InstalledCountryTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final int mb = (entry.fileSize / (1024 * 1024)).round();
     return ListTile(
-      leading: Icon(
-        updatesAvailable ? Icons.update : Icons.map_outlined,
-        color: updatesAvailable ? Colors.orange[700] : null,
-      ),
+      leading: Icon(updatesAvailable ? Icons.update : Icons.map_outlined, color: updatesAvailable ? Colors.orange[700] : null),
       title: Text(displayName),
-      subtitle: Text(
-        updatesAvailable
-            ? '$mb Mo · version ${entry.pmtilesVersion} · Mise à jour disponible'
-            : '$mb Mo · version ${entry.pmtilesVersion}',
-      ),
-      trailing: IconButton(
-        icon: const Icon(Icons.delete_outline),
-        tooltip: 'Supprimer',
-        onPressed: () => _confirmAndDelete(context, ref),
-      ),
+      subtitle: Text(updatesAvailable ? '$mb Mo · version ${entry.pmtilesVersion} · Mise à jour disponible' : '$mb Mo · version ${entry.pmtilesVersion}'),
+      trailing: IconButton(icon: const Icon(Icons.delete_outline), tooltip: 'Supprimer', onPressed: () => _confirmAndDelete(context, ref)),
     );
   }
 

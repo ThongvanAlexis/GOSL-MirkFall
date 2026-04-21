@@ -135,9 +135,7 @@ void main() {
       await Directory(p.join(staging.path, 'fra')).create();
       await Directory(p.join(staging.path, 'deu')).create();
 
-      final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository(
-        initial: InstalledManifest.empty().copyWithInsert(_makeCountry('fra')),
-      );
+      final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository(initial: InstalledManifest.empty().copyWithInsert(_makeCountry('fra')));
       addTearDown(manifest.close);
 
       final FirstLaunchBootstrap bootstrap = FirstLaunchBootstrap(

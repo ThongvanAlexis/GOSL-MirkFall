@@ -102,10 +102,7 @@ void main() {
 
   group('@Assert schemaVersion', () {
     test('rejects schemaVersion != 1', () {
-      expect(
-        () => InstalledManifest(schemaVersion: 2, catalogVersion: '', installed: const <String, InstalledCountry>{}),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => InstalledManifest(schemaVersion: 2, catalogVersion: '', installed: const <String, InstalledCountry>{}), throwsA(isA<AssertionError>()));
     });
   });
 

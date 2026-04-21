@@ -48,11 +48,8 @@ CountryEntry _entryFor(String alpha3, String name) => CountryEntry(
   reassembled: ReassembledMeta(sha256: 'b' * 64, size: 5 * 1024 * 1024),
 );
 
-CountryCatalog _threeCountryCatalog() => CountryCatalog(countries: <CountryEntry>[
-  _entryFor('fra', 'France'),
-  _entryFor('deu', 'Allemagne'),
-  _entryFor('esp', 'Espagne'),
-]);
+CountryCatalog _threeCountryCatalog() =>
+    CountryCatalog(countries: <CountryEntry>[_entryFor('fra', 'France'), _entryFor('deu', 'Allemagne'), _entryFor('esp', 'Espagne')]);
 
 InstalledCountry _installed(String alpha3, {String version = 'v20260419'}) => InstalledCountry(
   alpha3: CountryCode.parse(alpha3),

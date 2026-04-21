@@ -10,18 +10,22 @@ import 'package:mirkfall/presentation/widgets/map_attribution_icon.dart';
 void main() {
   group('MapAttributionIcon', () {
     testWidgets('renders an info icon by default', (tester) async {
-      await tester.pumpWidget(const MaterialApp(
-        home: Scaffold(body: Center(child: MapAttributionIcon())),
-      ));
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: Center(child: MapAttributionIcon())),
+        ),
+      );
       expect(find.byIcon(Icons.info_outline), findsOneWidget);
       // Bottom sheet is not yet visible.
       expect(find.text('Attribution'), findsNothing);
     });
 
     testWidgets('tap opens a bottom sheet listing OSM + Protomaps', (tester) async {
-      await tester.pumpWidget(const MaterialApp(
-        home: Scaffold(body: Center(child: MapAttributionIcon())),
-      ));
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: Center(child: MapAttributionIcon())),
+        ),
+      );
       await tester.tap(find.byIcon(Icons.info_outline));
       await tester.pumpAndSettle();
 
@@ -43,9 +47,11 @@ void main() {
         tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null);
       });
 
-      await tester.pumpWidget(const MaterialApp(
-        home: Scaffold(body: Center(child: MapAttributionIcon())),
-      ));
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: Center(child: MapAttributionIcon())),
+        ),
+      );
       await tester.tap(find.byIcon(Icons.info_outline));
       await tester.pumpAndSettle();
 

@@ -57,13 +57,7 @@ final appDatabaseProvider = AppDatabaseProvider._();
 /// on every consumer subscription would both thrash the WAL and
 /// invalidate any active transactions.
 
-final class AppDatabaseProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<AppDatabase>,
-          AppDatabase,
-          FutureOr<AppDatabase>
-        >
+final class AppDatabaseProvider extends $FunctionalProvider<AsyncValue<AppDatabase>, AppDatabase, FutureOr<AppDatabase>>
     with $FutureModifier<AppDatabase>, $FutureProvider<AppDatabase> {
   /// Production [AppDatabase] — async-resolved because `path_provider`
   /// yields the app-support directory via a platform channel.
@@ -88,24 +82,14 @@ final class AppDatabaseProvider
   /// on every consumer subscription would both thrash the WAL and
   /// invalidate any active transactions.
   AppDatabaseProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'appDatabaseProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+    : super(from: null, argument: null, retry: null, name: r'appDatabaseProvider', isAutoDispose: false, dependencies: null, $allTransitiveDependencies: null);
 
   @override
   String debugGetCreateSourceHash() => _$appDatabaseHash();
 
   @$internal
   @override
-  $FutureProviderElement<AppDatabase> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $FutureProviderElement<AppDatabase> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<AppDatabase> create(Ref ref) {

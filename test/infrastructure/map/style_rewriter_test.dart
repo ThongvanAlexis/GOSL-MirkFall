@@ -104,7 +104,10 @@ void main() {
       // Start from the real style.json so the layer-order check passes,
       // then remove the placeholder to trigger the guard that Task 1's
       // action spec requires.
-      final String withoutPlaceholder = realStyleJson.replaceAll('pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER', 'pmtiles://file:///already_resolved.pmtiles');
+      final String withoutPlaceholder = realStyleJson.replaceAll(
+        'pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER',
+        'pmtiles://file:///already_resolved.pmtiles',
+      );
       final StyleRewriter rewriter = StyleRewriterTestSeam.withAssetLoader(src, (_) async => withoutPlaceholder);
 
       await expectLater(rewriter.rewriteStyleForCountry(null), throwsA(isA<MapStyleCorruptException>()));

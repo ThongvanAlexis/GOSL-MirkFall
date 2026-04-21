@@ -28,10 +28,7 @@ class StyleImportPlaceholderScreen extends StatelessWidget {
             children: <Widget>[
               Icon(Icons.construction_outlined, size: 48.0),
               SizedBox(height: 16.0),
-              Text(
-                'En construction — disponible en Phase 13',
-                textAlign: TextAlign.center,
-              ),
+              Text('En construction — disponible en Phase 13', textAlign: TextAlign.center),
             ],
           ),
         ),
