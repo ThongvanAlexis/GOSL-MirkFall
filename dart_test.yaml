@@ -7,3 +7,11 @@
 tags:
   migration:
     timeout: 2x
+  # Phase 07 plan 07-04 — end-to-end download-pipeline soak tests. Spin up
+  # a `shelf` MockHTTPServer per scenario + exercise the 7-step atomic
+  # protocol against real sockets; wall-clock of 10–60 s per scenario is
+  # typical. Excluded from the default `flutter test` / `dart test` suite
+  # (same convention as the Phase 03 `migration` tag). Gate before merge:
+  #   dart test --tags soak test/infrastructure/downloads/download_soak_test.dart
+  soak:
+    timeout: 10x
