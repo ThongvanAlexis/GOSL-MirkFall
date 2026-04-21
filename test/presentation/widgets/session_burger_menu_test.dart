@@ -120,5 +120,17 @@ void main() {
 
       expect(find.text('Arrêter la session'), findsNothing);
     });
+
+    testWidgets('Zoom row renders "—" placeholder when no viewport event yet + updates to 2-decimal zoom when provider emits', (tester) async {
+      // Default: mapViewportZoomProvider state is null (no MapView
+      // attached in tests), so the placeholder "—" shows.
+      final fake = _FakeActiveSessionController(seed: const Idle());
+      await tester.pumpWidget(_wrapWithOverrides(const SessionBurgerMenu(), fakeController: fake));
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      // Null-zoom placeholder.
+      expect(find.text('Zoom : —'), findsOneWidget);
+    });
   });
 }

@@ -289,3 +289,35 @@ class MapViewHolder extends _$MapViewHolder {
 // a lower-camel-case variable name (the non-const identifier lint applies
 // to CONSTANTS, not to this alias which is an object reference).
 final mapViewProvider = mapViewHolderProvider;
+
+/// Current MapLibre viewport zoom level. Null until the MapView is ready
+/// and the first `onCameraIdle` viewport event fires.
+///
+/// Subscribes to [`MapView.viewportUpdates`] and mirrors the `zoom`
+/// field. Used by diagnostic UI (the burger-menu zoom readout) — the
+/// [`MapCameraController`] tracks its own internal `_currentZoom` for
+/// the follow-me pending-move logic and does not consume this provider
+/// to avoid a two-way subscription loop.
+///
+/// `keepAlive: true` — zoom is a long-lived observable value; tearing
+/// down the subscription every time the drawer closes would drop events
+/// during the gap and surface a stale zoom the next time the drawer
+/// opens.
+@Riverpod(keepAlive: true)
+class MapViewportZoom extends _$MapViewportZoom {
+  @override
+  double? build() {
+    final MapView? view = ref.watch(mapViewProvider);
+    if (view == null) return null;
+    final StreamSubscription<({double latitude, double longitude, double zoom})> sub = view.viewportUpdates.listen(
+      (v) => state = v.zoom,
+      onError: (Object _, StackTrace _) {
+        // Viewport stream errors are not fatal — they're typically a
+        // transient MapLibre callback ordering glitch. Silently drop; the
+        // next successful update rewrites state.
+      },
+    );
+    ref.onDispose(sub.cancel);
+    return null;
+  }
+}

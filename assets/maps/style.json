@@ -40,8 +40,10 @@
       "type": "fill",
       "source": "mirkfall_map",
       "source-layer": "water",
+      "filter": ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
       "paint": {
-        "fill-color": "#a6c9df"
+        "fill-color": "#a6c9df",
+        "fill-antialias": false
       }
     },
     {

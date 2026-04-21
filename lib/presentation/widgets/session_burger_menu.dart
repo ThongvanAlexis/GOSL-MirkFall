@@ -8,6 +8,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
+import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 
@@ -71,6 +72,7 @@ class SessionBurgerMenu extends ConsumerWidget {
             ),
             const Divider(),
             _PositionRow(lastFix: tracking?.lastFix),
+            const _ZoomRow(),
             _DistanceRow(lastFix: tracking?.lastFix),
             if (tracking != null) _ChronoRow(startedAtUtc: tracking.startedAtUtc) else const _PendingChronoRow(),
             if (tracking != null) ...<Widget>[
@@ -139,6 +141,24 @@ class _PositionRow extends StatelessWidget {
     }
     return ListTile(
       leading: const Icon(Icons.my_location_outlined),
+      title: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+    );
+  }
+}
+
+/// Current MapLibre zoom level (2 decimals). Surfaces in the drawer
+/// below the position row so users can report "the bug at zoom 12.4"
+/// in UX feedback. Reads from [`mapViewportZoomProvider`] — null until
+/// the first viewport event fires.
+class _ZoomRow extends ConsumerWidget {
+  const _ZoomRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final double? zoom = ref.watch(mapViewportZoomProvider);
+    final String text = zoom == null ? 'Zoom : —' : 'Zoom : ${zoom.toStringAsFixed(2)}';
+    return ListTile(
+      leading: const Icon(Icons.zoom_in_outlined),
       title: Text(text, style: Theme.of(context).textTheme.bodyMedium),
     );
   }

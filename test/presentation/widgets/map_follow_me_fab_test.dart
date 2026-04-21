@@ -79,4 +79,38 @@ void main() {
     await tester.pump();
     expect(fake.toggleCalls, equals(1));
   });
+
+  testWidgets('tap while MapCameraIdle surfaces a snackbar + does NOT call toggleFollowMe', (tester) async {
+    final fake = _FakeMapCameraController(initialState: const MapCameraIdle());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [mapCameraControllerProvider.overrideWith(() => fake)],
+        child: const MaterialApp(home: Scaffold(body: MapFollowMeFab())),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pump(); // one frame to kick the snackbar animation
+
+    expect(find.textContaining('Démarre une session'), findsOneWidget);
+    expect(fake.toggleCalls, equals(0));
+  });
+
+  testWidgets('tap while MapCameraCentering surfaces a "waiting for first fix" snackbar', (tester) async {
+    final fake = _FakeMapCameraController(initialState: MapCameraCentering(sessionId: sid));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [mapCameraControllerProvider.overrideWith(() => fake)],
+        child: const MaterialApp(home: Scaffold(body: MapFollowMeFab())),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pump();
+
+    expect(find.textContaining('premier fix GPS'), findsOneWidget);
+    expect(fake.toggleCalls, equals(0));
+  });
 }

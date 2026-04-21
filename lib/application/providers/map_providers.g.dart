@@ -956,3 +956,98 @@ abstract class _$MapViewHolder extends $Notifier<MapView?> {
     element.handleCreate(ref, build);
   }
 }
+
+/// Current MapLibre viewport zoom level. Null until the MapView is ready
+/// and the first `onCameraIdle` viewport event fires.
+///
+/// Subscribes to [`MapView.viewportUpdates`] and mirrors the `zoom`
+/// field. Used by diagnostic UI (the burger-menu zoom readout) — the
+/// [`MapCameraController`] tracks its own internal `_currentZoom` for
+/// the follow-me pending-move logic and does not consume this provider
+/// to avoid a two-way subscription loop.
+///
+/// `keepAlive: true` — zoom is a long-lived observable value; tearing
+/// down the subscription every time the drawer closes would drop events
+/// during the gap and surface a stale zoom the next time the drawer
+/// opens.
+
+@ProviderFor(MapViewportZoom)
+final mapViewportZoomProvider = MapViewportZoomProvider._();
+
+/// Current MapLibre viewport zoom level. Null until the MapView is ready
+/// and the first `onCameraIdle` viewport event fires.
+///
+/// Subscribes to [`MapView.viewportUpdates`] and mirrors the `zoom`
+/// field. Used by diagnostic UI (the burger-menu zoom readout) — the
+/// [`MapCameraController`] tracks its own internal `_currentZoom` for
+/// the follow-me pending-move logic and does not consume this provider
+/// to avoid a two-way subscription loop.
+///
+/// `keepAlive: true` — zoom is a long-lived observable value; tearing
+/// down the subscription every time the drawer closes would drop events
+/// during the gap and surface a stale zoom the next time the drawer
+/// opens.
+final class MapViewportZoomProvider extends $NotifierProvider<MapViewportZoom, double?> {
+  /// Current MapLibre viewport zoom level. Null until the MapView is ready
+  /// and the first `onCameraIdle` viewport event fires.
+  ///
+  /// Subscribes to [`MapView.viewportUpdates`] and mirrors the `zoom`
+  /// field. Used by diagnostic UI (the burger-menu zoom readout) — the
+  /// [`MapCameraController`] tracks its own internal `_currentZoom` for
+  /// the follow-me pending-move logic and does not consume this provider
+  /// to avoid a two-way subscription loop.
+  ///
+  /// `keepAlive: true` — zoom is a long-lived observable value; tearing
+  /// down the subscription every time the drawer closes would drop events
+  /// during the gap and surface a stale zoom the next time the drawer
+  /// opens.
+  MapViewportZoomProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'mapViewportZoomProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$mapViewportZoomHash();
+
+  @$internal
+  @override
+  MapViewportZoom create() => MapViewportZoom();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(double? value) {
+    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<double?>(value));
+  }
+}
+
+String _$mapViewportZoomHash() => r'01e62a8a11e9e6422c6c47864d6bc3a74fecdfd2';
+
+/// Current MapLibre viewport zoom level. Null until the MapView is ready
+/// and the first `onCameraIdle` viewport event fires.
+///
+/// Subscribes to [`MapView.viewportUpdates`] and mirrors the `zoom`
+/// field. Used by diagnostic UI (the burger-menu zoom readout) — the
+/// [`MapCameraController`] tracks its own internal `_currentZoom` for
+/// the follow-me pending-move logic and does not consume this provider
+/// to avoid a two-way subscription loop.
+///
+/// `keepAlive: true` — zoom is a long-lived observable value; tearing
+/// down the subscription every time the drawer closes would drop events
+/// during the gap and surface a stale zoom the next time the drawer
+/// opens.
+
+abstract class _$MapViewportZoom extends $Notifier<double?> {
+  double? build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<double?, double?>;
+    final element = ref.element as $ClassProviderElement<AnyNotifier<double?, double?>, double?, Object?, Object?>;
+    element.handleCreate(ref, build);
+  }
+}
