@@ -61,7 +61,7 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 <!-- Pivot 2026-04-19 : cartographie 100 % offline. Abandon du modèle PMTiles hébergé sur bucket object-storage (coûts + streaming). Remplacé par : bundle world low-zoom dans l'APK + téléchargement par pays depuis un GitHub Release externe (chunks binaires multi-parts). Aucune requête réseau pour les tuiles — jamais, ni en dev ni en prod. Les anciens OFFL-01..04 v2 sont absorbés dans cette section. Amendement 2026-04-20 Phase 07 CONTEXT : catalog JSON bundlé en asset (pas fetch remote), chunks binaires bruts (pas ZIPs) réassemblés par concat binaire. -->
 
 - [x] **MAP-01**: La carte s'affiche sur un fond vectoriel PMTiles (données Protomaps dérivées d'OSM) **100 % local** — fichier `.pmtiles` sur le disque de l'appareil, consommé via une URI `pmtiles:///<path>` par `maplibre_gl`. Aucune requête réseau de tuiles, jamais, ni en dev ni en prod. Mode airplane = carte pleinement fonctionnelle sur la zone couverte par les fichiers installés.
-- [ ] **MAP-02**: La carte reste interactive (pan, zoom) sous le mirk.
+- [x] **MAP-02**: La carte reste interactive (pan, zoom) sous le mirk.
 - [x] **MAP-03**: Attribution `© OpenStreetMap contributors` + `© Protomaps` visible sur la carte et dans l'écran À propos, avec liens vers les pages de copyright officielles ; conforme aux licences amont (les données PMTiles dérivent d'OSM via Protomaps, l'attribution reste requise même hors ligne).
 - [x] **MAP-04**: L'overlay mirk s'intègre au rendu vectoriel MapLibre comme un layer natif (source GeoJSON tuilée côté client ou équivalent), avec RepaintBoundary / isolation de rebuild, sans référencer directement le SDK MapLibre depuis la couche app.
 - [x] **MAP-05**: Le chemin de données des tuiles est derrière un `PmtilesSource` minimal qui expose **uniquement** des URI locales (`pmtiles:///<path>`). Aucune implémentation "hosted / remote" n'existe dans le code — un lint custom `avoid_remote_pmtiles` interdit tout `pmtiles://https?://...`. Un country resolver sélectionne le bon fichier selon la zone affichée (fallback world bundle si le pays visualisé n'est pas téléchargé). Validé par mock test. _(Plan 07-01 scaffolding landed: lint gate live, PmtilesSource impl pending Plan 07-03.)_
@@ -217,7 +217,7 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | MIRK-09 | Phase 13 | Pending |
 | MIRK-10 | Phase 13 | Pending |
 | MAP-01 | Phase 07 | Complete |
-| MAP-02 | Phase 07 | Pending |
+| MAP-02 | Phase 07 | Complete |
 | MAP-03 | Phase 07 | Complete |
 | MAP-04 | Phase 07 | Complete |
 | MAP-05 | Phase 07 | In Progress (Plan 07-01 scaffolding done; PmtilesSource impl pending Plan 07-03) |

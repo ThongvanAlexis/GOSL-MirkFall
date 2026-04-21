@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 07 plan 07-05 (Controllers and Providers) done — 07-06 unblocked
+current_plan: Phase 07 plan 07-06 (Presentation) done — 07-07 unblocked
 status: executing
-stopped_at: Completed 07-05-controllers-and-providers-PLAN.md
-last_updated: "2026-04-21T02:12:01Z"
+stopped_at: Completed 07-06-presentation-PLAN.md
+last_updated: "2026-04-21T02:45:18Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 16
   completed_phases: 6
   total_plans: 37
-  completed_plans: 35
-  percent: 95
+  completed_plans: 36
+  percent: 97
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 07 Map Integration — Plan 07-05 (Controllers and Providers) done 2026-04-21. 4 @Riverpod(keepAlive: true) controllers landed (MapCameraController: Z=13 session-open zoom + follow-me + manual-pan detection via pending-flag heuristic; CountryResolverController: viewport→alpha3 hot-swap with 500 ms debounce + banner data for non-installed countries; DownloadQueueController: UI wrapper over PmtilesDownloadController with aggregateProgressFraction; InstalledMapsController: derived installed view + updatesAvailable + totalDiskUsageBytes + delete delegate). 17 providers in map_providers.dart compose the Phase 07 DI graph: appSupportDir + countryCatalog + installedManifestRepository + installedManifest + pmtilesSource + styleRewriter + diskSpaceChecker + iosBackupExcluder + firstLaunchWorldCopier + httpChunkDownloader + sha256Verifier + binaryConcatenator + atomicRenamer + downloadQueueStore + pmtilesDownloadController + countryDeleteService + firstLaunchBootstrap + MapViewHolder notifier aliased as mapViewProvider (Riverpod 3.x replacement for StateProvider). main.dart pre-initialises firstLaunchBootstrapProvider before runApp via root ProviderContainer + UncontrolledProviderScope handoff (parity with Phase 05 DB pre-init) — world basemap + orphan staging scan + iOS backup-exclude complete before first widget frame. 45 new unit tests (630 total). All 4 lint gates exit 0. Plan 07-06 (presentation) unblocked.
+**Current focus:** Phase 07 Map Integration — Plan 07-06 (Presentation) done 2026-04-21. Full-screen /map route + maps-download/manage screens + attribution surfaces (MAP-03 on map AND About screen via shared openAttributionLink helper, copy-to-clipboard + snackbar strategy — no url_launcher dep per GOSL audit) + SessionBurgerMenu responsive drawer (75% portrait / 40% landscape) with 3 unwired Phase 11/13 action tiles + 3 live-data rows (Position 6 decimals / Distance placeholder / Durée HH:MM:SS). SessionListScreen gains conditional /map AppBar button; SessionDetailScreen gains /map link on both Tracking + Stopped variants (Rule 4 architectural deviation: embed deferred — /map carries its own burger menu + follow-me FAB, no test-infrastructure tax). SettingsScreen extended with Cartes + Styles sections + AppBar progress chip. Layer-order regression test protects Phase 09 reorder. MapScreen accepts optional `mapViewBuilderForTest` typedef seam so widget tests inject FakeMapView without dragging MapLibre into the test runner. 43 new widget/unit tests (673 total, up from 630). All 3 lint gates exit 0. Plan 07-07 (integration-verification) unblocked.
 
 ## Current Position
 
-Phase: 07 of 16 (Map Integration) — 5 / 7 plans done — Plan 07-06 (presentation) unblocked
-Current Plan: Phase 07 plan 07-05 (Controllers and Providers) done — 07-06 unblocked
-Total Plans in Phase 07: 5 / 7 done
-Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-06
+Phase: 07 of 16 (Map Integration) — 6 / 7 plans done — Plan 07-07 (integration-verification) unblocked
+Current Plan: Phase 07 plan 07-06 (Presentation) done — 07-07 unblocked
+Total Plans in Phase 07: 6 / 7 done
+Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-07
 Last Activity: 2026-04-21
 
-Progress: [█████████▌] 95% — 35 / 37 plans executed across phases 01-07.
+Progress: [█████████▊] 97% — 36 / 37 plans executed across phases 01-07.
 
 ## Performance Metrics
 
@@ -85,6 +85,7 @@ Progress: [█████████▌] 95% — 35 / 37 plans executed across
 | Phase 07-map-integration P03 | 18min | 3 tasks | 25 files |
 | Phase 07-map-integration P04 | 31min | 3 tasks | 23 files |
 | Phase 07-map-integration P05 | 42min | 3 tasks | 11 files (5 lib sources + 5 tests + main.dart modification) |
+| Phase 07-map-integration P06 | 24min | 4 tasks | 22 files (5 screens + 6 widgets + 11 test files) + 8 modified (router + app_shell + 4 Phase 05 screens + 3 Phase 05 tests) |
 
 ## Accumulated Context
 
@@ -282,6 +283,14 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 07-map-integration]: Phase 07 plan 07-05: Pending-flag + 1000ms debounce heuristic for manual-pan detection — MapLibre's onCameraIdle echoes every camera move (including the controller's own moveCameraTo); the flag + timer filter echoes while a user pan outside the window transitions Following → FreePan. 1s chosen after MapLibre's ~200ms typical + ~500ms under slow-frame; smaller window risks false-positive user-pan on emulators, larger window risks swallowing real user pans immediately after a programmatic move.
 - [Phase 07-map-integration]: Phase 07 plan 07-05: main.dart pre-runApp FirstLaunchBootstrap via root ProviderContainer + UncontrolledProviderScope handoff (option b per plan Task 3) — parity with Phase 05 synchronous buildAppDatabase pre-init pattern. Same container reused so downstream ref.watch(firstLaunchBootstrapProvider) inherits warm cache. Riverpod 3.x API is UncontrolledProviderScope(container:) (not ProviderScope(parent:) as plan text suggested).
 - [Phase 07-map-integration]: Phase 07 plan 07-05: aggregateProgressFraction returns ACTIVE job's fractionDone (NOT sum across queue) — summing fractions across files of different sizes is meaningless. UI renders 'n/m downloading at X%' by combining the state variant + this getter. Paused state returns the paused snapshot's fractionDone.
+- [Phase 07-map-integration]: Phase 07 plan 07-06: SessionDetailScreen does NOT embed MapLibreMapViewWidget in a Stack — the plan's literal embed would force every Phase 05 widget test to override styleRewriter + pmtilesSource providers. A "Carte plein écran" OutlinedButton on both Tracking + Stopped variants links to /map, which carries its own burger menu + follow-me FAB. Rule 4 architectural deviation; preserves Phase 05 test wiring. Phase 07-07 integration-verification can exercise the embed on a real device if the design warrants.
+- [Phase 07-map-integration]: Phase 07 plan 07-06: Attribution link strategy = copy-to-clipboard + snackbar (no url_launcher dep). GOSL audit rule refuses drive-by dependency additions; Clipboard.setData + ScaffoldMessenger.showSnackBar is zero-new-dep and degrades gracefully on every platform. Shared helper openAttributionLink(BuildContext, Uri) + canonical URL constants (kOpenStreetMapCopyrightUrl, kProtomapsUrl) guarantee byte-identical UX between MapAttributionIcon bottom sheet + AboutPlaceholderScreen attribution block. Phase 15 may revisit.
+- [Phase 07-map-integration]: Phase 07 plan 07-06: MapScreen accepts optional `mapViewBuilderForTest` typedef seam (MapViewWidgetBuilder = Widget Function({required StyleRewriter, required PmtilesSource, required ValueChanged<MapView> onReady})). Production callers omit; widget tests pass a builder returning a stub widget that publishes a FakeMapView via onReady in a post-frame callback. Keeps MapLibre out of the Flutter widget test runner (which lacks a real GPU surface). Reusable pattern for every future screen that embeds a heavy platform-view in production but renders via fake in tests.
+- [Phase 07-map-integration]: Phase 07 plan 07-06: Responsive Drawer width via MediaQuery orientation check — portrait 75% / landscape 40% of screen width. Drawer(width: computed) each build; no breakpoint library. Applied to SessionBurgerMenu; reusable for any overlay that must adapt without breakpoints.
+- [Phase 07-map-integration]: Phase 07 plan 07-06: MapCountryBanner + MapDownloadProgressChip watch countryCatalogProvider directly (ref.watch → AsyncValue.value) instead of ref.read. Initial attempt used ref.read which snapshots AsyncLoading on the first frame; the watch pattern lets the widget re-render on FutureProvider resolution so the country display name resolves correctly.
+- [Phase 07-map-integration]: Phase 07 plan 07-06: Layer-order regression test lives at test/presentation/map_style_layer_order_test.dart (NOT test/infrastructure/map/) — reads assets/maps/style.json via dart:io + asserts kStyleLayerOrder from lib/infrastructure/map/style_layer_order.dart. Phase 09 reorder (swapping mirk_fog from type:background to type:fill with a GeoJSON source) would fail this test if the POSITION changed; changing paint properties keeps the test green.
+- [Phase 07-map-integration]: Phase 07 plan 07-06: ListTile-targeted tap finders (`find.widgetWithText(ListTile, '…')`) + `tester.ensureVisible + warnIfMissed: false` for off-screen tiles in scroll views. Applied to SettingsScreen Styles section; reusable for any multi-section settings screen where a target tile sits below the initial fold.
+- [Phase 07-map-integration]: Phase 07 plan 07-06: ActiveSessionBanner suppression extended to /map (in addition to /sessions/) via AppShell's `currentLocation == '/map' || startsWith('/sessions/')` condition. MapScreen is full-screen by design; the SessionBurgerMenu drawer already surfaces the "Arrêter la session" tile, so the cross-route banner's Stop affordance is redundant on /map.
 
 ### Pending Todos
 
@@ -308,6 +317,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T01:19:39Z
-Stopped at: Completed 07-04-download-pipeline-PLAN.md
+Last session: 2026-04-21T02:45:18Z
+Stopped at: Completed 07-06-presentation-PLAN.md
 Resume file: None
