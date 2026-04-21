@@ -10,7 +10,7 @@ part of 'router.dart';
 // ignore_for_file: type=lint, type=warning
 /// Root GoRouter exposed via Riverpod so consumers get it through DI.
 ///
-/// Phase 05 route map:
+/// Phase 05 route map (extended by Phase 07):
 /// - `/` → [SessionListScreen] (was [PlaceholderHomeScreen] in Phase 01)
 /// - `/sessions/:id` → [SessionDetailScreen]
 /// - `/settings` → [SettingsScreen]
@@ -20,17 +20,24 @@ part of 'router.dart';
 /// - `/about` → [AboutPlaceholderScreen] (unchanged from Phase 01)
 /// - `/debug` → [DebugMenuScreen] (unchanged from Phase 01)
 ///
+/// Phase 07 additions:
+/// - `/map` → [MapScreen] (full-screen interactive map)
+/// - `/maps/download` → [MapsDownloadScreen] (catalog browse + enqueue)
+/// - `/maps/manage` → [MapsManageScreen] (installed list + delete)
+/// - `/styles/import` → [StyleImportPlaceholderScreen] (Phase 13 stub)
+/// - `/styles/export` → [StyleExportPlaceholderScreen] (Phase 13 stub)
+///
 /// Every route is wrapped by a [ShellRoute] that injects [AppShell] on
 /// top. [AppShell] decides — based on `currentLocation` — whether to
 /// render the cross-route active-session banner (hidden on
-/// `/sessions/:id`).
+/// `/sessions/:id` and `/map`).
 
 @ProviderFor(appRouter)
 final appRouterProvider = AppRouterProvider._();
 
 /// Root GoRouter exposed via Riverpod so consumers get it through DI.
 ///
-/// Phase 05 route map:
+/// Phase 05 route map (extended by Phase 07):
 /// - `/` → [SessionListScreen] (was [PlaceholderHomeScreen] in Phase 01)
 /// - `/sessions/:id` → [SessionDetailScreen]
 /// - `/settings` → [SettingsScreen]
@@ -40,17 +47,24 @@ final appRouterProvider = AppRouterProvider._();
 /// - `/about` → [AboutPlaceholderScreen] (unchanged from Phase 01)
 /// - `/debug` → [DebugMenuScreen] (unchanged from Phase 01)
 ///
+/// Phase 07 additions:
+/// - `/map` → [MapScreen] (full-screen interactive map)
+/// - `/maps/download` → [MapsDownloadScreen] (catalog browse + enqueue)
+/// - `/maps/manage` → [MapsManageScreen] (installed list + delete)
+/// - `/styles/import` → [StyleImportPlaceholderScreen] (Phase 13 stub)
+/// - `/styles/export` → [StyleExportPlaceholderScreen] (Phase 13 stub)
+///
 /// Every route is wrapped by a [ShellRoute] that injects [AppShell] on
 /// top. [AppShell] decides — based on `currentLocation` — whether to
 /// render the cross-route active-session banner (hidden on
-/// `/sessions/:id`).
+/// `/sessions/:id` and `/map`).
 
 final class AppRouterProvider
     extends $FunctionalProvider<GoRouter, GoRouter, GoRouter>
     with $Provider<GoRouter> {
   /// Root GoRouter exposed via Riverpod so consumers get it through DI.
   ///
-  /// Phase 05 route map:
+  /// Phase 05 route map (extended by Phase 07):
   /// - `/` → [SessionListScreen] (was [PlaceholderHomeScreen] in Phase 01)
   /// - `/sessions/:id` → [SessionDetailScreen]
   /// - `/settings` → [SettingsScreen]
@@ -60,10 +74,17 @@ final class AppRouterProvider
   /// - `/about` → [AboutPlaceholderScreen] (unchanged from Phase 01)
   /// - `/debug` → [DebugMenuScreen] (unchanged from Phase 01)
   ///
+  /// Phase 07 additions:
+  /// - `/map` → [MapScreen] (full-screen interactive map)
+  /// - `/maps/download` → [MapsDownloadScreen] (catalog browse + enqueue)
+  /// - `/maps/manage` → [MapsManageScreen] (installed list + delete)
+  /// - `/styles/import` → [StyleImportPlaceholderScreen] (Phase 13 stub)
+  /// - `/styles/export` → [StyleExportPlaceholderScreen] (Phase 13 stub)
+  ///
   /// Every route is wrapped by a [ShellRoute] that injects [AppShell] on
   /// top. [AppShell] decides — based on `currentLocation` — whether to
   /// render the cross-route active-session banner (hidden on
-  /// `/sessions/:id`).
+  /// `/sessions/:id` and `/map`).
   AppRouterProvider._()
     : super(
         from: null,
@@ -97,4 +118,4 @@ final class AppRouterProvider
   }
 }
 
-String _$appRouterHash() => r'5692ec21be9c026fc5f18f745fc1f2575177a815';
+String _$appRouterHash() => r'78241509a2ce9932bfaa77a8e90c04c7e1dfb4d4';

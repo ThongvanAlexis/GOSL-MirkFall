@@ -29,7 +29,9 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bool hideBanner = currentLocation.startsWith('/sessions/');
+    // `/map` is full-screen by design — the burger menu + follow-me FAB
+    // replace the cross-route banner's Stop affordance.
+    final bool hideBanner = currentLocation.startsWith('/sessions/') || currentLocation == '/map';
     return Column(
       children: <Widget>[
         if (!hideBanner) const ActiveSessionBanner(),

@@ -9,12 +9,17 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'screens/about_placeholder_screen.dart';
 import 'screens/debug_menu_screen.dart';
+import 'screens/map_screen.dart';
+import 'screens/maps_download_screen.dart';
+import 'screens/maps_manage_screen.dart';
 import 'screens/oem_guidance_screen.dart';
 import 'screens/permission_denied_screen.dart';
 import 'screens/permission_rationale_screen.dart';
 import 'screens/session_detail_screen.dart';
 import 'screens/session_list_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/style_export_placeholder_screen.dart';
+import 'screens/style_import_placeholder_screen.dart';
 import 'widgets/app_shell.dart';
 
 part 'router.g.dart';
@@ -29,7 +34,7 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(deb
 
 /// Root GoRouter exposed via Riverpod so consumers get it through DI.
 ///
-/// Phase 05 route map:
+/// Phase 05 route map (extended by Phase 07):
 /// - `/` → [SessionListScreen] (was [PlaceholderHomeScreen] in Phase 01)
 /// - `/sessions/:id` → [SessionDetailScreen]
 /// - `/settings` → [SettingsScreen]
@@ -39,10 +44,17 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(deb
 /// - `/about` → [AboutPlaceholderScreen] (unchanged from Phase 01)
 /// - `/debug` → [DebugMenuScreen] (unchanged from Phase 01)
 ///
+/// Phase 07 additions:
+/// - `/map` → [MapScreen] (full-screen interactive map)
+/// - `/maps/download` → [MapsDownloadScreen] (catalog browse + enqueue)
+/// - `/maps/manage` → [MapsManageScreen] (installed list + delete)
+/// - `/styles/import` → [StyleImportPlaceholderScreen] (Phase 13 stub)
+/// - `/styles/export` → [StyleExportPlaceholderScreen] (Phase 13 stub)
+///
 /// Every route is wrapped by a [ShellRoute] that injects [AppShell] on
 /// top. [AppShell] decides — based on `currentLocation` — whether to
 /// render the cross-route active-session banner (hidden on
-/// `/sessions/:id`).
+/// `/sessions/:id` and `/map`).
 @riverpod
 GoRouter appRouter(Ref ref) {
   return GoRouter(
@@ -73,6 +85,12 @@ GoRouter appRouter(Ref ref) {
           GoRoute(path: '/permissions/oem', builder: (_, _) => const OemGuidanceScreen()),
           GoRoute(path: '/about', builder: (_, _) => const AboutPlaceholderScreen()),
           GoRoute(path: '/debug', builder: (_, _) => const DebugMenuScreen()),
+          // Phase 07 (map integration) — 5 new routes.
+          GoRoute(path: '/map', builder: (_, _) => const MapScreen()),
+          GoRoute(path: '/maps/download', builder: (_, _) => const MapsDownloadScreen()),
+          GoRoute(path: '/maps/manage', builder: (_, _) => const MapsManageScreen()),
+          GoRoute(path: '/styles/import', builder: (_, _) => const StyleImportPlaceholderScreen()),
+          GoRoute(path: '/styles/export', builder: (_, _) => const StyleExportPlaceholderScreen()),
         ],
       ),
     ],
