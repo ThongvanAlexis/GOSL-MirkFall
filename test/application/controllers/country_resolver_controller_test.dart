@@ -194,7 +194,7 @@ void main() {
       expect(fakeMapView.showMapInvocations, isEmpty);
     });
 
-    test('viewport at zoom < 3 sets activeCountry=null + calls showMap(null) (world bundle)', () async {
+    test('viewport at zoom < kWorldFallbackZoomCutoff sets activeCountry=null + calls showMap(null) (world bundle)', () async {
       final container = await buildContainer(installed: <String>{'fra'});
       final FakeMapView fakeMapView = FakeMapView();
       container.read(mapViewProvider.notifier).set(fakeMapView);
@@ -205,7 +205,8 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 600));
       expect(container.read(countryResolverControllerProvider).activeCountry?.value, equals('fra'));
 
-      // Zoom out below 3 — world bundle.
+      // Zoom out below the cutoff (threshold raised to 8 on 2026-04-21
+      // device-smoke fix — zoom 2 is well below either old or new value).
       fakeMapView.pushViewport(latitude: 48.8566, longitude: 2.3522, zoom: 2.0);
       await Future<void>.delayed(const Duration(milliseconds: 600));
 
@@ -213,6 +214,31 @@ void main() {
       expect(state.activeCountry, isNull);
       expect(state.viewportCountry, isNull);
       // showMap(null) was issued for the zoom-out.
+      expect(fakeMapView.showMapInvocations.last, isNull);
+    });
+
+    test('viewport at zoom 7 (between old cutoff 3 and new cutoff 8) uses world bundle', () async {
+      // Regression guard for the device-smoke fix: at zoom 3-7, per-country
+      // PMTiles files have no data for neighbouring countries and render
+      // as blank white areas. The world bundle (upscaled past its native
+      // z0-2) stays rectangle-to-rectangle continuous, even if blurry.
+      final container = await buildContainer(installed: <String>{'fra'});
+      final FakeMapView fakeMapView = FakeMapView();
+      container.read(mapViewProvider.notifier).set(fakeMapView);
+      container.read(countryResolverControllerProvider.notifier);
+
+      // Land deep in FRA first.
+      fakeMapView.pushViewport(latitude: 48.8566, longitude: 2.3522, zoom: 13.0);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      expect(container.read(countryResolverControllerProvider).activeCountry?.value, equals('fra'));
+
+      // Zoom out to 7 — still inside the old cutoff (3) but below the new
+      // one (8), so should fall back to world.
+      fakeMapView.pushViewport(latitude: 48.8566, longitude: 2.3522, zoom: 7.0);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+
+      final state = container.read(countryResolverControllerProvider);
+      expect(state.activeCountry, isNull);
       expect(fakeMapView.showMapInvocations.last, isNull);
     });
   });

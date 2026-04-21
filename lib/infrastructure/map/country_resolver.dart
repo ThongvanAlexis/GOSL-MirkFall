@@ -46,19 +46,11 @@ class CountryResolver {
 
   final Map<CountryCode, List<CountryPolygonRing>> _polygons;
 
-  /// Below this zoom the user is looking at a large fraction of a
-  /// continent; picking one country based on the viewport center is
-  /// misleading (the user is probably navigating between countries
-  /// rather than within one). At that scale the world bundle is the
-  /// correct source — Z=3 roughly corresponds to one tile = 45 degrees,
-  /// which is the threshold where per-country PMTiles stop adding
-  /// resolution compared to the world bundle.
-  static const double _kWorldFallbackZoomCutoff = 3.0;
-
   /// Returns the installed alpha3 whose polygon contains `(lat, lon)`,
-  /// or `null` for world fallback (zoom < 3 OR no match).
+  /// or `null` for world fallback (zoom < [`kWorldFallbackZoomCutoff`]
+  /// OR no polygon contains the centre).
   CountryCode? resolve({required double latitude, required double longitude, required double zoom}) {
-    if (zoom < _kWorldFallbackZoomCutoff) return null;
+    if (zoom < kWorldFallbackZoomCutoff) return null;
     if (_polygons.isEmpty) return null;
 
     for (final MapEntry<CountryCode, List<CountryPolygonRing>> entry in _polygons.entries) {

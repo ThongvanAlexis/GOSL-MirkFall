@@ -160,6 +160,24 @@ const String kMapCatalogAssetPath = 'assets/maps/catalog.json';
 /// (MAP-07 — non-deletable floor).
 const String kWorldPmtilesAssetPath = 'assets/maps/world.pmtiles';
 
+/// Viewport zoom threshold below which [CountryResolver] always returns
+/// `null` (→ world-bundle PMTiles), regardless of which installed
+/// countries contain the viewport centre.
+///
+/// Raised 2026-04-21 from 3.0 to 8.0 after device smoke: at zoom 3-7
+/// the viewport frames multiple countries at once, but any per-country
+/// PMTiles file only contains tiles for that country — neighbours
+/// render as blank white areas. At zoom [0, 7] the world bundle
+/// (upscaled past its native z0-2 range) stays rectangle-to-rectangle
+/// continuous, even if blurry. At zoom >= 8 a single country typically
+/// dominates the viewport, so per-country detail wins over world
+/// coverage.
+///
+/// Tuning: if a future bundled world PMTiles extends beyond z2, this
+/// threshold can drop without visual impact — the world bundle always
+/// renders the full planet at every zoom it natively carries.
+const double kWorldFallbackZoomCutoff = 8.0;
+
 /// Relative path (under `<app_support>/`) where the world PMTiles lives
 /// at runtime after the first-launch copy. Per-country PMTiles live
 /// alongside it under [kCountriesDir].

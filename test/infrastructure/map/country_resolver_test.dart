@@ -106,9 +106,18 @@ void main() {
       expect(r.resolve(latitude: 48.8566, longitude: 2.3522, zoom: 2), isNull);
     });
 
-    test('Paris at zoom 3 exactly → FRA (cutoff is strict <3)', () {
+    test('Paris at zoom 7 → null (cutoff bumped to 8 in device-smoke fix 2026-04-21)', () {
+      // Previously zoom 3 switched to the country PMTiles; at zoom 3-7
+      // the per-country file has no data for neighbouring countries
+      // which rendered as blank white areas. The cutoff now holds the
+      // world bundle in place until zoom 8.
       final CountryResolver r = CountryResolver(installedPolygons: fixtures);
-      expect(r.resolve(latitude: 48.8566, longitude: 2.3522, zoom: 3)?.value, 'fra');
+      expect(r.resolve(latitude: 48.8566, longitude: 2.3522, zoom: 7), isNull);
+    });
+
+    test('Paris at zoom 8 exactly → FRA (cutoff is strict <8)', () {
+      final CountryResolver r = CountryResolver(installedPolygons: fixtures);
+      expect(r.resolve(latitude: 48.8566, longitude: 2.3522, zoom: 8)?.value, 'fra');
     });
 
     test('Empty installed map → null regardless of zoom', () {
