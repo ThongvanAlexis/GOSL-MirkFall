@@ -179,7 +179,27 @@ class MapCameraController extends _$MapCameraController {
 
   void _attachMapViewIfReady() {
     final MapView? current = ref.read(mapViewProvider);
-    if (current == null) return;
+    if (current == null) {
+      // Adapter was cleared (MapScreen popped). Drop our stale
+      // reference + cancel the viewport subscription so no further
+      // callbacks fire against a disposed native surface. Without
+      // this the controller kept calling setUserLocation /
+      // moveCameraTo on a dead adapter, cascading into iOS crashes
+      // on the 2026-04-21 device smoke.
+      //
+      // Also cancel `_pendingResetTimer` — it filters echoes from the
+      // MapView's viewport stream, pointless without a MapView. Keeps
+      // widget-test teardown clean (otherwise the 1 s timer outlives
+      // `tester.pumpAndSettle` and trips the test framework's
+      // "Timer still pending after widget tree was disposed" check).
+      _viewportSub?.cancel();
+      _viewportSub = null;
+      _pendingResetTimer?.cancel();
+      _pendingResetTimer = null;
+      _cameraMovePending = false;
+      _mapView = null;
+      return;
+    }
     if (identical(current, _mapView)) return;
     _viewportSub?.cancel();
     _mapView = current;

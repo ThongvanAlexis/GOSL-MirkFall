@@ -236,7 +236,7 @@ class _MapLibreMapViewAdapter implements MapView {
 
   @override
   Future<void> showMap(CountryCode? country) async {
-    _ensureNotDisposed();
+    if (!_aliveOrLog('showMap')) return;
 
     // Open Question #1: capture camera BEFORE setStyle.
     final CameraPosition? prev = _controller.cameraPosition;
@@ -269,13 +269,13 @@ class _MapLibreMapViewAdapter implements MapView {
 
   @override
   Future<void> moveCameraTo({required double latitude, required double longitude, required double zoom}) async {
-    _ensureNotDisposed();
+    if (!_aliveOrLog('moveCameraTo')) return;
     await _controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(target: LatLng(latitude, longitude), zoom: zoom)));
   }
 
   @override
   Future<void> setTheme(MapTheme theme) async {
-    _ensureNotDisposed();
+    if (!_aliveOrLog('setTheme')) return;
     // Phase 07 ships a single theme (Standard). RpgParchment is a Phase
     // 13 stub; the adapter records the intent so future work can plug a
     // variant style.json without reshaping the port.
@@ -284,7 +284,7 @@ class _MapLibreMapViewAdapter implements MapView {
 
   @override
   Future<void> setUserLocation(Fix? fix) async {
-    _ensureNotDisposed();
+    if (!_aliveOrLog('setUserLocation')) return;
     _lastUserLocationFix = fix;
     if (fix == null) {
       final Circle? existing = _userLocationCircle;
@@ -319,7 +319,7 @@ class _MapLibreMapViewAdapter implements MapView {
 
   @override
   Future<({double latitude, double longitude, double zoom})> queryViewport() async {
-    _ensureNotDisposed();
+    if (!_aliveOrLog('queryViewport')) return (latitude: 0.0, longitude: 0.0, zoom: 0.0);
     final CameraPosition? cp = await _controller.queryCameraPosition();
     if (cp == null) {
       return (latitude: 0.0, longitude: 0.0, zoom: 0.0);
@@ -332,7 +332,7 @@ class _MapLibreMapViewAdapter implements MapView {
 
   @override
   Future<void> markVisited(List<({double latitude, double longitude})> polygon) async {
-    _ensureNotDisposed();
+    if (!_aliveOrLog('markVisited')) return;
     // Phase 07 stub — revealed-tile integration lands in Phase 09 with
     // the real MirkRenderer. Record intent at FINE so future plumbing
     // can be traced without spamming INFO logs in production.
@@ -341,7 +341,7 @@ class _MapLibreMapViewAdapter implements MapView {
 
   @override
   Future<void> addPointOfInterest({required String id, required double latitude, required double longitude, required String iconId}) async {
-    _ensureNotDisposed();
+    if (!_aliveOrLog('addPointOfInterest')) return;
     // Idempotent — calling twice with the same id replaces the existing marker.
     final Symbol? existing = _poiSymbols[id];
     if (existing != null) {
@@ -354,7 +354,7 @@ class _MapLibreMapViewAdapter implements MapView {
 
   @override
   Future<void> removePointOfInterest(String id) async {
-    _ensureNotDisposed();
+    if (!_aliveOrLog('removePointOfInterest')) return;
     final Symbol? s = _poiSymbols.remove(id);
     if (s != null) {
       await _controller.removeSymbol(s);
@@ -379,16 +379,30 @@ class _MapLibreMapViewAdapter implements MapView {
 
   @override
   Future<void> setFollowMeEnabled(bool enabled) async {
-    _ensureNotDisposed();
+    if (!_aliveOrLog('setFollowMeEnabled')) return;
     _followMe = enabled;
     // No auto-pan here — [MapCameraController] in Plan 07-05 orchestrates
     // the follow-me motion by subscribing to Fix updates + calling
     // moveCameraTo. The adapter just tracks the flag.
   }
 
-  void _ensureNotDisposed() {
+  /// Returns `true` when the adapter is still usable. Every public
+  /// method should early-exit on `false` rather than throw — after a
+  /// `/map` screen pop, the Flutter `MapLibreMapViewWidget` disposes
+  /// the adapter before the long-lived Riverpod providers
+  /// ([mapCameraControllerProvider], [countryResolverControllerProvider],
+  /// both `keepAlive: true`) learn the provider value is stale. Any
+  /// listener firing in that window would land in a dead adapter.
+  /// Throwing on that path cascaded into iOS crashes on the 2026-04-21
+  /// device smoke (Dart StateError caught at the controller layer, but
+  /// the native MapLibre side had already torn down its platform view
+  /// and subsequent calls hit EXC_BAD_ACCESS). Silent no-op is the
+  /// safer shape.
+  bool _aliveOrLog(String method) {
     if (_disposed) {
-      throw StateError('MapLibreMapView adapter: method called after dispose()');
+      _log.fine('$method called after dispose() — silently ignored');
+      return false;
     }
+    return true;
   }
 }

@@ -138,7 +138,15 @@ class CountryResolverController extends _$CountryResolverController {
 
   void _attachMapViewIfReady() {
     final MapView? current = ref.read(mapViewProvider);
-    if (current == null) return;
+    if (current == null) {
+      // Adapter was cleared (MapScreen popped). Drop stale reference
+      // + cancel subscription so subsequent viewport events don't
+      // invoke showMap on a disposed native surface.
+      _viewportSub?.cancel();
+      _viewportSub = null;
+      _mapView = null;
+      return;
+    }
     if (identical(current, _mapView)) return;
     _viewportSub?.cancel();
     _mapView = current;

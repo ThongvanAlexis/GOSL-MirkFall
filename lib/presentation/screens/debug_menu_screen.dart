@@ -113,19 +113,44 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         File(p.join(supportDir.path, '$dbBasename-wal')),
         File(p.join(supportDir.path, '$dbBasename-shm')),
       ];
-      final List<XFile> existing = <XFile>[];
-      for (final File f in candidates) {
-        if (await f.exists()) {
-          existing.add(XFile(f.path));
-        }
-      }
+      final List<File> existing = <File>[
+        for (final File f in candidates)
+          if (await f.exists()) f,
+      ];
       if (existing.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aucun fichier de base de données trouvé')));
         return;
       }
+      // Snapshot into a temp directory BEFORE handing to the share
+      // sheet. Drift uses WAL journaling; the live `.db-wal` / `.db-shm`
+      // sidecars carry active SQLite locks while the app is running.
+      // iOS's UIActivityViewController tries to read those files
+      // during the share preview and can block indefinitely waiting
+      // on those locks — the 2026-04-21 device smoke saw "Partager
+      // la base de données" freeze on first tap and work after a
+      // reboot (WAL checkpointed, locks released). Copying to tmp
+      // decouples the share sheet from Drift's writer.
+      final Directory tmpRoot = await getTemporaryDirectory();
+      final Directory snapshotDir = Directory(p.join(tmpRoot.path, 'mirkfall-db-snapshot'))..createSync(recursive: true);
+      // Clear any prior snapshot — tmp is bounded disk so stale copies
+      // from prior shares should not linger. Best-effort; ignore
+      // transient filesystem races.
+      for (final FileSystemEntity e in snapshotDir.listSync()) {
+        try {
+          await e.delete();
+        } on Object {
+          // ignore
+        }
+      }
+      final List<XFile> snapshots = <XFile>[];
+      for (final File src in existing) {
+        final String destPath = p.join(snapshotDir.path, p.basename(src.path));
+        await src.copy(destPath);
+        snapshots.add(XFile(destPath));
+      }
       await SharePlus.instance
-          .share(ShareParams(files: existing, subject: 'MirkFall DB snapshot'))
+          .share(ShareParams(files: snapshots, subject: 'MirkFall DB snapshot'))
           .timeout(const Duration(milliseconds: kShareCallTimeoutMilliseconds));
     } on TimeoutException catch (e, st) {
       Logger('debug_menu').warning('_onShareDatabase timeout', e, st);

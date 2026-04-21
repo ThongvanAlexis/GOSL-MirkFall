@@ -64,6 +64,30 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
+  void deactivate() {
+    // Clear the published MapView adapter so long-lived controllers
+    // (MapCameraController, CountryResolverController — both
+    // keepAlive:true) stop calling methods on the dying native
+    // MapLibre surface. Without this hook the controllers kept a
+    // stale reference to a disposed adapter; any subsequent fix /
+    // session transition invoked setUserLocation on the dead
+    // platform view, cascading into iOS native crashes on the
+    // 2026-04-21 device smoke.
+    //
+    // Using `deactivate` rather than `dispose`: Riverpod 3.x rejects
+    // `ref.read` in `dispose` ("Using ref when a widget is about to
+    // or has been unmounted is unsafe"), but `ref` is still valid in
+    // `deactivate`. The MapLibre widget's own dispose (which tears
+    // down the native adapter) runs AFTER this deactivate, so the
+    // provider is cleared first; by the time the controllers'
+    // `mapViewProvider` listeners fire with null, the adapter is
+    // either already disposed or about to be — either way the
+    // controllers drop their stale reference cleanly.
+    ref.read(mapViewProvider.notifier).set(null);
+    super.deactivate();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final AsyncValue<StyleRewriter> rewriterAsync = ref.watch(styleRewriterProvider);
     final AsyncValue<PmtilesSource> sourceAsync = ref.watch(pmtilesSourceProvider);
