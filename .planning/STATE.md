@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 07 plan 07-01 (Wave 0 Scaffolding) done — 07-02 unblocked
+current_plan: Phase 07 plan 07-02 (Domain Interfaces) done — 07-03 unblocked
 status: in_progress
-stopped_at: Completed 07-01-wave-0-scaffolding-PLAN.md
-last_updated: "2026-04-20T23:44:47.749Z"
-last_activity: 2026-04-20
+stopped_at: Completed 07-02-domain-interfaces-PLAN.md
+last_updated: "2026-04-21T00:09:36Z"
+last_activity: 2026-04-21
 progress:
   total_phases: 16
   completed_phases: 6
   total_plans: 37
-  completed_plans: 31
-  percent: 84
+  completed_plans: 32
+  percent: 86
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 07 Map Integration — Plan 07-01 (Wave 0 Scaffolding) done 2026-04-20. maplibre_gl 0.25.0 pinned, flutter_map+latlong2 dropped; assets/maps/ populated (world.pmtiles + catalog.json + style.json with frozen 8-layer order + 249 bbox polygons + glyph/sprite placeholders); kWorldBundleSha256 emitted; two new CI gates (avoid_maplibre_leak + avoid_remote_pmtiles) live with 15/15 paired tests; 5 test fakes forward-declared; 14 Phase 07 constants in lib/config/constants.dart. All 7 existing + 2 new gates green. Plan 07-02 (domain interfaces) unblocked.
+**Current focus:** Phase 07 Map Integration — Plan 07-02 (Domain Interfaces) done 2026-04-21. MapView port locked (12 MirkFall-vocabulary methods, zero maplibre_gl leak) + CountryCode extension type with world sentinel + CountryCatalog Freezed hierarchy (parses real 249-country catalog + extracts catalogVersion v20260419) + 7 map-layer exceptions + sealed 7-variant DownloadState + Freezed DownloadProgress + 4 download exceptions + Freezed InstalledManifest + InstalledManifestRepository port + frozen 3-method MirkRenderer + Freezed MirkPaintContext + 5 test fakes fully implement their ports with observable state. 55 new unit tests green. All 4 lint gates exit 0 on real tree scan. Plan 07-03 (map infrastructure) unblocked.
 
 ## Current Position
 
-Phase: 07 of 16 (Map Integration) — 1 / 7 plans done — Plan 07-02 (domain interfaces) unblocked
-Current Plan: Phase 07 plan 07-01 (Wave 0 Scaffolding) done — 07-02 unblocked
-Total Plans in Phase 07: 1 / 7 done
-Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-02
-Last Activity: 2026-04-20
+Phase: 07 of 16 (Map Integration) — 2 / 7 plans done — Plan 07-03 (map infrastructure) unblocked
+Current Plan: Phase 07 plan 07-02 (Domain Interfaces) done — 07-03 unblocked
+Total Plans in Phase 07: 2 / 7 done
+Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-03
+Last Activity: 2026-04-21
 
-Progress: [████████░░] 84% — 31 / 37 plans executed across phases 01-07.
+Progress: [████████░░] 86% — 32 / 37 plans executed across phases 01-07.
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Progress: [████████░░] 84% — 31 / 37 plans executed across
 | Phase 06-review-gate-gps P06-03 | 5 min | 5 tasks | 2 files |
 | Phase 06-review-gate-gps P06-04 | 68 min | 5 tasks | 9 files (7 created + 2 modified) |
 | Phase 07-map-integration P01 | 22min | 3 tasks | 267 files |
+| Phase 07-map-integration P02 | 18min | 3 tasks | 57 files |
 
 ## Accumulated Context
 
@@ -235,6 +236,18 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 07-map-integration]: Phase 07 plan 07-01: mirk_fog layer in style.json = `type: background` with `background-opacity: 0` (not `type: fill`). MapLibre fill/line/symbol layers require a bound source; a dummy empty-GeoJSON source for a layer that paints nothing is wasteful. Phase 09 replaces with `type: fill` + MirkRenderer source at the same z-index position (layer ORDER stays frozen, content is tuned).
 - [Phase 07-map-integration]: Phase 07 plan 07-01: Forward-declared fake pattern validated — each `test/fakes/fake_*.dart` is a GOSL-headered doc-only `library;` shell. Downstream plans (07-02, 07-03, 07-04) list the paths in their own `files_modified` and fill the bodies without a two-step creation dance or git-diff churn. Five fakes scaffolded: FakeMapView, FakePmtilesSource, FakeInstalledManifestRepository, FakeDownloadController, FakeCountryResolver.
 - [Phase 07-map-integration]: Phase 07 plan 07-01: Two new CI gates + paired-test inertness-guard idiom validated 4th cycle (Phase 02/04/06/07). `tool/check_avoid_maplibre_leak.dart` (MAP-06, scans lib/**/*.dart, allowed prefix lib/infrastructure/map/) + `tool/check_avoid_remote_pmtiles.dart` (MAP-05, scans lib/**/*.dart + test/**/*.dart + assets/**/*.json for `pmtiles://http[s]` case-insensitive). Real-tree scan: 101 dart files + 440 total files, 0 violations. 15/15 paired tests pass (includes catalog-false-positive guard: `https://github.com/...` in parts[].url URLs do NOT match the `pmtiles://http` pattern).
+- [Phase 07-map-integration]: Phase 07 plan 07-02: MapView port frozen with 12 MirkFall-vocabulary methods/getters (showMap / moveCameraTo / setTheme / setUserLocation / queryViewport / viewportUpdates stream / markVisited / addPointOfInterest / removePointOfInterest / dispose / isFollowMeEnabled / setFollowMeEnabled). Zero MapLibre types leak; check_avoid_maplibre_leak exits 0 on 114 files. Matches CONTEXT.md §MapView seam.
+- [Phase 07-map-integration]: Phase 07 plan 07-02: CountryCode.world sentinel (CountryCode._('wld')) exposes the reserved alpha-3 code for the bundled world basemap. parse('wld') succeeds and equals CountryCode.world. Callers that want to reject the world bundle (e.g. CountryDeleteService in 07-04) compare against CountryCode.world, never the raw string literal — robust under catalog evolution + reserved-code reassignments. CannotDeleteWorldBundleException carries the alpha3 in its toString for log context.
+- [Phase 07-map-integration]: Phase 07 plan 07-02: catalogVersion derived from parts[0].url via regex /releases/download/([^/]+)/ as lazy extension getter — no stored field in CountryCatalog. The GitHub Release tag IS the version (regenerating chunks bumps the tag); duplicating it in a stored field would risk drift. Real assets/maps/catalog.json (249 countries) yields 'v20260419' per Plan 07-01 seeding.
+- [Phase 07-map-integration]: Phase 07 plan 07-02: DownloadState as hand-written sealed class with 7 concrete final-class variants (Idle / Queued / InProgress / Paused / Error / Completed / Cancelled) — NOT Freezed union — because variant field-sets are heterogeneous (DownloadError.cause: Exception, DownloadCompleted.totalElapsed: Duration, DownloadQueued.queue: List<DownloadJob>) and do not fit Freezed's unionKey dispatch. Dart-3 sealed preserves exhaustive-switch safety without the codegen friction. DownloadProgress stays Freezed (6 @Assert invariants + no union needs).
+- [Phase 07-map-integration]: Phase 07 plan 07-02: MirkRenderer interface locked at exactly 3 public methods (paint(Canvas, Size, MirkPaintContext) / update(Duration) / dispose). Phase 09 supplies first non-stub impl without expanding surface — new inputs ride through MirkPaintContext. Compile-time regression guard: _MinimalWitness implements MirkRenderer with exactly 3 overrides; a 4th abstract method upstream stops the witness compiling with missing_concrete_implementation (strictly stronger than any runtime guard; dart:mirrors unavailable under AOT/Flutter anyway).
+- [Phase 07-map-integration]: Phase 07 plan 07-02: dart:ui allowance in lib/domain/ — mirk_renderer.dart imports dart:ui (Canvas, Size). dart:ui is part of the Dart SDK, NOT Flutter widgets; check_domain_purity.dart explicitly forbids package:flutter/* + package:drift/* but not dart:ui. Precedent: Phase 03 mirk_style_config.dart. NO modification to check_domain_purity needed (gate still reports 57 files, 0 violations).
+- [Phase 07-map-integration]: Phase 07 plan 07-02: InstalledManifest uses Map<String, InstalledCountry> with outer key = alpha3.value string (not CountryCode extension type) — json_serializable's default Map<K,V> handler round-trips String keys without a custom converter; outer-key custom converters are not supported at the type-resolution boundary. Validated CountryCode preserved inside each InstalledCountry.alpha3 field via field-level @JsonKey(fromJson: countryCodeFromJson).
+- [Phase 07-map-integration]: Phase 07 plan 07-02: Round-trip tests go through jsonEncode → jsonDecode → fromJson, NOT direct toJson → fromJson. json_serializable's explicitToJson: false default emits nested Freezed instances by reference in parent.toJson; the cast fails downstream. The export/import path always goes through string encode/decode anyway — the test shape matches reality. Convention documented in country_catalog_test.dart + reused in installed_manifest_test.dart.
+- [Phase 07-map-integration]: Phase 07 plan 07-02: InstalledManifest.schemaVersion == 1 locked via @Assert. A Phase 13+ bump will require a migration step; the @Assert guarantees no silent drift until then. copyWithInsert is identity-preserving on no-op removal (copyWithRemove returns the receiver when the alpha3 key is absent) so widget tests can skip diff work on churn-free state transitions.
+- [Phase 07-map-integration]: Phase 07 plan 07-02: TDD cycle flattened to single feat commit per task — Freezed codegen dependency (types must exist as valid Dart before tests can compile) means a strict RED-first commit would require publishing non-compiling code. Matches Phase 07-01 precedent (its Task 1 was 5 feat sub-commits). Tests still written against intended API before implementation refinement, preserving TDD design intent.
+- [Phase 07-map-integration]: Phase 07 plan 07-02: mirk_renderer_contract_test uses flutter_test, not package:test — dart:ui (Canvas / Size / PictureRecorder) does NOT resolve under plain dart test; only the Flutter test runtime exposes dart:ui. Matches the same pattern as Phase 03's mirk_style_config_fromjson_test (flutter_test for ARGB color literals). Plan verify block adjusted accordingly + documented inline.
+- [Phase 07-map-integration]: Phase 07 plan 07-02: 5 test fakes fully implement their respective ports with observable in-memory state. FakeMapView (implements MapView; methodLog + showMapInvocations + cameraMovesObserved[CameraMove] + poiAdd/RemoveObservations + lastUserLocationSet + currentTheme + followMeEnabled + disposedFlag; pushViewport drives broadcast stream; dispose idempotent + StateError on use-after-dispose) + FakeInstalledManifestRepository (implements port; seedWith + writesObserved + simulateWriteFailure auto-reset) + FakePmtilesSource + FakeDownloadController + FakeCountryResolver (duck-typed for 07-03/07-04 seams not yet materialized — upgrade to `implements` lands with their real domain ports).
 
 ### Pending Todos
 
@@ -261,6 +274,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-20T23:44:13.002Z
-Stopped at: Completed 07-01-wave-0-scaffolding-PLAN.md
+Last session: 2026-04-21T00:09:36Z
+Stopped at: Completed 07-02-domain-interfaces-PLAN.md
 Resume file: None
