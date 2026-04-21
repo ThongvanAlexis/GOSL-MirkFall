@@ -14,6 +14,23 @@ import 'package:mirkfall/domain/map/country_code.dart';
 
 import '../widgets/map_download_progress_chip.dart';
 
+/// Format a byte-per-second rate the way browsers do: decimal SI units
+/// (1 kB = 1000 B), `kB/s` below 1000 kB/s, `MB/s` with one decimal
+/// above. Mirrors the threshold the user asked for in the MAP-08 UX
+/// review ("en kB/s et MB/s si c'est plus rapide que 1000 KB/s").
+///
+/// Exposed at library scope so `_DownloadSpeedLabel` + its boundary
+/// tests can share one implementation.
+@visibleForTesting
+String formatDownloadSpeed(double bytesPerSecond) {
+  final double kbps = bytesPerSecond / 1000.0;
+  if (kbps < 1000.0) {
+    return '${kbps.toStringAsFixed(0)} kB/s';
+  }
+  final double mbps = kbps / 1000.0;
+  return '${mbps.toStringAsFixed(1)} MB/s';
+}
+
 /// `/maps/download` — catalog browse + enqueue screen.
 ///
 /// Lists every catalog entry (alpha3 name sort) with a per-row status
@@ -74,6 +91,7 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
     final List<CountryEntry> filtered = normalizedQuery.isEmpty ? sorted : sorted.where((e) => e.name.toLowerCase().contains(normalizedQuery)).toList();
     final CountryCode? activeDownloadAlpha3 = _activeDownloadAlpha3(downloadState);
     final double? activeFraction = _activeFraction(downloadState);
+    final int? activeBytesDownloaded = _activeBytesDownloaded(downloadState);
     final String catalogVersion = _safeCatalogVersion(catalog);
 
     return Column(
@@ -122,6 +140,7 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
                       catalogVersion: catalogVersion,
                       activeDownloadAlpha3: activeDownloadAlpha3,
                       activeFraction: activeFraction,
+                      activeBytesDownloaded: activeBytesDownloaded,
                     );
                   },
                 ),
@@ -146,6 +165,14 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
     };
   }
 
+  int? _activeBytesDownloaded(DownloadState state) {
+    return switch (state) {
+      DownloadInProgress(:final progress) => progress.bytesDownloaded,
+      DownloadPaused(:final snapshot) => snapshot.bytesDownloaded,
+      _ => null,
+    };
+  }
+
   /// Returns the catalog version, or `''` when derivation throws (empty
   /// countries list — never expected in production, but keeps the widget
   /// resilient under misconfigured assets).
@@ -165,6 +192,7 @@ class _CountryTile extends ConsumerWidget {
     required this.catalogVersion,
     required this.activeDownloadAlpha3,
     required this.activeFraction,
+    required this.activeBytesDownloaded,
   });
 
   final CountryEntry entry;
@@ -172,6 +200,7 @@ class _CountryTile extends ConsumerWidget {
   final String catalogVersion;
   final CountryCode? activeDownloadAlpha3;
   final double? activeFraction;
+  final int? activeBytesDownloaded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -181,7 +210,7 @@ class _CountryTile extends ConsumerWidget {
 
     final ColorScheme cs = Theme.of(context).colorScheme;
     final Widget trailing;
-    final String subtitle;
+    final Widget subtitleWidget;
     final VoidCallback? onTap;
     final IconData leading;
     final Color leadingColor;
@@ -189,7 +218,13 @@ class _CountryTile extends ConsumerWidget {
     if (isDownloading) {
       final int percent = ((activeFraction ?? 0.0) * 100).clamp(0, 100).round();
       trailing = SizedBox(width: 72.0, child: Text('$percent %', textAlign: TextAlign.end));
-      subtitle = 'En téléchargement $percent %';
+      subtitleWidget = Row(
+        children: <Widget>[
+          Flexible(child: Text('En téléchargement $percent %', overflow: TextOverflow.ellipsis)),
+          const SizedBox(width: 8.0),
+          _DownloadSpeedLabel(bytesDownloaded: activeBytesDownloaded ?? 0),
+        ],
+      );
       onTap = null;
       leading = Icons.downloading_outlined;
       leadingColor = cs.primary;
@@ -197,20 +232,20 @@ class _CountryTile extends ConsumerWidget {
       final bool needsUpdate = catalogVersion.isNotEmpty && installed.pmtilesVersion != catalogVersion;
       if (needsUpdate) {
         trailing = Icon(Icons.update, color: Colors.orange[700]);
-        subtitle = 'Mise à jour disponible';
+        subtitleWidget = const Text('Mise à jour disponible');
         onTap = () => _confirmAndEnqueue(context, ref);
         leading = Icons.check_circle_outline;
         leadingColor = Colors.orange[700]!;
       } else {
         trailing = const Icon(Icons.check, color: Colors.green);
-        subtitle = 'Installé · $totalMb Mo';
+        subtitleWidget = Text('Installé · $totalMb Mo');
         onTap = null;
         leading = Icons.check_circle;
         leadingColor = Colors.green;
       }
     } else {
       trailing = const Icon(Icons.download_outlined);
-      subtitle = 'Disponible · $totalMb Mo';
+      subtitleWidget = Text('Disponible · $totalMb Mo');
       onTap = () => _confirmAndEnqueue(context, ref);
       leading = Icons.public_outlined;
       leadingColor = cs.onSurfaceVariant;
@@ -219,7 +254,7 @@ class _CountryTile extends ConsumerWidget {
     return ListTile(
       leading: Icon(leading, color: leadingColor),
       title: Text(entry.name),
-      subtitle: Text(subtitle),
+      subtitle: subtitleWidget,
       trailing: trailing,
       onTap: onTap,
     );
@@ -242,4 +277,93 @@ class _CountryTile extends ConsumerWidget {
     if (!context.mounted) return;
     await ref.read(downloadQueueControllerProvider.notifier).enqueue(entry);
   }
+}
+
+/// Wall-clock getter injected into [_DownloadSpeedLabel]. Default is
+/// `DateTime.now`; tests override it to feed monotonic, deterministic
+/// timestamps into the sliding window without waiting on real time.
+typedef _NowFn = DateTime Function();
+
+DateTime _defaultNow() => DateTime.now();
+
+/// Tiny live-updating speed readout ("420 kB/s" / "1.4 MB/s") shown next
+/// to the "En téléchargement XX %" subtitle while the active job is
+/// transferring. Gives the user visual proof the download is alive — on
+/// a 500 MB country the percent digits can sit stale for a full second
+/// between ticks, so a continuously-moving speed label is the fastest
+/// "yes it's working" signal.
+///
+/// Keeps a 3-second sliding window of `(timestamp, bytesDownloaded)`
+/// samples. On each parent rebuild it appends a new sample if the byte
+/// count advanced, prunes anything older than 3 s, and returns the
+/// first-to-last rate. Renders `SizedBox.shrink()` until there are at
+/// least two samples separated by > 0 ms — keeps the UI clean during
+/// the first ~tick of a fresh download.
+///
+/// State-only-at-widget level: when the active job switches country,
+/// this widget is destroyed + reconstructed fresh, so samples never
+/// bleed between countries.
+class _DownloadSpeedLabel extends StatefulWidget {
+  const _DownloadSpeedLabel({required this.bytesDownloaded, _NowFn now = _defaultNow}) : _now = now;
+
+  final int bytesDownloaded;
+  final _NowFn _now;
+
+  @override
+  State<_DownloadSpeedLabel> createState() => _DownloadSpeedLabelState();
+}
+
+class _DownloadSpeedLabelState extends State<_DownloadSpeedLabel> {
+  // Keep the window small enough that the label reacts within one tick
+  // of a real speed change, large enough to smooth out per-chunk jitter.
+  // 3 s matches the "gut feeling" window Firefox + Chrome use in their
+  // download bars (empirical — no public spec).
+  static const Duration _window = Duration(seconds: 3);
+  final List<_SpeedSample> _samples = <_SpeedSample>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _samples.add(_SpeedSample(widget._now(), widget.bytesDownloaded));
+  }
+
+  @override
+  void didUpdateWidget(covariant _DownloadSpeedLabel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.bytesDownloaded != oldWidget.bytesDownloaded) {
+      final DateTime now = widget._now();
+      _samples.add(_SpeedSample(now, widget.bytesDownloaded));
+      final DateTime threshold = now.subtract(_window);
+      _samples.removeWhere((sample) => sample.at.isBefore(threshold));
+      // Guarantee the list is never empty, so the next comparison always
+      // has an anchor to measure against.
+      if (_samples.isEmpty) {
+        _samples.add(_SpeedSample(now, widget.bytesDownloaded));
+      }
+    }
+  }
+
+  double? _speedBytesPerSecond() {
+    if (_samples.length < 2) return null;
+    final _SpeedSample first = _samples.first;
+    final _SpeedSample last = _samples.last;
+    final int deltaMs = last.at.difference(first.at).inMilliseconds;
+    if (deltaMs <= 0) return null;
+    final int deltaBytes = last.bytes - first.bytes;
+    if (deltaBytes <= 0) return null;
+    return deltaBytes * 1000.0 / deltaMs;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double? speed = _speedBytesPerSecond();
+    if (speed == null) return const SizedBox.shrink();
+    return Text(formatDownloadSpeed(speed), style: Theme.of(context).textTheme.bodySmall);
+  }
+}
+
+class _SpeedSample {
+  const _SpeedSample(this.at, this.bytes);
+  final DateTime at;
+  final int bytes;
 }
