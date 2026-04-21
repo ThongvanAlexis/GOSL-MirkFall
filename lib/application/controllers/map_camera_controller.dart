@@ -1,0 +1,265 @@
+// Copyright (c) 2026 THONGVAN Alexis
+// Licensed under the Good Old Software License v1.0
+// See LICENSE file for details
+
+import 'dart:async';
+
+import 'package:logging/logging.dart';
+import 'package:mirkfall/application/controllers/active_session_controller.dart';
+import 'package:mirkfall/application/providers/map_providers.dart';
+import 'package:mirkfall/application/state/active_session_state.dart';
+import 'package:mirkfall/config/constants.dart';
+import 'package:mirkfall/domain/fixes/fix.dart';
+import 'package:mirkfall/domain/ids/session_id.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderSubscription;
+import 'package:mirkfall/domain/map/map_view.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'map_camera_controller.g.dart';
+
+/// Sealed state machine for [MapCameraController].
+///
+/// Transitions driven by the controller:
+/// - `Idle` — no session open; map stays where it is.
+/// - `Centering` — waiting on first fix after `openForSession(id)` with
+///   no prior fix available; UI surfaces "En attente du GPS…".
+/// - `FollowingUser` — camera pans to every new fix (zoom preserved).
+/// - `FreePan` — user manually panned; camera does not auto-follow.
+sealed class MapCameraState {
+  const MapCameraState();
+}
+
+/// No session open; the camera stays put and the controller ignores fix
+/// updates. Initial state.
+final class MapCameraIdle extends MapCameraState {
+  const MapCameraIdle();
+}
+
+/// A session is open but no fix has arrived yet. The controller's
+/// internal listener will transition to [MapCameraFollowing] as soon as
+/// the first fix lands.
+final class MapCameraCentering extends MapCameraState {
+  const MapCameraCentering({required this.sessionId});
+
+  final SessionId sessionId;
+}
+
+/// Follow-me is active. Every new fix triggers [MapView.moveCameraTo]
+/// at the current zoom level. Manual pan transitions the controller to
+/// [MapCameraFreePan].
+final class MapCameraFollowing extends MapCameraState {
+  const MapCameraFollowing({required this.sessionId});
+
+  final SessionId sessionId;
+}
+
+/// User manually panned. Follow-me is disabled; new fixes are observed
+/// (via [lastKnownFix]) but do NOT trigger camera moves. Toggling
+/// follow-me re-centers on the last fix.
+final class MapCameraFreePan extends MapCameraState {
+  const MapCameraFreePan({required this.sessionId});
+
+  final SessionId sessionId;
+}
+
+/// Orchestrates the map camera on the /map screen:
+/// - Opens a session view with Z=[kInitialSessionMapZoom] zoom centred on
+///   the latest session fix (or the last-known fix from the active
+///   session controller).
+/// - Maintains follow-me: new fixes cause the camera to pan, preserving
+///   the user's current zoom.
+/// - Detects manual user pan (a viewport update NOT triggered by this
+///   controller's own `moveCameraTo` calls) and disables follow-me.
+///
+/// The detection heuristic uses a pending-flag + debounce window. Before
+/// every controller-initiated `moveCameraTo`, we set `_cameraMovePending`
+/// and start a 1-second timer; viewport updates arriving while the flag
+/// is set are ignored (they ARE the controller's own camera moves
+/// echoing back through MapLibre's `onCameraIdle` callback). Updates
+/// arriving OUTSIDE the pending window are treated as user pan.
+///
+/// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
+/// the widget publishes a [MapView] adapter via [mapViewProvider] and the
+/// controller lazily attaches its listeners on first use.
+@Riverpod(keepAlive: true)
+class MapCameraController extends _$MapCameraController {
+  static final Logger _log = Logger('application.controllers.map_camera');
+
+  /// Debounce window for the pending-move flag. Larger than MapLibre's
+  /// own idle-emit latency (typically ~200 ms) but small enough that a
+  /// subsequent user pan within the same second still registers as user
+  /// intent. Tuned for the Plan 07-06 hot path.
+  static const Duration _kPendingMoveDebounce = Duration(milliseconds: 1000);
+
+  MapView? _mapView;
+  StreamSubscription<({double latitude, double longitude, double zoom})>? _viewportSub;
+  ProviderSubscription<AsyncValue<ActiveSessionState>>? _sessionSub;
+  bool _cameraMovePending = false;
+  Timer? _pendingResetTimer;
+  double _currentZoom = kInitialSessionMapZoom.toDouble();
+
+  @override
+  MapCameraState build() {
+    ref.onDispose(_tearDown);
+    // Re-attach whenever the MapViewHolder publishes a new adapter.
+    // The widget's onReady callback fires AFTER build(), so the initial
+    // attach from a public-entry call would otherwise miss the echoed
+    // viewport updates for subscribers that only listen post-ready.
+    ref.listen<MapView?>(mapViewProvider, (previous, next) {
+      _attachMapViewIfReady();
+    });
+    return const MapCameraIdle();
+  }
+
+  /// Opens the map for [sessionId]: centres the camera on the latest
+  /// known fix at Z=[kInitialSessionMapZoom] and enables follow-me. If
+  /// no fix is available yet, transitions to [MapCameraCentering] and
+  /// waits for the first fix via the active-session listener.
+  Future<void> openForSession(SessionId sessionId) async {
+    _attachIfNeeded();
+    final MapView? mapView = ref.read(mapViewProvider);
+    final Fix? latestFix = _currentSessionLatestFix();
+
+    if (mapView != null && latestFix != null) {
+      await _moveCameraTo(mapView, latitude: latestFix.latitude, longitude: latestFix.longitude, zoom: kInitialSessionMapZoom.toDouble());
+      await mapView.setFollowMeEnabled(true);
+      state = MapCameraFollowing(sessionId: sessionId);
+      return;
+    }
+
+    // Either the MapView isn't ready yet or we have no fix; transition
+    // to Centering and let the active-session listener drive the next
+    // state change.
+    state = MapCameraCentering(sessionId: sessionId);
+  }
+
+  /// Toggles follow-me. When enabling, re-centres on the last known fix
+  /// (if any) and sets the adapter's follow-me flag. When disabling,
+  /// leaves the camera where it is.
+  Future<void> toggleFollowMe() async {
+    _attachIfNeeded();
+    final MapView? mapView = ref.read(mapViewProvider);
+    if (mapView == null) return;
+    final current = state;
+    if (current is MapCameraFollowing) {
+      await mapView.setFollowMeEnabled(false);
+      state = MapCameraFreePan(sessionId: current.sessionId);
+      return;
+    }
+    if (current is MapCameraFreePan) {
+      await mapView.setFollowMeEnabled(true);
+      // Re-centre on the last fix if available.
+      final Fix? fix = _currentSessionLatestFix();
+      if (fix != null) {
+        await _moveCameraTo(mapView, latitude: fix.latitude, longitude: fix.longitude, zoom: _currentZoom);
+      }
+      state = MapCameraFollowing(sessionId: current.sessionId);
+    }
+  }
+
+  /// Attaches listeners on first use. Called from every public entry so
+  /// late MapView publications (the widget's `onReady` fires after the
+  /// screen is built) do not miss viewport updates.
+  void _attachIfNeeded() {
+    _attachMapViewIfReady();
+    _attachSessionListenerIfNeeded();
+  }
+
+  void _attachMapViewIfReady() {
+    final MapView? current = ref.read(mapViewProvider);
+    if (current == null) return;
+    if (identical(current, _mapView)) return;
+    _viewportSub?.cancel();
+    _mapView = current;
+    _viewportSub = current.viewportUpdates.listen(_onViewportUpdate, onError: (Object e, StackTrace st) {
+      _log.warning('viewport stream error', e, st);
+    });
+  }
+
+  void _attachSessionListenerIfNeeded() {
+    _sessionSub ??= ref.listen<AsyncValue<ActiveSessionState>>(
+      activeSessionControllerProvider,
+      (previous, next) {
+        final value = next.value;
+        if (value is Tracking) {
+          _onFix(value.lastFix);
+        }
+      },
+    );
+  }
+
+  /// Handles a new fix from the active session. In [MapCameraFollowing]
+  /// state, pans the camera to the fix (preserves zoom). In
+  /// [MapCameraCentering], triggers the initial centre + transitions to
+  /// Following. Otherwise no-op.
+  Future<void> _onFix(Fix? fix) async {
+    if (fix == null) return;
+    _attachMapViewIfReady();
+    final MapView? mapView = _mapView;
+    if (mapView == null) return;
+    final current = state;
+    if (current is MapCameraCentering) {
+      await _moveCameraTo(mapView, latitude: fix.latitude, longitude: fix.longitude, zoom: kInitialSessionMapZoom.toDouble());
+      await mapView.setFollowMeEnabled(true);
+      state = MapCameraFollowing(sessionId: current.sessionId);
+      return;
+    }
+    if (current is MapCameraFollowing) {
+      await _moveCameraTo(mapView, latitude: fix.latitude, longitude: fix.longitude, zoom: _currentZoom);
+      return;
+    }
+    // FreePan / Idle: observe but do not move the camera.
+  }
+
+  /// Wraps [MapView.moveCameraTo] with the pending-flag bookkeeping so
+  /// the controller's own camera moves do not feed back as user pans.
+  Future<void> _moveCameraTo(MapView mapView, {required double latitude, required double longitude, required double zoom}) async {
+    _cameraMovePending = true;
+    _pendingResetTimer?.cancel();
+    _pendingResetTimer = Timer(_kPendingMoveDebounce, () {
+      _cameraMovePending = false;
+    });
+    _currentZoom = zoom;
+    await mapView.moveCameraTo(latitude: latitude, longitude: longitude, zoom: zoom);
+  }
+
+  /// Handles a settled viewport event. If the flag is set, the move is
+  /// our own echo and we ignore it. Otherwise the user manually panned
+  /// — transition Following → FreePan + drop follow-me.
+  Future<void> _onViewportUpdate(({double latitude, double longitude, double zoom}) v) async {
+    _currentZoom = v.zoom;
+    if (_cameraMovePending) {
+      // This update is the settled echo of our own moveCameraTo call.
+      // Clear the flag — subsequent updates within the debounce window
+      // are treated as user pans (the legitimate user-intent signal).
+      _cameraMovePending = false;
+      _pendingResetTimer?.cancel();
+      return;
+    }
+    final current = state;
+    if (current is MapCameraFollowing) {
+      final MapView? mapView = _mapView;
+      if (mapView != null) {
+        await mapView.setFollowMeEnabled(false);
+      }
+      state = MapCameraFreePan(sessionId: current.sessionId);
+    }
+  }
+
+  Fix? _currentSessionLatestFix() {
+    final AsyncValue<ActiveSessionState> snap = ref.read(activeSessionControllerProvider);
+    final ActiveSessionState? value = snap.value;
+    if (value is Tracking) return value.lastFix;
+    return null;
+  }
+
+  void _tearDown() {
+    _pendingResetTimer?.cancel();
+    _pendingResetTimer = null;
+    _viewportSub?.cancel();
+    _viewportSub = null;
+    _sessionSub?.close();
+    _sessionSub = null;
+    _mapView = null;
+  }
+}
