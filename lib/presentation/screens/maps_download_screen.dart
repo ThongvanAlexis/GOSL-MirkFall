@@ -23,14 +23,33 @@ import '../widgets/map_download_progress_chip.dart';
 /// - Downloading → "En téléchargement XX %" + spinner
 /// - Else → "Disponible" + download icon
 ///
+/// A search field at the top filters the list by country name
+/// (case-insensitive, partial match on `contains`). Filter state is
+/// local to the screen — clearing it with the ✕ icon restores the full
+/// 249-country list.
+///
 /// Tap on a "Disponible" row opens a confirmation dialog. Confirm →
 /// [DownloadQueueController.enqueue]. The in-flight download surfaces
 /// in the AppBar via [MapDownloadProgressChip].
-class MapsDownloadScreen extends ConsumerWidget {
+class MapsDownloadScreen extends ConsumerStatefulWidget {
   const MapsDownloadScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MapsDownloadScreen> createState() => _MapsDownloadScreenState();
+}
+
+class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AsyncValue<CountryCatalog> catalogAsync = ref.watch(countryCatalogProvider);
     final InstalledMapsState installedState = ref.watch(installedMapsControllerProvider);
     final DownloadState downloadState = ref.watch(downloadQueueControllerProvider);
@@ -42,31 +61,72 @@ class MapsDownloadScreen extends ConsumerWidget {
         error: (err, st) => Center(
           child: Padding(padding: const EdgeInsets.all(24.0), child: Text('Erreur : $err')),
         ),
-        data: (catalog) => _buildList(context, ref, catalog, installedState, downloadState),
+        data: (catalog) => _buildBody(context, catalog, installedState, downloadState),
       ),
     );
   }
 
-  Widget _buildList(BuildContext context, WidgetRef ref, CountryCatalog catalog, InstalledMapsState installedState, DownloadState downloadState) {
+  Widget _buildBody(BuildContext context, CountryCatalog catalog, InstalledMapsState installedState, DownloadState downloadState) {
     // Alphabetic sort over a fresh list — never mutate the catalog's own
     // `countries` list.
     final List<CountryEntry> sorted = <CountryEntry>[...catalog.countries]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final String normalizedQuery = _query.trim().toLowerCase();
+    final List<CountryEntry> filtered = normalizedQuery.isEmpty ? sorted : sorted.where((e) => e.name.toLowerCase().contains(normalizedQuery)).toList();
     final CountryCode? activeDownloadAlpha3 = _activeDownloadAlpha3(downloadState);
     final double? activeFraction = _activeFraction(downloadState);
+    final String catalogVersion = _safeCatalogVersion(catalog);
 
-    return ListView.separated(
-      itemCount: sorted.length,
-      separatorBuilder: (_, _) => const Divider(height: 1.0),
-      itemBuilder: (context, index) {
-        final CountryEntry entry = sorted[index];
-        return _CountryTile(
-          entry: entry,
-          installedState: installedState,
-          catalogVersion: _safeCatalogVersion(catalog),
-          activeDownloadAlpha3: activeDownloadAlpha3,
-          activeFraction: activeFraction,
-        );
-      },
+    return Column(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 8.0),
+          child: TextField(
+            controller: _searchController,
+            textInputAction: TextInputAction.search,
+            autocorrect: false,
+            decoration: InputDecoration(
+              hintText: 'Rechercher un pays',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      tooltip: 'Effacer la recherche',
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _query = '');
+                      },
+                    ),
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: (value) => setState(() => _query = value),
+          ),
+        ),
+        Expanded(
+          child: filtered.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Text('Aucun pays ne correspond à "${_query.trim()}"', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
+                  ),
+                )
+              : ListView.separated(
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1.0),
+                  itemBuilder: (context, index) {
+                    final CountryEntry entry = filtered[index];
+                    return _CountryTile(
+                      entry: entry,
+                      installedState: installedState,
+                      catalogVersion: catalogVersion,
+                      activeDownloadAlpha3: activeDownloadAlpha3,
+                      activeFraction: activeFraction,
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 

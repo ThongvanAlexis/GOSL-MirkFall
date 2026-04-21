@@ -112,7 +112,7 @@ class _DrawerHeader extends StatelessWidget {
         children: <Widget>[
           Text('MirkFall', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: cs.onPrimaryContainer)),
           const SizedBox(height: 4.0),
-          Text(isTracking ? 'Session active' : 'Aucune session', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onPrimaryContainer)),
+          Text(isTracking ? 'Session active' : 'Aucune session active', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onPrimaryContainer)),
         ],
       ),
     );

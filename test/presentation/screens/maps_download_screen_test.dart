@@ -120,6 +120,75 @@ void main() {
       expect(fakeDownload.enqueueObservations.single.alpha3.value, equals('fra'));
     });
 
+    testWidgets('search field filters the list case-insensitively on partial matches', (tester) async {
+      const InstalledMapsState seed = InstalledMapsState.empty();
+      final fakeDownload = _FakeDownloadQueueController();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            countryCatalogProvider.overrideWith((ref) async => _threeCountryCatalog()),
+            installedMapsControllerProvider.overrideWith(() => _FakeInstalledMapsController(seed: seed)),
+            downloadQueueControllerProvider.overrideWith(() => fakeDownload),
+          ],
+          child: const MaterialApp(home: MapsDownloadScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Baseline — all 3 countries visible.
+      expect(find.text('France'), findsOneWidget);
+      expect(find.text('Allemagne'), findsOneWidget);
+      expect(find.text('Espagne'), findsOneWidget);
+
+      // Lowercase "esp" matches "Espagne" on partial substring; case-insensitive.
+      await tester.enterText(find.byType(TextField), 'esp');
+      await tester.pump();
+
+      expect(find.text('Espagne'), findsOneWidget);
+      expect(find.text('France'), findsNothing);
+      expect(find.text('Allemagne'), findsNothing);
+
+      // Uppercase "ALL" matches "Allemagne" partially.
+      await tester.enterText(find.byType(TextField), 'ALL');
+      await tester.pump();
+
+      expect(find.text('Allemagne'), findsOneWidget);
+      expect(find.text('France'), findsNothing);
+      expect(find.text('Espagne'), findsNothing);
+
+      // Clear button restores the full list.
+      await tester.tap(find.byIcon(Icons.clear));
+      await tester.pump();
+
+      expect(find.text('France'), findsOneWidget);
+      expect(find.text('Allemagne'), findsOneWidget);
+      expect(find.text('Espagne'), findsOneWidget);
+    });
+
+    testWidgets('search with no match shows an empty-state message', (tester) async {
+      const InstalledMapsState seed = InstalledMapsState.empty();
+      final fakeDownload = _FakeDownloadQueueController();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            countryCatalogProvider.overrideWith((ref) async => _threeCountryCatalog()),
+            installedMapsControllerProvider.overrideWith(() => _FakeInstalledMapsController(seed: seed)),
+            downloadQueueControllerProvider.overrideWith(() => fakeDownload),
+          ],
+          child: const MaterialApp(home: MapsDownloadScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'xxxxxx');
+      await tester.pump();
+
+      expect(find.textContaining('Aucun pays ne correspond'), findsOneWidget);
+      expect(find.text('France'), findsNothing);
+    });
+
     testWidgets('stale pmtilesVersion surfaces "Mise à jour disponible"', (tester) async {
       final InstalledMapsState seed = InstalledMapsState(
         installed: <CountryCode, InstalledCountry>{CountryCode.parse('fra'): _installed('fra', version: 'v20260101')},

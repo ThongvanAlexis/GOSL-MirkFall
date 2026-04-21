@@ -155,6 +155,6 @@ void main() {
 
     // Drawer open — "MirkFall" header is present.
     expect(find.text('MirkFall'), findsOneWidget);
-    expect(find.text('Aucune session'), findsOneWidget);
+    expect(find.text('Aucune session active'), findsOneWidget);
   });
 }
