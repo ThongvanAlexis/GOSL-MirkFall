@@ -127,5 +127,14 @@ Projet-cadeau personnel de l'auteur (pour explorer sa ville et matérialiser ses
 | **Catalog map bundlé en asset** (amendement 2026-04-20 Phase 07 CONTEXT) | L'ancien plan `kMapCatalogUrl` distant a été simplifié : le catalog.json (~132 KB) est bundlé dans `assets/maps/catalog.json`, update = rebuild app. Évite un remote fetch au démarrage + élimine la dépendance à une URL externe pour le listing des pays. Les chunks binaires des `.pmtiles` restent hébergés sur GitHub Release (`ThongvanAlexis/countries-pmtiles`). | — Recorded |
 | **Chunks binaires multi-parts (pas ZIP)** (amendement 2026-04-20 Phase 07 CONTEXT) | Les fichiers `.pmtiles` par pays sont découpés en chunks binaires bruts (`partNN`) de 1.5 GB max (limite GitHub Release 2 GB/asset), réassemblés par concat binaire. Le terme "ZIP" du ROADMAP initial était imprécis : aucune archive à extraire, pas besoin du package `archive`. `dart:io HttpClient` brut + concat binaire suffisent. MAP-08/09 + ROADMAP Phase 07/08 amendés. | — Recorded |
 
+## V2 Backlog
+
+Scope items explicitly deferred to V2.0 (post-V1.0 stabilisation). Not bound to a specific V1 phase — these get their own phases when V2 roadmap is drawn.
+
+| Item | Origin | Scope sketch | Platform touch |
+|------|--------|--------------|----------------|
+| **V2 "Parchemin RPG" style** | PROJECT.md §Key Decisions (original) | Second bundled style variant (medieval / fantasy feel) alongside the neutral Phase 07 basemap. Implementation : swap `style.json` + sprite sheet, zero Dart change thanks to the Phase 07 domain-level seam. Imported-style infrastructure (OPT-03, MIRK-08) must land in Phase 13 first. | None — asset swap only. |
+| **Téléchargement de cartes en arrière-plan (écran verrouillé / app backgroundée)** | Phase 07 device-smoke 2026-04-21 | Actuellement un download est suspendu quand l'utilisateur verrouille l'écran (isolate Flutter suspendu par l'OS après ~10 s, Doze Android + suspension iOS). V1.0 mitige par le resume Range-based au retour au foreground. V2 livre la vraie expérience continue : **Android** = Foreground Service dédié avec notification persistante "Téléchargement : \<pays\> \<XX\> %" + platform channel start/stop. **iOS** = ré-écriture du chemin download pour utiliser `URLSession.backgroundConfiguration` (la télécharge continue même app suspendue, voire terminée). Contrepartie iOS : on perd le pur-Dart `HttpChunkDownloader` testable pour la partie iOS et on ajoute un boundary plateforme lourd. Le resume Range + le sha256 per-chunk de la Phase 07 restent corrects. Touche : `lib/infrastructure/downloads/` + nouveau FGS Kotlin + bridge Swift URLSession + tests d'intégration device. Dépend de la Phase 07 complète (pipeline stable) + probablement de la Phase 08 Review Gate fermée. | Android FGS + service manifest entry + INTERNET permission (already granted) ; iOS URLSession delegate in Swift + completion-handler bridging. |
+
 ---
-*Last updated: 2026-04-20 after Phase 07 CONTEXT amendments*
+*Last updated: 2026-04-21 — added V2 Backlog section with parchment style (from Key Decisions) + background downloads (from Phase 07 device-smoke feedback)*
