@@ -56,14 +56,26 @@ import UIKit
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
 
-    // Register Phase 07 hand-rolled MethodChannels. The main-engine
-    // binary messenger is reached via the application's root view
-    // controller, which is always a `FlutterViewController` in the
-    // Flutter iOS template.
-    if let controller = window?.rootViewController as? FlutterViewController {
-      let messenger = controller.binaryMessenger
-      DiskSpaceChannel.register(with: messenger)
-      IosBackupExcluderChannel.register(with: messenger)
+    // Register Phase 07 hand-rolled MethodChannels via the plugin
+    // registry — self.registrar(forPlugin:) returns a messenger that
+    // is valid as soon as GeneratedPluginRegistrant has finished.
+    //
+    // The earlier implementation reached the messenger via
+    // `window?.rootViewController as? FlutterViewController`. That
+    // works in the legacy (AppDelegate-only) iOS lifecycle but NOT
+    // in the scene-based lifecycle this app uses (SceneDelegate.swift
+    // exists) — under scenes, the rootViewController is installed
+    // during `scene(_:willConnectTo:)` which runs AFTER
+    // `didFinishLaunchingWithOptions`. The cast silently failed and
+    // every Dart call into DiskSpaceChannel / IosBackupExcluderChannel
+    // threw MissingPluginException, which the Dart side swallowed —
+    // users saw "download does nothing" on iOS while Android worked
+    // fine (no SceneDelegate on Android). Device-smoke 2026-04-21.
+    if let registrar = self.registrar(forPlugin: "DiskSpaceChannel") {
+      DiskSpaceChannel.register(with: registrar.messenger())
+    }
+    if let registrar = self.registrar(forPlugin: "IosBackupExcluderChannel") {
+      IosBackupExcluderChannel.register(with: registrar.messenger())
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)

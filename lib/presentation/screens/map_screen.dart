@@ -104,11 +104,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return Stack(
       children: <Widget>[
         Positioned.fill(child: mapWidget),
-        // Top-left burger menu.
+        // Top-left controls: back button (when poppable) + burger menu.
+        // Back stays left-most so the iOS pattern "back = top-left" is
+        // preserved. Android also gets the button — harmless next to the
+        // system back gesture and matches the platform convention where
+        // edge-to-edge screens surface an explicit back affordance.
         Positioned(
           top: MediaQuery.of(context).padding.top + 8.0,
           left: 8.0,
-          child: _MenuButton(scaffoldKey: _scaffoldKey),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (Navigator.of(context).canPop()) ...<Widget>[const _BackButton(), const SizedBox(width: 8.0)],
+              _MenuButton(scaffoldKey: _scaffoldKey),
+            ],
+          ),
         ),
         // Bottom-right: follow-me FAB + attribution icon.
         Positioned(
@@ -169,6 +179,36 @@ class _MenuButton extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(10.0),
           child: Icon(Icons.menu, size: 22.0, color: cs.onSurface),
+        ),
+      ),
+    );
+  }
+}
+
+/// Chevron back button shown on the map screen when the Navigator has
+/// something to pop.
+///
+/// iOS needs this because the MapScreen deliberately ships edge-to-edge
+/// without an AppBar, and unlike Android there is no system-level
+/// edge-swipe back gesture (GoRouter's default page transitions do NOT
+/// enable the iOS swipe-from-left because that would conflict with the
+/// drawer open gesture from the burger menu).
+class _BackButton extends StatelessWidget {
+  const _BackButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return Material(
+      color: cs.surface.withValues(alpha: 0.8),
+      shape: const CircleBorder(),
+      elevation: 2.0,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () => Navigator.of(context).maybePop(),
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Icon(Icons.arrow_back, size: 22.0, color: cs.onSurface),
         ),
       ),
     );

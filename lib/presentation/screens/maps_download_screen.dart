@@ -71,6 +71,27 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
     final InstalledMapsState installedState = ref.watch(installedMapsControllerProvider);
     final DownloadState downloadState = ref.watch(downloadQueueControllerProvider);
 
+    // Surface DownloadError + DownloadCompleted transitions as
+    // snackbars so the user always gets feedback — the "download did
+    // nothing" iOS bug (MissingPluginException on the disk-space
+    // platform channel) slipped through Phase 07 smoke because the
+    // error state never surfaced in the UI. Happy-path downloads are
+    // still driven by the AppBar chip; this listener only fires on
+    // state transitions.
+    ref.listen<DownloadState>(downloadQueueControllerProvider, (previous, next) {
+      if (!context.mounted) return;
+      final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+      if (next is DownloadError && previous is! DownloadError) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Échec du téléchargement de ${next.active.entry.name} — ${next.cause.toString()}'), duration: const Duration(seconds: 5)),
+        );
+      } else if (next is DownloadCompleted && previous is! DownloadCompleted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('${_displayNameFor(next.alpha3, catalogAsync.value)} téléchargé ✓'), duration: const Duration(seconds: 3)),
+        );
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(title: const Text('Télécharger une carte'), actions: const <Widget>[MapDownloadProgressChip()]),
       body: catalogAsync.when(
@@ -81,6 +102,18 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
         data: (catalog) => _buildBody(context, catalog, installedState, downloadState),
       ),
     );
+  }
+
+  /// Looks up the display name for [code] in [catalog] so completion /
+  /// error snackbars show the human-readable country name instead of
+  /// the raw alpha3 code. Falls back to uppercased alpha3 when either
+  /// the catalog is still loading or the code is not listed.
+  String _displayNameFor(CountryCode code, CountryCatalog? catalog) {
+    if (catalog == null) return code.value.toUpperCase();
+    for (final CountryEntry e in catalog.countries) {
+      if (e.alpha3 == code) return e.name;
+    }
+    return code.value.toUpperCase();
   }
 
   Widget _buildBody(BuildContext context, CountryCatalog catalog, InstalledMapsState installedState, DownloadState downloadState) {
@@ -275,7 +308,20 @@ class _CountryTile extends ConsumerWidget {
     );
     if (confirm != true) return;
     if (!context.mounted) return;
-    await ref.read(downloadQueueControllerProvider.notifier).enqueue(entry);
+    // Immediate feedback — the user tapped Download and something has
+    // visibly happened. The AppBar chip takes over once the controller
+    // transitions to DownloadInProgress; DownloadError transitions fire
+    // the listener on MapsDownloadScreen.build which surfaces a second,
+    // noisier snackbar.
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('${entry.name} ajouté à la file de téléchargement'), duration: const Duration(seconds: 2)));
+    try {
+      await ref.read(downloadQueueControllerProvider.notifier).enqueue(entry);
+    } on Object catch (err) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur à la mise en file : $err'), duration: const Duration(seconds: 5)));
+    }
   }
 }
 
