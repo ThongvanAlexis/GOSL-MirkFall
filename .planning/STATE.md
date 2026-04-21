@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 07 plan 07-03 (Map Infrastructure) done — 07-04 unblocked
+current_plan: Phase 07 plan 07-04 (Download Pipeline) done — 07-05 unblocked
 status: executing
-stopped_at: Completed 07-03-map-infrastructure-PLAN.md
-last_updated: "2026-04-21T00:44:24.367Z"
+stopped_at: Completed 07-04-download-pipeline-PLAN.md
+last_updated: "2026-04-21T01:19:39Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 16
   completed_phases: 6
   total_plans: 37
-  completed_plans: 33
-  percent: 89
+  completed_plans: 34
+  percent: 92
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 07 Map Integration — Plan 07-03 (Map Infrastructure) done 2026-04-21. MapLibreMapView adapter is the sole `package:maplibre_gl/...` consumer in `lib/` (check_avoid_maplibre_leak exit 0 on 124 files). PmtilesSource + StyleRewriter + StyleLayerOrder (2 validators) + CountryResolver + CountryPolygonLoader + FirstLaunchWorldCopier (sha256 auto-heal) + NoopMirkRenderer + point_in_polygon helper all landed. Hand-rolled DiskSpaceChecker (Dart + Kotlin StatFs + iOS NSFileManager.systemFreeSize) + IosBackupExcluder (Dart + iOS-only NSURLIsExcludedFromBackupKey) platform channels close Open Questions #3 + #6; Open Questions #1 (camera preservation via capture-before-setStyle) + #2 (source swap fallback to setStyle because VectorSourceProperties.url is HTTP/HTTPS-only in maplibre_gl 0.25.0) resolved in the adapter. 114 new unit tests green (528 total, zero regressions). All 5 lint gates exit 0. Plan 07-04 (download pipeline) unblocked.
+**Current focus:** Phase 07 Map Integration — Plan 07-04 (Download Pipeline) done 2026-04-21. 7-step atomic download protocol landed end-to-end: preflight (DiskSpaceChecker + 1.1× margin) → chunked HTTP with Range resume + 200-OK restart fallback (HttpChunkDownloader, pure dart:io, no package:http) → per-chunk sha256 with 1-retry-on-mismatch (Sha256Verifier streaming via sha256.bind) → streaming concat (BinaryConcatenator, IOSink, constant memory) → global sha256 (no retry, fail hard) → atomic rename (AtomicRenamer with EXDEV cross-volume fallback) → iOS backup-exclude → InstalledManifestRepository.write (tempfile+rename + single-writer mutex + broadcast updates) → staging cleanup. PmtilesDownloadController orchestrates; emits sealed DownloadState on broadcast stream; enqueue/pause/resume/cancelActive surface. CountryDeleteService sentinel-guards CountryCode.world (parse-path too). FirstLaunchBootstrap pmtiles-heal path recovers mid-rename-kill orphans. shelf-backed FakeHttpServer in test/fakes/ exposes 6 sealed behaviours (happy/ignore-range/403/500/drop/redirect) for wire-level test doubles. 6 `@Tags(['soak'])` scenarios exercise the full protocol (happy 1-part, multi-part, 206 resume, 200 restart, disk insufficient, atomic cleanup heal). 59 new tests (587 total, zero regressions). All 4 lint gates exit 0. Plan 07-05 (controllers and providers) unblocked.
 
 ## Current Position
 
-Phase: 07 of 16 (Map Integration) — 3 / 7 plans done — Plan 07-04 (download pipeline) unblocked
-Current Plan: Phase 07 plan 07-03 (Map Infrastructure) done — 07-04 unblocked
-Total Plans in Phase 07: 3 / 7 done
-Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-04
+Phase: 07 of 16 (Map Integration) — 4 / 7 plans done — Plan 07-05 (controllers and providers) unblocked
+Current Plan: Phase 07 plan 07-04 (Download Pipeline) done — 07-05 unblocked
+Total Plans in Phase 07: 4 / 7 done
+Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-05
 Last Activity: 2026-04-21
 
-Progress: [█████████░] 89% — 33 / 37 plans executed across phases 01-07.
+Progress: [█████████░] 92% — 34 / 37 plans executed across phases 01-07.
 
 ## Performance Metrics
 
@@ -83,6 +83,7 @@ Progress: [█████████░] 89% — 33 / 37 plans executed across
 | Phase 07-map-integration P01 | 22min | 3 tasks | 267 files |
 | Phase 07-map-integration P02 | 18min | 3 tasks | 57 files |
 | Phase 07-map-integration P03 | 18min | 3 tasks | 25 files |
+| Phase 07-map-integration P04 | 31min | 3 tasks | 23 files |
 
 ## Accumulated Context
 
@@ -266,6 +267,14 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 07-map-integration]: Phase 07 plan 07-03: FollowMe flag tracked on the MapLibreMapView adapter but auto-pan belongs to Plan 07-05's MapCameraController. Adapter only exposes `isFollowMeEnabled` + `setFollowMeEnabled`; the controller subscribes to Fix updates + calls `moveCameraTo` per fix. Clean separation avoids a tight coupling between the map adapter and the active-session stream.
 - [Phase 07-map-integration]: Phase 07 plan 07-03: default MapLibre attribution button hidden via `attributionButtonMargins: Point<num>(-100, -100)`. Plan 07-06 MapScreen must paint its own attribution widget on top of the map showing "© Protomaps / © OpenStreetMap contributors (ODbL 1.0)" per MAP-03.
 - [Phase 07-map-integration]: Phase 07 plan 07-03: GOSL copyright headers prepended to new Kotlin + Swift files as `// Copyright…` comments. `tool/check_headers.dart` scans only `.dart`, but the CLAUDE.md project rule requires the header on every source file. Consistent with Phase 05's BootCompletedReceiver.kt precedent.
+- [Phase 07-map-integration]: Phase 07 plan 07-04: 7-step atomic download protocol landed — preflight (DiskSpaceChecker × 1.1 margin) → download N chunks (HttpChunkDownloader with Range resume + 200-OK restart fallback + 302 redirect, 3× 1s/5s/30s backoff) → per-chunk sha256 (Sha256Verifier via sha256.bind, 1-retry-on-mismatch) → streaming concat (BinaryConcatenator via IOSink, constant memory, cleanup-on-failure) → global sha256 (fail hard, no retry) → atomic rename (AtomicRenamer with EXDEV cross-volume copy+delete fallback) → iOS backup-exclude → manifest atomic tempfile+rename write (JsonFileInstalledManifestRepository with single-writer mutex + broadcast updates) → staging rmrf. PmtilesDownloadController as plain Dart class (not Riverpod; Plan 07-05 wraps). 6 soak scenarios via shelf MockHTTPServer cover happy 1-part + multi-part + 206 resume + 200 restart + disk insufficient + atomic_cleanup heal.
+- [Phase 07-map-integration]: Phase 07 plan 07-04: Mid-rename kill recovery = HEAL (not destroy). FirstLaunchBootstrap gained `_healOrphanCountryFiles` pass: scans `<app_support>/maps/countries/` for .pmtiles files with no manifest entry, recomputes sha256, cross-checks against catalog.reassembled.sha256 when available, re-inserts the manifest entry. Alternative (delete orphan file + force re-download) was rejected — destroys otherwise-valid bytes. healedAlpha3s exposed on the bootstrap for Plan 07-05's UI visibility.
+- [Phase 07-map-integration]: Phase 07 plan 07-04: shelf MockHTTPServer (test/fakes/fake_http_client.dart) over HttpOverrides-stubbed HttpClient for wire-level fakes. Sealed FakeServerBehaviour (ServeHappy / ServeIgnoringRange / Serve403 / Serve500 / ServeDropConnectionAfterBytes / ServeRedirect) mutable between requests + recordedRequests[] assertion surface. Real sockets exercise Content-Length / Content-Range / Accept-Ranges on the wire. shelf is direct dev_dep since Plan 07-01 so no new audit burden. Pattern reusable by Plan 07-07 integration verification.
+- [Phase 07-map-integration]: Phase 07 plan 07-04: HttpOverrides.runWithHttpOverrides(bare HttpOverrides subclass) idiom to restore real HTTP in TestWidgetsFlutterBinding tests — TestWidgetsFlutterBinding installs a 400-returning mock that breaks every real socket call; `runZoned(createHttpClient: (c) => HttpClient(context: c))` naïvely infinitely recurses because `new HttpClient` IS the override hook. `class _RealHttpOverrides extends HttpOverrides {}` + `runWithHttpOverrides` inherits the platform's real `createHttpClient` via super — no recursion.
+- [Phase 07-map-integration]: Phase 07 plan 07-04: streaming sha256 via `sha256.bind(file.openRead()).first` (NOT via `package:convert` AccumulatorSink). Plan 07-01 §Issues Encountered #1 explicitly decided to keep `convert` out of direct deps. DigestSink is NOT exported by crypto either, so the `.bind` public API is the cleanest path. Constant-memory up to 1.5 GB reassembled files.
+- [Phase 07-map-integration]: Phase 07 plan 07-04: CountryDeleteService sentinel compare against CountryCode.world rejects BOTH the static sentinel AND CountryCode.parse('wld') (parse-path returns a CountryCode equal to the sentinel by design, per the reservation contract documented in Plan 07-02 country_code.dart). File-first then manifest ordering: a crash mid-sequence leaves either the clean-uninstalled state OR an orphan manifest entry that heal catches — never a disk-orphan .pmtiles.
+- [Phase 07-map-integration]: Phase 07 plan 07-04: JsonFileInstalledManifestRepository + DownloadQueueStore use single-writer mutex via Future<void> tail. Plan 07-04 serializes manifest writes behind the controller + queue writes behind enqueueCountry, but the port accepts concurrent settings-screen delete calls. Mutex ensures deterministic broadcast-stream event ordering + no interleaved .tmp → canonical rename races. Tested via two unawaited write calls + event-order assertion.
+- [Phase 07-map-integration]: Phase 07 plan 07-04: Corrupted JSON → empty list for DownloadQueueStore.load (NOT a throw). Alternative would leave user's queue unrecoverable after rare crash. JsonFileInstalledManifestRepository has opposite policy (throws SchemaValidationException) because the bootstrap heal path can recover from the on-disk .pmtiles tree — needs a loud signal that JSON is corrupt.
 
 ### Pending Todos
 
@@ -292,6 +301,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T00:44:24.362Z
-Stopped at: Completed 07-03-map-infrastructure-PLAN.md
+Last session: 2026-04-21T01:19:39Z
+Stopped at: Completed 07-04-download-pipeline-PLAN.md
 Resume file: None

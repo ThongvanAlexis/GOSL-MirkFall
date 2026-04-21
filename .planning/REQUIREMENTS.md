@@ -223,9 +223,9 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | MAP-05 | Phase 07 | In Progress (Plan 07-01 scaffolding done; PmtilesSource impl pending Plan 07-03) |
 | MAP-06 | Phase 07 | In Progress (Plan 07-01 scaffolding done; MapView interface pending Plan 07-02) |
 | MAP-07 | Phase 07 | In Progress (Plan 07-01 scaffolding done; first-launch copier pending Plan 07-03) |
-| MAP-08 | Phase 07 | In Progress (Plan 07-01 scaffolding done; CountryCatalog entity pending Plan 07-02, download screen pending Plan 07-06) |
-| MAP-09 | Phase 07 | In Progress (Plan 07-01 scaffolding done; atomic download pipeline pending Plan 07-04) |
-| MAP-10 | Phase 07 | Complete |
+| MAP-08 | Phase 07 | In Progress (Plan 07-01 scaffolding + Plan 07-02 CountryCatalog Freezed + Plan 07-04 download pipeline atomic 7-step protocol + PmtilesDownloadController + JsonFileInstalledManifestRepository landed; download screen pending Plan 07-06) |
+| MAP-09 | Phase 07 | Complete (Plan 07-04 — 7-step atomic protocol test-proven end-to-end: preflight / chunk download with Range resume / per-chunk sha256 / streaming concat / global sha256 / atomic rename / manifest write / staging cleanup. 6 soak scenarios exercise absent-or-fully-installed invariant against wire-level failure modes: happy / multi-part / 206 resume / 200 restart / disk insufficient / mid-rename kill heal. FirstLaunchBootstrap pmtiles-heal path closes the mid-rename crash gap.) |
+| MAP-10 | Phase 07 | In Progress (Plan 07-04 CountryDeleteService landed with CountryCode.world sentinel guard + InstalledManifest.totalSizeBytes helper ready; management screen UI pending Plan 07-06) |
 | MARK-01 | Phase 11 | Pending |
 | MARK-02 | Phase 11 | Pending |
 | MARK-03 | Phase 11 | Pending |
