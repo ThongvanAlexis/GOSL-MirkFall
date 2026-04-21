@@ -7,8 +7,15 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/controllers/country_resolver_controller.dart';
+import 'package:mirkfall/application/controllers/map_camera_controller.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
+import 'package:mirkfall/application/state/active_session_state.dart';
+import 'package:mirkfall/config/constants.dart';
+import 'package:mirkfall/domain/fixes/fix.dart';
+import 'package:mirkfall/domain/ids/fix_id.dart';
+import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
@@ -57,6 +64,28 @@ class _FakeResolverController extends CountryResolverController {
   CountryResolverState build() => seed;
 }
 
+/// Fake active-session controller for tests that need a Tracking state
+/// seed on /map entry.
+class _FakeActiveSessionController extends ActiveSessionController {
+  _FakeActiveSessionController({required this.seed});
+  final ActiveSessionState seed;
+
+  @override
+  ActiveSessionState build() => seed;
+}
+
+Fix _fix({required SessionId sid, required double lat, required double lon}) => Fix(
+  id: FixId.parse('fix_01ARZ3NDEKTSV4RRFFQ69G5FAV'),
+  sessionId: sid,
+  recordedAtUtc: DateTime.utc(2026, 4, 21, 10, 30),
+  recordedAtOffsetMinutes: 120,
+  latitude: lat,
+  longitude: lon,
+  accuracyMeters: 10.0,
+  speedMps: 1.0,
+  headingDegrees: 0.0,
+);
+
 CountryCatalog _oneCountryCatalog() {
   final ChunkPart part = ChunkPart(sha256: 'a' * 64, size: 1000, url: 'https://example.com/releases/download/v1/fra.part01');
   return CountryCatalog(
@@ -89,13 +118,14 @@ void main() {
     }
   });
 
-  Widget wrapScreen({required FakeMapView fakeMapView, CountryResolverState? resolverSeed}) {
+  Widget wrapScreen({required FakeMapView fakeMapView, CountryResolverState? resolverSeed, ActiveSessionState? sessionSeed}) {
     return ProviderScope(
       overrides: [
         appSupportDirProvider.overrideWith((ref) async => tmpDir.path),
         installedManifestRepositoryProvider.overrideWith((ref) async => fakeRepo),
         countryCatalogProvider.overrideWith((ref) async => _oneCountryCatalog()),
         if (resolverSeed != null) countryResolverControllerProvider.overrideWith(() => _FakeResolverController(seed: resolverSeed)),
+        if (sessionSeed != null) activeSessionControllerProvider.overrideWith(() => _FakeActiveSessionController(seed: sessionSeed)),
       ],
       child: MaterialApp(
         home: MapScreen(
@@ -156,5 +186,43 @@ void main() {
     // Drawer open — "MirkFall" header is present.
     expect(find.text('MirkFall'), findsOneWidget);
     expect(find.text('Aucune session active'), findsOneWidget);
+  });
+
+  testWidgets('reaching /map with an active Tracking session auto-opens the camera controller (FAB transitions out of Idle)', (tester) async {
+    // Regression guard: previously, MapScreen published the MapView
+    // adapter but never called MapCameraController.openForSession(). If
+    // a user started a session then navigated to /map via the SessionList
+    // "Ouvrir la carte" entry, the controller stayed in MapCameraIdle
+    // and the follow-me FAB misleadingly asked them to start a session
+    // that was already running.
+    final SessionId sid = SessionId.parse('sess_01ARZ3NDEKTSV4RRFFQ69G5FAV');
+    final Tracking tracking = Tracking(
+      sessionId: sid,
+      startedAtUtc: DateTime.now().toUtc().subtract(const Duration(seconds: 30)),
+      fixCount: 1,
+      distanceFilterMeters: kDefaultDistanceFilterMeters,
+      lastFix: _fix(sid: sid, lat: 48.8566, lon: 2.3522),
+    );
+
+    final fakeMapView = FakeMapView();
+    await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, sessionSeed: tracking));
+    await tester.pumpAndSettle();
+
+    // Read the camera controller state through a fresh ProviderContainer
+    // scoped at the same ProviderScope — pump + settle already exercised
+    // the PostFrameCallback that fires onReady → openForSession.
+    final BuildContext context = tester.element(find.byType(MapFollowMeFab));
+    final ProviderContainer container = ProviderScope.containerOf(context);
+    final MapCameraState cameraState = container.read(mapCameraControllerProvider);
+
+    // State is Following (lastFix present → openForSession goes straight
+    // to Following, skipping Centering).
+    expect(cameraState, isA<MapCameraFollowing>());
+    expect((cameraState as MapCameraFollowing).sessionId, equals(sid));
+
+    // The FakeMapView received the moveCameraTo call from openForSession.
+    expect(fakeMapView.cameraMovesObserved.length, greaterThanOrEqualTo(1));
+    expect(fakeMapView.cameraMovesObserved.last.latitude, closeTo(48.8566, 1e-6));
+    expect(fakeMapView.cameraMovesObserved.last.longitude, closeTo(2.3522, 1e-6));
   });
 }

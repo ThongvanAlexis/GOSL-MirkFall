@@ -2,9 +2,14 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mirkfall/application/controllers/active_session_controller.dart';
+import 'package:mirkfall/application/controllers/map_camera_controller.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
+import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_view.dart';
 import 'package:mirkfall/infrastructure/map/maplibre_map_view.dart';
@@ -122,19 +127,27 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// so controllers (MapCameraController, CountryResolverController) can
   /// attach their listeners. Called by [MapLibreMapViewWidget] once the
   /// first `onStyleLoaded` fires.
+  ///
+  /// If an active session is already tracking when we reach /map (via the
+  /// SessionList "Ouvrir la carte" entry, a direct deep-link, or a return
+  /// from a Phase 07-07 smoke walk), fires [`MapCameraController.openForSession`]
+  /// so the follow-me FAB sees a non-Idle state. Without this auto-open,
+  /// the controller stays in [`MapCameraIdle`] and the FAB would mislead
+  /// the user with "Démarre une session pour activer le centrage GPS"
+  /// even though one IS active.
   void _onMapReady(MapView adapter) {
     // Ignore late callbacks after the widget is torn down; the
     // MapViewHolder handles the transition back to null via dispose of
     // the underlying adapter.
     if (!mounted) return;
     ref.read(mapViewProvider.notifier).set(adapter);
-    // Kick off camera-open for the active session (if any). The
-    // controller no-ops on MapCameraIdle when there is no active
-    // session, so this is safe to call unconditionally on /map.
-    // Intentionally commented-out: MapScreen is reached from SessionList
-    // (`/map` entry) when no session is active; the active session path
-    // goes through SessionDetailScreen (Task 3) which calls
-    // openForSession itself.
+    final ActiveSessionState? sessionState = ref.read(activeSessionControllerProvider).value;
+    if (sessionState is Tracking) {
+      // Fire-and-forget: openForSession is async but the widget doesn't
+      // need to block on it — the controller publishes state changes
+      // through Riverpod which propagate back via the FAB's ref.watch.
+      unawaited(ref.read(mapCameraControllerProvider.notifier).openForSession(sessionState.sessionId));
+    }
   }
 }
 
