@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/constants.dart';
+import '../widgets/attribution_link_handler.dart';
 
 /// Placeholder "À propos" screen for Phase 01.
 ///
@@ -53,13 +54,34 @@ class _AboutPlaceholderScreenState extends State<AboutPlaceholderScreen> {
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _onTap,
-        child: const Center(
+        child: SingleChildScrollView(
           child: Padding(
-            padding: EdgeInsets.all(kScreenBodyPaddingLogicalPx),
-            child: Text(
-              'MirkFall\n\nPlaceholder À propos. '
-              "Phase 15 livrera l'écran complet.",
-              textAlign: TextAlign.center,
+            padding: const EdgeInsets.all(kScreenBodyPaddingLogicalPx),
+            child: Column(
+              children: <Widget>[
+                const SizedBox(height: 24.0),
+                const Text(
+                  'MirkFall\n\nPlaceholder À propos. '
+                  "Phase 15 livrera l'écran complet.",
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32.0),
+                const Divider(),
+                const SizedBox(height: 16.0),
+                // MAP-03: attribution block mirrors the MapAttributionIcon
+                // surface (Task 1) — link-tap strategy is copy-to-clipboard
+                // + snackbar via the shared helper `openAttributionLink`.
+                Text('Attribution', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 4.0),
+                TextButton(
+                  onPressed: () => openAttributionLink(context, kOpenStreetMapCopyrightUrl),
+                  child: const Text('© OpenStreetMap contributors'),
+                ),
+                TextButton(
+                  onPressed: () => openAttributionLink(context, kProtomapsUrl),
+                  child: const Text('© Protomaps'),
+                ),
+              ],
             ),
           ),
         ),
