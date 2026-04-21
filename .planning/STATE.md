@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 07 plan 07-04 (Download Pipeline) done — 07-05 unblocked
+current_plan: Phase 07 plan 07-05 (Controllers and Providers) done — 07-06 unblocked
 status: executing
-stopped_at: Completed 07-04-download-pipeline-PLAN.md
-last_updated: "2026-04-21T01:19:39Z"
+stopped_at: Completed 07-05-controllers-and-providers-PLAN.md
+last_updated: "2026-04-21T02:12:01Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 16
   completed_phases: 6
   total_plans: 37
-  completed_plans: 34
-  percent: 92
+  completed_plans: 35
+  percent: 95
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 07 Map Integration — Plan 07-04 (Download Pipeline) done 2026-04-21. 7-step atomic download protocol landed end-to-end: preflight (DiskSpaceChecker + 1.1× margin) → chunked HTTP with Range resume + 200-OK restart fallback (HttpChunkDownloader, pure dart:io, no package:http) → per-chunk sha256 with 1-retry-on-mismatch (Sha256Verifier streaming via sha256.bind) → streaming concat (BinaryConcatenator, IOSink, constant memory) → global sha256 (no retry, fail hard) → atomic rename (AtomicRenamer with EXDEV cross-volume fallback) → iOS backup-exclude → InstalledManifestRepository.write (tempfile+rename + single-writer mutex + broadcast updates) → staging cleanup. PmtilesDownloadController orchestrates; emits sealed DownloadState on broadcast stream; enqueue/pause/resume/cancelActive surface. CountryDeleteService sentinel-guards CountryCode.world (parse-path too). FirstLaunchBootstrap pmtiles-heal path recovers mid-rename-kill orphans. shelf-backed FakeHttpServer in test/fakes/ exposes 6 sealed behaviours (happy/ignore-range/403/500/drop/redirect) for wire-level test doubles. 6 `@Tags(['soak'])` scenarios exercise the full protocol (happy 1-part, multi-part, 206 resume, 200 restart, disk insufficient, atomic cleanup heal). 59 new tests (587 total, zero regressions). All 4 lint gates exit 0. Plan 07-05 (controllers and providers) unblocked.
+**Current focus:** Phase 07 Map Integration — Plan 07-05 (Controllers and Providers) done 2026-04-21. 4 @Riverpod(keepAlive: true) controllers landed (MapCameraController: Z=13 session-open zoom + follow-me + manual-pan detection via pending-flag heuristic; CountryResolverController: viewport→alpha3 hot-swap with 500 ms debounce + banner data for non-installed countries; DownloadQueueController: UI wrapper over PmtilesDownloadController with aggregateProgressFraction; InstalledMapsController: derived installed view + updatesAvailable + totalDiskUsageBytes + delete delegate). 17 providers in map_providers.dart compose the Phase 07 DI graph: appSupportDir + countryCatalog + installedManifestRepository + installedManifest + pmtilesSource + styleRewriter + diskSpaceChecker + iosBackupExcluder + firstLaunchWorldCopier + httpChunkDownloader + sha256Verifier + binaryConcatenator + atomicRenamer + downloadQueueStore + pmtilesDownloadController + countryDeleteService + firstLaunchBootstrap + MapViewHolder notifier aliased as mapViewProvider (Riverpod 3.x replacement for StateProvider). main.dart pre-initialises firstLaunchBootstrapProvider before runApp via root ProviderContainer + UncontrolledProviderScope handoff (parity with Phase 05 DB pre-init) — world basemap + orphan staging scan + iOS backup-exclude complete before first widget frame. 45 new unit tests (630 total). All 4 lint gates exit 0. Plan 07-06 (presentation) unblocked.
 
 ## Current Position
 
-Phase: 07 of 16 (Map Integration) — 4 / 7 plans done — Plan 07-05 (controllers and providers) unblocked
-Current Plan: Phase 07 plan 07-04 (Download Pipeline) done — 07-05 unblocked
-Total Plans in Phase 07: 4 / 7 done
-Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-05
+Phase: 07 of 16 (Map Integration) — 5 / 7 plans done — Plan 07-06 (presentation) unblocked
+Current Plan: Phase 07 plan 07-05 (Controllers and Providers) done — 07-06 unblocked
+Total Plans in Phase 07: 5 / 7 done
+Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-06
 Last Activity: 2026-04-21
 
-Progress: [█████████░] 92% — 34 / 37 plans executed across phases 01-07.
+Progress: [█████████▌] 95% — 35 / 37 plans executed across phases 01-07.
 
 ## Performance Metrics
 
@@ -84,6 +84,7 @@ Progress: [█████████░] 92% — 34 / 37 plans executed across
 | Phase 07-map-integration P02 | 18min | 3 tasks | 57 files |
 | Phase 07-map-integration P03 | 18min | 3 tasks | 25 files |
 | Phase 07-map-integration P04 | 31min | 3 tasks | 23 files |
+| Phase 07-map-integration P05 | 42min | 3 tasks | 11 files (5 lib sources + 5 tests + main.dart modification) |
 
 ## Accumulated Context
 
@@ -275,6 +276,12 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 07-map-integration]: Phase 07 plan 07-04: CountryDeleteService sentinel compare against CountryCode.world rejects BOTH the static sentinel AND CountryCode.parse('wld') (parse-path returns a CountryCode equal to the sentinel by design, per the reservation contract documented in Plan 07-02 country_code.dart). File-first then manifest ordering: a crash mid-sequence leaves either the clean-uninstalled state OR an orphan manifest entry that heal catches — never a disk-orphan .pmtiles.
 - [Phase 07-map-integration]: Phase 07 plan 07-04: JsonFileInstalledManifestRepository + DownloadQueueStore use single-writer mutex via Future<void> tail. Plan 07-04 serializes manifest writes behind the controller + queue writes behind enqueueCountry, but the port accepts concurrent settings-screen delete calls. Mutex ensures deterministic broadcast-stream event ordering + no interleaved .tmp → canonical rename races. Tested via two unawaited write calls + event-order assertion.
 - [Phase 07-map-integration]: Phase 07 plan 07-04: Corrupted JSON → empty list for DownloadQueueStore.load (NOT a throw). Alternative would leave user's queue unrecoverable after rare crash. JsonFileInstalledManifestRepository has opposite policy (throws SchemaValidationException) because the bootstrap heal path can recover from the on-disk .pmtiles tree — needs a loud signal that JSON is corrupt.
+- [Phase 07-map-integration]: Phase 07 plan 07-05: MapViewHolder notifier aliased as mapViewProvider — Riverpod 3.x removed StateProvider; canonical replacement is an @Riverpod class whose build() returns the held value + exposes a set() mutator. Domain type `MapView` collides so the class is `MapViewHolder` but the auto-generated `mapViewHolderProvider` is aliased as `mapViewProvider` for call-site ergonomics.
+- [Phase 07-map-integration]: Phase 07 plan 07-05: Direct repo.updates stream subscription in controllers (bypasses installedManifestProvider StreamProvider layer) — Riverpod 3.3.1's StreamProvider has an AsyncValue timing quirk under keepAlive:true + async build awaits where its AsyncValue.value stays null even after the underlying stream emits. Both CountryResolverController + InstalledMapsController attach directly to InstalledManifestRepository.updates after awaiting the repo from its FutureProvider. ref.watch(installedManifestProvider) retained in CountryResolver for keepAlive.
+- [Phase 07-map-integration]: Phase 07 plan 07-05: CountryResolverController rebuilds across ALL catalogued countries (installed + not) — necessary to surface the "Télécharger ce pays" banner data for non-installed countries. Installed-only polygon load would make viewportCountry always null for uninstalled neighbours. Installed-status gate applied in _resolveAndApply to drive the "showMap vs banner" branch.
+- [Phase 07-map-integration]: Phase 07 plan 07-05: Pending-flag + 1000ms debounce heuristic for manual-pan detection — MapLibre's onCameraIdle echoes every camera move (including the controller's own moveCameraTo); the flag + timer filter echoes while a user pan outside the window transitions Following → FreePan. 1s chosen after MapLibre's ~200ms typical + ~500ms under slow-frame; smaller window risks false-positive user-pan on emulators, larger window risks swallowing real user pans immediately after a programmatic move.
+- [Phase 07-map-integration]: Phase 07 plan 07-05: main.dart pre-runApp FirstLaunchBootstrap via root ProviderContainer + UncontrolledProviderScope handoff (option b per plan Task 3) — parity with Phase 05 synchronous buildAppDatabase pre-init pattern. Same container reused so downstream ref.watch(firstLaunchBootstrapProvider) inherits warm cache. Riverpod 3.x API is UncontrolledProviderScope(container:) (not ProviderScope(parent:) as plan text suggested).
+- [Phase 07-map-integration]: Phase 07 plan 07-05: aggregateProgressFraction returns ACTIVE job's fractionDone (NOT sum across queue) — summing fractions across files of different sizes is meaningless. UI renders 'n/m downloading at X%' by combining the state variant + this getter. Paused state returns the paused snapshot's fractionDone.
 
 ### Pending Todos
 

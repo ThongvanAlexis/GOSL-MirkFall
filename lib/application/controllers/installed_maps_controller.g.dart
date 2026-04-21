@@ -90,7 +90,7 @@ final class InstalledMapsControllerProvider
 }
 
 String _$installedMapsControllerHash() =>
-    r'9d21f3db8ea303aa30ac1d291e840d3006ff44b0';
+    r'e30289058a298c87e39c7aebfb11b34351843c0f';
 
 /// Presentation-facing view over the installed-maps manifest + catalog.
 ///

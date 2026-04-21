@@ -99,7 +99,7 @@ final class CountryResolverControllerProvider
 }
 
 String _$countryResolverControllerHash() =>
-    r'e03f1cd644b3ce21200d8e868d2091cee8186ce3';
+    r'047c47c32eb2e0c25202e9470295c17eac5a677a';
 
 /// Orchestrates viewport → country hot-swap.
 ///
