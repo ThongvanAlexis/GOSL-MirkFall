@@ -83,6 +83,15 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # Phase 07 (Plan 07-07 integration-verification) — SDK-shipped binding that
+  # lets `flutter test integration_test/` discover tests under the top-level
+  # `integration_test/` directory. Our tests pump MapScreen under a
+  # FakeMapView override (`mapViewBuilderForTest`) so they run under the
+  # default widget-test host runner without a real device; the dependency
+  # is required nonetheless because the `flutter test` CLI checks for its
+  # presence before invoking the integration_test runner.
+  integration_test:
+    sdk: flutter
   flutter_lints: 6.0.0
   # Phase 03 plan 03-04: bumped from 2.9.0 — 2.9.0 uses analyzer APIs removed
   # in analyzer 10 (`LibraryElement2`, `Element2`, `element2` getter).
