@@ -15,6 +15,7 @@ import 'app.dart';
 import 'application/providers/map_providers.dart';
 import 'application/providers/session_store_provider.dart';
 import 'infrastructure/logging/file_logger.dart';
+import 'infrastructure/platform/ios_crash_log_reader.dart';
 import 'presentation/router.dart';
 
 /// Application entry point — bootstraps logging, error handling, and UI.
@@ -109,6 +110,22 @@ Future<void> main() async {
       };
 
       log.info('MirkFall starting — logger armed');
+
+      // Drain any iOS native crash recovered from the previous run. The
+      // Swift CrashReporter installed in AppDelegate writes a raw dump
+      // to `<AppSupport>/ios_crash.log` on SIGABRT / SIGSEGV / SIGBUS /
+      // SIGILL / SIGFPE / SIGPIPE or on an uncaught NSException. We read
+      // that file on the NEXT launch and emit it at SHOUT so the trail
+      // lands in today's JSONL (shareable via the debug menu).
+      //
+      // No-op on Android / desktop — the reader checks Platform.isIOS.
+      // Wrapped in a best-effort try/catch because a crash-log read
+      // failure must never prevent the app from booting.
+      try {
+        await IosCrashLogReader().drainIfAny();
+      } on Object catch (e, st) {
+        log.warning('iOS crash-log drain failed (non-fatal)', e, st);
+      }
 
       // Phase 05 — wire the `flutter_local_notifications` tap callback so
       // the "tap to resume" notification (Plan 05-05 auto-resume path)

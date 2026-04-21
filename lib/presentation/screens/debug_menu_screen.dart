@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../config/constants.dart';
 import '../../infrastructure/logging/file_logger.dart';
+import '../../infrastructure/platform/ios_crash_log_reader.dart';
 
 /// Hidden debug menu reached via 7-tap on the `/about` placeholder.
 ///
@@ -163,6 +164,63 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
     }
   }
 
+  /// Surfaces the last native iOS crash captured by CrashReporter.swift.
+  ///
+  /// On iOS only. The crash log is already drained into today's JSONL at
+  /// bootstrap, so this entry is a convenience: it shows the raw dump in
+  /// a dialog (so the user can read the signal + backtrace without
+  /// hunting through the log file) and offers to share the file directly
+  /// via the system share sheet — useful when only the crash report is
+  /// relevant and the user doesn't want to ship the full JSONL.
+  ///
+  /// Reads without deleting — the bootstrap drain already removed the
+  /// file on successful launches. If the file is still present, it means
+  /// the previous drain failed or the user relaunched fast enough to see
+  /// a just-written crash; either way, reading is non-destructive.
+  Future<void> _onShowLastCrash() async {
+    final IosCrashLogReader reader = IosCrashLogReader();
+    final String? contents = await reader.readIfAny();
+    if (!mounted) return;
+    if (contents == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aucun plantage natif enregistré')));
+      return;
+    }
+    final String? filename = await reader.resolveCrashLogFilename();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Dernier plantage natif (iOS)'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Text(contents, style: const TextStyle(fontFamily: 'monospace', fontSize: 11.0)),
+          ),
+        ),
+        actions: <Widget>[
+          if (filename != null)
+            TextButton(
+              onPressed: () async {
+                Navigator.of(ctx).pop();
+                await _onShare(File(filename));
+              },
+              child: const Text('Partager'),
+            ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await reader.clear();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plantage supprimé')));
+            },
+            child: const Text('Supprimer'),
+          ),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Fermer')),
+        ],
+      ),
+    );
+  }
+
   Future<void> _onClearAll() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -216,6 +274,15 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             subtitle: const Text('Exporte mirkfall.db + -wal + -shm via le share sheet (iOS-friendly).'),
             onTap: _onShareDatabase,
           ),
+          if (Platform.isIOS) ...<Widget>[
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.bug_report_outlined),
+              title: const Text('Voir dernier crash (iOS)'),
+              subtitle: const Text("Affiche et partage le dernier plantage natif capturé par CrashReporter."),
+              onTap: _onShowLastCrash,
+            ),
+          ],
           const Divider(),
           ListTile(leading: const Icon(Icons.delete_forever), title: const Text('Supprimer tous les logs'), onTap: _onClearAll),
           const SizedBox(height: kListSectionPaddingLogicalPx),
