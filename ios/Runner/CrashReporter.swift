@@ -221,14 +221,19 @@ private func nsExceptionHandler(exception: NSException) {
 
 /// Appends [text] to the crash log via the normal (non-signal) Foundation
 /// path. Used by the NSException handler.
+///
+/// Uses the pre-iOS-13.4 FileHandle APIs (`seekToEndOfFile`, `write(Data)`
+/// — deprecated in 13.4 but still functional) because the project's
+/// IPHONEOS_DEPLOYMENT_TARGET is 13.0. The newer throwing variants
+/// (`seekToEnd()`, `write(contentsOf:)`) won't compile here.
 private func appendToCrashLog(_ text: String) {
     let url = URL(fileURLWithPath: CrashReporter.crashLogPath())
     let data = text.data(using: .utf8) ?? Data()
     if FileManager.default.fileExists(atPath: url.path) {
         if let handle = try? FileHandle(forWritingTo: url) {
-            defer { try? handle.close() }
-            try? handle.seekToEnd()
-            try? handle.write(contentsOf: data)
+            handle.seekToEndOfFile()
+            handle.write(data)
+            handle.closeFile()
         }
     } else {
         try? data.write(to: url, options: .atomic)
