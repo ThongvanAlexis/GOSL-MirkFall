@@ -334,23 +334,24 @@ class PmtilesDownloadController {
     for (int attempt = 0; attempt < kDownloadRetryAttempts; attempt++) {
       if (_cancelRequested) return;
       try {
-        _emit(
-          DownloadInProgress(
-            active: job,
-            progress: DownloadProgress(
-              bytesDownloaded: _accumulatedBytes,
-              totalBytes: job.entry.reassembled.size,
-              currentPartIndex: partIndex,
-              totalParts: job.entry.parts.length,
-            ),
-            remaining: _queue.length > 1 ? List<DownloadJob>.unmodifiable(_queue.skip(1)) : <DownloadJob>[],
-          ),
-        );
+        _emitInProgress(job: job, partIndex: partIndex);
+        DateTime lastEmit = DateTime.now();
         await _httpDownloader.downloadWithResume(
           url: Uri.parse(part.url),
           destination: destination,
           onProgress: (int delta, int? _) {
             _accumulatedBytes += delta;
+            // Re-emit during the chunk body so the UI's percent + speed
+            // readouts keep ticking between chunk boundaries. Without
+            // this throttle the callback would fire for every TCP
+            // segment (tens of times per second) and flood the Riverpod
+            // state stream. With the 250 ms window we get ~4 updates/s
+            // — enough to render a smooth speed label, cheap enough to
+            // stay invisible on the CPU graph.
+            final DateTime now = DateTime.now();
+            if (now.difference(lastEmit).inMilliseconds < kDownloadProgressEmitThrottleMs) return;
+            lastEmit = now;
+            _emitInProgress(job: job, partIndex: partIndex);
           },
         );
         return;
@@ -364,6 +365,25 @@ class PmtilesDownloadController {
     }
     // Exhausted retries.
     throw lastError ?? const DownloadInterruptedException(reason: 'retry budget exhausted with no recorded cause');
+  }
+
+  /// Emits a [DownloadInProgress] snapshot reflecting the current
+  /// accumulated-bytes counter + the requested [partIndex]. Factored
+  /// out so the chunk-start emit + the throttled in-body emits share
+  /// one construction path.
+  void _emitInProgress({required DownloadJob job, required int partIndex}) {
+    _emit(
+      DownloadInProgress(
+        active: job,
+        progress: DownloadProgress(
+          bytesDownloaded: _accumulatedBytes.clamp(0, job.entry.reassembled.size),
+          totalBytes: job.entry.reassembled.size,
+          currentPartIndex: partIndex,
+          totalParts: job.entry.parts.length,
+        ),
+        remaining: _queue.length > 1 ? List<DownloadJob>.unmodifiable(_queue.skip(1)) : <DownloadJob>[],
+      ),
+    );
   }
 
   Future<void> _verifyChunkWithOneRetry({required ChunkPart part, required File partFile, required DownloadJob job, required int partIndex}) async {

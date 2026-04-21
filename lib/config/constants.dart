@@ -222,3 +222,15 @@ const int kDownloadRetryAttempts = 3;
 /// 07-CONTEXT.md §Pipeline download pays (kDownloadRetryBaseDelayMs,
 /// ×5, ×30).
 const int kDownloadRetryBaseDelayMs = 1000;
+
+/// Minimum wall-clock gap between two consecutive `DownloadInProgress`
+/// emissions from the Phase 07 download controller. Without this
+/// throttle the HTTP `onProgress` callback (fired for every TCP chunk
+/// — tens of times per second on a fast connection) would flood the
+/// Riverpod state stream and rebuild the download screen at every
+/// tick. 250 ms = 4 updates/s, which is smooth for the percent label
+/// + the speed readout while costing ≤1 % extra CPU over the
+/// one-emit-per-HTTP-chunk baseline. Bumping this down past ~100 ms
+/// is possible but not measurably better — human eyes don't notice
+/// faster than that.
+const int kDownloadProgressEmitThrottleMs = 250;

@@ -190,6 +190,62 @@ void main() {
     });
   });
 
+  group('PmtilesDownloadController — mid-chunk progress emission', () {
+    test('emits multiple DownloadInProgress events while a single chunk streams', () async {
+      // Regression guard for the UX bug: before this fix, progress only
+      // ticked at chunk boundaries — on France (split into ~4 parts)
+      // the user saw the percent jump 0 → 23 % → 46 % with long pauses
+      // between. The 250 ms throttle + onProgress re-emit should now
+      // surface ~4 updates/s during the chunk body. This test uses a
+      // ServeChunkedSlowly behaviour to feed 4 segments over 600 ms
+      // real time → >=2 mid-chunk emits are expected in addition to
+      // the start-of-chunk emit.
+      await _withRealHttpClient(() async {
+        // 4 × 2 KB segments = 8 KB total. The segment count + interval
+        // must exceed kDownloadProgressEmitThrottleMs for the throttle
+        // window to open at least twice during the chunk body.
+        final List<Uint8List> segments = List<Uint8List>.generate(4, (i) => Uint8List.fromList(List<int>.filled(2048, 0x10 + i)));
+        final Uint8List fullPayload = Uint8List.fromList(segments.expand((s) => s).toList());
+
+        final FakeHttpServer server = await FakeHttpServer.bind(initialBytes: fullPayload);
+        server.behaviour = ServeChunkedSlowly(segments: segments, interval: const Duration(milliseconds: 200));
+        addTearDown(server.close);
+
+        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
+        final _Harness result = await makeController(httpDownloader: httpDownloader);
+
+        final List<DownloadInProgress> progressEvents = <DownloadInProgress>[];
+        final StreamSubscription<DownloadState> sub = result.controller.stateStream.listen((DownloadState state) {
+          if (state is DownloadInProgress) progressEvents.add(state);
+        });
+        addTearDown(sub.cancel);
+
+        final CountryEntry entry = _entryFor(
+          alpha3Raw: 'fra',
+          chunkPayloads: <Uint8List>[fullPayload],
+          chunkUrls: <String>[server.base.resolve('/fra/part01').toString()],
+        );
+        final Future<DownloadState> completedFuture = result.controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
+        await result.controller.enqueueCountry(entry);
+        await completedFuture;
+
+        // With a 600 ms chunk body + 250 ms throttle, we should see the
+        // initial start-of-chunk emit at t=0 plus at least one throttled
+        // re-emit from onProgress. Two emits total is the absolute floor.
+        expect(progressEvents.length, greaterThanOrEqualTo(2), reason: 'Progress should tick at least twice during a 600 ms slow-streamed chunk');
+
+        // At least one of the mid-chunk emits must surface non-zero
+        // bytesDownloaded — proves the _accumulatedBytes counter is
+        // reflected in the emitted state, not just the initial zero.
+        expect(
+          progressEvents.any((DownloadInProgress e) => e.progress.bytesDownloaded > 0),
+          isTrue,
+          reason: 'At least one emit must report non-zero bytesDownloaded',
+        );
+      });
+    });
+  });
+
   group('PmtilesDownloadController — preflight', () {
     test('insufficient disk space emits DownloadError(DiskSpaceInsufficient)', () async {
       // Preflight runs before any HTTP call, so this test does not

@@ -92,7 +92,27 @@ class FakeHttpServer {
         return _serveDrop(bytesBeforeDrop);
       case ServeRedirect(:final Uri target):
         return shelf.Response.found(target.toString());
+      case ServeChunkedSlowly(:final List<Uint8List> segments, :final Duration interval):
+        return _serveChunkedSlowly(segments, interval);
     }
+  }
+
+  shelf.Response _serveChunkedSlowly(List<Uint8List> segments, Duration interval) {
+    // Feed the response body one segment at a time with [interval] gaps
+    // between segments. Content-Length is still the full payload so the
+    // client reads until EOF without suspecting truncation. Used by the
+    // throttled-progress tests to prove the pipeline emits mid-chunk
+    // DownloadInProgress events — not just at chunk boundaries.
+    final int totalLength = segments.fold<int>(0, (sum, s) => sum + s.length);
+    final StreamController<List<int>> ctrl = StreamController<List<int>>();
+    Future<void>.microtask(() async {
+      for (int i = 0; i < segments.length; i++) {
+        if (i > 0) await Future<void>.delayed(interval);
+        ctrl.add(segments[i]);
+      }
+      await ctrl.close();
+    });
+    return shelf.Response.ok(ctrl.stream, headers: <String, Object>{'content-length': '$totalLength'});
   }
 
   shelf.Response _serveHappy(String? rangeHeader) {
@@ -192,4 +212,17 @@ class ServeDropConnectionAfterBytes extends FakeServerBehaviour {
 class ServeRedirect extends FakeServerBehaviour {
   const ServeRedirect({required this.target});
   final Uri target;
+}
+
+/// Emit [segments] as a streamed response, waiting [interval] between
+/// each segment. Content-Length advertises the total payload size; the
+/// client sees a slow trickle that matches a real-world bandwidth-
+/// limited transfer. Used by the throttled-progress tests to prove the
+/// pipeline emits mid-chunk `DownloadInProgress` events at the
+/// `kDownloadProgressEmitThrottleMs` cadence — not just one per chunk
+/// boundary.
+class ServeChunkedSlowly extends FakeServerBehaviour {
+  const ServeChunkedSlowly({required this.segments, required this.interval});
+  final List<Uint8List> segments;
+  final Duration interval;
 }
