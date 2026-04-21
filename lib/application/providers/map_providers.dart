@@ -318,6 +318,25 @@ class MapViewportZoom extends _$MapViewportZoom {
       },
     );
     ref.onDispose(sub.cancel);
+    // Seed from the adapter's current viewport snapshot. Without this
+    // read the provider state stays null until the user pinches — any
+    // camera move that settled BEFORE this provider first attached
+    // (e.g. the auto-center from MapScreen._onMapReady →
+    // MapCameraController.openForSession firing moveCameraTo before
+    // the burger-menu consumer watches this notifier) is missed.
+    // Async read is safe: if the adapter is disposed before the future
+    // completes, the `state =` assignment hits a disposed notifier and
+    // Riverpod's own guard short-circuits — no exception surfaces.
+    unawaited(() async {
+      try {
+        final v = await view.queryViewport();
+        state = v.zoom;
+      } on Object {
+        // queryViewport can throw on an adapter whose MapLibre surface
+        // hasn't finished loading. Benign — the viewportUpdates stream
+        // will emit once the camera settles.
+      }
+    }());
     return null;
   }
 }

@@ -1025,7 +1025,7 @@ final class MapViewportZoomProvider extends $NotifierProvider<MapViewportZoom, d
   }
 }
 
-String _$mapViewportZoomHash() => r'01e62a8a11e9e6422c6c47864d6bc3a74fecdfd2';
+String _$mapViewportZoomHash() => r'bf741c02f1968e52657fc30a3631df2e22de2301';
 
 /// Current MapLibre viewport zoom level. Null until the MapView is ready
 /// and the first `onCameraIdle` viewport event fires.

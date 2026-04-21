@@ -13,6 +13,7 @@ import 'package:logging/logging.dart';
 
 import 'app.dart';
 import 'application/providers/map_providers.dart';
+import 'application/providers/session_store_provider.dart';
 import 'infrastructure/logging/file_logger.dart';
 import 'presentation/router.dart';
 
@@ -147,6 +148,38 @@ Future<void> main() async {
         // render a fatal banner; we still launch the app so the
         // recovery screen can surface.
         log.shout('firstLaunchBootstrap failed — launching without world map', e, st);
+      }
+
+      // Phase 07 device-smoke fix 2026-04-21 — reconcile stale active
+      // sessions. If the process was killed without a clean stop (app
+      // swipe from recents, OS-kill, crash), the DB row carries
+      // `status=active` forever even though no tracking isolate is
+      // alive. The UI surfaces a misleading "active" badge on the
+      // session list. Mark any such row as `stopped` at startup;
+      // `stoppedAtUtc` stays null since we genuinely do not know when
+      // the process died — that nullable-stop shape is already
+      // legitimate in the Session model.
+      //
+      // Safe against the Plan 05-05 watchdog resume flow: the watchdog
+      // runs in its own minimal engine + fires its notification BEFORE
+      // the main isolate starts. By the time this reconciliation
+      // executes, the notification is already in the tray. If the user
+      // taps it later, they land on the session detail screen with
+      // `status=stopped` and press Start manually — the "explicit user
+      // control" guarantee from 05-CONTEXT.md §Auto-resume post-kill
+      // still holds.
+      try {
+        final sessionStore = await rootContainer.read(sessionStoreProvider.future);
+        final stale = await sessionStore.findActive();
+        if (stale != null) {
+          log.info('Reconciling stale active session ${stale.id.value} "${stale.displayName}" — process died without clean stop');
+          await sessionStore.deactivate(stale.id);
+        }
+      } on Object catch (e, st) {
+        // Reconciliation is a nice-to-have, not a bootstrap blocker —
+        // the app still launches and the user can stop the session
+        // manually from the detail screen.
+        log.warning('Session reconciliation failed (non-fatal)', e, st);
       }
 
       // Phase 05 wiring note — `ActiveSessionController` is the first
