@@ -157,7 +157,22 @@ jobs:
         run: |
           # Each directory is optional — the `-d` guard silently skips
           # anything that does not exist yet.
-          if [ -d test/domain ]; then dart test test/domain/; fi
+          #
+          # test/domain/mirk/mirk_renderer_contract_test.dart and
+          # test/domain/map/country_catalog_test.dart import dart:ui /
+          # package:flutter via flutter_test+rootBundle (Canvas contract +
+          # asset bundle loading). They run under `flutter test` but cannot
+          # load under plain `dart test`. Explicitly excluded here; coverage
+          # is preserved by the "Flutter unit + widget tests" step above.
+          if [ -d test/domain ]; then
+            mapfile -t _plain_domain_tests < <(find test/domain -name '*_test.dart' \
+              ! -path 'test/domain/mirk/mirk_renderer_contract_test.dart' \
+              ! -path 'test/domain/map/country_catalog_test.dart' \
+              | sort)
+            if [ ${#_plain_domain_tests[@]} -gt 0 ]; then
+              dart test "${_plain_domain_tests[@]}"
+            fi
+          fi
           if [ -d test/infrastructure/db ]; then dart test test/infrastructure/db/; fi
           if [ -d test/infrastructure/stores ]; then dart test test/infrastructure/stores/; fi
           if [ -d test/infrastructure/ids ]; then dart test test/infrastructure/ids/; fi
