@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 07 plan 07-02 (Domain Interfaces) done — 07-03 unblocked
-status: in_progress
-stopped_at: Completed 07-02-domain-interfaces-PLAN.md
-last_updated: "2026-04-21T00:09:36Z"
+current_plan: Phase 07 plan 07-03 (Map Infrastructure) done — 07-04 unblocked
+status: executing
+stopped_at: Completed 07-03-map-infrastructure-PLAN.md
+last_updated: "2026-04-21T00:44:24.367Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 16
   completed_phases: 6
   total_plans: 37
-  completed_plans: 32
-  percent: 86
+  completed_plans: 33
+  percent: 89
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 07 Map Integration — Plan 07-02 (Domain Interfaces) done 2026-04-21. MapView port locked (12 MirkFall-vocabulary methods, zero maplibre_gl leak) + CountryCode extension type with world sentinel + CountryCatalog Freezed hierarchy (parses real 249-country catalog + extracts catalogVersion v20260419) + 7 map-layer exceptions + sealed 7-variant DownloadState + Freezed DownloadProgress + 4 download exceptions + Freezed InstalledManifest + InstalledManifestRepository port + frozen 3-method MirkRenderer + Freezed MirkPaintContext + 5 test fakes fully implement their ports with observable state. 55 new unit tests green. All 4 lint gates exit 0 on real tree scan. Plan 07-03 (map infrastructure) unblocked.
+**Current focus:** Phase 07 Map Integration — Plan 07-03 (Map Infrastructure) done 2026-04-21. MapLibreMapView adapter is the sole `package:maplibre_gl/...` consumer in `lib/` (check_avoid_maplibre_leak exit 0 on 124 files). PmtilesSource + StyleRewriter + StyleLayerOrder (2 validators) + CountryResolver + CountryPolygonLoader + FirstLaunchWorldCopier (sha256 auto-heal) + NoopMirkRenderer + point_in_polygon helper all landed. Hand-rolled DiskSpaceChecker (Dart + Kotlin StatFs + iOS NSFileManager.systemFreeSize) + IosBackupExcluder (Dart + iOS-only NSURLIsExcludedFromBackupKey) platform channels close Open Questions #3 + #6; Open Questions #1 (camera preservation via capture-before-setStyle) + #2 (source swap fallback to setStyle because VectorSourceProperties.url is HTTP/HTTPS-only in maplibre_gl 0.25.0) resolved in the adapter. 114 new unit tests green (528 total, zero regressions). All 5 lint gates exit 0. Plan 07-04 (download pipeline) unblocked.
 
 ## Current Position
 
-Phase: 07 of 16 (Map Integration) — 2 / 7 plans done — Plan 07-03 (map infrastructure) unblocked
-Current Plan: Phase 07 plan 07-02 (Domain Interfaces) done — 07-03 unblocked
-Total Plans in Phase 07: 2 / 7 done
-Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-03
+Phase: 07 of 16 (Map Integration) — 3 / 7 plans done — Plan 07-04 (download pipeline) unblocked
+Current Plan: Phase 07 plan 07-03 (Map Infrastructure) done — 07-04 unblocked
+Total Plans in Phase 07: 3 / 7 done
+Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-04
 Last Activity: 2026-04-21
 
-Progress: [████████░░] 86% — 32 / 37 plans executed across phases 01-07.
+Progress: [█████████░] 89% — 33 / 37 plans executed across phases 01-07.
 
 ## Performance Metrics
 
@@ -82,6 +82,7 @@ Progress: [████████░░] 86% — 32 / 37 plans executed across
 | Phase 06-review-gate-gps P06-04 | 68 min | 5 tasks | 9 files (7 created + 2 modified) |
 | Phase 07-map-integration P01 | 22min | 3 tasks | 267 files |
 | Phase 07-map-integration P02 | 18min | 3 tasks | 57 files |
+| Phase 07-map-integration P03 | 18min | 3 tasks | 25 files |
 
 ## Accumulated Context
 
@@ -248,6 +249,23 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 07-map-integration]: Phase 07 plan 07-02: TDD cycle flattened to single feat commit per task — Freezed codegen dependency (types must exist as valid Dart before tests can compile) means a strict RED-first commit would require publishing non-compiling code. Matches Phase 07-01 precedent (its Task 1 was 5 feat sub-commits). Tests still written against intended API before implementation refinement, preserving TDD design intent.
 - [Phase 07-map-integration]: Phase 07 plan 07-02: mirk_renderer_contract_test uses flutter_test, not package:test — dart:ui (Canvas / Size / PictureRecorder) does NOT resolve under plain dart test; only the Flutter test runtime exposes dart:ui. Matches the same pattern as Phase 03's mirk_style_config_fromjson_test (flutter_test for ARGB color literals). Plan verify block adjusted accordingly + documented inline.
 - [Phase 07-map-integration]: Phase 07 plan 07-02: 5 test fakes fully implement their respective ports with observable in-memory state. FakeMapView (implements MapView; methodLog + showMapInvocations + cameraMovesObserved[CameraMove] + poiAdd/RemoveObservations + lastUserLocationSet + currentTheme + followMeEnabled + disposedFlag; pushViewport drives broadcast stream; dispose idempotent + StateError on use-after-dispose) + FakeInstalledManifestRepository (implements port; seedWith + writesObserved + simulateWriteFailure auto-reset) + FakePmtilesSource + FakeDownloadController + FakeCountryResolver (duck-typed for 07-03/07-04 seams not yet materialized — upgrade to `implements` lands with their real domain ports).
+- [Phase 07-map-integration]: Phase 07 plan 07-03: `lib/infrastructure/map/maplibre_map_view.dart` is the SOLE file in `lib/` that imports `package:maplibre_gl/maplibre_gl.dart`. `check_avoid_maplibre_leak` exits 0 on 124 files. The MAP-06 port-adapter seam is now structurally enforced at lint time. Downstream plans (07-05 controllers, 07-06 presentation) consume the MapView port only.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: Open Question #1 (camera preservation) CLOSED — `_MapLibreMapViewAdapter.showMap` captures `CameraPosition` via `_controller.cameraPosition` BEFORE `setStyle`, re-applies via `moveCamera(CameraUpdate.newCameraPosition(prev))` AFTER the async `setStyle` resolves. Info-logged at both capture + re-apply. Defensive even though MapLibre typically preserves camera across setStyle.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: Open Question #2 (source swap vs setStyle) CLOSED — full `setStyle` always. maplibre_gl 0.25.0 `VectorSourceProperties.url` documents supported protocols as HTTP/HTTPS only (`source_properties.dart:11-15`); `pmtiles://file://` URIs rely on the MapLibre Native custom protocol handler which wires up at style-load time, so `removeSource+addSource` bypasses that wiring and yields blank tiles. Full-style re-parse is slower than a source swap but negligible on the Phase 07 world+country style skeleton. Decision documented in adapter class docstring for Phase 09+ re-evaluation if a future plugin version exposes pmtiles:// in source-swap APIs.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: Open Question #3 (iOS backup exclude) CLOSED — `IosBackupExcluderChannel.swift` sets `NSURLIsExcludedFromBackupKey=true` via `URL.setResourceValues(URLResourceValues(isExcludedFromBackup: true))`. Dart side no-ops on non-iOS + swallows exceptions best-effort (backup-exclusion failure must never block a download commit). Downstream attachment point: Plan 07-04 AtomicCountryInstaller, called right after the rename-into-place step.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: Open Question #6 (hand-roll disk space) CLOSED — triple-source-truth MethodChannel `app.gosl.mirkfall/disk_space` (Dart constant + Kotlin companion + Swift static). Android uses `StatFs(path).availableBytes`; iOS uses `FileManager.attributesOfFileSystem(forPath:)[.systemFreeSize]`. Zero new dependency. 5 s timeout at Dart level + structured `DiskSpaceCheckException` surface. 6 unit tests (mock-method-call-handler idiom): happy path, num→int coercion, PlatformException wrap, unexpected type, missing handler, 5 s timeout.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: StyleRewriter uses `replaceAll` (not `replaceFirst`) for the PMTiles URI placeholder. `assets/maps/style.json` carries the `pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER` literal in TWO spots — `metadata.mirkfall:runtime_url_placeholder` description AND `sources.mirkfall_map.url` tile URL. `replaceFirst` would hit only metadata, leaving the tile URL broken. Caught immediately by the test suite; plan-text bug, not implementation bug. Fix landed in `bd65b77`.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: `localPmtilesUri(String)` produces `pmtiles://file:///<path>` (3 slashes per RFC 8089 for empty host + absolute path). Earlier test expectations used 4 slashes — corrected to 3 across `pmtiles_source_test.dart` + `style_rewriter_test.dart`. Never emits `pmtiles://http[s]` — MAP-05 gate stays green.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: CountryResolver enforces strict `zoom < 3` world-fallback cutoff. At Z<3 a single viewport center is a misleading country pick (tile ≈ 45°). Z=3 exactly dispatches to per-country. Documented rationale in class docstring. 16 lat/lon test cases cover Paris / Lyon / Berlin / Munich / Madrid / Barcelona tie-breaker / London / Edinburgh / NYC / LA / mid-Atlantic / Sydney / zoom=2 fallback / zoom=3 boundary / empty installed / equator.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: CountryPolygonLoader supports both GeoJSON `Polygon` AND `MultiPolygon` geometries — exterior rings only, holes ignored (Phase 07-01 bbox simplification decision: no holes in shipped data). Degrades gracefully on missing/unparseable files (skipped, not fatal — resolver falls back to world-bundle null on no-match).
+- [Phase 07-map-integration]: Phase 07 plan 07-03: FirstLaunchWorldCopier uses streamed-write pattern (`File.openWrite` + `IOSink.add` + `flush`) even for the 856 KB world bundle — establishes the shape Plan 07-04 reuses for 1.5 GB chunk reassembly. Idempotent second call (sha256 verify short-circuits; asset loader NOT invoked). Auto-heals seeded corruption. Post-write sha256 mismatch is catastrophic (MapAssetMissingException) — cleans up the partial write before throwing.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: StyleRewriter exposes both async `rewriteStyleForCountry` AND sync `rewriteWithSnapshot` variants. Hot paths (camera-preserving showMap, widget initState) avoid the `manifestPort.read()` await when a snapshot is already available. Tested byte-for-byte equivalent.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: assertStyleLayerOrder + assertStyleLayerValidity land as pure-Dart helpers in `lib/infrastructure/map/style_layer_order.dart`. Order validator asserts the frozen 8-layer sequence against the parsed `layers[].id` list. Validity validator enforces MapLibre-style per-layer shape: background layers MUST NOT declare `source` or `source-layer`; fill/line/symbol/circle/heatmap layers MUST declare a string `source` that exists in top-level `sources`; vector sources additionally require non-empty `source-layer`. Both validators exercise the real `assets/maps/style.json` via `File.readAsStringSync` + 6 seeded-violation tests prove they trigger.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: Test-seam pattern via public typedef + extension. Typedefs `StyleAssetLoader` / `PolygonAssetLoader` / `WorldAssetLoader` are public (avoids `library_private_types_in_public_api` analyzer info at `--fatal-infos`). Injection hook exposed via `extension XxxTestSeam { static withAssetLoader(…) }` — production callers do not see the seam in IDE auto-complete.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: KeyedSubtree wrapping the MapLibreMap widget with a stable `ValueKey('mirkfall_map_view')` — protects against parent-key churn flashing the platform view (RESEARCH Pitfall #9 precaution).
+- [Phase 07-map-integration]: Phase 07 plan 07-03: FollowMe flag tracked on the MapLibreMapView adapter but auto-pan belongs to Plan 07-05's MapCameraController. Adapter only exposes `isFollowMeEnabled` + `setFollowMeEnabled`; the controller subscribes to Fix updates + calls `moveCameraTo` per fix. Clean separation avoids a tight coupling between the map adapter and the active-session stream.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: default MapLibre attribution button hidden via `attributionButtonMargins: Point<num>(-100, -100)`. Plan 07-06 MapScreen must paint its own attribution widget on top of the map showing "© Protomaps / © OpenStreetMap contributors (ODbL 1.0)" per MAP-03.
+- [Phase 07-map-integration]: Phase 07 plan 07-03: GOSL copyright headers prepended to new Kotlin + Swift files as `// Copyright…` comments. `tool/check_headers.dart` scans only `.dart`, but the CLAUDE.md project rule requires the header on every source file. Consistent with Phase 05's BootCompletedReceiver.kt precedent.
 
 ### Pending Todos
 
@@ -274,6 +292,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T00:09:36Z
-Stopped at: Completed 07-02-domain-interfaces-PLAN.md
+Last session: 2026-04-21T00:44:24.362Z
+Stopped at: Completed 07-03-map-infrastructure-PLAN.md
 Resume file: None
