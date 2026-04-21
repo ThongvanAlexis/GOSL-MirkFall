@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:logging/logging.dart';
 
 import 'app.dart';
+import 'application/providers/map_providers.dart';
 import 'infrastructure/logging/file_logger.dart';
 import 'presentation/router.dart';
 
@@ -124,17 +125,37 @@ Future<void> main() async {
         onDidReceiveNotificationResponse: _handleNotificationTap,
       );
 
+      // Phase 07-05 — pre-initialise the FirstLaunchBootstrap provider
+      // BEFORE runApp so the world basemap is on disk, the orphan
+      // staging scan has run, and (on iOS) the backup-exclude flag is
+      // set before the first widget frame paints. Parity with Phase 05
+      // (synchronous `buildAppDatabase` pre-init) — keeps first-frame
+      // UX clean at the cost of a ~1 s startup pause the first time the
+      // app ever runs (subsequent launches hit the idempotent fast
+      // path).
+      //
+      // Pattern: a standalone ProviderContainer reads the bootstrap
+      // future, waits for completion, then the SAME container is
+      // passed to ProviderScope(parent: ...) so `runApp` inherits the
+      // already-warm bootstrap provider cache (no re-run).
+      final rootContainer = ProviderContainer();
+      try {
+        await rootContainer.read(firstLaunchBootstrapProvider.future);
+      } on Object catch (e, st) {
+        // MapAssetMissingException here means the bundled asset is
+        // corrupt — catastrophic but not silent. The UI shell will
+        // render a fatal banner; we still launch the app so the
+        // recovery screen can surface.
+        log.shout('firstLaunchBootstrap failed — launching without world map', e, st);
+      }
+
       // Phase 05 wiring note — `ActiveSessionController` is the first
       // productive consumer of `appDatabaseProvider` (Option A lazy
-      // resolution per 05-CONTEXT.md). No structural change required
-      // here; Riverpod resolves the DB synchronously-lazily on first
-      // `ref.watch(appDatabaseProvider.future)` from the controller,
-      // which keeps this bootstrap body identical to Phase 04.
-      //
-      // Mount the app in the SAME guarded zone as ensureInitialized above —
-      // that is the whole point of option (b). Flutter's `debugCheckZone`
-      // now sees binding.rootZone == Zone.current at runApp time.
-      runApp(const ProviderScope(child: MirkFallApp()));
+      // resolution per 05-CONTEXT.md). Mount the app in the SAME
+      // guarded zone as ensureInitialized above — that is the whole
+      // point of option (b). Flutter's `debugCheckZone` now sees
+      // binding.rootZone == Zone.current at runApp time.
+      runApp(UncontrolledProviderScope(container: rootContainer, child: const MirkFallApp()));
     },
     (Object error, StackTrace stack) {
       // Uncaught-zone handler — covers async errors raised during bootstrap
