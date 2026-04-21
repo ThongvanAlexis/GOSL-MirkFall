@@ -22,11 +22,13 @@ class MapDownloadProgressChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final DownloadState state = ref.watch(downloadQueueControllerProvider);
-    final double? fraction = ref.watch(downloadQueueControllerProvider.notifier).aggregateProgressFraction;
+    final double? fraction = _fractionFrom(state);
     if (fraction == null) return const SizedBox.shrink();
 
+    // Watch the catalog so the chip re-renders once the future resolves.
+    final AsyncValue<CountryCatalog> catalogSnap = ref.watch(countryCatalogProvider);
     final CountryCode? alpha3 = _alpha3From(state);
-    final String countryName = alpha3 == null ? '…' : _countryDisplayName(ref, alpha3);
+    final String countryName = alpha3 == null ? '…' : _countryDisplayName(catalogSnap.value, alpha3);
     final int percent = (fraction * 100).clamp(0, 100).round();
 
     final ColorScheme cs = Theme.of(context).colorScheme;
@@ -59,9 +61,15 @@ class MapDownloadProgressChip extends ConsumerWidget {
     };
   }
 
-  String _countryDisplayName(WidgetRef ref, CountryCode alpha3) {
-    final AsyncValue<CountryCatalog> catalogSnap = ref.read(countryCatalogProvider);
-    final CountryCatalog? catalog = catalogSnap.value;
+  double? _fractionFrom(DownloadState state) {
+    return switch (state) {
+      DownloadInProgress(:final progress) => progress.fractionDone,
+      DownloadPaused(:final snapshot) => snapshot.fractionDone,
+      _ => null,
+    };
+  }
+
+  String _countryDisplayName(CountryCatalog? catalog, CountryCode alpha3) {
     if (catalog == null) return alpha3.value.toUpperCase();
     for (final CountryEntry entry in catalog.countries) {
       if (entry.alpha3 == alpha3) return entry.name;
