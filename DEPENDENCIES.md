@@ -174,6 +174,7 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | platform | 3.1.6 | BSD-3-Clause | multiple | Platform detection. | 2026-04-17 |
 | pool | 1.5.2 | BSD-3-Clause | build_runner | Resource pool. | 2026-04-17 |
 | posix | 6.5.0 | MIT | shared_preferences_linux | Linux-only bindings. | 2026-04-17 |
+| process | 5.0.5 | BSD-3-Clause | integration_test (via webdriver) | Dev-only. Pulled transitively by `integration_test` → `webdriver`. Pure-Dart process wrapper from the Dart project authors. License preamble: "Copyright 2013, the Dart project authors" + BSD 3-clause. Zero network. Added 2026-04-21 with `integration_test` (Phase 07 plan 07-07). | 2026-04-21 |
 | pub_semver | 2.2.0 | BSD-3-Clause | build_runner, pubspec_parse | Pure semver. | 2026-04-17 |
 | pubspec_parse | 1.5.0 | BSD-3-Clause | build_runner | Dev-only. | 2026-04-17 |
 | recase | 4.1.0 | BSD-2-Clause | drift_dev | Dev-only. Pulled transitively by drift_dev. Pure-Dart string case conversion (camelCase <-> snake_case). License file: "Copyright 2017 Keith Elliott" + standard BSD 2-clause "Redistribution and use..." preamble. No network. Added 2026-04-18. | 2026-04-18 |
@@ -203,6 +204,7 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | stream_channel | 2.1.4 | BSD-3-Clause | test | Pure Dart. | 2026-04-17 |
 | stream_transform | 2.1.1 | BSD-3-Clause | shelf_web_socket | Pure Dart. | 2026-04-17 |
 | string_scanner | 1.4.1 | BSD-3-Clause | yaml, analyzer | Pure scanner. | 2026-04-17 |
+| sync_http | 0.3.1 | BSD-3-Clause | integration_test (via webdriver) | Dev-only. Pulled transitively by `integration_test` → `webdriver`. Synchronous HTTP client (pure Dart) used by webdriver for blocking JSON-wire-protocol calls. License preamble: "Copyright 2017, the Dart project authors" + BSD 3-clause. Zero runtime network in MirkFall — test-harness only, never linked into release APK/IPA. Added 2026-04-21 with `integration_test` (Phase 07 plan 07-07). | 2026-04-21 |
 | term_glyph | 1.2.2 | BSD-3-Clause | string_scanner | Pure Dart. | 2026-04-17 |
 | test_api | 0.7.10 | BSD-3-Clause | test, flutter_test | Dev-test-only. | 2026-04-17 |
 | test_core | 0.6.16 | BSD-3-Clause | test | Dev-test-only. | 2026-04-17 |
@@ -219,6 +221,7 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | web | 1.1.1 | BSD-3-Clause | multiple web surfaces | Pure Dart web interop. | 2026-04-17 |
 | web_socket | 1.0.1 | BSD-3-Clause | test | Dev-only. | 2026-04-17 |
 | web_socket_channel | 3.0.3 | BSD-3-Clause | shelf_web_socket | Dev-only. | 2026-04-17 |
+| webdriver | 3.1.0 | Apache-2.0 | integration_test | Dev-only. Pulled transitively by `integration_test` for optional WebDriver-driven integration runs (browser + native). Pure-Dart Apache-2.0 implementation by the Google dart-lang team. No telemetry; spawns nothing unless the test harness explicitly drives it. Test-harness only — never linked into release APK/IPA. Added 2026-04-21 with `integration_test` (Phase 07 plan 07-07). | 2026-04-21 |
 | webkit_inspection_protocol | 1.2.1 | BSD-3-Clause | test | Dev-only. | 2026-04-17 |
 | win32 | 5.15.0 | BSD-3-Clause | Windows-only surfaces | Win32 FFI bindings. | 2026-04-17 |
 | win32_registry | 2.1.0 | BSD-3-Clause | device_info_plus (Windows) | Windows registry FFI helpers used by device_info_plus to read OS version. License file: "BSD 3-Clause License / Copyright (c) 2023, Halil Durmus". Windows-only; not shipped on Android/iOS. Added 2026-04-19 with device_info_plus 12.4.0. | 2026-04-19 |
