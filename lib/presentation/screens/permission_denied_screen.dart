@@ -140,4 +140,3 @@ class _PermissionDeniedScreenState extends State<PermissionDeniedScreen> with Wi
     );
   }
 }
-

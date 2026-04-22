@@ -92,14 +92,7 @@ void main() {
     testWidgets('grantDetectedOnResumePopsTrue', (tester) async {
       Object? popResult = _unset;
       PermissionStatus currentStatus = PermissionStatus.denied;
-      await tester.pumpWidget(
-        _wrapWithHostRoute(
-          PermissionDeniedScreen(
-            checkLocationPermissionFn: () async => currentStatus,
-          ),
-          (r) => popResult = r,
-        ),
-      );
+      await tester.pumpWidget(_wrapWithHostRoute(PermissionDeniedScreen(checkLocationPermissionFn: () async => currentStatus), (r) => popResult = r));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('open denied'));
@@ -117,14 +110,7 @@ void main() {
 
     testWidgets('resumeWithoutGrantKeepsScreenOpen', (tester) async {
       Object? popResult = _unset;
-      await tester.pumpWidget(
-        _wrapWithHostRoute(
-          PermissionDeniedScreen(
-            checkLocationPermissionFn: () async => PermissionStatus.denied,
-          ),
-          (r) => popResult = r,
-        ),
-      );
+      await tester.pumpWidget(_wrapWithHostRoute(PermissionDeniedScreen(checkLocationPermissionFn: () async => PermissionStatus.denied), (r) => popResult = r));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('open denied'));
@@ -141,12 +127,7 @@ void main() {
 
     testWidgets('retourPopsFalse', (tester) async {
       Object? popResult = _unset;
-      await tester.pumpWidget(
-        _wrapWithHostRoute(
-          const PermissionDeniedScreen(),
-          (r) => popResult = r,
-        ),
-      );
+      await tester.pumpWidget(_wrapWithHostRoute(const PermissionDeniedScreen(), (r) => popResult = r));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('open denied'));
