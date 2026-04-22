@@ -121,12 +121,24 @@ class MapCameraController extends _$MapCameraController {
     final Fix? latestFix = _currentSessionLatestFix();
 
     if (mapView != null && latestFix != null) {
-      await _moveCameraTo(mapView, latitude: latestFix.latitude, longitude: latestFix.longitude, zoom: kInitialSessionMapZoom.toDouble());
-      // Prime the user-location puck on the initial fix. Without this
-      // the blue dot waits for the second fix to arrive before
-      // rendering — on a stationary device that second fix can take
-      // minutes (or never arrives while the user is indoors with GPS
-      // filtered to distanceFilter > 0).
+      // Phase 07-07 bisection probe (2026-04-22) — isolating which of
+      // the 3 method-channel calls in this block triggers the
+      // iOS SIGABRT inside MapLibre.framework. Hypothesis (strongest):
+      // addCircle, based on PR #719 evidence that maplibre_gl 0.25.0's
+      // iOS plugin invokes onStyleLoadedCallback BEFORE finishing
+      // internal manager init (CircleManager etc.) — so the annotation
+      // controller may not be wired yet.
+      //
+      // Probe 1: setUserLocation alone (→ addCircle). moveCameraTo +
+      // setFollowMeEnabled commented out. `_followMe` stays at its
+      // default (false) so setUserLocation does NOT trigger its
+      // internal animateCamera either — this run issues exactly ONE
+      // method-channel call: addCircle.
+      //
+      // If crash returns → addCircle is the culprit → refactor puck
+      // to a GeoJSON source+layer (bypasses the annotation manager).
+      // If crash stays gone → re-enable moveCameraTo, bisect further.
+      // await _moveCameraTo(mapView, latitude: latestFix.latitude, longitude: latestFix.longitude, zoom: kInitialSessionMapZoom.toDouble());
       unawaited(() async {
         try {
           await mapView.setUserLocation(latestFix);
@@ -134,7 +146,7 @@ class MapCameraController extends _$MapCameraController {
           _log.warning('setUserLocation on openForSession failed (non-fatal)', e, st);
         }
       }());
-      await mapView.setFollowMeEnabled(true);
+      // await mapView.setFollowMeEnabled(true);
       state = MapCameraFollowing(sessionId: sessionId);
       return;
     }
