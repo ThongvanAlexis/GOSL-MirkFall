@@ -54,13 +54,6 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Install native crash reporter FIRST — before Flutter, MapLibre,
-    // or any plugin runs. Sideloaded builds (SideStore) are excluded
-    // from iOS ReportCrash, so a SIGABRT inside MapLibre leaves zero
-    // trace on-device without this. See CrashReporter.swift for the
-    // full story. Idempotent on re-entrant init.
-    CrashReporter.install()
-
     GeneratedPluginRegistrant.register(with: self)
 
     // Register Phase 07 hand-rolled MethodChannels via the plugin

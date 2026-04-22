@@ -13,7 +13,6 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../config/constants.dart';
 import '../../infrastructure/logging/file_logger.dart';
-import '../../infrastructure/platform/ios_crash_log_reader.dart';
 
 /// Hidden debug menu reached via 7-tap on the `/about` placeholder.
 ///
@@ -164,104 +163,6 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
     }
   }
 
-  /// Surfaces the last native iOS crash captured by CrashReporter.swift.
-  ///
-  /// On iOS only. The crash log is drained into today's JSONL at
-  /// bootstrap (see [IosCrashLogReader.drainIfAny]), then renamed to
-  /// `ios_crash.log.drained`; this screen reads whichever file currently
-  /// exists so the user can inspect / share the most recent crash even
-  /// after it has already been logged.
-  Future<void> _onShowLastCrash() async {
-    final IosCrashLogReader reader = IosCrashLogReader();
-    final String? contents = await reader.readIfAny();
-    if (!mounted) return;
-    if (contents == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aucun plantage natif enregistré')));
-      return;
-    }
-    // `resolveReadableFilename` returns whichever of the active / drained
-    // files is currently on disk — ensures Share passes the right File.
-    final String? filename = await reader.resolveReadableFilename();
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Dernier plantage natif (iOS)'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Text(contents, style: const TextStyle(fontFamily: 'monospace', fontSize: 11.0)),
-          ),
-        ),
-        actions: <Widget>[
-          if (filename != null)
-            TextButton(
-              onPressed: () async {
-                Navigator.of(ctx).pop();
-                await _shareCrashAsTxt(filename);
-              },
-              child: const Text('Partager'),
-            ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              await reader.clear();
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plantage supprimé')));
-            },
-            child: const Text('Supprimer'),
-          ),
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Fermer')),
-        ],
-      ),
-    );
-  }
-
-  /// Copies [crashFilename] into the tmp directory with a `.txt`
-  /// extension before handing it to the share sheet.
-  ///
-  /// Why : iOS's share sheet (UIActivityViewController) serialises an
-  /// unknown-extension file as an NSURL reference rather than its body
-  /// for most recipients — so sharing `ios_crash.log.drained` directly
-  /// produced a bplist with just the file path when pasted into Notes /
-  /// Mail / Messages. Copying to `<tmp>/ios_crash-<ts>.txt` gives the
-  /// file a recognised MIME (`public.plain-text`) so recipients treat
-  /// it as plain text and copy the actual body.
-  Future<void> _shareCrashAsTxt(String crashFilename) async {
-    try {
-      final Directory tmp = await getTemporaryDirectory();
-      final Directory stageDir = Directory(p.join(tmp.path, 'mirkfall-crash-snapshot'))..createSync(recursive: true);
-      // Clean up any prior snapshot so tmp bounded disk usage stays
-      // minimal. Best-effort — transient filesystem errors ignored.
-      for (final FileSystemEntity e in stageDir.listSync()) {
-        try {
-          await e.delete();
-        } on Object {
-          // ignore
-        }
-      }
-      final int ts = DateTime.now().millisecondsSinceEpoch;
-      final String destFilename = p.join(stageDir.path, 'ios_crash-$ts.txt');
-      await File(crashFilename).copy(destFilename);
-      await SharePlus.instance
-          .share(
-            ShareParams(
-              files: <XFile>[XFile(destFilename, mimeType: 'text/plain')],
-              subject: 'MirkFall iOS crash dump',
-            ),
-          )
-          .timeout(const Duration(milliseconds: kShareCallTimeoutMilliseconds));
-    } on TimeoutException catch (e, st) {
-      Logger('debug_menu').warning('_shareCrashAsTxt timeout', e, st);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Partage annulé (timeout)')));
-    } on Exception catch (e, st) {
-      Logger('debug_menu').warning('_shareCrashAsTxt failed', e, st);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Partage échoué : $e')));
-    }
-  }
-
   Future<void> _onClearAll() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -315,15 +216,6 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             subtitle: const Text('Exporte mirkfall.db + -wal + -shm via le share sheet (iOS-friendly).'),
             onTap: _onShareDatabase,
           ),
-          if (Platform.isIOS) ...<Widget>[
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.bug_report_outlined),
-              title: const Text('Voir dernier crash (iOS)'),
-              subtitle: const Text("Affiche et partage le dernier plantage natif capturé par CrashReporter."),
-              onTap: _onShowLastCrash,
-            ),
-          ],
           const Divider(),
           ListTile(leading: const Icon(Icons.delete_forever), title: const Text('Supprimer tous les logs'), onTap: _onClearAll),
           const SizedBox(height: kListSectionPaddingLogicalPx),
