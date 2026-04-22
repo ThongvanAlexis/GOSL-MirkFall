@@ -143,12 +143,22 @@ const double kSessionActiveBannerHeightDp = 40.0;
 // ---------------------------------------------------------------------------
 
 /// HTTP timeout (ms) applied to the Phase 07 download controller and to any
-/// future map-layer fetch that opts in. Raised to 60 s (from the Phase 05
-/// GPS-plugin default of 30 s) because per-country PMTiles chunks can be
-/// up to 1.5 GB and must survive a 4G slow-start on the first byte. The
-/// Phase 05 foreground-service GPS stream does NOT use this constant —
+/// future map-layer fetch that opts in. 30 s is the "no data for this long"
+/// threshold — fired per connect, response and per-stream-event.
+///
+/// History: originally 60 s to survive a 4G slow-start on the first byte of
+/// 1.5 GB PMTiles chunks. Lowered to 30 s at the 2026-04-22 device-smoke
+/// after observing GitHub Releases CDN closes idle edges around 30-45 s:
+/// waiting 60 s for the stall to declare itself cost the user a whole
+/// minute of blank progress every time the CDN dropped a connection. At
+/// 30 s, the retry-loop recovers roughly twice as fast on transient
+/// network hiccups. Retry budget (`kDownloadRetryAttempts` = 3 with
+/// 1 s / 5 s / 30 s backoff) still tolerates a full dead-connection
+/// scenario without surfacing an error to the user.
+///
+/// The Phase 05 foreground-service GPS stream does NOT use this constant —
 /// geolocator has its own internal platform-level timeout semantics.
-const int kHttpTimeout = 60000;
+const int kHttpTimeout = 30000;
 
 /// Asset path (bundled in APK/IPA) for the country catalog JSON used by
 /// the download screen. Update = rebuild app. Superseded the earlier

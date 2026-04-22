@@ -174,6 +174,7 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
                       activeDownloadAlpha3: activeDownloadAlpha3,
                       activeFraction: activeFraction,
                       activeBytesDownloaded: activeBytesDownloaded,
+                      retryingSnapshot: downloadState is DownloadRetrying ? downloadState : null,
                     );
                   },
                 ),
@@ -186,6 +187,7 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
     return switch (state) {
       DownloadInProgress(:final active) => active.alpha3,
       DownloadPaused(:final active) => active.alpha3,
+      DownloadRetrying(:final active) => active.alpha3,
       _ => null,
     };
   }
@@ -194,6 +196,7 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
     return switch (state) {
       DownloadInProgress(:final progress) => progress.fractionDone,
       DownloadPaused(:final snapshot) => snapshot.fractionDone,
+      DownloadRetrying(:final snapshot) => snapshot.fractionDone,
       _ => null,
     };
   }
@@ -202,6 +205,7 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
     return switch (state) {
       DownloadInProgress(:final progress) => progress.bytesDownloaded,
       DownloadPaused(:final snapshot) => snapshot.bytesDownloaded,
+      DownloadRetrying(:final snapshot) => snapshot.bytesDownloaded,
       _ => null,
     };
   }
@@ -226,6 +230,7 @@ class _CountryTile extends ConsumerWidget {
     required this.activeDownloadAlpha3,
     required this.activeFraction,
     required this.activeBytesDownloaded,
+    required this.retryingSnapshot,
   });
 
   final CountryEntry entry;
@@ -234,6 +239,13 @@ class _CountryTile extends ConsumerWidget {
   final CountryCode? activeDownloadAlpha3;
   final double? activeFraction;
   final int? activeBytesDownloaded;
+
+  /// Non-null when the active download is in a retry-backoff window; the
+  /// tile should render "Reprise en cours (N/M)" instead of the usual
+  /// "En téléchargement X%" so the user understands why the progress bar
+  /// isn't moving. Supplied only for the tile matching the retrying
+  /// job's alpha3 (the parent filters via `activeDownloadAlpha3`).
+  final DownloadRetrying? retryingSnapshot;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -251,15 +263,26 @@ class _CountryTile extends ConsumerWidget {
     if (isDownloading) {
       final int percent = ((activeFraction ?? 0.0) * 100).clamp(0, 100).round();
       trailing = SizedBox(width: 72.0, child: Text('$percent %', textAlign: TextAlign.end));
-      subtitleWidget = Row(
-        children: <Widget>[
-          Flexible(child: Text('En téléchargement $percent %', overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 8.0),
-          _DownloadSpeedLabel(bytesDownloaded: activeBytesDownloaded ?? 0),
-        ],
-      );
+      final DownloadRetrying? retrying = retryingSnapshot;
+      if (retrying != null && retrying.active.alpha3 == entry.alpha3) {
+        // Retry-backoff window — show a distinct label so the user
+        // sees WHY the progress bar is momentarily frozen. Attempt
+        // numbering is 1-indexed in the label (retry.attemptIndex is
+        // the 0-indexed attempt that JUST failed; next = +1).
+        final int nextAttempt = retrying.attemptIndex + 2;
+        subtitleWidget = Text('Reprise en cours (tentative $nextAttempt/${retrying.totalAttempts}) · $percent %', overflow: TextOverflow.ellipsis);
+        leading = Icons.autorenew;
+      } else {
+        subtitleWidget = Row(
+          children: <Widget>[
+            Flexible(child: Text('En téléchargement $percent %', overflow: TextOverflow.ellipsis)),
+            const SizedBox(width: 8.0),
+            _DownloadSpeedLabel(bytesDownloaded: activeBytesDownloaded ?? 0),
+          ],
+        );
+        leading = Icons.downloading_outlined;
+      }
       onTap = null;
-      leading = Icons.downloading_outlined;
       leadingColor = cs.primary;
     } else if (installed != null) {
       final bool needsUpdate = catalogVersion.isNotEmpty && installed.pmtilesVersion != catalogVersion;

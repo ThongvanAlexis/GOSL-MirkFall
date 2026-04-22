@@ -385,8 +385,26 @@ class PmtilesDownloadController {
         return;
       } on DownloadInterruptedException catch (e) {
         lastError = e;
-        _log.info('chunk ${job.alpha3.value}.part$partIndex attempt ${attempt + 1} failed: $e');
+        // Phase 07-07 (2026-04-22): upgraded to WARNING (was INFO) and
+        // emit a distinct DownloadRetrying state so the UI can show
+        // "Reprise en cours" instead of a silently-frozen progress
+        // bar during the backoff window.
+        _log.warning('chunk ${job.alpha3.value}.part$partIndex attempt ${attempt + 1} failed: $e');
         if (attempt + 1 < kDownloadRetryAttempts) {
+          _emit(
+            DownloadRetrying(
+              active: job,
+              snapshot: DownloadProgress(
+                bytesDownloaded: _accumulatedBytes.clamp(0, job.entry.reassembled.size),
+                totalBytes: job.entry.reassembled.size,
+                currentPartIndex: partIndex,
+                totalParts: job.entry.parts.length,
+              ),
+              attemptIndex: attempt,
+              totalAttempts: kDownloadRetryAttempts,
+              cause: e,
+            ),
+          );
           await _backoff(attempt);
         }
       }

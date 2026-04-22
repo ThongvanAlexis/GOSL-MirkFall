@@ -15,10 +15,12 @@ part 'download_state.freezed.dart';
 /// Sealed hierarchy describing the state of the per-country download
 /// pipeline at any point in time.
 ///
-/// Seven variants covering the full lifecycle:
+/// Eight variants covering the full lifecycle:
 /// - [DownloadIdle] — no active queue
 /// - [DownloadQueued] — one or more jobs waiting, none in flight yet
 /// - [DownloadInProgress] — one job actively transferring, others waiting
+/// - [DownloadRetrying] — the active job hit a transient failure and is
+///   between retry attempts (backoff in flight)
 /// - [DownloadPaused] — the active job is paused (see [PauseReason])
 /// - [DownloadError] — the active job failed with an [Exception]
 /// - [DownloadCompleted] — a job finished successfully (terminal)
@@ -57,6 +59,33 @@ final class DownloadInProgress extends DownloadState {
   final DownloadJob active;
   final DownloadProgress progress;
   final List<DownloadJob> remaining;
+}
+
+/// The active job hit a transient failure (stream stall, HTTP error,
+/// etc.) and is between retry attempts — the backoff delay is in
+/// flight. Transitions back to [DownloadInProgress] when the next
+/// attempt starts transferring, or to [DownloadError] if the retry
+/// budget is exhausted.
+///
+/// Distinct from [DownloadPaused] — pauses are discrete lifecycle
+/// events driven by user action / connectivity loss / retry-exhaustion,
+/// whereas retrying is the short-lived in-between state of the pipeline
+/// regaining footing. Phase 07-07 introduced this so the UI can render
+/// "Reprise en cours (tentative N/M)" instead of showing a silently-
+/// frozen progress bar for up to 30 s + backoff while a stall timeout
+/// unwinds.
+///
+/// [attemptIndex] is 0-indexed and refers to the attempt that JUST
+/// failed; the next attempt will be `attemptIndex + 1`. [totalAttempts]
+/// mirrors `kDownloadRetryAttempts`.
+final class DownloadRetrying extends DownloadState {
+  const DownloadRetrying({required this.active, required this.snapshot, required this.attemptIndex, required this.totalAttempts, required this.cause});
+
+  final DownloadJob active;
+  final DownloadProgress snapshot;
+  final int attemptIndex;
+  final int totalAttempts;
+  final Exception cause;
 }
 
 /// The active job is paused; [snapshot] captures the progress at the

@@ -27,12 +27,13 @@ DownloadJob _mkJob(String alpha3) {
 }
 
 void main() {
-  group('DownloadState pattern-matches exhaustively over all 7 variants', () {
+  group('DownloadState pattern-matches exhaustively over all 8 variants', () {
     String label(DownloadState s) {
       return switch (s) {
         DownloadIdle() => 'idle',
         DownloadQueued() => 'queued',
         DownloadInProgress() => 'inProgress',
+        DownloadRetrying() => 'retrying',
         DownloadPaused() => 'paused',
         DownloadError() => 'error',
         DownloadCompleted() => 'completed',
@@ -63,6 +64,21 @@ void main() {
       expect(label(s), equals('inProgress'));
       expect(s.active.alpha3, equals(CountryCode.parse('deu')));
       expect(s.remaining.single.alpha3, equals(CountryCode.parse('esp')));
+    });
+
+    test('DownloadRetrying carries active + snapshot + attempt counters + cause', () {
+      final DownloadRetrying s = DownloadRetrying(
+        active: _mkJob('fra'),
+        snapshot: DownloadProgress(bytesDownloaded: 200, totalBytes: 1024, currentPartIndex: 0, totalParts: 1),
+        attemptIndex: 0,
+        totalAttempts: 3,
+        cause: const DownloadInterruptedException(reason: 'stream stalled past 30s'),
+      );
+      expect(label(s), equals('retrying'));
+      expect(s.attemptIndex, equals(0));
+      expect(s.totalAttempts, equals(3));
+      expect(s.cause, isA<DownloadInterruptedException>());
+      expect(s.snapshot.fractionDone, closeTo(200 / 1024, 1e-9));
     });
 
     test('DownloadPaused carries snapshot + reason', () {
