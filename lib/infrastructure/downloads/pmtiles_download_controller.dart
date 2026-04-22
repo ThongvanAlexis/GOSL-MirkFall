@@ -330,6 +330,34 @@ class PmtilesDownloadController {
   }
 
   Future<void> _downloadChunkWithRetries({required ChunkPart part, required File destination, required DownloadJob job, required int partIndex}) async {
+    // Pre-check: if the staging chunk is already exactly the expected
+    // size, skip the network round-trip. The sha256 verify step below
+    // validates the bytes so a stale / corrupt on-disk chunk still
+    // gets re-downloaded correctly; here we only short-circuit the
+    // HTTP request.
+    //
+    // Phase 07 device-smoke (2026-04-22) — without this guard, a
+    // kill-during-download that leaves a part fully written on disk
+    // produces `resumeByte == server content length` on the next run,
+    // which the CDN answers with `416 Range Not Satisfiable`. That
+    // lands in `http_chunk_downloader`'s catch-all for 4xx-on-resume
+    // and throws `HttpRangeNotSupportedException`, which
+    // `DownloadInterruptedException catch` below does NOT match — so
+    // the download aborts and the UI sees `DownloadError` without the
+    // user ever learning the download was actually already complete.
+    if (await destination.exists()) {
+      final int localSize = await destination.length();
+      if (localSize == part.size) {
+        _log.info('chunk ${job.alpha3.value}.part$partIndex staging already complete (size=$localSize) — skipping network, proceeding to sha256 verify');
+        _accumulatedBytes += localSize;
+        _emitInProgress(job: job, partIndex: partIndex);
+        return;
+      }
+      if (localSize > part.size) {
+        _log.warning('chunk ${job.alpha3.value}.part$partIndex staging size $localSize > expected ${part.size} — deleting to restart from byte 0');
+        await destination.delete();
+      }
+    }
     DownloadInterruptedException? lastError;
     for (int attempt = 0; attempt < kDownloadRetryAttempts; attempt++) {
       if (_cancelRequested) return;
