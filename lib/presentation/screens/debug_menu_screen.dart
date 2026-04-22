@@ -198,7 +198,7 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.of(ctx).pop();
-                await _onShare(File(filename));
+                await _shareCrashAsTxt(filename);
               },
               child: const Text('Partager'),
             ),
@@ -215,6 +215,51 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
         ],
       ),
     );
+  }
+
+  /// Copies [crashFilename] into the tmp directory with a `.txt`
+  /// extension before handing it to the share sheet.
+  ///
+  /// Why : iOS's share sheet (UIActivityViewController) serialises an
+  /// unknown-extension file as an NSURL reference rather than its body
+  /// for most recipients — so sharing `ios_crash.log.drained` directly
+  /// produced a bplist with just the file path when pasted into Notes /
+  /// Mail / Messages. Copying to `<tmp>/ios_crash-<ts>.txt` gives the
+  /// file a recognised MIME (`public.plain-text`) so recipients treat
+  /// it as plain text and copy the actual body.
+  Future<void> _shareCrashAsTxt(String crashFilename) async {
+    try {
+      final Directory tmp = await getTemporaryDirectory();
+      final Directory stageDir = Directory(p.join(tmp.path, 'mirkfall-crash-snapshot'))..createSync(recursive: true);
+      // Clean up any prior snapshot so tmp bounded disk usage stays
+      // minimal. Best-effort — transient filesystem errors ignored.
+      for (final FileSystemEntity e in stageDir.listSync()) {
+        try {
+          await e.delete();
+        } on Object {
+          // ignore
+        }
+      }
+      final int ts = DateTime.now().millisecondsSinceEpoch;
+      final String destFilename = p.join(stageDir.path, 'ios_crash-$ts.txt');
+      await File(crashFilename).copy(destFilename);
+      await SharePlus.instance
+          .share(
+            ShareParams(
+              files: <XFile>[XFile(destFilename, mimeType: 'text/plain')],
+              subject: 'MirkFall iOS crash dump',
+            ),
+          )
+          .timeout(const Duration(milliseconds: kShareCallTimeoutMilliseconds));
+    } on TimeoutException catch (e, st) {
+      Logger('debug_menu').warning('_shareCrashAsTxt timeout', e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Partage annulé (timeout)')));
+    } on Exception catch (e, st) {
+      Logger('debug_menu').warning('_shareCrashAsTxt failed', e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Partage échoué : $e')));
+    }
   }
 
   Future<void> _onClearAll() async {
