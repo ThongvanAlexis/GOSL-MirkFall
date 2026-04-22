@@ -174,14 +174,34 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // MapViewHolder handles the transition back to null via dispose of
     // the underlying adapter.
     if (!mounted) return;
-    ref.read(mapViewProvider.notifier).set(adapter);
-    final ActiveSessionState? sessionState = ref.read(activeSessionControllerProvider).value;
-    if (sessionState is Tracking) {
-      // Fire-and-forget: openForSession is async but the widget doesn't
-      // need to block on it — the controller publishes state changes
-      // through Riverpod which propagate back via the FAB's ref.watch.
-      unawaited(ref.read(mapCameraControllerProvider.notifier).openForSession(sessionState.sessionId));
-    }
+    // Workaround for flutter-maplibre-gl 0.25.0 issue #717 (fixed by
+    // PR #719 on release-0.26.0, not yet published to pub.dev):
+    // the iOS plugin invokes onStyleLoadedCallback synchronously while
+    // MLNMapView's internal state is not yet committed. Any subsequent
+    // method-channel call in that same runloop turn (setUserLocation,
+    // animateCamera, addCircle, etc.) throws a C++ exception inside
+    // MapLibre Native that propagates unhandled through __cxa_throw →
+    // std::terminate → _objc_terminate → abort → SIGABRT, killing the
+    // app with the native crash Runner-2026-04-22-092721.ips captured
+    // (frames 9-13 all in MapLibre.framework, frame 14 in the plugin's
+    // onMethodCall dispatch).
+    //
+    // Deferring the provider publication + session-open by one runloop
+    // tick mirrors PR #719's `DispatchQueue.main.async` fix on the
+    // native side, buying MapLibre time to finalise its render-thread
+    // state. Remove this indirection when `maplibre_gl` >= 0.26.0
+    // lands on pub.dev.
+    Future<void>.delayed(Duration.zero, () {
+      if (!mounted) return;
+      ref.read(mapViewProvider.notifier).set(adapter);
+      final ActiveSessionState? sessionState = ref.read(activeSessionControllerProvider).value;
+      if (sessionState is Tracking) {
+        // Fire-and-forget: openForSession is async but the widget doesn't
+        // need to block on it — the controller publishes state changes
+        // through Riverpod which propagate back via the FAB's ref.watch.
+        unawaited(ref.read(mapCameraControllerProvider.notifier).openForSession(sessionState.sessionId));
+      }
+    });
   }
 }
 
