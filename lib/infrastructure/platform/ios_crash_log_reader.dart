@@ -16,6 +16,18 @@ import 'package:path_provider/path_provider.dart';
 /// consumer must agree.
 const String kIosCrashLogBasename = 'ios_crash.log';
 
+/// Basename of the drained crash log — after [IosCrashLogReader.drainIfAny]
+/// reads the active file and SHOUTs it into the FileLogger JSONL, the
+/// file is renamed with this suffix so the debug menu's "Voir dernier
+/// crash" can still display it on later launches.
+///
+/// Why rename instead of delete: the user wants to inspect the last
+/// native crash directly from the debug menu even after the bootstrap
+/// drain has already written it to today's log — scrolling the JSONL is
+/// not as convenient as a dedicated "show me the most recent crash"
+/// affordance.
+const String kIosCrashLogDrainedBasename = 'ios_crash.log.drained';
+
 /// Reads (and optionally drains) the native iOS crash log file produced
 /// by the Swift-side [CrashReporter].
 ///
@@ -27,9 +39,19 @@ const String kIosCrashLogBasename = 'ios_crash.log';
 /// torn down with the process. The Swift CrashReporter installed in
 /// AppDelegate captures those crashes and appends a raw dump to
 /// `<AppSupport>/ios_crash.log`. On the next cold launch, this reader
-/// picks up the file, logs its contents at SHOUT, then deletes it — so
-/// every subsequent native crash shows up in the FileLogger JSONL that the
-/// debug menu already exposes via "Partager les logs".
+/// picks up the file, logs its contents at SHOUT, then renames it to
+/// `ios_crash.log.drained` — so every subsequent native crash shows up
+/// in today's FileLogger JSONL AND remains readable from the debug menu.
+///
+/// ## Lifecycle
+///
+/// - Swift crash → writes `ios_crash.log`.
+/// - Dart bootstrap → [drainIfAny] SHOUTs contents + renames to
+///   `ios_crash.log.drained` (overwriting any previous drained file).
+/// - Debug menu [readIfAny] → returns `ios_crash.log` if present (a new
+///   crash captured after last drain), else `ios_crash.log.drained`
+///   (the crash already drained into the JSONL).
+/// - User explicitly hits "Supprimer" → [clear] deletes both.
 ///
 /// ## Non-iOS platforms
 ///
@@ -45,9 +67,8 @@ class IosCrashLogReader {
 
   static final Logger _log = Logger('infrastructure.platform.ios_crash_log_reader');
 
-  /// Resolves the absolute path of the crash log on disk.
-  ///
-  /// Matches the Swift side's
+  /// Resolves the absolute path of the active crash log on disk (the
+  /// one Swift writes to). Matches the Swift side's
   /// `FileManager.default.urls(for: .applicationSupportDirectory, ...)`
   /// lookup by going through `path_provider.getApplicationSupportDirectory()`,
   /// which resolves to the same NSApplicationSupportDirectory URL on iOS.
@@ -59,29 +80,69 @@ class IosCrashLogReader {
     return p.join(supportDir.path, kIosCrashLogBasename);
   }
 
-  /// Returns the raw crash-log contents if the file exists, otherwise
-  /// null. Does NOT delete the file — callers that want idempotent drain
-  /// semantics should use [drainIfAny] instead.
-  ///
-  /// Used by the debug menu's "Voir dernier crash" entry to surface the
-  /// last crash even after it has been drained into today's JSONL — as
-  /// long as the file is still on disk.
-  Future<String?> readIfAny() async {
-    final String? filename = await resolveCrashLogFilename();
-    if (filename == null) return null;
-    final File file = File(filename);
-    if (!await file.exists()) return null;
-    try {
-      return await file.readAsString();
-    } on FileSystemException catch (e, st) {
-      _log.warning('readIfAny: failed to read $filename', e, st);
-      return null;
-    }
+  /// Resolves the path of the drained (post-bootstrap) crash log.
+  /// Returns null on non-iOS platforms.
+  Future<String?> resolveDrainedCrashLogFilename() async {
+    if (!_isIos) return null;
+    final Directory supportDir = await getApplicationSupportDirectory();
+    return p.join(supportDir.path, kIosCrashLogDrainedBasename);
   }
 
-  /// Drains the crash log: if a file exists, reads its contents, emits
-  /// them at SHOUT through [Logger], then deletes the file. Returns the
-  /// raw contents (or null if no crash was pending).
+  /// Returns the most recent crash-log contents — prioritising the
+  /// active file (a fresh crash since last drain) over the drained file
+  /// (already logged into today's JSONL). Returns null if neither
+  /// exists.
+  ///
+  /// Does NOT delete or rename anything — callers that want idempotent
+  /// drain semantics should use [drainIfAny] instead.
+  ///
+  /// Used by the debug menu's "Voir dernier crash" entry so the user
+  /// can see the last native crash regardless of whether it has already
+  /// been drained at bootstrap.
+  Future<String?> readIfAny() async {
+    final String? activeFilename = await resolveCrashLogFilename();
+    if (activeFilename != null) {
+      final File active = File(activeFilename);
+      if (await active.exists()) {
+        try {
+          return await active.readAsString();
+        } on FileSystemException catch (e, st) {
+          _log.warning('readIfAny: failed to read active $activeFilename', e, st);
+        }
+      }
+    }
+    final String? drainedFilename = await resolveDrainedCrashLogFilename();
+    if (drainedFilename != null) {
+      final File drained = File(drainedFilename);
+      if (await drained.exists()) {
+        try {
+          return await drained.readAsString();
+        } on FileSystemException catch (e, st) {
+          _log.warning('readIfAny: failed to read drained $drainedFilename', e, st);
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Returns the filename that [readIfAny] would currently read, or null
+  /// if neither the active nor the drained file exists. Lets the debug
+  /// menu pass the right File to the share sheet.
+  Future<String?> resolveReadableFilename() async {
+    final String? activeFilename = await resolveCrashLogFilename();
+    if (activeFilename != null && await File(activeFilename).exists()) {
+      return activeFilename;
+    }
+    final String? drainedFilename = await resolveDrainedCrashLogFilename();
+    if (drainedFilename != null && await File(drainedFilename).exists()) {
+      return drainedFilename;
+    }
+    return null;
+  }
+
+  /// Drains the active crash log: reads it, emits at SHOUT, then renames
+  /// to the `.drained` variant so the debug menu can still display it.
+  /// Returns the raw contents (or null if no fresh crash was pending).
   ///
   /// Intended to be called exactly once during bootstrap, AFTER
   /// `FileLogger.bootstrap()` so the SHOUT is captured by today's JSONL.
@@ -90,12 +151,12 @@ class IosCrashLogReader {
   Future<String?> drainIfAny() async {
     if (!_isIos) return null;
     try {
-      final String? filename = await resolveCrashLogFilename();
-      if (filename == null) return null;
-      final File file = File(filename);
-      if (!await file.exists()) return null;
+      final String? activeFilename = await resolveCrashLogFilename();
+      if (activeFilename == null) return null;
+      final File active = File(activeFilename);
+      if (!await active.exists()) return null;
 
-      final String contents = await file.readAsString();
+      final String contents = await active.readAsString();
       // SHOUT so the Dart-side log captures the native crash trail at the
       // highest severity. The payload is raw (signal number, si_addr,
       // backtrace addresses, NSException reason+stack). Keep it intact —
@@ -104,14 +165,28 @@ class IosCrashLogReader {
       // ourselves to run more code.
       _log.shout('=== iOS native crash recovered from previous run ===\n$contents');
 
-      // Best-effort delete. If the delete fails (shouldn't on AppSupport),
-      // the NEXT launch will re-drain the same contents, which is idempotent
-      // from the user's perspective but will produce duplicate log entries.
-      // Better duplicates than losing the report.
+      // Move active → drained. `rename(2)` is atomic on the same
+      // filesystem so there is no window where both files could be
+      // partially written. If a previous drained file exists (crash
+      // happened, was drained, then a NEW crash occurred after), the
+      // rename replaces it — the active file is always the most recent.
       try {
-        await file.delete();
+        final String? drainedFilename = await resolveDrainedCrashLogFilename();
+        if (drainedFilename != null) {
+          // Delete any stale drained file first — `File.rename` on iOS
+          // fails if the destination already exists.
+          final File drained = File(drainedFilename);
+          if (await drained.exists()) {
+            await drained.delete();
+          }
+          await active.rename(drainedFilename);
+        } else {
+          // No drained-path available (shouldn't happen on iOS) — fall
+          // back to delete so we don't re-drain on next launch.
+          await active.delete();
+        }
       } on FileSystemException catch (e, st) {
-        _log.warning('drainIfAny: delete failed; next launch will re-log', e, st);
+        _log.warning('drainIfAny: post-drain rename failed; next launch may re-log', e, st);
       }
       return contents;
     } on Object catch (e, st) {
@@ -120,19 +195,22 @@ class IosCrashLogReader {
     }
   }
 
-  /// Deletes the crash log file if present. Used by the debug menu after
-  /// the user has confirmed they've shared / read the report.
+  /// Deletes BOTH the active and drained crash log files if present.
+  /// Used by the debug menu after the user has confirmed they've
+  /// shared / read the report.
   Future<void> clear() async {
     if (!_isIos) return;
-    try {
-      final String? filename = await resolveCrashLogFilename();
-      if (filename == null) return;
-      final File file = File(filename);
-      if (await file.exists()) {
-        await file.delete();
+    for (final Future<String?> futureFilename in <Future<String?>>[resolveCrashLogFilename(), resolveDrainedCrashLogFilename()]) {
+      try {
+        final String? filename = await futureFilename;
+        if (filename == null) continue;
+        final File file = File(filename);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } on FileSystemException catch (e, st) {
+        _log.warning('clear: delete failed', e, st);
       }
-    } on FileSystemException catch (e, st) {
-      _log.warning('clear: failed', e, st);
     }
   }
 

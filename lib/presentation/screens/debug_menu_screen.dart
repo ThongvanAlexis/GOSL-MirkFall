@@ -166,17 +166,11 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
 
   /// Surfaces the last native iOS crash captured by CrashReporter.swift.
   ///
-  /// On iOS only. The crash log is already drained into today's JSONL at
-  /// bootstrap, so this entry is a convenience: it shows the raw dump in
-  /// a dialog (so the user can read the signal + backtrace without
-  /// hunting through the log file) and offers to share the file directly
-  /// via the system share sheet — useful when only the crash report is
-  /// relevant and the user doesn't want to ship the full JSONL.
-  ///
-  /// Reads without deleting — the bootstrap drain already removed the
-  /// file on successful launches. If the file is still present, it means
-  /// the previous drain failed or the user relaunched fast enough to see
-  /// a just-written crash; either way, reading is non-destructive.
+  /// On iOS only. The crash log is drained into today's JSONL at
+  /// bootstrap (see [IosCrashLogReader.drainIfAny]), then renamed to
+  /// `ios_crash.log.drained`; this screen reads whichever file currently
+  /// exists so the user can inspect / share the most recent crash even
+  /// after it has already been logged.
   Future<void> _onShowLastCrash() async {
     final IosCrashLogReader reader = IosCrashLogReader();
     final String? contents = await reader.readIfAny();
@@ -185,7 +179,9 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aucun plantage natif enregistré')));
       return;
     }
-    final String? filename = await reader.resolveCrashLogFilename();
+    // `resolveReadableFilename` returns whichever of the active / drained
+    // files is currently on disk — ensures Share passes the right File.
+    final String? filename = await reader.resolveReadableFilename();
     if (!mounted) return;
     await showDialog<void>(
       context: context,
