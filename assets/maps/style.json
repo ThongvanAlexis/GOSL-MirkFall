@@ -103,18 +103,6 @@
         "background-color": "#000000",
         "background-opacity": 0
       }
-    },
-    {
-      "id": "user_location",
-      "type": "circle",
-      "source": "mirkfall_map",
-      "source-layer": "user_location",
-      "paint": {
-        "circle-radius": 0,
-        "circle-color": "#2b7cd6",
-        "circle-stroke-color": "#ffffff",
-        "circle-stroke-width": 2
-      }
     }
   ]
 }

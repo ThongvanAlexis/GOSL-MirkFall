@@ -9,7 +9,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/infrastructure/map/style_layer_order.dart';
 
 /// Regression guard: asserts that `assets/maps/style.json` declares the
-/// 8 layers in the exact order frozen by Plan 07-01.
+/// 7 layers in the exact order frozen by Plan 07-01 (as amended by the
+/// Phase 07-07 device-smoke removal of `user_location` — see
+/// `kStyleLayerOrder` docstring).
 ///
 /// This test catches any silent drift in the shipped style before the
 /// Phase 09 mirk renderer (which depends on the layer z-index contract)
@@ -17,7 +19,7 @@ import 'package:mirkfall/infrastructure/map/style_layer_order.dart';
 /// for `rootBundle` because the JSON ships verbatim under the repo
 /// filesystem.
 void main() {
-  test('assets/maps/style.json declares exactly the 8 frozen layers in order', () {
+  test('assets/maps/style.json declares exactly the 7 frozen layers in order', () {
     final File styleFile = File('assets/maps/style.json');
     expect(styleFile.existsSync(), isTrue, reason: 'assets/maps/style.json missing — Phase 07-01 asset not in repo');
     final String raw = styleFile.readAsStringSync();
@@ -28,8 +30,8 @@ void main() {
     expect(() => assertStyleLayerOrder(raw), returnsNormally);
   });
 
-  test('kStyleLayerOrder matches the hand-defined Phase 07-01 order', () {
-    expect(kStyleLayerOrder, equals(<String>['background', 'landcover', 'water', 'boundaries', 'roads', 'pois', 'mirk_fog', 'user_location']));
+  test('kStyleLayerOrder matches the hand-defined Phase 07-01 order (sans user_location, removed 2026-04-22)', () {
+    expect(kStyleLayerOrder, equals(<String>['background', 'landcover', 'water', 'boundaries', 'roads', 'pois', 'mirk_fog']));
   });
 
   test('style.json + kStyleLayerOrder: same count + same IDs', () {

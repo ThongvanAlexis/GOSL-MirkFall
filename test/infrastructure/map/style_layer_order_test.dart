@@ -11,20 +11,17 @@ import 'package:test/test.dart';
 
 void main() {
   group('kStyleLayerOrder — constant invariants', () {
-    test('declares exactly 8 layer IDs', () {
-      expect(kStyleLayerOrder.length, 8);
+    test('declares exactly 7 layer IDs', () {
+      expect(kStyleLayerOrder.length, 7);
     });
 
-    test('first layer is background, last is user_location', () {
+    test('first layer is background, last is mirk_fog', () {
       expect(kStyleLayerOrder.first, 'background');
-      expect(kStyleLayerOrder.last, 'user_location');
+      expect(kStyleLayerOrder.last, 'mirk_fog');
     });
 
-    test('mirk_fog is at the z-index immediately below user_location', () {
-      final int mirkIdx = kStyleLayerOrder.indexOf('mirk_fog');
-      final int userIdx = kStyleLayerOrder.indexOf('user_location');
-      expect(mirkIdx, isNonNegative);
-      expect(userIdx, mirkIdx + 1);
+    test('mirk_fog is the top-most layer (blue-dot puck is managed via the addCircle annotation manager, not a style layer)', () {
+      expect(kStyleLayerOrder.last, 'mirk_fog');
     });
   });
 
@@ -41,7 +38,7 @@ void main() {
         'version': 8,
         'sources': <String, Object?>{},
         'layers': <Map<String, Object?>>[
-          for (final String id in kStyleLayerOrder.take(7)) <String, Object?>{'id': id, 'type': 'background'},
+          for (final String id in kStyleLayerOrder.take(kStyleLayerOrder.length - 1)) <String, Object?>{'id': id, 'type': 'background'},
         ],
       };
       expect(() => assertStyleLayerOrder(jsonEncode(style)), throwsA(isA<MapStyleCorruptException>()));

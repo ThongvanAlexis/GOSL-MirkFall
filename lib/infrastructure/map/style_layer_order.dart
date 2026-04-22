@@ -11,15 +11,28 @@ import 'package:mirkfall/domain/map/map_errors.dart';
 /// Every layer ID appears in this list in the same order as on disk.
 /// Phase 09 (mirk rendering) and Phase 11 (POI icons) may tune paint
 /// properties of existing layers but MUST NOT reorder the list — the
-/// z-index contract downstream renderers (MirkRenderer, user-location
-/// circle) depends on is defined HERE.
+/// z-index contract downstream renderers (MirkRenderer) depends on is
+/// defined HERE.
 ///
 /// The paired helpers [assertStyleLayerOrder] + [assertStyleLayerValidity]
 /// enforce the shape at style-load time. Unit tests (Plan 07-03
 /// `test/infrastructure/map/style_layer_order_test.dart`) drive the real
 /// asset through them to guard against silent drift between shipped
 /// style.json and this constant.
-const List<String> kStyleLayerOrder = <String>['background', 'landcover', 'water', 'boundaries', 'roads', 'pois', 'mirk_fog', 'user_location'];
+///
+/// Phase 07-07 device-smoke (2026-04-22) — removed the `user_location`
+/// circle layer. The blue dot is rendered via maplibre_gl's built-in
+/// `addCircle` annotation manager (see `MapView.setUserLocation` in the
+/// domain port + the adapter at
+/// `lib/infrastructure/map/maplibre_map_view.dart`), NOT via a style
+/// layer. The removed layer declared `source-layer: user_location`
+/// against the Protomaps PMTiles source, which does NOT carry that
+/// source-layer — a silently-missing vector source-layer that was
+/// suspected of triggering a C++ throw in MapLibre Native iOS 6.14.0
+/// during first query after style load (same frame address as the
+/// `Runner-2026-04-22-*.ips` crash). Probe commit: if the iOS crash
+/// disappears, the `user_location` layer was the root cause.
+const List<String> kStyleLayerOrder = <String>['background', 'landcover', 'water', 'boundaries', 'roads', 'pois', 'mirk_fog'];
 
 /// Validates that [styleJson] declares exactly the layers in
 /// [kStyleLayerOrder], in the same order.
