@@ -121,31 +121,22 @@ class MapCameraController extends _$MapCameraController {
     final Fix? latestFix = _currentSessionLatestFix();
 
     if (mapView != null && latestFix != null) {
-      // Phase 07-07 bisection probe (2026-04-22) — isolating which of
-      // the 3 method-channel calls in this block triggers the
-      // iOS SIGABRT inside MapLibre.framework. Hypothesis (strongest):
-      // addCircle, based on PR #719 evidence that maplibre_gl 0.25.0's
-      // iOS plugin invokes onStyleLoadedCallback BEFORE finishing
-      // internal manager init (CircleManager etc.) — so the annotation
-      // controller may not be wired yet.
+      // Phase 07-07 bisection probe 2 (2026-04-22) — probe 1
+      // (setUserLocation → addCircle alone) did NOT crash, so
+      // addCircle is innocent. This probe isolates moveCameraTo
+      // (→ animateCamera). setUserLocation + setFollowMeEnabled
+      // commented out.
       //
-      // Probe 1: setUserLocation alone (→ addCircle). moveCameraTo +
-      // setFollowMeEnabled commented out. `_followMe` stays at its
-      // default (false) so setUserLocation does NOT trigger its
-      // internal animateCamera either — this run issues exactly ONE
-      // method-channel call: addCircle.
-      //
-      // If crash returns → addCircle is the culprit → refactor puck
-      // to a GeoJSON source+layer (bypasses the annotation manager).
-      // If crash stays gone → re-enable moveCameraTo, bisect further.
-      // await _moveCameraTo(mapView, latitude: latestFix.latitude, longitude: latestFix.longitude, zoom: kInitialSessionMapZoom.toDouble());
-      unawaited(() async {
-        try {
-          await mapView.setUserLocation(latestFix);
-        } on Object catch (e, st) {
-          _log.warning('setUserLocation on openForSession failed (non-fatal)', e, st);
-        }
-      }());
+      // If crash returns → moveCameraTo / animateCamera is the
+      // culprit. If crash stays gone → bisect setFollowMeEnabled.
+      await _moveCameraTo(mapView, latitude: latestFix.latitude, longitude: latestFix.longitude, zoom: kInitialSessionMapZoom.toDouble());
+      // unawaited(() async {
+      //   try {
+      //     await mapView.setUserLocation(latestFix);
+      //   } on Object catch (e, st) {
+      //     _log.warning('setUserLocation on openForSession failed (non-fatal)', e, st);
+      //   }
+      // }());
       // await mapView.setFollowMeEnabled(true);
       state = MapCameraFollowing(sessionId: sessionId);
       return;
