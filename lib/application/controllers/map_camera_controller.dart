@@ -121,27 +121,26 @@ class MapCameraController extends _$MapCameraController {
     final Fix? latestFix = _currentSessionLatestFix();
 
     if (mapView != null && latestFix != null) {
-      // Phase 07-07 bisection result (2026-04-22): on iOS with
-      // maplibre_gl 0.25.0, calling `animateCamera` (what the default
-      // `moveCameraTo` adapter path uses) in the window right after
-      // onStyleLoaded throws an unhandled C++ exception inside
-      // MapLibre.framework → SIGABRT. Confirmed via three identical
-      // .ips backtraces + bisection probes 1 & 2 (probe 1:
-      // setUserLocation alone = no crash; probe 2: moveCameraTo
-      // alone = crash).
+      // Phase 07-07 fix (2026-04-22) — NO camera-moving method-channel
+      // call here. Two previous attempts crashed with identical native
+      // stack traces regardless of whether we used `animateCamera`
+      // (commit 604988f probe) or the animator-free `moveCamera`
+      // (commit 3b23c8d jumpCameraTo workaround). The convergence
+      // point in MapLibre.framework proves the bug is NOT about the
+      // animator but about ANY camera-state mutation issued in the
+      // window right after onStyleLoaded.
       //
-      // Fix: use `jumpCameraTo` (→ plugin's `moveCamera`, no
-      // animator) for this initial positioning. Subsequent GPS-
-      // driven re-centres go through `_moveCameraTo` / animateCamera
-      // as before — by the time a GPS fix arrives the renderer is
-      // long past the post-style-load race window.
-      _cameraMovePending = true;
-      _pendingResetTimer?.cancel();
-      _pendingResetTimer = Timer(_kPendingMoveDebounce, () {
-        _cameraMovePending = false;
-      });
+      // Resolution: the initial positioning is now supplied via
+      // `MapLibreMap.initialCameraPosition` at widget-build time
+      // (see `_buildMapStack` in map_screen.dart). By the time this
+      // controller runs, the MLNMapView already shows the right
+      // viewport — nothing to do here except prime the puck + flip
+      // follow-me on.
+      //
+      // `_currentZoom` must still be tracked so subsequent
+      // _moveCameraTo calls (driven by GPS fixes) preserve the zoom
+      // the user started at.
       _currentZoom = kInitialSessionMapZoom.toDouble();
-      await mapView.jumpCameraTo(latitude: latestFix.latitude, longitude: latestFix.longitude, zoom: kInitialSessionMapZoom.toDouble());
       // Prime the user-location puck on the initial fix. Without this
       // the blue dot waits for the second fix to arrive before
       // rendering — on a stationary device that second fix can take

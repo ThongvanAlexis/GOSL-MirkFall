@@ -94,17 +94,38 @@ ne peut pas les nommer.
 5. **Future.delayed(Duration.zero) suffirait à défèrer au-delà de la
    race** → FAUX. Ajouté dans `096b5f8`, le crash persistait tel quel.
 
-## Ce qu'on a shipé (état au 2026-04-22 commit `3b23c8d`)
+## Ce qu'on a shipé (état au 2026-04-22)
 
-**Workaround `jumpCameraTo`** : nouvelle méthode port `MapView.jumpCameraTo`
-qui route vers le plugin `moveCamera` (no animator) au lieu de
-`animateCamera`. `openForSession` l'utilise pour le positionnement initial.
-Les fix GPS subséquents gardent `moveCameraTo` animé (hors fenêtre de race).
+### Tentative 1 — `jumpCameraTo` (commit `3b23c8d`) — **KO**
 
-**Honnêtement : workaround, pas fix**. On évite le code path qui throw
-mais on ne sait pas ce qui throw dedans. Le commit le mentionne
-explicitement. Les autres uses d'`animateCamera` (hors fenêtre post-
-style-load) ne sont pas affectés.
+Workaround `jumpCameraTo` : port method `MapView.jumpCameraTo` qui route
+vers le plugin `moveCamera` (no animator). Sideload : crash identique.
+Nouvelle .ips (`Runner-2026-04-22-125955.ips`) :
+
+- Frame 14 `imageOffset` changé : `79024` → `77368`. **Différent case**
+  dans le switch Swift `onMethodCall` : le plugin a bien routé le nouveau
+  Dart method vers un case différent.
+- Frames 9-13 dans `MapLibre.framework` : **offsets rigoureusement
+  identiques** (104588, 1835160, 1810356, 1792800, 725176).
+
+Finding crucial : **deux entry points Dart différents, deux cases Swift
+différents, MÊME code path C++ natif qui throw**. La conclusion "animateCamera
+est le coupable" était faux diagnostic — c'est N'IMPORTE QUEL camera-op
+dans cette fenêtre, pas spécifiquement l'animator.
+
+### Tentative 2 — `initialCameraPosition` widget + pas de camera move dans openForSession (en cours)
+
+Approche : supplier la position initiale via `MapLibreMap.initialCameraPosition`
+au build du widget (lu depuis l'active session `lastFix`). Aucun
+method-channel call touchant la caméra n'est émis post-style-load.
+`openForSession` ne fait plus que : setUserLocation (innocent, prouvé
+par Probe 1), setFollowMeEnabled, transition d'état.
+
+**Question ouverte** (soulignée par le user) : les fix GPS subséquents
+arrivent via `_onFix` → `_moveCameraTo` → `animateCamera`. Si le crash
+n'est PAS fenêtre-spécifique mais lié à N'IMPORTE QUEL camera-op avec
+notre config (style/source/tiles), le premier fix GPS après ouverture
+de la carte re-crashera. Le prochain device-smoke tranchera.
 
 ## Questions restantes (pour le vrai diag)
 

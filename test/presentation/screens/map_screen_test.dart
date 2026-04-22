@@ -220,9 +220,15 @@ void main() {
     expect(cameraState, isA<MapCameraFollowing>());
     expect((cameraState as MapCameraFollowing).sessionId, equals(sid));
 
-    // The FakeMapView received the moveCameraTo call from openForSession.
-    expect(fakeMapView.cameraMovesObserved.length, greaterThanOrEqualTo(1));
-    expect(fakeMapView.cameraMovesObserved.last.latitude, closeTo(48.8566, 1e-6));
-    expect(fakeMapView.cameraMovesObserved.last.longitude, closeTo(2.3522, 1e-6));
+    // Phase 07-07 (2026-04-22): openForSession no longer issues a
+    // camera-moving method-channel call. The initial camera
+    // positioning flows through MapLibreMap's `initialCameraPosition`
+    // at widget-build time (see `_buildMapStack` in map_screen.dart).
+    // The FakeMapView used in this test ignores that prop (it's
+    // supplied via the `mapViewBuilderForTest` typedef which doesn't
+    // pass initial camera). So we only assert the state transition +
+    // follow-me side-effects that openForSession still owns.
+    expect(fakeMapView.followMeEnabled, isTrue);
+    expect(fakeMapView.cameraMovesObserved, isEmpty);
   });
 }

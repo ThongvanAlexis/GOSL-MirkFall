@@ -97,33 +97,44 @@ void main() {
       expect(state, isA<MapCameraIdle>());
     });
 
-    test('openForSession with a pre-existing fix centres the camera at Z=kInitialSessionMapZoom + enables follow-me', () async {
-      final Fix fix = _mkFix(lat: 48.8566, lon: 2.3522, sessionId: sid);
-      final container = makeContainer(initialFix: fix);
-      addTearDown(container.dispose);
+    test(
+      'openForSession with a pre-existing fix enables follow-me + primes the puck + state = Following (initial camera positioning is a widget concern, not a method call)',
+      () async {
+        final Fix fix = _mkFix(lat: 48.8566, lon: 2.3522, sessionId: sid);
+        final container = makeContainer(initialFix: fix);
+        addTearDown(container.dispose);
 
-      final FakeMapView fakeMapView = FakeMapView();
-      container.read(mapViewProvider.notifier).set(fakeMapView);
+        final FakeMapView fakeMapView = FakeMapView();
+        container.read(mapViewProvider.notifier).set(fakeMapView);
 
-      // Trigger the controller build BEFORE openForSession so attach is wired.
-      container.read(mapCameraControllerProvider);
+        // Trigger the controller build BEFORE openForSession so attach is wired.
+        container.read(mapCameraControllerProvider);
 
-      await container.read(mapCameraControllerProvider.notifier).openForSession(sid);
+        await container.read(mapCameraControllerProvider.notifier).openForSession(sid);
 
-      expect(fakeMapView.cameraMovesObserved, hasLength(1));
-      expect(fakeMapView.cameraMovesObserved.single.latitude, closeTo(48.8566, 1e-6));
-      expect(fakeMapView.cameraMovesObserved.single.longitude, closeTo(2.3522, 1e-6));
-      expect(fakeMapView.cameraMovesObserved.single.zoom, equals(kInitialSessionMapZoom.toDouble()));
-      expect(fakeMapView.followMeEnabled, isTrue);
-      expect(container.read(mapCameraControllerProvider), isA<MapCameraFollowing>());
-      // Wait a microtask for the fire-and-forget setUserLocation to
-      // drain. Regression guard for the 2026-04-21 device-smoke bug:
-      // openForSession used to move the camera without priming the
-      // puck, so the blue dot only appeared on the second fix.
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
-      expect(fakeMapView.lastUserLocationSet, equals(fix));
-    });
+        // Phase 07-07 (2026-04-22): openForSession no longer issues a
+        // camera-moving method-channel call — ANY such call in the
+        // post-style-load window throws a native C++ exception on iOS
+        // with maplibre_gl 0.25.0 (confirmed across 5 .ips files,
+        // bisection narrowed to camera ops). The initial camera
+        // positioning is now supplied via MapLibreMap's
+        // `initialCameraPosition` at widget-build time — see
+        // `_buildMapStack` in map_screen.dart. This test therefore
+        // asserts the SIDE EFFECTS openForSession is still responsible
+        // for (puck primed, follow-me on, state=Following) without
+        // asserting a camera move.
+        expect(fakeMapView.cameraMovesObserved, isEmpty);
+        expect(fakeMapView.followMeEnabled, isTrue);
+        expect(container.read(mapCameraControllerProvider), isA<MapCameraFollowing>());
+        // Wait a microtask for the fire-and-forget setUserLocation to
+        // drain. Regression guard for the 2026-04-21 device-smoke bug:
+        // openForSession used to rely on the second fix for priming
+        // the blue dot.
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        expect(fakeMapView.lastUserLocationSet, equals(fix));
+      },
+    );
 
     test('openForSession WITHOUT a fix transitions to Centering; next fix drives Centering → Following', () async {
       final container = makeContainer();
@@ -162,7 +173,11 @@ void main() {
       container.read(mapViewProvider.notifier).set(fakeMapView);
       container.read(mapCameraControllerProvider);
       await container.read(mapCameraControllerProvider.notifier).openForSession(sid);
-      expect(fakeMapView.cameraMovesObserved, hasLength(1));
+      // Phase 07-07 (2026-04-22): openForSession no longer moves the
+      // camera — see the sibling test above + map_screen.dart. So the
+      // observation list starts empty and we expect exactly ONE entry
+      // after the next fix (not 2 as under the old design).
+      expect(fakeMapView.cameraMovesObserved, isEmpty);
 
       // Second fix — controller pans at current zoom.
       final Fix secondFix = _mkFix(lat: 48.5, lon: 2.5, sessionId: sid, at: DateTime.utc(2026, 4, 21, 10, 0, 5));
@@ -170,9 +185,9 @@ void main() {
       fake.pushFix(secondFix);
       await Future<void>.delayed(Duration.zero);
 
-      expect(fakeMapView.cameraMovesObserved, hasLength(2));
-      expect(fakeMapView.cameraMovesObserved[1].latitude, closeTo(48.5, 1e-6));
-      expect(fakeMapView.cameraMovesObserved[1].zoom, equals(kInitialSessionMapZoom.toDouble()));
+      expect(fakeMapView.cameraMovesObserved, hasLength(1));
+      expect(fakeMapView.cameraMovesObserved.single.latitude, closeTo(48.5, 1e-6));
+      expect(fakeMapView.cameraMovesObserved.single.zoom, equals(kInitialSessionMapZoom.toDouble()));
     });
 
     test('manual viewport update transitions Following → FreePan + drops follow-me', () async {
@@ -200,8 +215,8 @@ void main() {
     });
 
     test('viewport update IMMEDIATELY after a controller moveCameraTo is treated as an echo, state stays Following', () async {
-      final Fix fix = _mkFix(lat: 48.0, lon: 2.0, sessionId: sid);
-      final container = makeContainer(initialFix: fix);
+      final Fix firstFix = _mkFix(lat: 48.0, lon: 2.0, sessionId: sid);
+      final container = makeContainer(initialFix: firstFix);
       addTearDown(container.dispose);
 
       final FakeMapView fakeMapView = FakeMapView();
@@ -209,6 +224,16 @@ void main() {
       container.read(mapCameraControllerProvider);
       await container.read(mapCameraControllerProvider.notifier).openForSession(sid);
       expect(container.read(mapCameraControllerProvider), isA<MapCameraFollowing>());
+
+      // Phase 07-07 (2026-04-22): openForSession no longer primes the
+      // `_cameraMovePending` flag (no camera-moving method-channel
+      // call — see sibling test above). Push a fix FIRST so the
+      // controller's `_onFix → _moveCameraTo` sets the flag, then
+      // simulate the echo.
+      final fake = container.read(activeSessionControllerProvider.notifier) as _FakeActiveSessionController;
+      final Fix fix = _mkFix(lat: 48.0, lon: 2.0, sessionId: sid, at: DateTime.utc(2026, 4, 21, 10, 0, 5));
+      fake.pushFix(fix);
+      await Future<void>.delayed(Duration.zero);
 
       // Immediate viewport update — simulates MapLibre's onCameraIdle
       // echoing our own moveCameraTo back to us.

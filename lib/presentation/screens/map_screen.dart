@@ -10,6 +10,7 @@ import 'package:mirkfall/application/controllers/active_session_controller.dart'
 import 'package:mirkfall/application/controllers/map_camera_controller.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_view.dart';
 import 'package:mirkfall/infrastructure/map/maplibre_map_view.dart';
@@ -122,9 +123,28 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   );
 
   Widget _buildMapStack(BuildContext context, StyleRewriter rewriter, PmtilesSource source) {
+    // Compute the initial camera at BUILD time from the active session's
+    // last known fix. Passing this as `initialCameraPosition` to
+    // MapLibreMap lets the map LOAD with the camera already at the
+    // right place — zero method-channel calls needed post-style-load.
+    //
+    // Phase 07-07 rationale (2026-04-22): any method-channel call
+    // touching the camera (animateCamera, moveCamera) in the window
+    // right after onStyleLoaded throws an unhandled C++ exception in
+    // MapLibre.framework → SIGABRT (confirmed across 5 .ips files,
+    // same convergence point in the native stack regardless of which
+    // Dart method was dispatched). See
+    // `docs/phase-07-ios-animate-camera-crash.md`. Supplying the
+    // camera through the widget constructor avoids that code path
+    // entirely for the initial positioning.
+    final ActiveSessionState? sessionState = ref.watch(activeSessionControllerProvider).value;
+    final Tracking? tracking = sessionState is Tracking ? sessionState : null;
+    final CameraLatLngZoom initialCamera = tracking?.lastFix != null
+        ? CameraLatLngZoom(latitude: tracking!.lastFix!.latitude, longitude: tracking.lastFix!.longitude, zoom: kInitialSessionMapZoom.toDouble())
+        : const CameraLatLngZoom(latitude: 0, longitude: 0, zoom: 2);
     final Widget mapWidget = widget.mapViewBuilderForTest != null
         ? widget.mapViewBuilderForTest!(styleRewriter: rewriter, pmtilesSource: source, onReady: _onMapReady)
-        : MapLibreMapViewWidget(styleRewriter: rewriter, pmtilesSource: source, onReady: _onMapReady);
+        : MapLibreMapViewWidget(styleRewriter: rewriter, pmtilesSource: source, onReady: _onMapReady, initialCamera: initialCamera);
     return Stack(
       children: <Widget>[
         Positioned.fill(child: mapWidget),
