@@ -274,6 +274,18 @@ class _MapLibreMapViewAdapter implements MapView {
   }
 
   @override
+  Future<void> jumpCameraTo({required double latitude, required double longitude, required double zoom}) async {
+    if (!_aliveOrLog('jumpCameraTo')) return;
+    // Uses the plugin's `moveCamera` (NOT `animateCamera`). moveCamera
+    // commits the camera state in one pass without instantiating an
+    // MLNMapView animator — which is the exact path that throws an
+    // unhandled C++ exception when called inside the post-
+    // onStyleLoaded window on MapLibre Native iOS 6.14.0 (see
+    // `map_view.dart` docstring + Runner-2026-04-22-122719.ips).
+    await _controller.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(target: LatLng(latitude, longitude), zoom: zoom)));
+  }
+
+  @override
   Future<void> setTheme(MapTheme theme) async {
     if (!_aliveOrLog('setTheme')) return;
     // Phase 07 ships a single theme (Standard). RpgParchment is a Phase

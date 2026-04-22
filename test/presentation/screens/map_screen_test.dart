@@ -188,11 +188,7 @@ void main() {
     expect(find.text('Aucune session active'), findsOneWidget);
   });
 
-  // Phase 07-07 bisection probe (2026-04-22) — re-skipped. Under the
-  // bisection the camera controller's moveCameraTo call is commented
-  // out, so cameraMovesObserved stays empty. Re-enable when the full
-  // openForSession body is restored in map_camera_controller.dart.
-  testWidgets('reaching /map with an active Tracking session auto-opens the camera controller (FAB transitions out of Idle)', skip: true, (tester) async {
+  testWidgets('reaching /map with an active Tracking session auto-opens the camera controller (FAB transitions out of Idle)', (tester) async {
     // Regression guard: previously, MapScreen published the MapView
     // adapter but never called MapCameraController.openForSession(). If
     // a user started a session then navigated to /map via the SessionList

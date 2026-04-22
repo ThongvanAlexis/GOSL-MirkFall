@@ -121,23 +121,40 @@ class MapCameraController extends _$MapCameraController {
     final Fix? latestFix = _currentSessionLatestFix();
 
     if (mapView != null && latestFix != null) {
-      // Phase 07-07 bisection probe 2 (2026-04-22) — probe 1
-      // (setUserLocation → addCircle alone) did NOT crash, so
-      // addCircle is innocent. This probe isolates moveCameraTo
-      // (→ animateCamera). setUserLocation + setFollowMeEnabled
-      // commented out.
+      // Phase 07-07 bisection result (2026-04-22): on iOS with
+      // maplibre_gl 0.25.0, calling `animateCamera` (what the default
+      // `moveCameraTo` adapter path uses) in the window right after
+      // onStyleLoaded throws an unhandled C++ exception inside
+      // MapLibre.framework → SIGABRT. Confirmed via three identical
+      // .ips backtraces + bisection probes 1 & 2 (probe 1:
+      // setUserLocation alone = no crash; probe 2: moveCameraTo
+      // alone = crash).
       //
-      // If crash returns → moveCameraTo / animateCamera is the
-      // culprit. If crash stays gone → bisect setFollowMeEnabled.
-      await _moveCameraTo(mapView, latitude: latestFix.latitude, longitude: latestFix.longitude, zoom: kInitialSessionMapZoom.toDouble());
-      // unawaited(() async {
-      //   try {
-      //     await mapView.setUserLocation(latestFix);
-      //   } on Object catch (e, st) {
-      //     _log.warning('setUserLocation on openForSession failed (non-fatal)', e, st);
-      //   }
-      // }());
-      // await mapView.setFollowMeEnabled(true);
+      // Fix: use `jumpCameraTo` (→ plugin's `moveCamera`, no
+      // animator) for this initial positioning. Subsequent GPS-
+      // driven re-centres go through `_moveCameraTo` / animateCamera
+      // as before — by the time a GPS fix arrives the renderer is
+      // long past the post-style-load race window.
+      _cameraMovePending = true;
+      _pendingResetTimer?.cancel();
+      _pendingResetTimer = Timer(_kPendingMoveDebounce, () {
+        _cameraMovePending = false;
+      });
+      _currentZoom = kInitialSessionMapZoom.toDouble();
+      await mapView.jumpCameraTo(latitude: latestFix.latitude, longitude: latestFix.longitude, zoom: kInitialSessionMapZoom.toDouble());
+      // Prime the user-location puck on the initial fix. Without this
+      // the blue dot waits for the second fix to arrive before
+      // rendering — on a stationary device that second fix can take
+      // minutes (or never arrives while the user is indoors with GPS
+      // filtered to distanceFilter > 0).
+      unawaited(() async {
+        try {
+          await mapView.setUserLocation(latestFix);
+        } on Object catch (e, st) {
+          _log.warning('setUserLocation on openForSession failed (non-fatal)', e, st);
+        }
+      }());
+      await mapView.setFollowMeEnabled(true);
       state = MapCameraFollowing(sessionId: sessionId);
       return;
     }

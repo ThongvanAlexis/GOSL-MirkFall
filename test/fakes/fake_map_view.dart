@@ -89,6 +89,16 @@ class FakeMapView implements MapView {
   }
 
   @override
+  Future<void> jumpCameraTo({required double latitude, required double longitude, required double zoom}) async {
+    _checkNotDisposed();
+    methodLog.add('jumpCameraTo($latitude, $longitude, $zoom)');
+    // Record jumps in the same observation queue as animated moves —
+    // tests that assert "camera moved at least once" work for either
+    // animation path.
+    cameraMovesObserved.add(CameraMove(latitude: latitude, longitude: longitude, zoom: zoom, timestamp: DateTime.now().toUtc()));
+  }
+
+  @override
   Future<void> setTheme(MapTheme theme) async {
     _checkNotDisposed();
     methodLog.add('setTheme(${theme.toJsonString()})');

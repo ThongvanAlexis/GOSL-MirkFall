@@ -35,15 +35,30 @@ abstract class MapView {
   /// transaction; layer order stays frozen (see Plan 07-01 style.json).
   Future<void> showMap(CountryCode? country);
 
-  /// Pans + zooms the camera to the given geographic target. Latitude in
-  /// [-90, 90]; longitude in [-180, 180]; zoom in [0, ~22] (implementation
-  /// dependent).
+  /// Pans + zooms the camera to the given geographic target with an
+  /// implementation-chosen animation curve (smooth fly-to).
+  /// Latitude in [-90, 90]; longitude in [-180, 180]; zoom in
+  /// [0, ~22] (implementation dependent).
   ///
-  /// No animation curve parameter — any animation semantics live in the
-  /// adapter. Callers that need an instant jump vs a smooth fly-to can
-  /// differentiate by calling [moveCameraTo] twice in succession, or by
-  /// awaiting the returned [Future] before the next UI change.
+  /// Use [jumpCameraTo] instead when the call happens synchronously
+  /// inside or right after an `onStyleLoaded`-equivalent hook: at that
+  /// point some renderers (MapLibre Native iOS 6.14.0 via
+  /// `maplibre_gl` 0.25.0) throw a native C++ exception if their
+  /// animator is instantiated before the render loop has committed
+  /// the freshly-loaded style. See Phase 07-07 device-smoke
+  /// Runner-2026-04-22-122719.ips bisection.
   Future<void> moveCameraTo({required double latitude, required double longitude, required double zoom});
+
+  /// Same as [moveCameraTo] but WITHOUT animation — the camera jumps
+  /// to the target instantly. Safe to call right after an
+  /// onStyleLoaded-equivalent hook (the bug path described on
+  /// [moveCameraTo] only affects the animator path).
+  ///
+  /// Expect callers to prefer this for "first positioning" flows
+  /// (open-map with active session, deep-link landing, etc.) where
+  /// the motion would be a single frame anyway and any animation is
+  /// wasted effort.
+  Future<void> jumpCameraTo({required double latitude, required double longitude, required double zoom});
 
   /// Swaps the rendering theme (see [MapTheme]). Implementations keep the
   /// current camera + sources intact; only visual styles change.
