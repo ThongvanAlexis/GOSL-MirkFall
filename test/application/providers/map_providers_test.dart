@@ -299,7 +299,12 @@ void main() {
       addTearDown(container.dispose);
       final repo = await container.read(installedManifestRepositoryProvider.future);
 
-      final bootstrap = FirstLaunchBootstrap(worldCopier: copier, appSupportDir: tempDir.path, manifestRepository: repo);
+      final bootstrap = FirstLaunchBootstrap(
+        worldCopier: copier,
+        appSupportDir: tempDir.path,
+        manifestRepository: repo,
+        downloadQueueStore: DownloadQueueStore(appSupportDir: tempDir.path),
+      );
 
       await expectLater(bootstrap.run(), throwsA(isA<MapAssetMissingException>()));
     });

@@ -308,6 +308,7 @@ void main() {
         worldCopier: copier,
         appSupportDir: tempDir.path,
         manifestRepository: manifest,
+        downloadQueueStore: DownloadQueueStore(appSupportDir: tempDir.path),
         catalog: catalog,
         iosBackupExcluder: _FakeIosBackupExcluder(),
         platformOverride: TargetPlatform.android,

@@ -10,8 +10,10 @@ import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/installed_maps/installed_country.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest_repository.dart';
+import 'package:mirkfall/domain/downloads/download_job.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
+import 'package:mirkfall/infrastructure/downloads/download_queue_store.dart';
 import 'package:mirkfall/infrastructure/downloads/sha256_verifier.dart';
 import 'package:mirkfall/infrastructure/map/first_launch_world_copier.dart';
 import 'package:mirkfall/infrastructure/platform/ios_backup_excluder.dart';
@@ -27,11 +29,24 @@ import 'package:path/path.dart' as p;
 /// 1. Delegate the world-bundle copy to [FirstLaunchWorldCopier] — same
 ///    idempotence + auto-heal semantics as Plan 07-03.
 /// 2. Scan `<app_support>/[kStagingDir]` (aka `maps/staging/`) for
-///    per-alpha3 subdirectories. Each one corresponds to a previous
-///    download session that was interrupted. Log each orphan at INFO;
-///    do NOT delete — the user may want to resume, and Plan 07-05's
-///    `DownloadQueueController` is responsible for the prompt +
-///    on-confirm cleanup.
+///    per-alpha3 subdirectories and clean up dead state. Three cases
+///    are distinguished against the installed manifest + the persisted
+///    download queue:
+///    - staging dir + alpha3 is in `installed.json` → leftover from a
+///      successful atomic commit whose final cleanup step failed;
+///      DELETE the staging dir.
+///    - staging dir + alpha3 NOT in manifest + IS in persisted queue →
+///      genuinely in-flight, the queue's `rehydrate()` will pick it
+///      up; LEAVE the staging dir alone so the chunk pre-check in
+///      `PmtilesDownloadController._downloadChunkWithRetries` can
+///      reuse the already-downloaded bytes.
+///    - staging dir + alpha3 NOT in manifest + NOT in persisted
+///      queue → abandoned (user killed app before the queue was
+///      persisted, or queue file was corrupt and got reset);
+///      DELETE the staging dir. The user has to manually re-enqueue
+///      the country — the staging wouldn't speed up that re-enqueue
+///      since leaving it lying around indefinitely would accumulate
+///      disk waste the user has no UI path to clear.
 /// 3. On iOS only, invoke [IosBackupExcluder.excludePath] on the whole
 ///    `<app_support>/maps` tree. Closes Open Question #3: per-country
 ///    PMTiles bundles can be hundreds of MB, and iCloud backup of
@@ -43,6 +58,7 @@ class FirstLaunchBootstrap {
     required FirstLaunchWorldCopier worldCopier,
     required String appSupportDir,
     required InstalledManifestRepository manifestRepository,
+    required DownloadQueueStore downloadQueueStore,
     CountryCatalog? catalog,
     IosBackupExcluder? iosBackupExcluder,
     Sha256Verifier? sha256Verifier,
@@ -51,6 +67,7 @@ class FirstLaunchBootstrap {
   }) : _worldCopier = worldCopier,
        _appSupportDir = appSupportDir,
        _manifestRepository = manifestRepository,
+       _downloadQueueStore = downloadQueueStore,
        _catalog = catalog,
        _iosBackupExcluder = iosBackupExcluder ?? IosBackupExcluder(),
        _sha256Verifier = sha256Verifier ?? const Sha256Verifier(),
@@ -60,6 +77,7 @@ class FirstLaunchBootstrap {
   final FirstLaunchWorldCopier _worldCopier;
   final String _appSupportDir;
   final InstalledManifestRepository _manifestRepository;
+  final DownloadQueueStore _downloadQueueStore;
   final CountryCatalog? _catalog;
   final IosBackupExcluder _iosBackupExcluder;
   final Sha256Verifier _sha256Verifier;
@@ -72,10 +90,20 @@ class FirstLaunchBootstrap {
   /// Absolute path of the maps root that gets backup-excluded on iOS.
   String get mapsRootFilename => p.join(_appSupportDir, 'maps');
 
-  /// List of alpha3 directory basenames flagged as orphan staging
-  /// directories on the most recent [run]. Populated by [run]; useful
-  /// for Plan 07-05's resume-prompt UI to display "we found pending
-  /// downloads for FRA + DEU, continue or abandon?".
+  /// List of alpha3 directory basenames whose staging dir was left on
+  /// disk because a matching entry is still present in the persisted
+  /// [DownloadQueueStore] (case B1 in the class-level docstring).
+  /// These directories will be consumed transparently when the
+  /// download controller's `rehydrate()` resumes the job — the chunk
+  /// pre-check reuses the bytes on disk and skips the network round-
+  /// trip when a part is already fully written.
+  ///
+  /// Every other staging dir encountered on [run] — both the "commit
+  /// cleanup leftover" case and the "truly abandoned" case — is
+  /// DELETED rather than reported here. [run] is the single authority
+  /// for on-disk cleanup; no caller is expected to consume this list
+  /// for maintenance purposes, it is purely a surface for test
+  /// assertions + debug inspection.
   List<String> orphanStagingAlpha3s = <String>[];
 
   /// List of alpha3 keys healed during the most recent [run] — i.e.
@@ -196,20 +224,47 @@ class FirstLaunchBootstrap {
     final Directory staging = Directory(stagingDirFilename);
     if (!staging.existsSync()) return <String>[];
 
-    final List<String> orphans = <String>[];
+    final List<DownloadJob> queuedJobs = await _downloadQueueStore.load();
+    final Set<String> queuedAlpha3Set = queuedJobs.map((DownloadJob j) => j.alpha3.value).toSet();
+
+    final List<String> resumableOrphans = <String>[];
     await for (final FileSystemEntity entity in staging.list(followLinks: false)) {
       if (entity is! Directory) continue;
       final String alpha3 = p.basename(entity.path);
-      // A staging dir is only an orphan if there is no corresponding
-      // entry in the manifest. Presence in the manifest means a prior
-      // commit succeeded and cleanup is a no-op we can schedule.
-      if (!manifest.installed.containsKey(alpha3)) {
-        _log.info('orphan staging dir found for alpha3=$alpha3 at ${entity.path}; resume/abandon decision deferred to Plan 07-05 controller');
-        orphans.add(alpha3);
-      } else {
-        _log.info('staging dir for alpha3=$alpha3 matches installed manifest entry; cleanup deferred to Plan 07-05 controller');
+
+      if (manifest.installed.containsKey(alpha3)) {
+        // Case A — atomic commit succeeded (pmtiles in manifest), only
+        // the cleanup step failed. The staging dir is pure disk waste.
+        _log.info('staging dir for alpha3=$alpha3 matches installed manifest entry — deleting leftover at ${entity.path}');
+        await _deleteStagingDir(entity);
+        continue;
       }
+
+      if (queuedAlpha3Set.contains(alpha3)) {
+        // Case B1 — genuinely pending. The rehydrate() path will reuse
+        // the bytes on disk via the chunk pre-check; DO NOT delete.
+        _log.info('staging dir for alpha3=$alpha3 matches a persisted queue entry — leaving intact for rehydrate() (${entity.path})');
+        resumableOrphans.add(alpha3);
+        continue;
+      }
+
+      // Case B2 — abandoned (app killed before queue persisted, or
+      // queue file corrupted + reset). No consumer will ever pick
+      // this up; delete to reclaim disk.
+      _log.info('abandoned staging dir for alpha3=$alpha3 (no manifest entry, no queue entry) — deleting ${entity.path}');
+      await _deleteStagingDir(entity);
     }
-    return orphans;
+    return resumableOrphans;
+  }
+
+  Future<void> _deleteStagingDir(Directory stagingDir) async {
+    try {
+      await stagingDir.delete(recursive: true);
+    } on FileSystemException catch (e) {
+      // Non-fatal: we log and keep going. Worst case the dir sits for
+      // another app launch. Blocking bootstrap on a failed rmdir would
+      // be a dubious trade-off.
+      _log.warning('failed to delete staging dir ${stagingDir.path}: $e — leaving in place');
+    }
   }
 }

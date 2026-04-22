@@ -239,12 +239,14 @@ Future<FirstLaunchBootstrap> firstLaunchBootstrap(Ref ref) async {
   final supportDir = await ref.watch(appSupportDirProvider.future);
   final repo = await ref.watch(installedManifestRepositoryProvider.future);
   final catalog = await ref.watch(countryCatalogProvider.future);
+  final queueStore = await ref.watch(downloadQueueStoreProvider.future);
   final backup = ref.watch(iosBackupExcluderProvider);
 
   final bootstrap = FirstLaunchBootstrap(
     worldCopier: worldCopier,
     appSupportDir: supportDir,
     manifestRepository: repo,
+    downloadQueueStore: queueStore,
     catalog: catalog,
     iosBackupExcluder: backup,
   );

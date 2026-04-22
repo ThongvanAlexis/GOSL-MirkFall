@@ -9,9 +9,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/config/constants.dart';
+import 'package:mirkfall/domain/downloads/download_job.dart';
 import 'package:mirkfall/domain/installed_maps/installed_country.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
+import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
+import 'package:mirkfall/infrastructure/downloads/download_queue_store.dart';
 import 'package:mirkfall/infrastructure/installed_maps/first_launch_bootstrap.dart';
 import 'package:mirkfall/infrastructure/map/first_launch_world_copier.dart';
 import 'package:mirkfall/infrastructure/platform/ios_backup_excluder.dart';
@@ -39,6 +42,17 @@ InstalledCountry _makeCountry(String alpha3Raw) {
     sha256: '0' * 64,
     filePath: 'maps/countries/$alpha3Raw.pmtiles',
   );
+}
+
+DownloadJob _makeJob(String alpha3Raw) {
+  final CountryCode alpha3 = CountryCode.parse(alpha3Raw);
+  final CountryEntry entry = CountryEntry(
+    alpha3: alpha3,
+    name: alpha3Raw.toUpperCase(),
+    parts: <ChunkPart>[ChunkPart(sha256: 'a' * 64, size: 1024, url: 'https://example.test/releases/download/v20260419/$alpha3Raw.part01')],
+    reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1024),
+  );
+  return DownloadJob(alpha3: alpha3, entry: entry, enqueuedAtUtc: DateTime.utc(2026, 4, 21));
 }
 
 void main() {
@@ -70,6 +84,14 @@ void main() {
     );
   }
 
+  DownloadQueueStore makeEmptyQueueStore() => DownloadQueueStore(appSupportDir: tempDir.path);
+
+  Future<DownloadQueueStore> makeQueueStoreWith(List<DownloadJob> jobs) async {
+    final DownloadQueueStore store = DownloadQueueStore(appSupportDir: tempDir.path);
+    await store.save(jobs);
+    return store;
+  }
+
   group('FirstLaunchBootstrap — world copy delegation', () {
     test('copier is invoked on run(); world bundle lands on disk', () async {
       final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository();
@@ -79,6 +101,7 @@ void main() {
         worldCopier: makeCopier(),
         appSupportDir: tempDir.path,
         manifestRepository: manifest,
+        downloadQueueStore: makeEmptyQueueStore(),
         iosBackupExcluder: _RecordingIosBackupExcluder(),
         platformOverride: TargetPlatform.android,
       );
@@ -100,6 +123,7 @@ void main() {
         worldCopier: makeCopier(),
         appSupportDir: tempDir.path,
         manifestRepository: manifest,
+        downloadQueueStore: makeEmptyQueueStore(),
         iosBackupExcluder: _RecordingIosBackupExcluder(),
         platformOverride: TargetPlatform.android,
       );
@@ -108,32 +132,12 @@ void main() {
       expect(bootstrap.orphanStagingAlpha3s, isEmpty);
     });
 
-    test('staging dir with alpha3 subdirs not in manifest → each alpha3 reported', () async {
+    test('case A — staging dir for an installed alpha3 is DELETED', () async {
       final Directory staging = Directory(p.join(tempDir.path, kStagingDir));
       await staging.create(recursive: true);
-      await Directory(p.join(staging.path, 'fra')).create();
-      await Directory(p.join(staging.path, 'deu')).create();
-
-      final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository();
-      addTearDown(manifest.close);
-
-      final FirstLaunchBootstrap bootstrap = FirstLaunchBootstrap(
-        worldCopier: makeCopier(),
-        appSupportDir: tempDir.path,
-        manifestRepository: manifest,
-        iosBackupExcluder: _RecordingIosBackupExcluder(),
-        platformOverride: TargetPlatform.android,
-      );
-      await bootstrap.run();
-
-      expect(bootstrap.orphanStagingAlpha3s.toSet(), <String>{'fra', 'deu'});
-    });
-
-    test('staging dir matching an installed entry is NOT flagged as orphan', () async {
-      final Directory staging = Directory(p.join(tempDir.path, kStagingDir));
-      await staging.create(recursive: true);
-      await Directory(p.join(staging.path, 'fra')).create();
-      await Directory(p.join(staging.path, 'deu')).create();
+      final Directory fraStaging = Directory(p.join(staging.path, 'fra'));
+      await fraStaging.create();
+      await File(p.join(fraStaging.path, 'part00')).writeAsString('leftover');
 
       final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository(initial: InstalledManifest.empty().copyWithInsert(_makeCountry('fra')));
       addTearDown(manifest.close);
@@ -142,11 +146,88 @@ void main() {
         worldCopier: makeCopier(),
         appSupportDir: tempDir.path,
         manifestRepository: manifest,
+        downloadQueueStore: makeEmptyQueueStore(),
         iosBackupExcluder: _RecordingIosBackupExcluder(),
         platformOverride: TargetPlatform.android,
       );
       await bootstrap.run();
 
+      expect(fraStaging.existsSync(), isFalse, reason: 'post-commit leftover should be deleted');
+      expect(bootstrap.orphanStagingAlpha3s, isEmpty);
+    });
+
+    test('case B1 — staging dir matching a queued job is PRESERVED + reported', () async {
+      final Directory staging = Directory(p.join(tempDir.path, kStagingDir));
+      await staging.create(recursive: true);
+      final Directory fraStaging = Directory(p.join(staging.path, 'fra'));
+      await fraStaging.create();
+      await File(p.join(fraStaging.path, 'part00')).writeAsString('in-flight bytes');
+
+      final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository();
+      addTearDown(manifest.close);
+
+      final FirstLaunchBootstrap bootstrap = FirstLaunchBootstrap(
+        worldCopier: makeCopier(),
+        appSupportDir: tempDir.path,
+        manifestRepository: manifest,
+        downloadQueueStore: await makeQueueStoreWith(<DownloadJob>[_makeJob('fra')]),
+        iosBackupExcluder: _RecordingIosBackupExcluder(),
+        platformOverride: TargetPlatform.android,
+      );
+      await bootstrap.run();
+
+      expect(fraStaging.existsSync(), isTrue, reason: 'in-flight staging must survive bootstrap');
+      expect(File(p.join(fraStaging.path, 'part00')).existsSync(), isTrue, reason: 'rehydrate() reuses the bytes');
+      expect(bootstrap.orphanStagingAlpha3s, <String>['fra']);
+    });
+
+    test('case B2 — staging dir with no manifest + no queue entry is DELETED', () async {
+      final Directory staging = Directory(p.join(tempDir.path, kStagingDir));
+      await staging.create(recursive: true);
+      final Directory deuStaging = Directory(p.join(staging.path, 'deu'));
+      await deuStaging.create();
+      await File(p.join(deuStaging.path, 'part00')).writeAsString('abandoned bytes');
+
+      final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository();
+      addTearDown(manifest.close);
+
+      final FirstLaunchBootstrap bootstrap = FirstLaunchBootstrap(
+        worldCopier: makeCopier(),
+        appSupportDir: tempDir.path,
+        manifestRepository: manifest,
+        downloadQueueStore: makeEmptyQueueStore(),
+        iosBackupExcluder: _RecordingIosBackupExcluder(),
+        platformOverride: TargetPlatform.android,
+      );
+      await bootstrap.run();
+
+      expect(deuStaging.existsSync(), isFalse, reason: 'abandoned staging should be deleted');
+      expect(bootstrap.orphanStagingAlpha3s, isEmpty);
+    });
+
+    test('mixed — A + B1 + B2 are routed independently', () async {
+      final Directory staging = Directory(p.join(tempDir.path, kStagingDir));
+      await staging.create(recursive: true);
+      final Directory fra = Directory(p.join(staging.path, 'fra'))..createSync(); // case A
+      final Directory deu = Directory(p.join(staging.path, 'deu'))..createSync(); // case B1
+      final Directory esp = Directory(p.join(staging.path, 'esp'))..createSync(); // case B2
+
+      final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository(initial: InstalledManifest.empty().copyWithInsert(_makeCountry('fra')));
+      addTearDown(manifest.close);
+
+      final FirstLaunchBootstrap bootstrap = FirstLaunchBootstrap(
+        worldCopier: makeCopier(),
+        appSupportDir: tempDir.path,
+        manifestRepository: manifest,
+        downloadQueueStore: await makeQueueStoreWith(<DownloadJob>[_makeJob('deu')]),
+        iosBackupExcluder: _RecordingIosBackupExcluder(),
+        platformOverride: TargetPlatform.android,
+      );
+      await bootstrap.run();
+
+      expect(fra.existsSync(), isFalse);
+      expect(deu.existsSync(), isTrue);
+      expect(esp.existsSync(), isFalse);
       expect(bootstrap.orphanStagingAlpha3s, <String>['deu']);
     });
   });
@@ -161,6 +242,7 @@ void main() {
         worldCopier: makeCopier(),
         appSupportDir: tempDir.path,
         manifestRepository: manifest,
+        downloadQueueStore: makeEmptyQueueStore(),
         iosBackupExcluder: excluder,
         platformOverride: TargetPlatform.iOS,
       );
@@ -178,6 +260,7 @@ void main() {
         worldCopier: makeCopier(),
         appSupportDir: tempDir.path,
         manifestRepository: manifest,
+        downloadQueueStore: makeEmptyQueueStore(),
         iosBackupExcluder: excluder,
         platformOverride: TargetPlatform.android,
       );
