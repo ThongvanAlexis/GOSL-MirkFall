@@ -1,6 +1,7 @@
 # Phase 07 — Crash iOS sur `animateCamera` post-`onStyleLoaded`
 
 _Document d'enquête. Rédigé 2026-04-22 pendant le device-smoke Phase 07-07._
+_Statut 2026-04-22 22:00 — **RÉSOLU** (commits `81d30c7` + `ab497ab` + `40b49d5`)._
 
 ## TL;DR
 
@@ -172,7 +173,7 @@ consécutives). Le keepAlive Riverpod ne survit pas → `activeCountry`
 5-10 s de transient world-at-zoom-13 avant que le resolver swap sur
 FRA.
 
-### Tentative 4 — Stateless point-in-polygon lookup (commit à suivre)
+### Tentative 4 — Stateless point-in-polygon lookup (commit `40b49d5`) — **VALIDÉ**
 
 Remplacer le seed `activeCountry` par un lookup polygonal direct
 depuis l'active-session `lastFix`. Nouvelle méthode publique
@@ -186,7 +187,35 @@ tant que l'installed manifest a fini de charger avant que MapScreen
 build (confirmé par les logs : rebuild à `20:08:02.740`, map prêt à
 `20:08:02.760`, 20 ms de marge).
 
-Tests verts.
+**Résultat device-smoke 2026-04-22 21:56-22:00** (logs stream-session
+sess_01KPVC831YYCFNFWXBPA3SS4GK) :
+
+- Zéro SIGABRT sur 2 ouvertures de session consécutives
+- Zéro `PlatformException(sourceNotFound)`
+- Zéro `showMap(world)` transient — la carte boote directement sur
+  le style FRA grâce au seed
+- Zéro thrashing `showMap(fra) × 3` — plus besoin de re-resolve
+  puisque le style initial est déjà correct
+- Puck lifecycle clean : `INSTALLED` sur nouvelle adapter,
+  `UPDATED` sur nouveau fix GPS dans la même session
+
+User feedback : "la carte charge instantanément, le point bleu ne
+clignote pas, pas de crash quand on ouvre la carte".
+
+## Bugs résiduels non-bloquants
+
+- **Thrashing resolver `showMap × N`** (logs 2026-04-22 18:44) :
+  plus visible en pratique maintenant que `initialCountry` est
+  seedé correctement, mais le chemin `_rebuildResolver →
+  rerunForLastViewport` peut encore se déclencher plusieurs fois
+  si l'installed manifest change pendant que la carte est ouverte.
+  Cosmétique tant qu'il ne fait plus d'erreur.
+
+- **`MissingPluginException` sur
+  `app.gosl.mirkfall/boot_watchdog`** à chaque session start/stop :
+  attendu (doc dans `AppDelegate.swift` : wiring reporté à Phase 15).
+  Bruit de log FINE, pas d'impact fonctionnel (le contrat Dart
+  swallow l'exception).
 
 ## Questions restantes (pour le vrai diag)
 
