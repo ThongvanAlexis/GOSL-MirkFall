@@ -120,6 +120,32 @@ class CountryResolverController extends _$CountryResolverController {
     await _resolveAndApply(v);
   }
 
+  /// Stateless point-in-polygon lookup against the currently-loaded
+  /// installed polygons. Returns the alpha3 whose polygon contains
+  /// `(latitude, longitude)` at `zoom`, or `null` for world fallback.
+  ///
+  /// Unlike the stream-driven `activeCountry` / `viewportCountry`
+  /// fields (which only populate after a viewport event flows through
+  /// the adapter stream), this method reads the resolver's in-memory
+  /// polygon table directly — callable at any time from Dart, including
+  /// during widget `build` before any map instance exists.
+  ///
+  /// Phase 07-07 device-smoke (2026-04-22) uses this from
+  /// `MapScreen._buildMapStack` to seed `MapLibreMapViewWidget`'s
+  /// `initialCountry` from the active session's `lastFix`. With that
+  /// seed the map boots directly on the country's style (no
+  /// world → country transient), surviving even an iOS-triggered
+  /// background-kill that wipes Riverpod keepAlive state: the installed
+  /// polygons have just been reloaded by `_rebuildResolver` on app
+  /// start, so the lookup is reliable.
+  ///
+  /// Returns `null` if the polygons have not yet been loaded
+  /// (cold-start race); callers should treat that as "unknown, use
+  /// world" rather than an error.
+  CountryCode? resolveForPoint({required double latitude, required double longitude, required double zoom}) {
+    return _resolver.resolve(latitude: latitude, longitude: longitude, zoom: zoom);
+  }
+
   /// Test-facing hook to synchronously rebuild the resolver from the
   /// currently-known manifest. Bypasses `ref.listen`'s async dispatch
   /// so unit tests can deterministically seed polygons + manifest +

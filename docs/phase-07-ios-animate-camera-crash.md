@@ -161,10 +161,32 @@ distincts apparaissent :
    à `MapLibreMapViewWidget`. À la ré-ouverture, si FRA était active
    avant, le style initial est FRA — plus de transient world.
 
-### Tentative 3 — GeoJSON puck + initialCountry seed (commit à suivre)
+### Tentative 3 — GeoJSON puck + initialCountry seed (commit `ab497ab`) — **partial**
 
-Les deux fixes ci-dessus, bundled. Tests verts.
-À valider au prochain device-smoke.
+Puck GeoJSON OK (plus de sourceNotFound). **Seed initialCountry KO en
+scenario froid** : sur iPhone 17 Pro / iOS 26.3.1 l'app est killée dès
+qu'on la minimize (confirmé 2026-04-22 par timestamp de relance
+`20:04:34 MirkFall starting — logger armed` entre deux sessions
+consécutives). Le keepAlive Riverpod ne survit pas → `activeCountry`
+= null au moment du build de MapScreen → seed fallback sur world →
+5-10 s de transient world-at-zoom-13 avant que le resolver swap sur
+FRA.
+
+### Tentative 4 — Stateless point-in-polygon lookup (commit à suivre)
+
+Remplacer le seed `activeCountry` par un lookup polygonal direct
+depuis l'active-session `lastFix`. Nouvelle méthode publique
+`CountryResolverController.resolveForPoint(lat, lon, zoom)` qui fait
+un `_resolver.resolve(...)` sur les polygones chargés en mémoire.
+
+Les polygones survivent un kill iOS (chargés depuis les assets à
+chaque app-start par `_rebuildResolver` — déclenché par l'install
+manifest listener). Donc le lookup est fiable même en scenario froid,
+tant que l'installed manifest a fini de charger avant que MapScreen
+build (confirmé par les logs : rebuild à `20:08:02.740`, map prêt à
+`20:08:02.760`, 20 ms de marge).
+
+Tests verts.
 
 ## Questions restantes (pour le vrai diag)
 

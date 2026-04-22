@@ -143,15 +143,29 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final CameraLatLngZoom initialCamera = tracking?.lastFix != null
         ? CameraLatLngZoom(latitude: tracking!.lastFix!.latitude, longitude: tracking.lastFix!.longitude, zoom: kInitialSessionMapZoom.toDouble())
         : const CameraLatLngZoom(latitude: 0, longitude: 0, zoom: 2);
-    // Seed the initial style with the country currently-active per the
-    // keepAlive CountryResolverController — survives backgrounding +
-    // session restarts. Without this seed the map opens on the world
-    // style and waits for the resolver to swap, showing a transient
-    // world-at-zoom-13 blur (confirmed 2026-04-22 device-smoke). When
-    // activeCountry is null (app's first ever map open) we fall back
-    // to the world bundle, which matches the default
-    // MapLibreMapViewWidget.initialCountry behaviour.
-    final CountryCode? initialCountry = ref.watch(countryResolverControllerProvider).activeCountry;
+    // Seed the initial style with the country containing the active
+    // session's lastFix. Done via a stateless point-in-polygon lookup
+    // on the CountryResolverController's loaded polygons — survives
+    // iOS background-kills (which wipe Riverpod keepAlive state but
+    // not the on-disk installed polygons, reloaded on app start by
+    // `_rebuildResolver`).
+    //
+    // Phase 07-07 rationale: without this seed, a cold map open with
+    // an active session spends 5-10 s showing the world-bundle at
+    // zoom 13 (pure blur) while the resolver waits for the viewport
+    // stream to settle enough to fire `showMap(<country>)` via
+    // setStyle. Seeding `initialCountry` directly makes the map boot
+    // on the country's style with no transient.
+    //
+    // Falls through to `null` (world) when no session is active, no
+    // fix yet, or the polygons haven't finished loading (cold-start
+    // race, rare).
+    CountryCode? initialCountry;
+    if (tracking?.lastFix != null) {
+      initialCountry = ref
+          .read(countryResolverControllerProvider.notifier)
+          .resolveForPoint(latitude: tracking!.lastFix!.latitude, longitude: tracking.lastFix!.longitude, zoom: kInitialSessionMapZoom.toDouble());
+    }
     final Widget mapWidget = widget.mapViewBuilderForTest != null
         ? widget.mapViewBuilderForTest!(styleRewriter: rewriter, pmtilesSource: source, onReady: _onMapReady)
         : MapLibreMapViewWidget(
