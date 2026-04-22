@@ -91,9 +91,22 @@ Future<LocationPermissionOutcome> requestLocationAlways({PermissionRequester req
 ///
 /// Returns true if the settings page was opened successfully. Callers
 /// should NOT rely on the return value to infer the outcome of the
-/// user's actions there — re-check the permission status on resume
-/// (Plan 05-04's WidgetsBindingObserver).
+/// user's actions there — re-check the permission status on app
+/// resume via [checkLocationWhenInUseStatus].
 Future<bool> openLocationSettings() => openAppSettings();
+
+/// Reads the current `Permission.locationWhenInUse` status WITHOUT
+/// triggering a platform dialog. Used by the permission-denied screen's
+/// `WidgetsBindingObserver` hook to auto-detect a grant that happened
+/// inside the system settings app: the user taps "Ouvrir les paramètres",
+/// flips the permission to "Allow", returns to MirkFall; on resume we
+/// observe the new status and dismiss the denied screen automatically
+/// rather than forcing them to press "Retour" manually.
+///
+/// Returned values are the `permission_handler` [PermissionStatus] enum
+/// verbatim — callers match against `.isGranted` /
+/// `.isPermanentlyDenied` as they would for a fresh request.
+Future<PermissionStatus> checkLocationWhenInUseStatus() => Permission.locationWhenInUse.status;
 
 /// Default [PermissionRequester] — delegates to `permission_handler`.
 Future<PermissionStatus> _defaultRequestPermission(Permission permission) => permission.request();

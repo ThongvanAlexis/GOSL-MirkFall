@@ -50,8 +50,26 @@ successful `write` overwrites the stale temp with a fresh copy.
 ## Orphan staging policy
 
 On app start, `FirstLaunchBootstrap` scans `<app_support>/maps/staging/`
-for per-alpha3 subdirectories. Each orphan is **logged at INFO** but
-NOT deleted automatically — the user may want to resume the
-interrupted download. Plan 07-05's `DownloadQueueController` prompts
-the user on next open; only on explicit "abandon" does the controller
-delete the orphan.
+for per-alpha3 subdirectories and routes each one through a
+three-case cleanup policy:
+
+1. **Staging dir + alpha3 IS in `installed.json`** — the atomic commit
+   succeeded but the post-commit cleanup step failed. The pmtiles is
+   already installed, so the staging dir is pure disk waste:
+   **DELETE**.
+2. **Staging dir + alpha3 NOT in manifest + IS in persisted download
+   queue** (`maps/download_queue.json`) — genuinely in-flight; the
+   `DownloadQueueController.rehydrate()` path will pick it up on app
+   start, and the chunk pre-check in
+   `PmtilesDownloadController._downloadChunkWithRetries` will reuse
+   the bytes already on disk (skipping the network round-trip for any
+   fully-written chunk): **LEAVE ALONE**.
+3. **Staging dir + alpha3 NOT in manifest + NOT in queue** — truly
+   abandoned (app killed before the queue was persisted, or the queue
+   file was corrupt and got reset to empty). No consumer will ever
+   pick this up: **DELETE**. User has to manually re-enqueue the
+   country from the download screen if they want it.
+
+`FirstLaunchBootstrap.orphanStagingAlpha3s` holds only the case-2
+alpha3s (resumable orphans) after `run()`. It is exposed for test
+assertions + debug inspection; no production consumer reads it.

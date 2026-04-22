@@ -115,12 +115,24 @@ class _PermissionRationaleScreenState extends ConsumerState<PermissionRationaleS
         // GoError at runtime. Matches OemGuidanceScreen._onDone's canPop
         // pattern.
         if (context.canPop()) {
-          // Push the denied screen; when it returns (user tapped Retour),
-          // pop the rationale route with `false` so the caller doesn't
-          // try to start a session on a denied permission.
-          await context.push<void>('/permissions/denied');
+          // Push the denied screen; the screen's WidgetsBindingObserver
+          // re-checks `Permission.locationWhenInUse` on every resume, so
+          // `true` here means "the user flipped the permission to Allow
+          // inside the system settings app". Treat that identically to
+          // the `whileInUseOnly` branch above — permission flow is done,
+          // let the caller start a session. A null / false result means
+          // the user returned without granting (tapped Retour or closed
+          // the screen); forward `false` to the caller to keep the
+          // session start from firing on a still-denied permission.
+          final bool? granted = await context.push<bool>('/permissions/denied');
           if (!mounted) return;
-          context.pop(false);
+          if (granted == true) {
+            await ref.read(sessionSettingsProvider.notifier).markPermissionFlowCompleted();
+            if (!mounted) return;
+            context.pop(true);
+          } else {
+            context.pop(false);
+          }
         } else {
           context.go('/permissions/denied');
         }
