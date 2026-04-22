@@ -188,11 +188,7 @@ void main() {
     expect(find.text('Aucune session active'), findsOneWidget);
   });
 
-  // Phase 07-07 iOS crash probe (2026-04-22) temporarily disabled the
-  // openForSession auto-call from _onMapReady while isolating a native
-  // MapLibre SIGABRT on session-detail → "Ouvrir la carte". Re-enable
-  // this test when openForSession is restored in map_screen.dart.
-  testWidgets('reaching /map with an active Tracking session auto-opens the camera controller (FAB transitions out of Idle)', skip: true, (tester) async {
+  testWidgets('reaching /map with an active Tracking session auto-opens the camera controller (FAB transitions out of Idle)', (tester) async {
     // Regression guard: previously, MapScreen published the MapView
     // adapter but never called MapCameraController.openForSession(). If
     // a user started a session then navigated to /map via the SessionList

@@ -6,7 +6,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mirkfall/application/controllers/active_session_controller.dart';
+import 'package:mirkfall/application/controllers/map_camera_controller.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
+import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_view.dart';
 import 'package:mirkfall/infrastructure/map/maplibre_map_view.dart';
@@ -191,25 +194,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     Future<void>.delayed(Duration.zero, () {
       if (!mounted) return;
       ref.read(mapViewProvider.notifier).set(adapter);
-      // Phase 07-07 diagnostic probe (2026-04-22) — the `openForSession`
-      // auto-open on map entry is temporarily disabled while we hunt the
-      // iOS SIGABRT (C++ throw inside MapLibre.framework, captured in
-      // Runner-2026-04-22-095930.ips). openForSession primes the
-      // user-location puck via `setUserLocation` which calls `addCircle`
-      // on the maplibre_gl annotation manager; that + our
-      // `user_location` style layer (also removed in this commit) are
-      // the two candidates for the crash trigger.
-      //
-      // Consequence while disabled: the follow-me FAB will stay in
-      // `MapCameraIdle` until the GPS stream pushes its first fix via
-      // the regular controller path (which does its own
-      // setUserLocation). Still reaches `MapCameraFollowing` on
-      // subsequent fixes — only the very first "open map → see puck
-      // immediately" visual hint is lost.
-      //
-      // Re-enable once the crash is isolated: either restore the block
-      // as-is (if the style layer was the real trigger) or defer it
-      // harder (addPostFrameCallback + longer delay).
+      final ActiveSessionState? sessionState = ref.read(activeSessionControllerProvider).value;
+      if (sessionState is Tracking) {
+        // Phase 07-07 probe B (2026-04-22) — re-enable openForSession
+        // after confirming the crash disappears with `user_location`
+        // style layer removed. If the crash stays gone with this call
+        // active, the style layer was the sole trigger; if it returns,
+        // this call needs a stronger defer or a redesign.
+        //
+        // Fire-and-forget: openForSession is async but the widget doesn't
+        // need to block on it — the controller publishes state changes
+        // through Riverpod which propagate back via the FAB's ref.watch.
+        unawaited(ref.read(mapCameraControllerProvider.notifier).openForSession(sessionState.sessionId));
+      }
     });
   }
 }
