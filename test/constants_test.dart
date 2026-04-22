@@ -31,8 +31,8 @@ void main() {
   // Phase 07 (Map Integration) — every new Phase 07 slot gets a value +
   // type guard here so a silent rename/retype is caught at test time.
   group('Phase 07 constants', () {
-    test('kHttpTimeout is 60_000 ms (raised for 1.5 GB chunk downloads)', () {
-      expect(kHttpTimeout, equals(60000));
+    test('kHttpTimeout is 30_000 ms (lowered at Phase 07-07 device-smoke — CDN edges close around 30-45 s)', () {
+      expect(kHttpTimeout, equals(30000));
       expect(kHttpTimeout, isA<int>());
     });
 
