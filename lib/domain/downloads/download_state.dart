@@ -50,15 +50,33 @@ final class DownloadQueued extends DownloadState {
   final List<DownloadJob> queue;
 }
 
-/// The active job is transferring. [remaining] lists the jobs still
-/// queued behind it (possibly empty — single-job downloads are a
+/// Post-transfer phase the active job is currently in. Drives UI copy
+/// so the user is never left staring at a frozen progress bar —
+/// `transferring` is the default (network bytes flowing), the other
+/// variants cover the on-device post-network pipeline steps that run
+/// invisibly between the last downloaded byte and [DownloadCompleted].
+///
+/// - `transferring`: bytes in flight from the CDN. Default.
+/// - `verifyingChunk`: computing sha256 of a just-downloaded chunk
+///   before accepting it. Can take tens of seconds on large
+///   (100 MB+) chunks.
+/// - `concatenating`: streaming the chunks into a single reassembled
+///   file on disk. Runs once all chunks are verified.
+/// - `verifyingFinal`: computing sha256 of the reassembled file.
+///   Runs once after concat, right before the atomic rename.
+enum DownloadPhase { transferring, verifyingChunk, concatenating, verifyingFinal }
+
+/// The active job is transferring (or in a post-transfer verification
+/// phase — see [phase]). [remaining] lists the jobs still queued
+/// behind it (possibly empty — single-job downloads are a
 /// [DownloadInProgress] with empty [remaining]).
 final class DownloadInProgress extends DownloadState {
-  const DownloadInProgress({required this.active, required this.progress, required this.remaining});
+  const DownloadInProgress({required this.active, required this.progress, required this.remaining, this.phase = DownloadPhase.transferring});
 
   final DownloadJob active;
   final DownloadProgress progress;
   final List<DownloadJob> remaining;
+  final DownloadPhase phase;
 }
 
 /// The active job hit a transient failure (stream stall, HTTP error,

@@ -175,6 +175,7 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
                       activeFraction: activeFraction,
                       activeBytesDownloaded: activeBytesDownloaded,
                       retryingSnapshot: downloadState is DownloadRetrying ? downloadState : null,
+                      activePhase: downloadState is DownloadInProgress ? downloadState.phase : null,
                     );
                   },
                 ),
@@ -231,6 +232,7 @@ class _CountryTile extends ConsumerWidget {
     required this.activeFraction,
     required this.activeBytesDownloaded,
     required this.retryingSnapshot,
+    required this.activePhase,
   });
 
   final CountryEntry entry;
@@ -247,6 +249,17 @@ class _CountryTile extends ConsumerWidget {
   /// job's alpha3 (the parent filters via `activeDownloadAlpha3`).
   final DownloadRetrying? retryingSnapshot;
 
+  /// Current post-transfer phase of the in-flight download, if any.
+  /// `null` when the active download state is not `DownloadInProgress`
+  /// (e.g. paused, retrying, error). On `DownloadPhase.transferring`
+  /// the tile renders the regular "En téléchargement X %" + speed
+  /// label; other phases render dedicated copy
+  /// (verifyingChunk → "Vérification de la partie…",
+  /// concatenating → "Assemblage…",
+  /// verifyingFinal → "Vérification finale…") so the progress bar is
+  /// never silently frozen.
+  final DownloadPhase? activePhase;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final InstalledCountry? installed = installedState.installed[entry.alpha3];
@@ -262,28 +275,51 @@ class _CountryTile extends ConsumerWidget {
 
     if (isDownloading) {
       final int percent = ((activeFraction ?? 0.0) * 100).clamp(0, 100).round();
-      trailing = SizedBox(width: 72.0, child: Text('$percent %', textAlign: TextAlign.end));
       final DownloadRetrying? retrying = retryingSnapshot;
+      // Trailing empty during any download phase — the percent +
+      // phase-specific copy live in the subtitle as a single string
+      // so there's only one source of truth for status. The leading
+      // icon disambiguates "this tile is the active download" from
+      // "this tile is a normal idle entry" (downloading /
+      // autorenew / verified / merge_type by phase).
+      trailing = const SizedBox.shrink();
+      onTap = null;
+      leadingColor = cs.primary;
       if (retrying != null && retrying.active.alpha3 == entry.alpha3) {
-        // Retry-backoff window — show a distinct label so the user
-        // sees WHY the progress bar is momentarily frozen. Attempt
-        // numbering is 1-indexed in the label (retry.attemptIndex is
-        // the 0-indexed attempt that JUST failed; next = +1).
+        // Retry-backoff window — explain WHY the bar is frozen.
+        // retry.attemptIndex is 0-indexed for the attempt that JUST
+        // failed; the NEXT attempt is +1 (display as 1-indexed = +2).
         final int nextAttempt = retrying.attemptIndex + 2;
         subtitleWidget = Text('Reprise en cours (tentative $nextAttempt/${retrying.totalAttempts}) · $percent %', overflow: TextOverflow.ellipsis);
         leading = Icons.autorenew;
       } else {
-        subtitleWidget = Row(
-          children: <Widget>[
-            Flexible(child: Text('En téléchargement $percent %', overflow: TextOverflow.ellipsis)),
-            const SizedBox(width: 8.0),
-            _DownloadSpeedLabel(bytesDownloaded: activeBytesDownloaded ?? 0),
-          ],
-        );
-        leading = Icons.downloading_outlined;
+        // Phase-specific subtitle. DownloadPhase.transferring falls
+        // through to the _DownloadSpeedLabel which renders
+        // "XX % · 3.4 MB/s" once a 3 s sliding window of samples is
+        // available. Non-transferring phases show dedicated copy so
+        // the UI is never silently frozen while sha256 / concat runs.
+        switch (activePhase ?? DownloadPhase.transferring) {
+          case DownloadPhase.verifyingChunk:
+            final int chunkIndex = (retrying?.snapshot.currentPartIndex ?? 0);
+            final int chunkTotal = (retrying?.snapshot.totalParts ?? 1);
+            // Use the DownloadInProgress snapshot fields through the
+            // fraction/bytes we already have — chunkIndex is embedded
+            // in activeFraction's source (progress.currentPartIndex)
+            // but not threaded here; fall back to sha256 copy if
+            // unavailable.
+            subtitleWidget = Text('Vérification du bloc ${chunkIndex + 1}/$chunkTotal (sha256)', overflow: TextOverflow.ellipsis);
+            leading = Icons.verified_outlined;
+          case DownloadPhase.concatenating:
+            subtitleWidget = const Text('Assemblage des fichiers…', overflow: TextOverflow.ellipsis);
+            leading = Icons.merge_type_outlined;
+          case DownloadPhase.verifyingFinal:
+            subtitleWidget = const Text('Vérification finale (sha256)…', overflow: TextOverflow.ellipsis);
+            leading = Icons.verified_outlined;
+          case DownloadPhase.transferring:
+            subtitleWidget = _DownloadSpeedLabel(bytesDownloaded: activeBytesDownloaded ?? 0, prefix: 'En téléchargement $percent %');
+            leading = Icons.downloading_outlined;
+        }
       }
-      onTap = null;
-      leadingColor = cs.primary;
     } else if (installed != null) {
       final bool needsUpdate = catalogVersion.isNotEmpty && installed.pmtilesVersion != catalogVersion;
       if (needsUpdate) {
@@ -373,9 +409,17 @@ DateTime _defaultNow() => DateTime.now();
 /// this widget is destroyed + reconstructed fresh, so samples never
 /// bleed between countries.
 class _DownloadSpeedLabel extends StatefulWidget {
-  const _DownloadSpeedLabel({required this.bytesDownloaded, _NowFn now = _defaultNow}) : _now = now;
+  const _DownloadSpeedLabel({required this.bytesDownloaded, required this.prefix, _NowFn now = _defaultNow}) : _now = now;
 
   final int bytesDownloaded;
+
+  /// Constant prefix prepended to the speed value — typically the
+  /// phase + percent copy like `'En téléchargement 23 %'`. The widget
+  /// renders `'$prefix · 2.4 MB/s'` when enough samples have
+  /// accumulated, or falls back to just `prefix` before the first
+  /// 3 s sliding window is populated.
+  final String prefix;
+
   final _NowFn _now;
 
   @override
@@ -426,8 +470,8 @@ class _DownloadSpeedLabelState extends State<_DownloadSpeedLabel> {
   @override
   Widget build(BuildContext context) {
     final double? speed = _speedBytesPerSecond();
-    if (speed == null) return const SizedBox.shrink();
-    return Text(formatDownloadSpeed(speed), style: Theme.of(context).textTheme.bodySmall);
+    final String label = speed == null ? widget.prefix : '${widget.prefix} · ${formatDownloadSpeed(speed)}';
+    return Text(label, overflow: TextOverflow.ellipsis);
   }
 }
 

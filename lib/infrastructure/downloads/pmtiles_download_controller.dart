@@ -263,14 +263,27 @@ class PmtilesDownloadController {
         final ChunkPart part = job.entry.parts[i];
         final File partFile = File(p.join(stagingDir.path, 'part${i.toString().padLeft(2, '0')}'));
         await _downloadChunkWithRetries(part: part, destination: partFile, job: job, partIndex: i);
+        // Phase 07-07 (2026-04-22) — emit a verifyingChunk phase so
+        // the UI can show "Vérification du chunk" during the sha256
+        // compute. On large (100 MB+) chunks this step can take tens
+        // of seconds and would otherwise freeze the progress bar
+        // silently, making the user think the download hung.
+        _emitInProgress(job: job, partIndex: i, phase: DownloadPhase.verifyingChunk);
+        _log.info('chunk ${job.alpha3.value}.part$i verify: sha256 starting (size=${part.size})');
         await _verifyChunkWithOneRetry(part: part, partFile: partFile, job: job, partIndex: i);
+        _log.info('chunk ${job.alpha3.value}.part$i verify: OK');
         partFiles.add(partFile);
       }
 
       // 3. Concat.
+      _emitInProgress(job: job, partIndex: job.entry.parts.length - 1, phase: DownloadPhase.concatenating);
+      _log.info('concat ${job.alpha3.value}: starting (${job.entry.parts.length} parts → reassembled ${job.entry.reassembled.size} bytes)');
       await _concatenator.concat(parts: partFiles, destination: reassembledStaging);
+      _log.info('concat ${job.alpha3.value}: OK');
 
       // 4. Global sha256.
+      _emitInProgress(job: job, partIndex: job.entry.parts.length - 1, phase: DownloadPhase.verifyingFinal);
+      _log.info('final verify ${job.alpha3.value}: sha256 starting (size=${job.entry.reassembled.size})');
       final String reassembledHash = await _sha256Verifier.ofFile(reassembledStaging);
       if (reassembledHash != job.entry.reassembled.sha256) {
         throw Sha256MismatchException(expected: job.entry.reassembled.sha256, actual: reassembledHash, at: 'reassembled');
@@ -414,10 +427,11 @@ class PmtilesDownloadController {
   }
 
   /// Emits a [DownloadInProgress] snapshot reflecting the current
-  /// accumulated-bytes counter + the requested [partIndex]. Factored
-  /// out so the chunk-start emit + the throttled in-body emits share
-  /// one construction path.
-  void _emitInProgress({required DownloadJob job, required int partIndex}) {
+  /// accumulated-bytes counter + the requested [partIndex] +
+  /// [phase]. Factored out so the chunk-start emit, the throttled
+  /// in-body emits, and the post-transfer phase transitions all
+  /// share one construction path.
+  void _emitInProgress({required DownloadJob job, required int partIndex, DownloadPhase phase = DownloadPhase.transferring}) {
     _emit(
       DownloadInProgress(
         active: job,
@@ -428,6 +442,7 @@ class PmtilesDownloadController {
           totalParts: job.entry.parts.length,
         ),
         remaining: _queue.length > 1 ? List<DownloadJob>.unmodifiable(_queue.skip(1)) : <DownloadJob>[],
+        phase: phase,
       ),
     );
   }
