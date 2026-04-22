@@ -16,6 +16,39 @@ import 'package:mirkfall/domain/map/map_view.dart';
 import 'pmtiles_source.dart';
 import 'style_rewriter.dart';
 
+/// Style-source ID for the GeoJSON source carrying the user-location
+/// puck's current position. Namespaced with `mirkfall_` so a downstream
+/// style tweak cannot accidentally collide.
+const String _kUserLocationSourceId = 'mirkfall_user_location_source';
+
+/// Style-layer ID for the circle layer that renders the puck. Pairs
+/// with [_kUserLocationSourceId].
+const String _kUserLocationLayerId = 'mirkfall_user_location_layer';
+
+/// GeoJSON FeatureCollection with a single Point feature at
+/// ([longitude], [latitude]). Used to push the puck position.
+Map<String, dynamic> _pointFeatureCollection({required double longitude, required double latitude}) {
+  return <String, dynamic>{
+    'type': 'FeatureCollection',
+    'features': <Map<String, dynamic>>[
+      <String, dynamic>{
+        'type': 'Feature',
+        'geometry': <String, dynamic>{
+          'type': 'Point',
+          'coordinates': <double>[longitude, latitude],
+        },
+        'properties': <String, dynamic>{},
+      },
+    ],
+  };
+}
+
+/// Empty GeoJSON FeatureCollection — hides the puck without removing
+/// the source+layer (cheaper + sidesteps re-init races).
+Map<String, dynamic> _emptyFeatureCollection() {
+  return <String, dynamic>{'type': 'FeatureCollection', 'features': <Map<String, dynamic>>[]};
+}
+
 /// The ONLY file under `lib/` allowed to import `package:maplibre_gl/...`.
 ///
 /// Enforced by `tool/check_avoid_maplibre_leak.dart` (MAP-06 CI gate).
@@ -209,19 +242,28 @@ class _MapLibreMapViewAdapter implements MapView {
   /// string ID so [removePointOfInterest] can look them up.
   final Map<String, Symbol> _poiSymbols = <String, Symbol>{};
 
-  /// Single circle tracking the user-location indicator; `null` when no
-  /// fix has been supplied yet.
+  /// Tracks whether the GeoJSON source + circle layer backing the
+  /// user-location puck have been installed on the current style.
+  /// Reset to `false` by [showMap] — setStyle wipes every non-initial
+  /// source + layer so the next [setUserLocation] call must re-add
+  /// from scratch.
   ///
-  /// Deliberately a `Circle` (runtime MapLibre annotation) rather than a
-  /// `Symbol` backed by a sprite image. Reasons:
-  /// - Phase 07-01 ships `assets/maps/sprites/` as a placeholder
-  ///   directory (`README.md` only — no real sprite sheet yet). A
-  ///   Symbol with `iconImage: 'dot'` would resolve to a missing icon
-  ///   and render invisibly. A Circle needs nothing but a fill colour.
-  /// - The final UX design (medieval-style PNG icon) will swap this
-  ///   for a Symbol once the sprite pack lands, touching only this
-  ///   adapter — the [MapView] port signature stays identical.
-  Circle? _userLocationCircle;
+  /// Phase 07-07 device-smoke (2026-04-22) — replaced the
+  /// `addCircle` annotation-manager call with a plain GeoJSON source +
+  /// circle layer. Reason (captured in
+  /// `docs/phase-07-ios-animate-camera-crash.md` + the puck log
+  /// chain in `Runner-2026-04-22-*.ips` stacks): the plugin's
+  /// AnnotationManager keeps its random internal source-id in memory
+  /// across setStyle calls, but the source itself is destroyed by
+  /// setStyle. The next `addCircle` tries `setGeoJsonSource(stale_id)`
+  /// which throws `PlatformException(sourceNotFound)` — the puck
+  /// disappears after the first country swap and our adapter cannot
+  /// reset the AnnotationManager's internal state from Dart.
+  ///
+  /// A caller-owned source + layer sidesteps the AnnotationManager
+  /// entirely — we re-add explicitly in [showMap] when the flip
+  /// below says so.
+  bool _userLocationLayerInstalled = false;
 
   /// Last fix pushed through [setUserLocation]. Retained so [showMap] can
   /// re-apply the puck after a `setStyle` swap — MapLibre wipes every
@@ -254,12 +296,10 @@ class _MapLibreMapViewAdapter implements MapView {
     await _controller.moveCamera(CameraUpdate.newCameraPosition(preserved));
     _log.info('showMap(${country?.value ?? 'world'}): camera re-applied after setStyle');
 
-    // Re-apply the user-location puck — setStyle wiped the annotation
-    // layer. The stale Circle pointer is invalid; null it out so the
-    // next setUserLocation call takes the "add" branch, not the
-    // "update" branch (updateCircle on a wiped Circle is a no-op at
-    // best, a crash at worst depending on maplibre_gl version).
-    _userLocationCircle = null;
+    // Flip the installed flag — setStyle wiped every non-initial
+    // source + layer. The next setUserLocation call will re-install
+    // the GeoJSON source + circle layer from scratch.
+    _userLocationLayerInstalled = false;
     final Fix? restore = _lastUserLocationFix;
     if (restore != null) {
       _log.info('showMap(${country?.value ?? 'world'}): re-applying user-location puck');
@@ -299,33 +339,42 @@ class _MapLibreMapViewAdapter implements MapView {
     if (!_aliveOrLog('setUserLocation')) return;
     _lastUserLocationFix = fix;
     if (fix == null) {
-      final Circle? existing = _userLocationCircle;
-      if (existing != null) {
-        await _controller.removeCircle(existing);
-        _userLocationCircle = null;
+      if (_userLocationLayerInstalled) {
+        // Hide by clearing source data — leaves the layer in place
+        // for cheap re-show on the next fix, avoids a re-add cycle.
+        await _controller.setGeoJsonSource(_kUserLocationSourceId, _emptyFeatureCollection());
       }
       _log.info('setUserLocation(null): puck cleared');
       return;
     }
-    final LatLng pos = LatLng(fix.latitude, fix.longitude);
-    // Default MapLibre location-puck colours: solid blue fill + white
-    // stroke. Matches the convention every major GPS app uses (Google
-    // Maps, Apple Maps, OsmAnd) — future swap to the medieval-style
-    // PNG icon is a one-file adapter change, the MapView port stays
-    // the same.
-    final CircleOptions options = CircleOptions(geometry: pos, circleRadius: 7.0, circleColor: '#2b7cd6', circleStrokeColor: '#ffffff', circleStrokeWidth: 2.0);
-    final Circle? existing = _userLocationCircle;
-    if (existing == null) {
-      _userLocationCircle = await _controller.addCircle(options);
-      _log.info('setUserLocation: puck ADDED at (${fix.latitude}, ${fix.longitude})');
+    final Map<String, dynamic> geojson = _pointFeatureCollection(longitude: fix.longitude, latitude: fix.latitude);
+    if (!_userLocationLayerInstalled) {
+      // First call on this style: install the source + layer via the
+      // regular style addSource/addLayer method-channel calls. This
+      // path does NOT go through the AnnotationManager.
+      await _controller.addGeoJsonSource(_kUserLocationSourceId, geojson);
+      await _controller.addCircleLayer(
+        _kUserLocationSourceId,
+        _kUserLocationLayerId,
+        // Default MapLibre location-puck colours: solid blue fill +
+        // white stroke. Matches the convention every major GPS app
+        // uses (Google Maps, Apple Maps, OsmAnd) — future swap to a
+        // custom PNG icon is a one-file adapter change, the
+        // [MapView] port stays the same.
+        const CircleLayerProperties(circleRadius: 7.0, circleColor: '#2b7cd6', circleStrokeColor: '#ffffff', circleStrokeWidth: 2.0),
+      );
+      _userLocationLayerInstalled = true;
+      _log.info('setUserLocation: puck source+layer INSTALLED at (${fix.latitude}, ${fix.longitude})');
     } else {
-      await _controller.updateCircle(existing, options);
+      // Update the source data only — a single method-channel call,
+      // no layer mutation, no AnnotationManager involvement.
+      await _controller.setGeoJsonSource(_kUserLocationSourceId, geojson);
       _log.fine('setUserLocation: puck UPDATED at (${fix.latitude}, ${fix.longitude})');
     }
     // Follow-me: centre the camera on the new fix. Uses animateCamera
     // so the motion is smooth rather than a jarring jump.
     if (_followMe) {
-      await _controller.animateCamera(CameraUpdate.newLatLng(pos));
+      await _controller.animateCamera(CameraUpdate.newLatLng(LatLng(fix.latitude, fix.longitude)));
     }
   }
 

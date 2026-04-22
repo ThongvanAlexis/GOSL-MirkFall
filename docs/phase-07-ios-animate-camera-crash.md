@@ -113,19 +113,58 @@ différents, MÊME code path C++ natif qui throw**. La conclusion "animateCamera
 est le coupable" était faux diagnostic — c'est N'IMPORTE QUEL camera-op
 dans cette fenêtre, pas spécifiquement l'animator.
 
-### Tentative 2 — `initialCameraPosition` widget + pas de camera move dans openForSession (en cours)
+### Tentative 2 — `initialCameraPosition` widget + pas de camera move dans openForSession (commit `81d30c7`) — **OK sur le SIGABRT**
 
 Approche : supplier la position initiale via `MapLibreMap.initialCameraPosition`
 au build du widget (lu depuis l'active session `lastFix`). Aucun
 method-channel call touchant la caméra n'est émis post-style-load.
-`openForSession` ne fait plus que : setUserLocation (innocent, prouvé
-par Probe 1), setFollowMeEnabled, transition d'état.
 
-**Question ouverte** (soulignée par le user) : les fix GPS subséquents
-arrivent via `_onFix` → `_moveCameraTo` → `animateCamera`. Si le crash
-n'est PAS fenêtre-spécifique mais lié à N'IMPORTE QUEL camera-op avec
-notre config (style/source/tiles), le premier fix GPS après ouverture
-de la carte re-crashera. Le prochain device-smoke tranchera.
+**Résultat device-smoke** : carte s'ouvre, pas de crash, follow-me actif.
+Les fix GPS subséquents passent sans crash (bug était bien fenêtre-
+spécifique post-style-load, pas un bug intrinsèque de camera-op).
+
+### Bugs résiduels révélés par les logs (Runner-2026-04-22 18:44)
+
+En capturant les logs post-fix avec verbose ON, trois problèmes
+distincts apparaissent :
+
+1. **`PlatformException(sourceNotFound)` sur addCircle après setStyle**
+   (SHOUT x3 dans les logs). Chaîne d'appel : `CountryResolver →
+   showMap → setStyle (wipe sources) → re-apply puck via
+   setUserLocation → addCircle → AnnotationManager._setAll →
+   setGeoJsonSource(stale_id)` → source mort, throw. L'annotation
+   manager du plugin conserve en mémoire son random source-id entre
+   appels, mais setStyle détruit le source côté natif. Notre adapter
+   nullifie bien son `_userLocationCircle` dans `showMap`, mais ça
+   n'affecte PAS l'état interne du plugin.
+
+   **Fix** : refactor puck vers GeoJSON source + circle layer qu'on
+   gère nous-mêmes (file-level consts `_kUserLocationSourceId` /
+   `_kUserLocationLayerId`). Bypass complet de l'AnnotationManager.
+   `showMap` flip `_userLocationLayerInstalled = false` ; la prochaine
+   `setUserLocation` re-add source + layer via le style path normal.
+
+2. **`showMap(fra)` fire 3 fois en 1 seconde** sur une seule ouverture
+   de carte. Stack : `_rebuildResolver → rerunForLastViewport →
+   _resolveAndApply → showMap`. Thrashing loop dans
+   `CountryResolverController`. Pas investigué pour l'instant —
+   symptôme cosmétique tant que le puck est corrigé.
+
+3. **"World low-res en zoom 13" à la ré-ouverture** : le widget
+   construit son style initial avec `initialCountry=null` (default) →
+   world bundle. Le resolver prend ~400 ms à swaper sur FRA. Pendant
+   ces 400 ms (+ le transient du thrashing), le user voit le world à
+   zoom 13 = pur blur.
+
+   **Fix** : passer l'`activeCountry` du `CountryResolverController`
+   (qui est keepAlive, survit au backgrounding) comme `initialCountry`
+   à `MapLibreMapViewWidget`. À la ré-ouverture, si FRA était active
+   avant, le style initial est FRA — plus de transient world.
+
+### Tentative 3 — GeoJSON puck + initialCountry seed (commit à suivre)
+
+Les deux fixes ci-dessus, bundled. Tests verts.
+À valider au prochain device-smoke.
 
 ## Questions restantes (pour le vrai diag)
 

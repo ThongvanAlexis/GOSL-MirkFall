@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
+import 'package:mirkfall/application/controllers/country_resolver_controller.dart';
 import 'package:mirkfall/application/controllers/map_camera_controller.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
@@ -142,9 +143,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final CameraLatLngZoom initialCamera = tracking?.lastFix != null
         ? CameraLatLngZoom(latitude: tracking!.lastFix!.latitude, longitude: tracking.lastFix!.longitude, zoom: kInitialSessionMapZoom.toDouble())
         : const CameraLatLngZoom(latitude: 0, longitude: 0, zoom: 2);
+    // Seed the initial style with the country currently-active per the
+    // keepAlive CountryResolverController — survives backgrounding +
+    // session restarts. Without this seed the map opens on the world
+    // style and waits for the resolver to swap, showing a transient
+    // world-at-zoom-13 blur (confirmed 2026-04-22 device-smoke). When
+    // activeCountry is null (app's first ever map open) we fall back
+    // to the world bundle, which matches the default
+    // MapLibreMapViewWidget.initialCountry behaviour.
+    final CountryCode? initialCountry = ref.watch(countryResolverControllerProvider).activeCountry;
     final Widget mapWidget = widget.mapViewBuilderForTest != null
         ? widget.mapViewBuilderForTest!(styleRewriter: rewriter, pmtilesSource: source, onReady: _onMapReady)
-        : MapLibreMapViewWidget(styleRewriter: rewriter, pmtilesSource: source, onReady: _onMapReady, initialCamera: initialCamera);
+        : MapLibreMapViewWidget(
+            styleRewriter: rewriter,
+            pmtilesSource: source,
+            onReady: _onMapReady,
+            initialCamera: initialCamera,
+            initialCountry: initialCountry,
+          );
     return Stack(
       children: <Widget>[
         Positioned.fill(child: mapWidget),
