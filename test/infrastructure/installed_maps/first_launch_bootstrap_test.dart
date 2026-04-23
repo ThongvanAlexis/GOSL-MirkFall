@@ -232,6 +232,96 @@ void main() {
     });
   });
 
+  group('FirstLaunchBootstrap — orphan manifest purge (row #8 regression)', () {
+    test('manifest entry with missing backing file is REMOVED on next launch', () async {
+      // Regression guard for row #8 (Should) : before this fix, a crash
+      // between CountryDeleteService's file-delete + manifest-rewrite
+      // steps left a stale manifest entry pointing at nothing, and the
+      // bootstrap's heal path never touched it (heal walks the
+      // directory, not the manifest). The symmetric purge path now
+      // removes manifest entries whose backing file is absent.
+      final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository(
+        initial: InstalledManifest.empty().copyWithInsert(_makeCountry('fra')).copyWithInsert(_makeCountry('deu')),
+      );
+      addTearDown(manifest.close);
+
+      // Seed deu.pmtiles on disk; leave fra.pmtiles missing (the crash
+      // scenario: deleteCountry deleted the file but never rewrote the
+      // manifest).
+      final Directory countries = Directory(p.join(tempDir.path, kCountriesDir));
+      await countries.create(recursive: true);
+      await File(p.join(countries.path, 'deu.pmtiles')).writeAsBytes(<int>[0xDE, 0xAD]);
+
+      final FirstLaunchBootstrap bootstrap = FirstLaunchBootstrap(
+        worldCopier: makeCopier(),
+        appSupportDir: tempDir.path,
+        manifestRepository: manifest,
+        downloadQueueStore: makeEmptyQueueStore(),
+        iosBackupExcluder: _RecordingIosBackupExcluder(),
+        platformOverride: TargetPlatform.android,
+      );
+      await bootstrap.run();
+
+      final InstalledManifest after = await manifest.read();
+      expect(after.installed.containsKey('fra'), isFalse, reason: 'orphan manifest entry for missing file must be purged');
+      expect(after.installed.containsKey('deu'), isTrue, reason: 'entry with backing file must survive');
+      expect(bootstrap.purgedOrphanManifestAlpha3s, <String>['fra']);
+    });
+
+    test('world sentinel entry is NEVER purged even if scan logic misfires', () async {
+      // Defensive: the world entry is restored by FirstLaunchWorldCopier
+      // before the purge runs, so this should never trigger. Test
+      // encodes the contract: purge must skip CountryCode.world.
+      final InstalledCountry worldEntry = InstalledCountry(
+        alpha3: CountryCode.world,
+        installedAtUtc: DateTime.utc(2026, 4, 21),
+        fileSize: 8,
+        pmtilesVersion: 'v20260419',
+        sha256: syntheticWorldSha,
+        // Deliberately an unresolvable path — this is the stress test.
+        filePath: 'maps/countries/wld.pmtiles',
+      );
+      final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository(initial: InstalledManifest.empty().copyWithInsert(worldEntry));
+      addTearDown(manifest.close);
+
+      final FirstLaunchBootstrap bootstrap = FirstLaunchBootstrap(
+        worldCopier: makeCopier(),
+        appSupportDir: tempDir.path,
+        manifestRepository: manifest,
+        downloadQueueStore: makeEmptyQueueStore(),
+        iosBackupExcluder: _RecordingIosBackupExcluder(),
+        platformOverride: TargetPlatform.android,
+      );
+      await bootstrap.run();
+
+      expect(bootstrap.purgedOrphanManifestAlpha3s, isEmpty, reason: 'world sentinel must be skipped by purge');
+    });
+
+    test('no orphans → purge is a no-op + empty tracker list', () async {
+      final InstalledCountry fra = _makeCountry('fra');
+      final Directory countries = Directory(p.join(tempDir.path, kCountriesDir));
+      await countries.create(recursive: true);
+      await File(p.join(countries.path, 'fra.pmtiles')).writeAsBytes(<int>[0x11, 0x22]);
+
+      final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository(initial: InstalledManifest.empty().copyWithInsert(fra));
+      addTearDown(manifest.close);
+
+      final FirstLaunchBootstrap bootstrap = FirstLaunchBootstrap(
+        worldCopier: makeCopier(),
+        appSupportDir: tempDir.path,
+        manifestRepository: manifest,
+        downloadQueueStore: makeEmptyQueueStore(),
+        iosBackupExcluder: _RecordingIosBackupExcluder(),
+        platformOverride: TargetPlatform.android,
+      );
+      await bootstrap.run();
+
+      expect(bootstrap.purgedOrphanManifestAlpha3s, isEmpty);
+      final InstalledManifest after = await manifest.read();
+      expect(after.installed.containsKey('fra'), isTrue);
+    });
+  });
+
   group('FirstLaunchBootstrap — iOS backup-exclude branch', () {
     test('iOS platform triggers excludePath on the maps root', () async {
       final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository();

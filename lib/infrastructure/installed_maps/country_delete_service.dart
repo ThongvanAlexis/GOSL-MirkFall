@@ -30,10 +30,11 @@ import 'package:path/path.dart' as p;
 ///
 /// Why file-first then manifest: a crash between step 3 and step 4
 /// leaves an orphan manifest entry pointing at a missing file — the
-/// Plan 07-04 bootstrap heals that case by recomputing on-disk sha256s
-/// (absent → entry removed). The inverse ordering (manifest first)
-/// would leave a stale `.pmtiles` on disk with no reference — wasted
-/// storage with no cleanup path.
+/// next-launch bootstrap (`FirstLaunchBootstrap._purgeOrphanManifestEntries`)
+/// scans manifest entries whose backing file is absent and removes
+/// them. The inverse ordering (manifest first) would leave a stale
+/// `.pmtiles` on disk with no reference — wasted storage with no
+/// automatic cleanup path.
 class CountryDeleteService {
   CountryDeleteService({required InstalledManifestRepository manifestRepository, required String appSupportDir, Logger? logger})
     : _manifestRepository = manifestRepository,

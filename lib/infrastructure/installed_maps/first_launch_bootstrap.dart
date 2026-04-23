@@ -103,6 +103,17 @@ class FirstLaunchBootstrap {
   /// pmtiles deletion).
   List<String> healedAlpha3s = <String>[];
 
+  /// List of alpha3 keys whose manifest entry was removed during the
+  /// most recent [run] because the backing `.pmtiles` file was missing
+  /// from disk. Closes the other half of the Plan 07-04 atomic_cleanup
+  /// contract: a crash between `CountryDeleteService`'s file-delete
+  /// step and its manifest-rewrite step (or a user manually deleting
+  /// the file through system tooling) leaves a stale entry pointing at
+  /// nothing. The purge path catches that case on next launch. Never
+  /// affects [CountryCode.world] — the world sentinel is always
+  /// restored by [FirstLaunchWorldCopier] before this scan runs.
+  List<String> purgedOrphanManifestAlpha3s = <String>[];
+
   /// Runs the full bootstrap sequence. Idempotent; safe to call on
   /// every app launch.
   Future<void> run() async {
@@ -116,6 +127,11 @@ class FirstLaunchBootstrap {
     // when available; otherwise we keep the on-disk hash verbatim (the
     // file is trusted as the source of truth at heal time).
     manifest = await _healOrphanCountryFiles(manifest);
+
+    // Row #8 (Should): symmetric purge — remove manifest entries whose
+    // backing file is missing. Catches a crash between
+    // CountryDeleteService's file-delete + manifest-rewrite steps.
+    manifest = await _purgeOrphanManifestEntries(manifest);
 
     orphanStagingAlpha3s = await _scanStagingOrphans(manifest);
 
@@ -204,6 +220,49 @@ class FirstLaunchBootstrap {
     }
 
     if (healedAlpha3s.isNotEmpty) {
+      await _manifestRepository.write(current);
+    }
+    return current;
+  }
+
+  /// Scans [manifest] for entries whose `filePath` no longer resolves to
+  /// a real file on disk + rewrites the manifest without them. The world
+  /// sentinel ([CountryCode.world]) is skipped defensively: even though
+  /// [FirstLaunchWorldCopier] always restores it, purging it here would
+  /// briefly leave the app mid-run without a manifest reference for the
+  /// floor basemap.
+  ///
+  /// Recovery mechanism for a crash between step 3 (file delete) and
+  /// step 4 (manifest rewrite) of [CountryDeleteService.deleteCountry],
+  /// or for users who manually delete the file through system tooling.
+  /// Complements [_healOrphanCountryFiles] — together they ensure the
+  /// on-disk countries directory and the manifest agree on next launch.
+  Future<InstalledManifest> _purgeOrphanManifestEntries(InstalledManifest manifest) async {
+    purgedOrphanManifestAlpha3s = <String>[];
+    final List<String> orphanAlpha3s = <String>[];
+    for (final MapEntry<String, InstalledCountry> entry in manifest.installed.entries) {
+      if (entry.key == CountryCode.world.value) continue;
+      final File backing = File(p.join(_appSupportDir, entry.value.filePath));
+      if (!backing.existsSync()) {
+        orphanAlpha3s.add(entry.key);
+      }
+    }
+    if (orphanAlpha3s.isEmpty) return manifest;
+
+    InstalledManifest current = manifest;
+    for (final String alpha3Raw in orphanAlpha3s) {
+      final CountryCode alpha3;
+      try {
+        alpha3 = CountryCode.parse(alpha3Raw);
+      } on FormatException catch (e) {
+        _log.warning('purge: manifest entry "$alpha3Raw" is not a valid alpha3 — leaving alone: $e');
+        continue;
+      }
+      current = current.copyWithRemove(alpha3);
+      purgedOrphanManifestAlpha3s.add(alpha3Raw);
+      _log.info('purge: removed orphan manifest entry alpha3=$alpha3Raw (backing file missing)');
+    }
+    if (purgedOrphanManifestAlpha3s.isNotEmpty) {
       await _manifestRepository.write(current);
     }
     return current;
