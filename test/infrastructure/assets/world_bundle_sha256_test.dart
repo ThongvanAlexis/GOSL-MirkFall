@@ -54,11 +54,7 @@ void main() {
           'that renames the asset without updating this path would '
           'silently pass on an empty-stream sha256 comparison.',
     );
-    expect(
-      bundleFile.lengthSync(),
-      greaterThan(0),
-      reason: 'assets/maps/world.pmtiles is empty — test inert (empty-stream sha256 would be compared).',
-    );
+    expect(bundleFile.lengthSync(), greaterThan(0), reason: 'assets/maps/world.pmtiles is empty — test inert (empty-stream sha256 would be compared).');
 
     // Main assert: streamed sha256 matches the committed constant.
     final Digest digest = await sha256.bind(bundleFile.openRead()).first;

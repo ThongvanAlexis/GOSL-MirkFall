@@ -172,10 +172,12 @@ void main() {
       expect(await check_style_no_external_url.runCheck(stylePath: fixturePath), equals(0));
 
       // Inject a single https tile URL — smallest valid poison.
-      await File(fixturePath).writeAsString(_cleanStyle.replaceFirst(
-        '"url": "pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER"',
-        '"url": "pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER", "tiles": ["https://tile.example.com/{z}/{x}/{y}.pbf"]',
-      ));
+      await File(fixturePath).writeAsString(
+        _cleanStyle.replaceFirst(
+          '"url": "pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER"',
+          '"url": "pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER", "tiles": ["https://tile.example.com/{z}/{x}/{y}.pbf"]',
+        ),
+      );
 
       expect(await check_style_no_external_url.runCheck(stylePath: fixturePath), equals(1));
     });

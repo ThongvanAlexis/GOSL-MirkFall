@@ -60,17 +60,14 @@ void main() {
     expect(
       dartFiles.length,
       greaterThan(50),
-      reason: 'test/ scan visited only ${dartFiles.length} Dart files — test inert. A refactor renaming or emptying test/ without updating this test would silently pass the "no violations" check on an empty set.',
+      reason:
+          'test/ scan visited only ${dartFiles.length} Dart files — test inert. A refactor renaming or emptying test/ without updating this test would silently pass the "no violations" check on an empty set.',
     );
 
     // Patterns matched case-sensitively: `HttpClient(` (dart:io),
     // `http.Client(` (package:http), `Dio(` (package:dio, not in the
     // project today but guarded pre-emptively).
-    final List<RegExp> patterns = <RegExp>[
-      RegExp(r'\bHttpClient\s*\('),
-      RegExp(r'\bhttp\.Client\s*\('),
-      RegExp(r'\bDio\s*\('),
-    ];
+    final List<RegExp> patterns = <RegExp>[RegExp(r'\bHttpClient\s*\('), RegExp(r'\bhttp\.Client\s*\('), RegExp(r'\bDio\s*\(')];
 
     final List<String> violations = <String>[];
 
@@ -111,7 +108,8 @@ void main() {
             // class are legitimate (our test doubles). This matches
             // `_FailAllHttpClient` / `FakeHttpClient` / class-name-based
             // subclasses.
-            final bool insideFakeScope = lower.contains('fake') ||
+            final bool insideFakeScope =
+                lower.contains('fake') ||
                 // Class declarations that "implements HttpClient" are
                 // our stubs; the matching pattern is the class contract,
                 // not an instantiation.

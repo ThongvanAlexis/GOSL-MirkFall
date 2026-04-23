@@ -83,26 +83,11 @@ class _NavHome extends StatelessWidget {
       appBar: AppBar(title: const Text('Home')),
       body: ListView(
         children: <Widget>[
-          TextButton(
-            onPressed: () => context.push('/map'),
-            child: const Text('push /map'),
-          ),
-          TextButton(
-            onPressed: () => context.push('/maps/download'),
-            child: const Text('push /maps/download'),
-          ),
-          TextButton(
-            onPressed: () => context.push('/maps/manage'),
-            child: const Text('push /maps/manage'),
-          ),
-          TextButton(
-            onPressed: () => context.push('/styles/import'),
-            child: const Text('push /styles/import'),
-          ),
-          TextButton(
-            onPressed: () => context.push('/styles/export'),
-            child: const Text('push /styles/export'),
-          ),
+          TextButton(onPressed: () => context.push('/map'), child: const Text('push /map')),
+          TextButton(onPressed: () => context.push('/maps/download'), child: const Text('push /maps/download')),
+          TextButton(onPressed: () => context.push('/maps/manage'), child: const Text('push /maps/manage')),
+          TextButton(onPressed: () => context.push('/styles/import'), child: const Text('push /styles/import')),
+          TextButton(onPressed: () => context.push('/styles/export'), child: const Text('push /styles/export')),
         ],
       ),
     );
@@ -119,8 +104,14 @@ GoRouter _buildTestRouter({String initialLocation = '/'}) {
     initialLocation: initialLocation,
     routes: <RouteBase>[
       GoRoute(path: '/', builder: (_, _) => const _NavHome()),
-      GoRoute(path: '/map', builder: (_, _) => const _HeavyScreenStub(label: 'MapScreen')),
-      GoRoute(path: '/maps/download', builder: (_, _) => const _HeavyScreenStub(label: 'MapsDownloadScreen')),
+      GoRoute(
+        path: '/map',
+        builder: (_, _) => const _HeavyScreenStub(label: 'MapScreen'),
+      ),
+      GoRoute(
+        path: '/maps/download',
+        builder: (_, _) => const _HeavyScreenStub(label: 'MapsDownloadScreen'),
+      ),
       GoRoute(path: '/maps/manage', builder: (_, _) => const MapsManageScreen()),
       GoRoute(path: '/styles/import', builder: (_, _) => const StyleImportPlaceholderScreen()),
       GoRoute(path: '/styles/export', builder: (_, _) => const StyleExportPlaceholderScreen()),
@@ -133,13 +124,7 @@ GoRouter _buildTestRouter({String initialLocation = '/'}) {
 /// overrides (MapsManageScreen uses `installedMapsControllerProvider`
 /// which defaults to an empty state for the short-lived widget tree).
 Future<void> _pumpWithRouter(WidgetTester tester, GoRouter router) async {
-  await tester.pumpWidget(
-    ProviderScope(
-      child: MaterialApp.router(
-        routerConfig: router,
-      ),
-    ),
-  );
+  await tester.pumpWidget(ProviderScope(child: MaterialApp.router(routerConfig: router)));
   // A single pumpAndSettle here is not enough because the router's
   // initial configuration propagates via a RouteInformationProvider
   // notification that arrives on the next microtask tick. Pump a second
@@ -182,11 +167,7 @@ void main() {
       // moved off '/'. Without this guard, any silent no-op of push
       // would fail the screen-body assertion too, but the reason
       // string would be less actionable.
-      expect(
-        _activeLocation(router),
-        equals('/map'),
-        reason: 'router did not navigate to /map — test inert',
-      );
+      expect(_activeLocation(router), equals('/map'), reason: 'router did not navigate to /map — test inert');
       expect(find.text('stub: MapScreen'), findsOneWidget);
     });
 
@@ -279,11 +260,7 @@ void main() {
       await _pumpWithRouter(tester, router);
 
       // Inertness guard: router initialized with the target.
-      expect(
-        _activeLocation(router),
-        equals('/styles/import'),
-        reason: 'router initialLocation did not stick — test inert',
-      );
+      expect(_activeLocation(router), equals('/styles/import'), reason: 'router initialLocation did not stick — test inert');
       expect(find.byType(StyleImportPlaceholderScreen), findsOneWidget);
 
       // Deep-link stack has no predecessor; canPop must be false so an

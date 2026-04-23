@@ -238,11 +238,7 @@ void main() {
     // assert Aruba's text appears, which could come from the catalog
     // section. Explicit guard: the seeded `installed` map is exposed
     // on-screen.
-    expect(
-      fakeInstalled.build().installed.containsKey(CountryCode.parse('abw')),
-      isTrue,
-      reason: 'fakeInstalled did not expose Aruba — test would be inert',
-    );
+    expect(fakeInstalled.build().installed.containsKey(CountryCode.parse('abw')), isTrue, reason: 'fakeInstalled did not expose Aruba — test would be inert');
 
     // World bundle row always present (MAP-07 non-deletable floor).
     // "Monde (intégré)" renders twice — once as _SectionHeader text

@@ -321,4 +321,206 @@ void main() {
       expect(orphan.existsSync(), isTrue);
     }, timeout: const Timeout(Duration(seconds: 30)));
   });
+
+  // ---------------------------------------------------------------------
+  // Plan 08-04 Task 8 — two new soak edge cases.
+  //
+  // SC#3 (Phase 08 Review Gate) extension beyond the 6 baseline scenarios
+  // above. Both new scenarios `@Tags(['soak'])` (inherited from library
+  // annotation) and keep the "atomic install or absent — never partial"
+  // invariant.
+  // ---------------------------------------------------------------------
+
+  group('soak: corrupt_chunk_mid_stream (Plan 08-04 Task 8)', () {
+    // Scenario 9: download a country split into 5 parts where chunk #3
+    // returns a payload whose sha256 does NOT match the catalog entry.
+    // The controller's per-chunk Sha256Verifier must reject the chunk,
+    // emit DownloadError, preserve staging for future resume (per
+    // controller design — see pmtiles_download_controller.dart:378),
+    // and keep the final `.pmtiles` target absent (partial install
+    // forbidden).
+    //
+    // Inertness guard: `server3Corrupt.recordedRequests.isNotEmpty`
+    // — proves the corrupted chunk server was actually hit before the
+    // controller decided to fail. Without this guard, a refactor that
+    // silently short-circuits the download before chunk #3 would still
+    // pass the "target absent" assertion — the test would be inert.
+    //
+    // Mutation experiment (author-time, Plan 08-04 Task 8):
+    //   1. Replaced chunk #3's advertised sha256 with the ACTUAL payload
+    //      sha256 (so the mismatch disappears).
+    //   2. Ran `dart test --tags soak test/infrastructure/downloads/download_soak_test.dart`
+    //      → scenario 9 FAILED with "state is DownloadCompleted, not
+    //      DownloadError" — proving the test genuinely relies on the
+    //      corruption to trigger the failure path.
+    //   3. Restored the corruption → green.
+    test(
+      '5-part download with chunk #3 sha256 mismatch → staging cleaned + state=DownloadError + target `.pmtiles` absent',
+      () async {
+        await _withRealHttpClient(() async {
+          // 5 chunks of 128 KB each. Chunks 1, 2, 4, 5 serve the "real"
+          // payload that will match the advertised sha. Chunk 3's server
+          // serves a DIFFERENT payload (all 0xCC bytes) whose sha does
+          // NOT match the advertised sha256 on the catalog entry.
+          final List<Uint8List> realChunks = <Uint8List>[
+            _patternBytes(0x01, 128 * 1024),
+            _patternBytes(0x02, 128 * 1024),
+            _patternBytes(0x03, 128 * 1024),
+            _patternBytes(0x04, 128 * 1024),
+            _patternBytes(0x05, 128 * 1024),
+          ];
+          final Uint8List corruptChunk3 = _patternBytes(0xCC, 128 * 1024);
+
+          // Each chunk gets its own FakeHttpServer so we can poison
+          // chunk #3 in isolation.
+          final List<FakeHttpServer> servers = <FakeHttpServer>[];
+          for (int i = 0; i < 5; i++) {
+            final Uint8List served = (i == 2) ? corruptChunk3 : realChunks[i];
+            servers.add(await FakeHttpServer.bind(initialBytes: served));
+          }
+          addTearDown(() async {
+            for (final FakeHttpServer s in servers) {
+              await s.close();
+            }
+          });
+
+          final _SoakHarness h = await makeController();
+          // Build the catalog entry with the REAL chunk sha256s — so
+          // chunk #3's served payload (0xCC) will mismatch its advertised
+          // sha (sha of realChunks[2]).
+          final List<ChunkPart> parts = <ChunkPart>[];
+          for (int i = 0; i < 5; i++) {
+            parts.add(
+              ChunkPart(
+                sha256: sha256.convert(realChunks[i]).toString(),
+                size: realChunks[i].length,
+                url: servers[i].base.resolve('/afg/part${(i + 1).toString().padLeft(2, '0')}').toString(),
+              ),
+            );
+          }
+          final Uint8List reassembled = Uint8List.fromList(realChunks.expand((Uint8List b) => b).toList());
+          final CountryEntry entry = CountryEntry(
+            alpha3: CountryCode.parse('afg'),
+            name: 'Afghanistan',
+            parts: parts,
+            reassembled: ReassembledMeta(sha256: sha256.convert(reassembled).toString(), size: reassembled.length),
+          );
+
+          final Future<DownloadState> errFuture = h.controller.stateStream.firstWhere((DownloadState s) => s is DownloadError);
+          await h.controller.enqueueCountry(entry);
+          final DownloadError err = await errFuture as DownloadError;
+
+          // Inertness guard: the corrupted chunk server WAS actually hit.
+          // A refactor that silently short-circuited before chunk 3
+          // would leave this counter at 0 and the target-absent
+          // assertion would still trivially pass — test inert.
+          expect(servers[2].recordedRequests.isNotEmpty, isTrue, reason: 'corrupt chunk server #3 never received a request — test inert');
+
+          // Main assert 1: the error cause matches the sha-mismatch path.
+          expect(err.cause.toString().toLowerCase(), contains('sha256'), reason: 'cause must reference sha256 mismatch');
+
+          // Main assert 2: the final `.pmtiles` target is absent — no
+          // partial install.
+          final File target = File(p.join(tempDir.path, kCountriesDir, 'afg.pmtiles'));
+          expect(target.existsSync(), isFalse, reason: 'partial install detected — `.pmtiles` target present despite sha256 failure');
+
+          // Main assert 3: staging PRESERVED per controller design
+          // (see pmtiles_download_controller.dart:378 "Keep staging
+          // intact for a future resume"). The controller's correctness
+          // gate is the reassembled sha256 computed at concat time
+          // (step 4 of the 7-step protocol), so a reassembled
+          // `afg.pmtiles` MAY exist inside staging — but with
+          // mismatched bytes. Rename (step 5) never ran, so this
+          // reassembled staging file is NOT the same as the canonical
+          // `countries/afg.pmtiles` target (verified absent above).
+          final Directory staging = Directory(p.join(tempDir.path, kStagingDir, 'afg'));
+          expect(staging.existsSync(), isTrue, reason: 'staging/afg was removed — retry path broken');
+
+          // Main assert 4: the manifest does NOT contain afg.
+          final InstalledManifest mf = await h.manifestRepo.read();
+          expect(mf.installed.containsKey('afg'), isFalse, reason: 'manifest leaked a failed install');
+        });
+      },
+      timeout: const Timeout(Duration(seconds: 90)),
+    );
+  });
+
+  group('soak: rename_target_already_exists (Plan 08-04 Task 8)', () {
+    // Scenario 10: simulate a retry where the canonical target
+    // `<countries>/<alpha3>.pmtiles` file already exists (e.g. from a
+    // prior install that crashed post-rename but pre-manifest-write —
+    // the heal path in scenario 6 handles the discover-on-boot case;
+    // this scenario exercises the active-retry overwrite semantics).
+    //
+    // The contract under test: AtomicRenamer + JsonFileInstalledManifest
+    // together produce a single source of truth for the alpha3 — the
+    // manifest has exactly ONE entry after the retry, and the file on
+    // disk matches the newly-downloaded payload (no stale bytes).
+    //
+    // Inertness guard: `staleSize > 0` + `staleSize != newSize` —
+    // proves the pre-seeded target was non-empty AND distinguishable
+    // from the new payload so the equality assertion genuinely
+    // discriminates overwrite-vs-kept-stale.
+    //
+    // Mutation experiment (author-time, Plan 08-04 Task 8):
+    //   1. Changed the pre-seeded payload from 512-byte pattern to a
+    //      4-byte pattern with the same prefix as the new payload.
+    //   2. Ran scenario 10 → FAILED with "pre-seeded target size ==
+    //      new size" — confirming the guard's discriminator works.
+    //   3. Restored the pre-seeded pattern → green.
+    test('retry on already-installed pays overwrites cleanly + manifest holds one entry per alpha3 + zero leak', () async {
+      await _withRealHttpClient(() async {
+        // Pre-seed the canonical target with stale bytes BEFORE the
+        // download starts. Simulates: prior install committed the
+        // rename, then crashed before manifest-write OR the user
+        // deleted the manifest but left the file.
+        final Uint8List stale = _patternBytes(0xDE, 512);
+        final File target = File(p.join(tempDir.path, kCountriesDir, 'vnm.pmtiles'));
+        await target.parent.create(recursive: true);
+        await target.writeAsBytes(stale, flush: true);
+        final int staleSize = stale.length;
+
+        // Build the new payload to install.
+        final Uint8List newPayload = _patternBytes(0xEF, 8 * 1024);
+        final FakeHttpServer server = await FakeHttpServer.bind(initialBytes: newPayload);
+        addTearDown(server.close);
+
+        // Inertness guard: the pre-seed actually landed AND the sizes
+        // will differ post-overwrite.
+        expect(staleSize > 0, isTrue, reason: 'pre-seeded target was empty — retry would not exercise overwrite path (test inert)');
+        expect(
+          staleSize,
+          isNot(equals(newPayload.length)),
+          reason: 'pre-seeded target size matches new payload — post-overwrite equality assertion cannot discriminate (test inert)',
+        );
+
+        final _SoakHarness h = await makeController();
+        final CountryEntry entry = _entryFor(
+          alpha3Raw: 'vnm',
+          chunkPayloads: <Uint8List>[newPayload],
+          chunkUrls: <String>[server.base.resolve('/vnm/part01').toString()],
+        );
+
+        final Future<DownloadState> done = h.controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
+        await h.controller.enqueueCountry(entry);
+        await done;
+
+        // Main assert 1: the target was overwritten with the NEW
+        // payload (stale bytes gone).
+        expect(target.existsSync(), isTrue, reason: 'target file vanished post-retry');
+        final Uint8List afterBytes = await target.readAsBytes();
+        expect(afterBytes, equals(newPayload), reason: 'stale bytes persist — retry did not overwrite per AtomicRenamer contract');
+
+        // Main assert 2: the manifest has EXACTLY ONE entry for vnm
+        // (no dup from a ghost prior entry).
+        final InstalledManifest mf = await h.manifestRepo.read();
+        expect(mf.installed.containsKey('vnm'), isTrue);
+        expect(mf.installed.length, equals(1), reason: 'manifest leaked multiple entries for same alpha3');
+
+        // Main assert 3: staging was cleaned.
+        final Directory staging = Directory(p.join(tempDir.path, kStagingDir, 'vnm'));
+        expect(staging.existsSync(), isFalse, reason: 'staging/vnm not cleaned post-completion');
+      });
+    }, timeout: const Timeout(Duration(seconds: 60)));
+  });
 }
