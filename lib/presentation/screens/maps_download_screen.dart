@@ -125,6 +125,8 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
     final CountryCode? activeDownloadAlpha3 = _activeDownloadAlpha3(downloadState);
     final double? activeFraction = _activeFraction(downloadState);
     final int? activeBytesDownloaded = _activeBytesDownloaded(downloadState);
+    final int? activePartIndex = _activePartIndex(downloadState);
+    final int? activeTotalParts = _activeTotalParts(downloadState);
     final String catalogVersion = _safeCatalogVersion(catalog);
 
     return Column(
@@ -174,6 +176,8 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
                       activeDownloadAlpha3: activeDownloadAlpha3,
                       activeFraction: activeFraction,
                       activeBytesDownloaded: activeBytesDownloaded,
+                      activePartIndex: activePartIndex,
+                      activeTotalParts: activeTotalParts,
                       retryingSnapshot: downloadState is DownloadRetrying ? downloadState : null,
                       activePhase: downloadState is DownloadInProgress ? downloadState.phase : null,
                     );
@@ -211,6 +215,24 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
     };
   }
 
+  int? _activePartIndex(DownloadState state) {
+    return switch (state) {
+      DownloadInProgress(:final progress) => progress.currentPartIndex,
+      DownloadPaused(:final snapshot) => snapshot.currentPartIndex,
+      DownloadRetrying(:final snapshot) => snapshot.currentPartIndex,
+      _ => null,
+    };
+  }
+
+  int? _activeTotalParts(DownloadState state) {
+    return switch (state) {
+      DownloadInProgress(:final progress) => progress.totalParts,
+      DownloadPaused(:final snapshot) => snapshot.totalParts,
+      DownloadRetrying(:final snapshot) => snapshot.totalParts,
+      _ => null,
+    };
+  }
+
   /// Returns the catalog version, or `''` when derivation throws (empty
   /// countries list — never expected in production, but keeps the widget
   /// resilient under misconfigured assets).
@@ -231,6 +253,8 @@ class _CountryTile extends ConsumerWidget {
     required this.activeDownloadAlpha3,
     required this.activeFraction,
     required this.activeBytesDownloaded,
+    required this.activePartIndex,
+    required this.activeTotalParts,
     required this.retryingSnapshot,
     required this.activePhase,
   });
@@ -241,6 +265,16 @@ class _CountryTile extends ConsumerWidget {
   final CountryCode? activeDownloadAlpha3;
   final double? activeFraction;
   final int? activeBytesDownloaded;
+
+  /// 0-indexed part number of the in-flight download (`currentPartIndex`
+  /// from the active `DownloadProgress` snapshot). Drives the "bloc N/M"
+  /// label during `DownloadPhase.verifyingChunk`. Null when no download
+  /// is active.
+  final int? activePartIndex;
+
+  /// Total number of parts in the in-flight download (equals the
+  /// catalog's `parts.length` for the active country).
+  final int? activeTotalParts;
 
   /// Non-null when the active download is in a retry-backoff window; the
   /// tile should render "Reprise en cours (N/M)" instead of the usual
@@ -300,13 +334,13 @@ class _CountryTile extends ConsumerWidget {
         // the UI is never silently frozen while sha256 / concat runs.
         switch (activePhase ?? DownloadPhase.transferring) {
           case DownloadPhase.verifyingChunk:
-            final int chunkIndex = (retrying?.snapshot.currentPartIndex ?? 0);
-            final int chunkTotal = (retrying?.snapshot.totalParts ?? 1);
-            // Use the DownloadInProgress snapshot fields through the
-            // fraction/bytes we already have — chunkIndex is embedded
-            // in activeFraction's source (progress.currentPartIndex)
-            // but not threaded here; fall back to sha256 copy if
-            // unavailable.
+            // activePartIndex / activeTotalParts come from the ACTIVE
+            // DownloadInProgress.progress snapshot (threaded from the
+            // parent); fall back to retrying.snapshot when present,
+            // and only to 0/1 as a last-resort safety net for the
+            // DownloadPaused-entered-verify edge case.
+            final int chunkIndex = activePartIndex ?? retrying?.snapshot.currentPartIndex ?? 0;
+            final int chunkTotal = activeTotalParts ?? retrying?.snapshot.totalParts ?? 1;
             subtitleWidget = Text('Vérification du bloc ${chunkIndex + 1}/$chunkTotal (sha256)', overflow: TextOverflow.ellipsis);
             leading = Icons.verified_outlined;
           case DownloadPhase.concatenating:
