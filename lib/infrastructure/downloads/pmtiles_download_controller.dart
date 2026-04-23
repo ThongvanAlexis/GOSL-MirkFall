@@ -266,8 +266,15 @@ class PmtilesDownloadController {
     // emit of job N+1 onward.
     _accumulatedBytes = 0;
 
+    _log.fine(
+      'processJob ${job.alpha3.value}: entering — parts=${job.entry.parts.length} '
+      'totalBytes=${job.entry.reassembled.size} '
+      'stagingDir=${stagingDir.path} finalFile=${finalFile.path}',
+    );
+
     try {
       // 0. Preflight.
+      _log.fine('processJob ${job.alpha3.value}: preflight disk-space check');
       await _preflight(job.entry);
 
       // 1. Acquire every chunk — no per-chunk sha256. A pre-existing
@@ -302,7 +309,11 @@ class PmtilesDownloadController {
 
         final ChunkPart part = job.entry.parts[i];
         final File partFile = File(p.join(stagingDir.path, 'part${i.toString().padLeft(2, '0')}'));
+        final Stopwatch chunkWatch = Stopwatch()..start();
+        _log.fine('processJob ${job.alpha3.value}.part$i: acquiring (expected size=${part.size})');
         await _acquireChunk(part: part, partFile: partFile, job: job, partIndex: i);
+        chunkWatch.stop();
+        _log.fine('processJob ${job.alpha3.value}.part$i: acquired in ${chunkWatch.elapsed.inMilliseconds}ms');
         partFiles.add(partFile);
       }
 
@@ -326,14 +337,18 @@ class PmtilesDownloadController {
       if (reassembledHash != job.entry.reassembled.sha256) {
         throw Sha256MismatchException(expected: job.entry.reassembled.sha256, actual: reassembledHash, at: 'reassembled');
       }
+      _log.fine('processJob ${job.alpha3.value}: reassembled sha256 match (${reassembledHash.substring(0, 12)}…)');
 
       // 5. Atomic rename.
+      _log.fine('processJob ${job.alpha3.value}: atomic rename ${reassembledStaging.path} → ${finalFile.path}');
       await _renamer.commit(source: reassembledStaging, target: finalFile);
 
       // iOS-only: mark the newly-committed file as excluded from iCloud backup.
+      _log.fine('processJob ${job.alpha3.value}: iOS backup-exclude request for ${finalFile.path}');
       await _iosBackupExcluder.excludePath(finalFile.path);
 
       // 6. Manifest write.
+      _log.fine('processJob ${job.alpha3.value}: reading manifest for insert');
       final InstalledManifest current = await _manifestRepository.read();
       final String pmtilesVersion = _extractCatalogVersion(job.entry);
       final InstalledCountry installed = InstalledCountry(
@@ -345,9 +360,11 @@ class PmtilesDownloadController {
         filePath: p.join(kCountriesDir, '${job.alpha3.value}.pmtiles'),
       );
       final InstalledManifest next = current.copyWithInsert(installed).copyWith(catalogVersion: pmtilesVersion);
+      _log.fine('processJob ${job.alpha3.value}: writing manifest (catalogVersion=$pmtilesVersion, fileSize=${installed.fileSize})');
       await _manifestRepository.write(next);
 
       // 7. Cleanup staging.
+      _log.fine('processJob ${job.alpha3.value}: cleanup staging ${stagingDir.path}');
       await _cleanupStaging(stagingDir);
 
       wallclock.stop();
@@ -396,6 +413,7 @@ class PmtilesDownloadController {
   ///    [_downloadFromScratch].
   Future<void> _acquireChunk({required ChunkPart part, required File partFile, required DownloadJob job, required int partIndex}) async {
     if (!partFile.existsSync()) {
+      _log.fine('_acquireChunk ${job.alpha3.value}.part$partIndex: path=fromScratch (no file on disk)');
       await _downloadFromScratch(part: part, partFile: partFile, job: job, partIndex: partIndex);
       return;
     }
@@ -406,11 +424,13 @@ class PmtilesDownloadController {
       _emitInProgress(job: job, partIndex: partIndex);
       return;
     }
+    _log.fine('_acquireChunk ${job.alpha3.value}.part$partIndex: path=resumePartial (localSize=$localSize, expected=${part.size})');
     await _resumePartialChunk(part: part, partFile: partFile, job: job, partIndex: partIndex, localSize: localSize);
   }
 
   /// Path 1 — no staging bytes. Download the chunk via the retry loop.
   Future<void> _downloadFromScratch({required ChunkPart part, required File partFile, required DownloadJob job, required int partIndex}) async {
+    _log.fine('_downloadFromScratch ${job.alpha3.value}.part$partIndex: GET ${part.url} (size=${part.size})');
     await _httpDownloadWithRetries(part: part, partFile: partFile, job: job, partIndex: partIndex);
   }
 
