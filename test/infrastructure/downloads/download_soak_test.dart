@@ -334,11 +334,12 @@ void main() {
   group('soak: corrupt_chunk_mid_stream (Plan 08-04 Task 8)', () {
     // Scenario 9: download a country split into 5 parts where chunk #3
     // returns a payload whose sha256 does NOT match the catalog entry.
-    // The controller's per-chunk Sha256Verifier must reject the chunk,
-    // emit DownloadError, preserve staging for future resume (per
-    // controller design — see pmtiles_download_controller.dart:378),
-    // and keep the final `.pmtiles` target absent (partial install
-    // forbidden).
+    // The reassembled sha256 (computed during concat) detects the byte
+    // mismatch; the controller must emit DownloadError, NUKE staging
+    // to break the permanent-failure loop (§3 row #5 fix — otherwise
+    // the trusted-chunks model would concat the same corrupt bytes on
+    // re-enqueue and mismatch again forever), and keep the final
+    // `.pmtiles` target absent (partial install forbidden).
     //
     // Inertness guard: `server3Corrupt.recordedRequests.isNotEmpty`
     // — proves the corrupted chunk server was actually hit before the
@@ -424,17 +425,17 @@ void main() {
           final File target = File(p.join(tempDir.path, kCountriesDir, 'afg.pmtiles'));
           expect(target.existsSync(), isFalse, reason: 'partial install detected — `.pmtiles` target present despite sha256 failure');
 
-          // Main assert 3: staging PRESERVED per controller design
-          // (see pmtiles_download_controller.dart:378 "Keep staging
-          // intact for a future resume"). The controller's correctness
-          // gate is the reassembled sha256 computed at concat time
-          // (step 4 of the 7-step protocol), so a reassembled
-          // `afg.pmtiles` MAY exist inside staging — but with
-          // mismatched bytes. Rename (step 5) never ran, so this
-          // reassembled staging file is NOT the same as the canonical
-          // `countries/afg.pmtiles` target (verified absent above).
+          // Main assert 3: staging NUKED (§3 row #5 fix landed in Plan
+          // 08-05). Pre-fix the controller kept staging intact per the
+          // generic "keep staging for resume" design; post-fix, a
+          // reassembled-sha256 mismatch specifically nukes staging to
+          // break the permanent-failure loop (trusted-chunks model
+          // would otherwise concat the same corrupt bytes on re-enqueue
+          // and mismatch again forever). Other error classes
+          // (interruption, disk space, etc.) still preserve staging
+          // per the resume design.
           final Directory staging = Directory(p.join(tempDir.path, kStagingDir, 'afg'));
-          expect(staging.existsSync(), isTrue, reason: 'staging/afg was removed — retry path broken');
+          expect(staging.existsSync(), isFalse, reason: 'staging/afg must be nuked on reassembled-sha mismatch per row #5 fix');
 
           // Main assert 4: the manifest does NOT contain afg.
           final InstalledManifest mf = await h.manifestRepo.read();

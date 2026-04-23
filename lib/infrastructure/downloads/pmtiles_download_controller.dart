@@ -24,7 +24,7 @@ import 'package:mirkfall/infrastructure/platform/disk_space_checker.dart';
 import 'package:mirkfall/infrastructure/platform/ios_backup_excluder.dart';
 import 'package:path/path.dart' as p;
 
-/// Orchestrates the 7-step atomic download protocol for per-country
+/// Orchestrates the 6-step atomic download protocol for per-country
 /// PMTiles bundles.
 ///
 /// ## Protocol (from the plan's behaviour spec)
@@ -36,19 +36,22 @@ import 'package:path/path.dart' as p;
 ///    [HttpChunkDownloader.downloadWithResume] into
 ///    `staging/<alpha3>/part##`. Retry up to [kDownloadRetryAttempts]
 ///    with 1s/5s/30s backoff on [DownloadInterruptedException].
-/// 2. **Per-chunk sha256**: after each chunk lands, verify against
-///    `ChunkPart.sha256`. One retry on mismatch; second mismatch is
-///    terminal ([Sha256MismatchException]).
-/// 3. **Concat**: [BinaryConcatenator] streams all parts into
-///    `staging/<alpha3>/<alpha3>.pmtiles`.
-/// 4. **Global sha256**: hash the reassembled file; mismatch against
-///    `ReassembledMeta.sha256` is terminal (indicates concat bug; do
-///    NOT retry).
-/// 5. **Atomic rename**: [AtomicRenamer.commit] moves the staging
+/// 2. **Concat + streamed sha256**: [BinaryConcatenator.concat] streams
+///    every byte into both the reassembled staging file AND a chunked
+///    sha256 converter in a single pass, returning the global digest.
+///    Per-chunk sha256 is deliberately NOT performed — the reassembled
+///    sha256 is the single correctness gate, catching any byte-level
+///    corruption (wire, disk, CDN mutation) with one hash. Row #5
+///    handler nukes staging on a reassembled mismatch to break the
+///    permanent-failure loop.
+/// 3. **Global sha256 verify**: compare the streamed digest against
+///    `ReassembledMeta.sha256`; mismatch is terminal + triggers staging
+///    purge (row #5 fix).
+/// 4. **Atomic rename**: [AtomicRenamer.commit] moves the staging
 ///    reassembled file to `<app_support>/[kCountriesDir]/<alpha3>.pmtiles`.
-/// 6. **Manifest write**: [InstalledManifestRepository.write] updates
+/// 5. **Manifest write**: [InstalledManifestRepository.write] updates
 ///    `installed.json` atomically.
-/// 7. **Cleanup**: remove `staging/<alpha3>/` recursively.
+/// 6. **Cleanup**: remove `staging/<alpha3>/` recursively.
 ///
 /// Between steps 5 and 6 the controller calls
 /// [IosBackupExcluder.excludePath] on the newly-committed `.pmtiles`
