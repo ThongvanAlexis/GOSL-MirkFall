@@ -283,7 +283,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 | 05. GPS & Session Lifecycle | 6/6 | Complete   | 2026-04-19 |
 | 06. Review Gate — GPS | 5/5 | Complete    | 2026-04-20 |
 | 07. Map Integration | 7/7 | Complete    | 2026-04-23 |
-| 08. Review Gate — Map | 0/TBD | Not started | - |
+| 08. Review Gate — Map | 1/5 | In Progress|  |
 | 09. Fog Rendering | 0/TBD | Not started | - |
 | 10. Review Gate — Fog | 0/TBD | Not started | - |
 | 11. Markers & Categories | 0/TBD | Not started | - |

@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 07 plan 07-06 (Presentation) done — 07-07 unblocked
+current_plan: Phase 08 plan 08-01 (Scaffold + user-first §1 + Phase 07 closure) done — 08-02 unblocked
 status: executing
-stopped_at: Phase 08 context gathered
-last_updated: "2026-04-23T13:57:39.249Z"
-last_activity: 2026-04-21
+stopped_at: Completed 08-01-PLAN.md (Tasks 2+3 executed as continuation agent after 'rien vu' user response; Phase 07 formally closed)
+last_updated: "2026-04-23T14:20:00.000Z"
+last_activity: 2026-04-23
 progress:
   total_phases: 16
-  completed_phases: 6
-  total_plans: 37
-  completed_plans: 36
-  percent: 97
+  completed_phases: 7
+  total_plans: 42
+  completed_plans: 38
+  percent: 90
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 07 Map Integration — Plan 07-06 (Presentation) done 2026-04-21. Full-screen /map route + maps-download/manage screens + attribution surfaces (MAP-03 on map AND About screen via shared openAttributionLink helper, copy-to-clipboard + snackbar strategy — no url_launcher dep per GOSL audit) + SessionBurgerMenu responsive drawer (75% portrait / 40% landscape) with 3 unwired Phase 11/13 action tiles + 3 live-data rows (Position 6 decimals / Distance placeholder / Durée HH:MM:SS). SessionListScreen gains conditional /map AppBar button; SessionDetailScreen gains /map link on both Tracking + Stopped variants (Rule 4 architectural deviation: embed deferred — /map carries its own burger menu + follow-me FAB, no test-infrastructure tax). SettingsScreen extended with Cartes + Styles sections + AppBar progress chip. Layer-order regression test protects Phase 09 reorder. MapScreen accepts optional `mapViewBuilderForTest` typedef seam so widget tests inject FakeMapView without dragging MapLibre into the test runner. 43 new widget/unit tests (673 total, up from 630). All 3 lint gates exit 0. Plan 07-07 (integration-verification) unblocked.
+**Current focus:** Phase 08 Review Gate — Map — Plan 08-01 done 2026-04-23. 08-REVIEW.md 5-section scaffold landed (§1b per-device placeholders, §2 Pre-known from CONTEXT 10 + Smell heuristics hot-spots table, §4 ten adversarial evidence blocks). §1 User-observed findings captured with explicit "Aucune observation utilisateur" marker (user 'rien vu' response 2026-04-23). Phase 07 structurally closed in same plan: 07-07-SUMMARY.md written capturing scope-reduction (smoke + iOS fix kept, 4 integration tests absorbed into Phase 08 Plan 08-04), 07-07-PLAN.md annotated SCOPE REDUCED header block, ROADMAP Phase 07 row → 7/7 Complete 2026-04-23, REQUIREMENTS MAP-05/06/07/08/10 Traceability rows → Complete. Three atomic commits on main (fe23f9a / 580de38 / bf74aad). Plan 08-02 (POC evidence review §1b — extract docs/phase-07-smoke.md + docs/phase-07-ios-animate-camera-crash.md + 7 screenshots) unblocked.
 
 ## Current Position
 
-Phase: 07 of 16 (Map Integration) — 6 / 7 plans done — Plan 07-07 (integration-verification) unblocked
-Current Plan: Phase 07 plan 07-06 (Presentation) done — 07-07 unblocked
-Total Plans in Phase 07: 6 / 7 done
-Status: Phase in progress; next `/gsd:execute-phase 07` will pick up Plan 07-07
-Last Activity: 2026-04-21
+Phase: 08 of 16 (Review Gate — Map) — 1 / 5 plans done — Plan 08-02 (POC evidence review §1b) unblocked
+Current Plan: Phase 08 plan 08-01 (Scaffold + user-first §1 + Phase 07 closure) done
+Total Plans in Phase 08: 1 / 5 done (0/5 started prior to this plan)
+Status: Phase in progress; next `/gsd:execute-phase 08` will pick up Plan 08-02
+Last Activity: 2026-04-23
 
-Progress: [█████████▊] 97% — 36 / 37 plans executed across phases 01-07.
+Progress: [█████████░] 90% — 38 / 42 plans executed across phases 01-08 (Phase 07 formally closed at 7/7 ; Phase 08 1/5 done).
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Progress: [█████████▊] 97% — 36 / 37 plans executed across
 | Phase 07-map-integration P04 | 31min | 3 tasks | 23 files |
 | Phase 07-map-integration P05 | 42min | 3 tasks | 11 files (5 lib sources + 5 tests + main.dart modification) |
 | Phase 07-map-integration P06 | 24min | 4 tasks | 22 files (5 screens + 6 widgets + 11 test files) + 8 modified (router + app_shell + 4 Phase 05 screens + 3 Phase 05 tests) |
+| Phase 08-review-gate-map P01 | ~5 min (continuation agent, prior session did Task 1) | 3 tasks (Task 1 prior session; Tasks 2+3 this session) | 5 files across 3 atomic commits (08-REVIEW.md + 07-07-SUMMARY.md + 07-07-PLAN.md + ROADMAP.md + REQUIREMENTS.md) |
 
 ## Accumulated Context
 
@@ -291,6 +292,11 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 07-map-integration]: Phase 07 plan 07-06: Layer-order regression test lives at test/presentation/map_style_layer_order_test.dart (NOT test/infrastructure/map/) — reads assets/maps/style.json via dart:io + asserts kStyleLayerOrder from lib/infrastructure/map/style_layer_order.dart. Phase 09 reorder (swapping mirk_fog from type:background to type:fill with a GeoJSON source) would fail this test if the POSITION changed; changing paint properties keeps the test green.
 - [Phase 07-map-integration]: Phase 07 plan 07-06: ListTile-targeted tap finders (`find.widgetWithText(ListTile, '…')`) + `tester.ensureVisible + warnIfMissed: false` for off-screen tiles in scroll views. Applied to SettingsScreen Styles section; reusable for any multi-section settings screen where a target tile sits below the initial fold.
 - [Phase 07-map-integration]: Phase 07 plan 07-06: ActiveSessionBanner suppression extended to /map (in addition to /sessions/) via AppShell's `currentLocation == '/map' || startsWith('/sessions/')` condition. MapScreen is full-screen by design; the SessionBurgerMenu drawer already surfaces the "Arrêter la session" tile, so the cross-route banner's Stop affordance is redundant on /map.
+- [Phase 08-review-gate-map]: Plan 08-01 protocol-gate pattern: user-first IDE solicitation → user response → verbatim capture OR explicit 'Aucune observation utilisateur' marker → §1 commit BEFORE any downstream plan reads POC artefacts or spawns agents. 'rien vu' response resolves to explicit marker (Phase 04 + 06 inaugural precedent reaffirmed). The marker is load-bearing: silence would be indistinguishable from skipping the solicitation.
+- [Phase 08-review-gate-map]: Plan 08-01 Phase 07 structural closure bundled atomically: 07-07-SUMMARY.md + 07-07-PLAN.md annotation + ROADMAP amend + REQUIREMENTS amend in ONE commit (bf74aad). Scope-reduction is ONE logical action; split would fragment git bisect. Precedent for future mid-review-gate phase-closure tidy-ups (Phases 10/12/14/16 can reuse if a prior phase needs similar late structural amendment).
+- [Phase 08-review-gate-map]: Plan 07-07 original file kept on disk with `> **⚠ SCOPE REDUCED — 2026-04-23**` header annotation rather than deleted or renamed. Preserves git history + enables archaeology of original plan intent. Reusable pattern for any future plan scope-reduced mid-phase.
+- [Phase 08-review-gate-map]: REQUIREMENTS Traceability rows simplified to bare `| REQ-ID | Phase NN | Complete |` on phase-close (stripped inline "Plan 07-XX pending" prose) — plan-by-plan trace now lives in XX-SUMMARY.md cross-references + REQUIREMENTS footer `Last updated` date. Precedent for Phase 09/11/13/15 close-out.
+- [Phase 08-review-gate-map]: gsd-tools `commit` wrapper has quoting issue with non-ASCII subject lines (e.g. `§1`) on Windows bash shell — arguments get split on whitespace and the words after the section sign are misinterpreted as pathspecs. Workaround: fall back to `git add` + `git commit -m` via heredoc for subjects containing `§`, `€`, etc. Noted for future review-gate plans if they want section symbols in subjects.
 
 ### Pending Todos
 
