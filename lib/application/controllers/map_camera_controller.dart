@@ -11,7 +11,6 @@ import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderSubscription;
 import 'package:mirkfall/domain/map/map_view.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -109,7 +108,6 @@ class MapCameraController extends _$MapCameraController {
 
   MapView? _mapView;
   StreamSubscription<({double latitude, double longitude, double zoom})>? _viewportSub;
-  ProviderSubscription<AsyncValue<ActiveSessionState>>? _sessionSub;
   bool _cameraMovePending = false;
   Timer? _pendingResetTimer;
   double _currentZoom = kInitialSessionMapZoom.toDouble();
@@ -117,12 +115,24 @@ class MapCameraController extends _$MapCameraController {
   @override
   MapCameraState build() {
     ref.onDispose(_tearDown);
-    // Re-attach whenever the MapViewHolder publishes a new adapter.
-    // The widget's onReady callback fires AFTER build(), so the initial
-    // attach from a public-entry call would otherwise miss the echoed
-    // viewport updates for subscribers that only listen post-ready.
+    // Two listener sources wired declaratively in build (both use
+    // ref.listen so Riverpod owns their lifecycle + auto-cancels on
+    // provider dispose — no per-field subscription bookkeeping):
+    //
+    //  1. mapViewProvider — adapter publications from the widget's
+    //     onReady callback (fires AFTER build, so a lazy-attach from a
+    //     public-entry call would otherwise miss the echoed viewport
+    //     updates for subscribers that only listen post-ready).
+    //  2. activeSessionControllerProvider — GPS fixes + session
+    //     lifecycle (clear the puck on session-stop).
+    //
+    // The remaining `_viewportSub` is the ONLY manual StreamSubscription
+    // because MapView.viewportUpdates is a plain Stream, not a provider.
     ref.listen<MapView?>(mapViewProvider, (previous, next) {
       _attachMapViewIfReady();
+    });
+    ref.listen<AsyncValue<ActiveSessionState>>(activeSessionControllerProvider, (previous, next) {
+      _onSessionUpdate(next);
     });
     return const MapCameraIdle();
   }
@@ -132,7 +142,7 @@ class MapCameraController extends _$MapCameraController {
   /// no fix is available yet, transitions to [MapCameraCentering] and
   /// waits for the first fix via the active-session listener.
   Future<void> openForSession(SessionId sessionId) async {
-    _attachIfNeeded();
+    _attachMapViewIfReady();
     final MapView? mapView = ref.read(mapViewProvider);
     final Fix? latestFix = _currentSessionLatestFix();
 
@@ -167,7 +177,7 @@ class MapCameraController extends _$MapCameraController {
   /// (if any) and sets the adapter's follow-me flag. When disabling,
   /// leaves the camera where it is.
   Future<void> toggleFollowMe() async {
-    _attachIfNeeded();
+    _attachMapViewIfReady();
     final MapView? mapView = ref.read(mapViewProvider);
     if (mapView == null) return;
     final current = state;
@@ -185,14 +195,6 @@ class MapCameraController extends _$MapCameraController {
       }
       state = MapCameraFollowing(sessionId: current.sessionId);
     }
-  }
-
-  /// Attaches listeners on first use. Called from every public entry so
-  /// late MapView publications (the widget's `onReady` fires after the
-  /// screen is built) do not miss viewport updates.
-  void _attachIfNeeded() {
-    _attachMapViewIfReady();
-    _attachSessionListenerIfNeeded();
   }
 
   void _attachMapViewIfReady() {
@@ -229,27 +231,26 @@ class MapCameraController extends _$MapCameraController {
     );
   }
 
-  void _attachSessionListenerIfNeeded() {
-    _sessionSub ??= ref.listen<AsyncValue<ActiveSessionState>>(activeSessionControllerProvider, (previous, next) {
-      final value = next.value;
-      if (value is Tracking) {
-        _onFix(value.lastFix);
-        return;
+  /// Reacts to an active-session state change emitted by
+  /// [activeSessionControllerProvider]. Tracking → pan / update puck via
+  /// [_onFix]; any non-Tracking variant → clear the puck (without this
+  /// the blue dot would stay painted at the last-known fix forever
+  /// after the user stops tracking).
+  void _onSessionUpdate(AsyncValue<ActiveSessionState> next) {
+    final value = next.value;
+    if (value is Tracking) {
+      _onFix(value.lastFix);
+      return;
+    }
+    final MapView? mapView = _mapView;
+    if (mapView == null) return;
+    unawaited(() async {
+      try {
+        await mapView.setUserLocation(null);
+      } on Object catch (e, st) {
+        _log.warning('setUserLocation(null) failed on session-stop (non-fatal)', e, st);
       }
-      // Session dropped to Idle (or any non-Tracking variant) — clear
-      // the location puck. Without this the blue dot would stay
-      // painted at the last-known fix forever after the user stops
-      // tracking.
-      final MapView? mapView = _mapView;
-      if (mapView == null) return;
-      unawaited(() async {
-        try {
-          await mapView.setUserLocation(null);
-        } on Object catch (e, st) {
-          _log.warning('setUserLocation(null) failed on session-stop (non-fatal)', e, st);
-        }
-      }());
-    });
+    }());
   }
 
   /// Handles a new fix from the active session. Always pushes the fix
@@ -339,8 +340,6 @@ class MapCameraController extends _$MapCameraController {
     _pendingResetTimer = null;
     _viewportSub?.cancel();
     _viewportSub = null;
-    _sessionSub?.close();
-    _sessionSub = null;
     _mapView = null;
   }
 }
