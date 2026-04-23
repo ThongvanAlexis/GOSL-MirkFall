@@ -261,23 +261,31 @@ class PmtilesDownloadController {
         }
 
         final ChunkPart part = job.entry.parts[i];
-        final File partFile = File(p.join(stagingDir.path, 'part${i.toString().padLeft(2, '0')}'));
-        final bool preExistingComplete = await _downloadChunkWithRetries(part: part, destination: partFile, job: job, partIndex: i);
-        if (preExistingComplete) {
+        final String partBasename = 'part${i.toString().padLeft(2, '0')}';
+        final File partFile = File(p.join(stagingDir.path, partBasename));
+        final File verifiedMarker = File(p.join(stagingDir.path, '$partBasename.verified'));
+        final bool preVerified = await _downloadChunkWithRetries(part: part, destination: partFile, verifiedMarker: verifiedMarker, job: job, partIndex: i);
+        if (preVerified) {
           // Resume optimisation (Phase 07-07 device-smoke, 2026-04-22):
-          // this chunk was already fully on disk when the job started,
-          // which means a prior session had already passed its per-chunk
-          // sha256 check (the download protocol verifies EVERY chunk
-          // immediately after writing it). Re-hashing here would waste
-          // tens of seconds per 100 MB chunk with no safety benefit —
-          // the reassembled global sha256 run below catches any
-          // disk-level corruption that would somehow have made a
-          // previously-verified file go bad.
-          _log.info('chunk ${job.alpha3.value}.part$i verify: SKIPPED (pre-existing complete — already verified in a prior session)');
+          // this chunk was already fully on disk at job start AND a
+          // `.verified` sidecar marker attests that a prior session
+          // completed its per-chunk sha256 check. Re-hashing here
+          // would waste tens of seconds per 100 MB chunk with no
+          // safety benefit — the reassembled global sha256 later
+          // catches any disk-level corruption that could have crept
+          // in since the marker was written.
+          //
+          // The marker is critical: without it, a chunk whose verify
+          // was killed mid-compute on the previous run (e.g. user
+          // swiped the app away during sha256 of chunk 2/4) would
+          // look indistinguishable from a chunk whose verify had
+          // completed, and we would wrongly skip re-verifying it.
+          _log.info('chunk ${job.alpha3.value}.part$i verify: SKIPPED (pre-verified marker present)');
         } else {
           _emitInProgress(job: job, partIndex: i, phase: DownloadPhase.verifyingChunk);
           _log.info('chunk ${job.alpha3.value}.part$i verify: sha256 starting (size=${part.size})');
           await _verifyChunkWithOneRetry(part: part, partFile: partFile, job: job, partIndex: i);
+          await verifiedMarker.writeAsBytes(const <int>[], flush: true);
           _log.info('chunk ${job.alpha3.value}.part$i verify: OK');
         }
         partFiles.add(partFile);
@@ -352,18 +360,31 @@ class PmtilesDownloadController {
 
   /// Downloads [part] into [destination] with up to
   /// [kDownloadRetryAttempts] retries on transient HTTP failures.
-  /// Returns `true` when the chunk was already fully on disk at entry
-  /// (resume optimisation — the caller can skip the per-chunk sha256
-  /// verify; see `_processJob`). Returns `false` otherwise (new bytes
-  /// were written during this call, a fresh sha256 check is required).
-  Future<bool> _downloadChunkWithRetries({required ChunkPart part, required File destination, required DownloadJob job, required int partIndex}) async {
-    // Pre-check: if the staging chunk is already exactly the expected
-    // size, skip the network round-trip AND the per-chunk sha256
-    // (signalled to the caller via the `true` return). A prior session
-    // already verified these bytes; re-hashing a 100 MB chunk on resume
-    // costs tens of seconds of wallclock and user confusion. The
-    // reassembled-file sha256 later in the protocol still catches any
-    // disk-level corruption that would have snuck past.
+  ///
+  /// Returns `true` ONLY when the chunk was already fully on disk at
+  /// entry AND a sibling [verifiedMarker] attests that a prior session
+  /// completed the per-chunk sha256 check — the caller can then skip
+  /// the verify step entirely (resume optimisation). Returns `false`
+  /// in every other case (fresh download, partial resume, size match
+  /// without a marker, etc.) and the caller MUST run sha256.
+  ///
+  /// The marker is written AFTER a successful verify in `_processJob`,
+  /// so its presence is a durable attestation of a completed check —
+  /// not a guess based on file size alone. This matters when a prior
+  /// session was killed mid-sha256: the chunk would be fully sized on
+  /// disk but never actually verified, and a size-only heuristic would
+  /// wrongly classify it as verified.
+  Future<bool> _downloadChunkWithRetries({
+    required ChunkPart part,
+    required File destination,
+    required File verifiedMarker,
+    required DownloadJob job,
+    required int partIndex,
+  }) async {
+    // Pre-check: skip the network round-trip when the local chunk is
+    // already fully sized. The per-chunk sha256 is skipped ONLY if the
+    // sibling .verified marker is also present (see the function-level
+    // docstring for rationale).
     //
     // Phase 07 device-smoke (2026-04-22) — without this guard, a
     // kill-during-download that leaves a part fully written on disk
@@ -377,15 +398,33 @@ class PmtilesDownloadController {
     if (await destination.exists()) {
       final int localSize = await destination.length();
       if (localSize == part.size) {
-        _log.info('chunk ${job.alpha3.value}.part$partIndex staging already complete (size=$localSize) — skipping network + skipping per-chunk sha256');
+        final bool hasVerifiedMarker = await verifiedMarker.exists();
+        if (hasVerifiedMarker) {
+          _log.info(
+            'chunk ${job.alpha3.value}.part$partIndex staging already verified (size=$localSize, marker present) — skipping network + skipping per-chunk sha256',
+          );
+          _accumulatedBytes += localSize;
+          _emitInProgress(job: job, partIndex: partIndex, phase: DownloadPhase.verifyingResumedData);
+          return true;
+        }
+        // Fully sized but no marker — a prior session wrote the chunk
+        // but was killed before its verify completed. Skip the network
+        // round-trip, but fall through to let the caller run sha256.
+        _log.info('chunk ${job.alpha3.value}.part$partIndex staging sized but unverified (no marker) — skipping network, will verify sha256');
         _accumulatedBytes += localSize;
-        _emitInProgress(job: job, partIndex: partIndex, phase: DownloadPhase.verifyingResumedData);
-        return true;
+        _emitInProgress(job: job, partIndex: partIndex);
+        return false;
       }
       if (localSize > part.size) {
         _log.warning('chunk ${job.alpha3.value}.part$partIndex staging size $localSize > expected ${part.size} — deleting to restart from byte 0');
         await destination.delete();
       }
+    }
+    // A chunk about to be (re)downloaded is no longer trustworthy from
+    // any prior verification — drop the marker so a subsequent kill
+    // cannot see a stale marker pointing at just-overwritten bytes.
+    if (await verifiedMarker.exists()) {
+      await verifiedMarker.delete();
     }
     DownloadInterruptedException? lastError;
     for (int attempt = 0; attempt < kDownloadRetryAttempts; attempt++) {
@@ -467,9 +506,12 @@ class PmtilesDownloadController {
     final String first = await _sha256Verifier.ofFile(partFile);
     if (first == part.sha256) return;
     _log.warning('chunk ${job.alpha3.value}.part$partIndex sha256 mismatch — retrying once');
-    // Delete and re-download once.
+    // Delete and re-download once. The verified-marker for this chunk
+    // is computed from the same basename convention as `_processJob`
+    // so a stale marker (if any) is dropped by the re-download path.
     await partFile.delete();
-    await _downloadChunkWithRetries(part: part, destination: partFile, job: job, partIndex: partIndex);
+    final File verifiedMarker = File('${partFile.path}.verified');
+    await _downloadChunkWithRetries(part: part, destination: partFile, verifiedMarker: verifiedMarker, job: job, partIndex: partIndex);
     final String second = await _sha256Verifier.ofFile(partFile);
     if (second != part.sha256) {
       throw Sha256MismatchException(expected: part.sha256, actual: second, at: 'parts[$partIndex]');
