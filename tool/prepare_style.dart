@@ -75,15 +75,38 @@ import 'package:path/path.dart' as p;
 /// with git installed + repo-write access for the resulting commit).
 /// The script only validates that an expected-layout `--source <dir>`
 /// was supplied and copies the files across.
+/// Pin sentinel for the protomaps/basemaps-assets upstream commit SHA.
+///
+/// `UNPINNED` means the maintainer has not yet done the Phase 07-06 pin
+/// bump. In that state, a real (non-placeholder) `runCheck` call is
+/// refused by the `_pinnedShaGuard` below unless `allowUnpinned: true`
+/// is explicitly passed — placeholder mode (no `--source`) stays
+/// unaffected. This prevents copying an arbitrary non-reproducible
+/// upstream clone into `assets/maps/` without an explicit opt-in.
+///
+/// When Phase 07-06 bumps this, replace `UNPINNED` with the full 40-char
+/// commit SHA + remove the `allowUnpinned` override everywhere.
 const String _kPinnedCommitSha = 'UNPINNED';
+const String _kUnpinnedSentinel = 'UNPINNED';
 const String _kDefaultGlyphsTarget = 'assets/maps/glyphs';
 const String _kDefaultSpritesTarget = 'assets/maps/sprites';
+
+/// Guard that refuses a real (non-placeholder) run when
+/// [_kPinnedCommitSha] is still the `UNPINNED` sentinel, unless
+/// [allowUnpinned] is explicitly opted-in. Returns `null` on pass,
+/// non-null error message on refuse. Pure function — test seam.
+String? _pinnedShaGuard({required String pinnedSha, required bool allowUnpinned}) {
+  if (pinnedSha != _kUnpinnedSentinel) return null;
+  if (allowUnpinned) return null;
+  return 'prepare_style: _kPinnedCommitSha is "$_kUnpinnedSentinel" — refusing real run to keep assets reproducible.\n'
+      'Either bump the constant to a real commit SHA (Phase 07-06 pin) or pass --allow-unpinned for an acknowledged throw-away copy.';
+}
 
 /// Runs the prepare-style copy. `sourceDir` is the path to a local clone
 /// of github.com/protomaps/basemaps-assets at [_kPinnedCommitSha].
 /// When `sourceDir` is null, the script emits the placeholder-mode
 /// README sidecars (Phase 07-01 initial drop) and returns 0.
-Future<int> runCheck({String? sourceDir, String? glyphsTarget, String? spritesTarget}) async {
+Future<int> runCheck({String? sourceDir, String? glyphsTarget, String? spritesTarget, bool allowUnpinned = false}) async {
   final String glyphsOut = glyphsTarget ?? _kDefaultGlyphsTarget;
   final String spritesOut = spritesTarget ?? _kDefaultSpritesTarget;
 
@@ -118,6 +141,13 @@ Future<int> runCheck({String? sourceDir, String? glyphsTarget, String? spritesTa
     stdout.writeln('prepare_style: placeholder mode — emitted READMEs under $glyphsOut and $spritesOut');
     stdout.writeln('prepare_style: bump _kPinnedCommitSha + rerun with --source <clone> to populate real assets.');
     return 0;
+  }
+
+  // Real run — guard the unpinned sentinel before we touch anything.
+  final String? pinError = _pinnedShaGuard(pinnedSha: _kPinnedCommitSha, allowUnpinned: allowUnpinned);
+  if (pinError != null) {
+    stderr.writeln(pinError);
+    return 2;
   }
 
   // Real run — validate + copy.
@@ -173,12 +203,18 @@ Future<int> runCheck({String? sourceDir, String? glyphsTarget, String? spritesTa
 
 Future<void> main(List<String> args) async {
   String? sourceDir;
+  bool allowUnpinned = false;
   for (int i = 0; i < args.length; i++) {
     if (args[i] == '--source' && i + 1 < args.length) {
       sourceDir = args[i + 1];
       i++;
+      continue;
+    }
+    if (args[i] == '--allow-unpinned') {
+      allowUnpinned = true;
+      continue;
     }
   }
-  final int code = await runCheck(sourceDir: sourceDir);
+  final int code = await runCheck(sourceDir: sourceDir, allowUnpinned: allowUnpinned);
   exitCode = code;
 }
