@@ -19,7 +19,6 @@ import 'package:mirkfall/infrastructure/downloads/atomic_renamer.dart';
 import 'package:mirkfall/infrastructure/downloads/binary_concatenator.dart';
 import 'package:mirkfall/infrastructure/downloads/download_queue_store.dart';
 import 'package:mirkfall/infrastructure/downloads/http_chunk_downloader.dart';
-import 'package:mirkfall/infrastructure/downloads/sha256_verifier.dart';
 import 'package:mirkfall/infrastructure/platform/disk_space_checker.dart';
 import 'package:mirkfall/infrastructure/platform/ios_backup_excluder.dart';
 import 'package:path/path.dart' as p;
@@ -79,7 +78,6 @@ class PmtilesDownloadController {
   PmtilesDownloadController({
     required String appSupportDir,
     required HttpChunkDownloader httpDownloader,
-    required Sha256Verifier sha256Verifier,
     required BinaryConcatenator concatenator,
     required AtomicRenamer renamer,
     required InstalledManifestRepository manifestRepository,
@@ -90,7 +88,6 @@ class PmtilesDownloadController {
     Logger? logger,
   }) : _appSupportDir = appSupportDir,
        _httpDownloader = httpDownloader,
-       _sha256Verifier = sha256Verifier,
        _concatenator = concatenator,
        _renamer = renamer,
        _manifestRepository = manifestRepository,
@@ -109,7 +106,6 @@ class PmtilesDownloadController {
 
   final String _appSupportDir;
   final HttpChunkDownloader _httpDownloader;
-  final Sha256Verifier _sha256Verifier;
   final BinaryConcatenator _concatenator;
   final AtomicRenamer _renamer;
   final InstalledManifestRepository _manifestRepository;
@@ -234,17 +230,11 @@ class PmtilesDownloadController {
       // 0. Preflight.
       await _preflight(job.entry);
 
-      // 1+2. Download + per-chunk verify. Pre-compute the "frontier"
-      // chunk index — the highest one with any bytes on disk — so we
-      // can trust every earlier fully-sized chunk without re-hashing
-      // it. Protocol invariant: `_acquireChunk` only returns after the
-      // chunk is verified, and the loop below only advances to chunk
-      // `i+1` after `_acquireChunk` returns. Therefore if bytes for
-      // chunk N exist on disk, a prior session DID successfully verify
-      // every chunk in [0, N-1]. The reassembled global sha256 later
-      // catches any post-verify disk corruption that could slip past.
-      final int frontier = _findFrontierChunkIndex(stagingDir, job.entry.parts.length);
-
+      // 1. Acquire every chunk — no per-chunk sha256. A pre-existing
+      // chunk on disk is trusted on size alone; the correctness gate
+      // is the reassembled sha256 computed in-stream during concat.
+      // Catches all realistic failure modes (wire corruption, disk
+      // corruption, CDN serving a mutated file) with a single pass.
       final List<File> partFiles = <File>[];
       for (int i = 0; i < job.entry.parts.length; i++) {
         if (_cancelRequested) {
@@ -272,34 +262,17 @@ class PmtilesDownloadController {
 
         final ChunkPart part = job.entry.parts[i];
         final File partFile = File(p.join(stagingDir.path, 'part${i.toString().padLeft(2, '0')}'));
-
-        if (i < frontier && partFile.existsSync() && partFile.lengthSync() == part.size) {
-          // Trust path: a fully-sized chunk earlier than the frontier.
-          // The protocol invariant attests it was verified before the
-          // prior session moved on. Fast-forward the progress counter,
-          // emit a transferring-phase update so the UI jumps the bar,
-          // and move on — no sha256 here.
-          _log.info('chunk ${job.alpha3.value}.part$i trusted (frontier=$frontier, size=${part.size}) — skipping network + sha256');
-          _accumulatedBytes += part.size;
-          _emitInProgress(job: job, partIndex: i);
-          partFiles.add(partFile);
-          continue;
-        }
-
         await _acquireChunk(part: part, partFile: partFile, job: job, partIndex: i);
         partFiles.add(partFile);
       }
 
-      // 3. Concat.
+      // 2. Concat + verify in a single pass: BinaryConcatenator streams
+      // every byte into the reassembled file AND into a sha256 chunked
+      // converter simultaneously, returning the final digest at EOF.
       _emitInProgress(job: job, partIndex: job.entry.parts.length - 1, phase: DownloadPhase.concatenating);
-      _log.info('concat ${job.alpha3.value}: starting (${job.entry.parts.length} parts → reassembled ${job.entry.reassembled.size} bytes)');
-      await _concatenator.concat(parts: partFiles, destination: reassembledStaging);
-      _log.info('concat ${job.alpha3.value}: OK');
-
-      // 4. Global sha256.
-      _emitInProgress(job: job, partIndex: job.entry.parts.length - 1, phase: DownloadPhase.verifyingFinal);
-      _log.info('final verify ${job.alpha3.value}: sha256 starting (size=${job.entry.reassembled.size})');
-      final String reassembledHash = await _sha256Verifier.ofFile(reassembledStaging);
+      _log.info('concat+hash ${job.alpha3.value}: starting (${job.entry.parts.length} parts → reassembled ${job.entry.reassembled.size} bytes)');
+      final String reassembledHash = await _concatenator.concat(parts: partFiles, destination: reassembledStaging);
+      _log.info('concat+hash ${job.alpha3.value}: OK');
       if (reassembledHash != job.entry.reassembled.sha256) {
         throw Sha256MismatchException(expected: job.entry.reassembled.sha256, actual: reassembledHash, at: 'reassembled');
       }
@@ -357,37 +330,19 @@ class PmtilesDownloadController {
     }
   }
 
-  /// Scans [stagingDir] for `part##` files and returns the highest
-  /// index with any bytes on disk, or -1 if none exist. Used at the
-  /// top of [_processJob] to locate the chunk the prior session was
-  /// working on when it died — every chunk strictly below that index
-  /// can be trusted without a fresh sha256, because the protocol
-  /// invariant (verify-before-advance) guarantees they were hashed
-  /// successfully in the prior session.
-  int _findFrontierChunkIndex(Directory stagingDir, int totalParts) {
-    if (!stagingDir.existsSync()) return -1;
-    int frontier = -1;
-    for (int i = 0; i < totalParts; i++) {
-      final File f = File(p.join(stagingDir.path, 'part${i.toString().padLeft(2, '0')}'));
-      if (f.existsSync()) frontier = i;
-    }
-    return frontier;
-  }
-
-  /// Ensures [partFile] contains the exact bytes of [part] by the time
-  /// this returns. Dispatches to exactly one of the three acquisition
-  /// paths based on what is already on disk:
+  /// Ensures [partFile] contains the exact catalogued bytes of [part]
+  /// by the time this returns. No per-chunk sha256 happens here — the
+  /// reassembled sha256 at concat time is the single correctness gate
+  /// for the whole file. Three dispatch arms:
   ///
-  /// 1. **From scratch** — no file yet. [_downloadFromScratch].
-  /// 2. **Pre-existing fully-sized chunk** — the bytes are already on
-  ///    disk from a prior session; sha256 them once. [_verifyPreExistingChunk].
-  /// 3. **Partial chunk** — a prior session wrote only part of the
-  ///    chunk. HTTP Range resume to fill, then sha256.
-  ///    [_resumePartialChunk].
-  ///
-  /// All three paths end with a verified [partFile]. On sha256 mismatch
-  /// each path falls back to a one-shot from-scratch redownload of the
-  /// same chunk; a second mismatch is terminal ([Sha256MismatchException]).
+  /// 1. **From scratch** — no file on disk. [_downloadFromScratch].
+  /// 2. **Fully-sized bytes already on disk** — trust them (the
+  ///    reassembled sha256 will catch any corruption). Just bump the
+  ///    progress counter, emit a transferring-phase update so the UI
+  ///    jumps the bar, and return.
+  /// 3. **Partial (or oversized) bytes** — [_resumePartialChunk].
+  ///    Undersized → HTTP Range resume. Oversized → delete +
+  ///    [_downloadFromScratch].
   Future<void> _acquireChunk({required ChunkPart part, required File partFile, required DownloadJob job, required int partIndex}) async {
     if (!partFile.existsSync()) {
       await _downloadFromScratch(part: part, partFile: partFile, job: job, partIndex: partIndex);
@@ -395,37 +350,17 @@ class PmtilesDownloadController {
     }
     final int localSize = await partFile.length();
     if (localSize == part.size) {
-      await _verifyPreExistingChunk(part: part, partFile: partFile, job: job, partIndex: partIndex);
+      _log.info('chunk ${job.alpha3.value}.part$partIndex already on disk (size=$localSize) — skipping network');
+      _accumulatedBytes += part.size;
+      _emitInProgress(job: job, partIndex: partIndex);
       return;
     }
     await _resumePartialChunk(part: part, partFile: partFile, job: job, partIndex: partIndex, localSize: localSize);
   }
 
-  /// Path 1 — no staging bytes. Download the chunk then sha256 it.
+  /// Path 1 — no staging bytes. Download the chunk via the retry loop.
   Future<void> _downloadFromScratch({required ChunkPart part, required File partFile, required DownloadJob job, required int partIndex}) async {
     await _httpDownloadWithRetries(part: part, partFile: partFile, job: job, partIndex: partIndex);
-    await _verifySha256OrOneScratchRetry(part: part, partFile: partFile, job: job, partIndex: partIndex);
-  }
-
-  /// Path 2 — a fully-sized chunk is already on disk (prior session
-  /// completed its download). Bump the cumulative counter to account
-  /// for those bytes so the progress bar does not regress, emit a
-  /// verifyingChunk phase, then sha256 the bytes. On mismatch (chunk
-  /// was corrupt or was killed mid-sha256 last time and the data rotted
-  /// since) fall back to a from-scratch redownload.
-  Future<void> _verifyPreExistingChunk({required ChunkPart part, required File partFile, required DownloadJob job, required int partIndex}) async {
-    _accumulatedBytes += part.size;
-    _emitInProgress(job: job, partIndex: partIndex, phase: DownloadPhase.verifyingChunk);
-    _log.info('chunk ${job.alpha3.value}.part$partIndex verify: sha256 starting (pre-existing, size=${part.size})');
-    final String computed = await _sha256Verifier.ofFile(partFile);
-    if (computed == part.sha256) {
-      _log.info('chunk ${job.alpha3.value}.part$partIndex verify: OK');
-      return;
-    }
-    _log.warning('chunk ${job.alpha3.value}.part$partIndex sha256 mismatch on pre-existing bytes — redownloading from scratch');
-    _accumulatedBytes -= part.size;
-    await partFile.delete();
-    await _downloadFromScratch(part: part, partFile: partFile, job: job, partIndex: partIndex);
   }
 
   /// Path 3 — the chunk file exists but its size does not match the
@@ -433,11 +368,6 @@ class PmtilesDownloadController {
   /// to truncate a chunk to an arbitrary sha256-correct prefix); delete
   /// and fall through to path 1. Undersized bytes come from an
   /// interrupted download and are resumed via HTTP Range.
-  ///
-  /// Phase 07 device-smoke (2026-04-22): the 416 Range Not Satisfiable
-  /// scenario (`localSize == part.size`) is handled by path 2, not
-  /// here — `_acquireChunk` dispatches size-match to
-  /// [_verifyPreExistingChunk] before we ever get here.
   Future<void> _resumePartialChunk({
     required ChunkPart part,
     required File partFile,
@@ -455,7 +385,6 @@ class PmtilesDownloadController {
     // _httpDownloadWithRetries tops up the counter as new bytes arrive.
     _accumulatedBytes += localSize;
     await _httpDownloadWithRetries(part: part, partFile: partFile, job: job, partIndex: partIndex);
-    await _verifySha256OrOneScratchRetry(part: part, partFile: partFile, job: job, partIndex: partIndex);
   }
 
   /// Shared download retry loop used by the from-scratch and resume-
@@ -506,35 +435,6 @@ class PmtilesDownloadController {
       }
     }
     throw lastError ?? const DownloadInterruptedException(reason: 'retry budget exhausted with no recorded cause');
-  }
-
-  /// sha256 [partFile]; return silently on match. On mismatch delete
-  /// the file, download it fresh, and sha256 again — one shot. A second
-  /// mismatch is terminal.
-  ///
-  /// Callers have already bumped `_accumulatedBytes` to reflect a
-  /// complete chunk (either via path 2's pre-bump, or via the
-  /// downloadWithResume callback in paths 1 and 3). On the
-  /// redownload path we roll it back by `part.size`, let the fresh
-  /// download's callback bump it again.
-  Future<void> _verifySha256OrOneScratchRetry({required ChunkPart part, required File partFile, required DownloadJob job, required int partIndex}) async {
-    _emitInProgress(job: job, partIndex: partIndex, phase: DownloadPhase.verifyingChunk);
-    _log.info('chunk ${job.alpha3.value}.part$partIndex verify: sha256 starting (size=${part.size})');
-    final String first = await _sha256Verifier.ofFile(partFile);
-    if (first == part.sha256) {
-      _log.info('chunk ${job.alpha3.value}.part$partIndex verify: OK');
-      return;
-    }
-    _log.warning('chunk ${job.alpha3.value}.part$partIndex sha256 mismatch — one from-scratch retry');
-    _accumulatedBytes -= part.size;
-    await partFile.delete();
-    await _httpDownloadWithRetries(part: part, partFile: partFile, job: job, partIndex: partIndex);
-    _emitInProgress(job: job, partIndex: partIndex, phase: DownloadPhase.verifyingChunk);
-    final String second = await _sha256Verifier.ofFile(partFile);
-    if (second != part.sha256) {
-      throw Sha256MismatchException(expected: part.sha256, actual: second, at: 'parts[$partIndex]');
-    }
-    _log.info('chunk ${job.alpha3.value}.part$partIndex verify: OK on second attempt');
   }
 
   /// Emits a [DownloadInProgress] snapshot reflecting the current

@@ -20,7 +20,6 @@ import 'package:mirkfall/infrastructure/downloads/binary_concatenator.dart';
 import 'package:mirkfall/infrastructure/downloads/download_queue_store.dart';
 import 'package:mirkfall/infrastructure/downloads/http_chunk_downloader.dart';
 import 'package:mirkfall/infrastructure/downloads/pmtiles_download_controller.dart';
-import 'package:mirkfall/infrastructure/downloads/sha256_verifier.dart';
 import 'package:mirkfall/infrastructure/installed_maps/first_launch_bootstrap.dart';
 import 'package:mirkfall/infrastructure/installed_maps/installed_manifest_repository.dart';
 import 'package:mirkfall/infrastructure/map/first_launch_world_copier.dart';
@@ -89,7 +88,6 @@ void main() {
     final PmtilesDownloadController controller = PmtilesDownloadController(
       appSupportDir: tempDir.path,
       httpDownloader: HttpChunkDownloader(),
-      sha256Verifier: const Sha256Verifier(),
       concatenator: const BinaryConcatenator(),
       renamer: AtomicRenamer(),
       manifestRepository: manifest,

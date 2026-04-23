@@ -31,18 +31,18 @@ void main() {
   }
 
   group('BinaryConcatenator — happy paths', () {
-    test('single-part concat yields identical bytes + hash', () async {
+    test('single-part concat returns the streamed sha256 (matches reference)', () async {
       final Uint8List payload = Uint8List(128)..fillRange(0, 128, 0x11);
       final File part = await writePart('p1.bin', payload);
 
       final File dest = File(p.join(tempDir.path, 'out1.bin'));
-      await const BinaryConcatenator().concat(parts: <File>[part], destination: dest);
+      final String returnedHash = await const BinaryConcatenator().concat(parts: <File>[part], destination: dest);
 
       expect(await dest.readAsBytes(), payload);
-      expect(sha256.convert(await dest.readAsBytes()).toString(), sha256.convert(payload).toString());
+      expect(returnedHash, sha256.convert(payload).toString());
     });
 
-    test('3-part concat matches reference byte-for-byte', () async {
+    test('3-part concat returns sha256 over the reassembled bytes', () async {
       final Uint8List a = Uint8List(100)..fillRange(0, 100, 0xAA);
       final Uint8List b = Uint8List(200)..fillRange(0, 200, 0xBB);
       final Uint8List c = Uint8List(300)..fillRange(0, 300, 0xCC);
@@ -52,14 +52,15 @@ void main() {
       final File pc = await writePart('c.bin', c);
 
       final File dest = File(p.join(tempDir.path, 'out3.bin'));
-      await const BinaryConcatenator().concat(parts: <File>[pa, pb, pc], destination: dest);
+      final String returnedHash = await const BinaryConcatenator().concat(parts: <File>[pa, pb, pc], destination: dest);
 
       final Uint8List concatenated = Uint8List.fromList(<int>[...a, ...b, ...c]);
       expect(await dest.readAsBytes(), concatenated);
       expect(await dest.length(), 600);
+      expect(returnedHash, sha256.convert(concatenated).toString());
     });
 
-    test('5-part concat with mixed sizes sha256-matches in-memory reference', () async {
+    test('5-part concat with mixed sizes — returned sha256 matches reference', () async {
       final List<File> parts = <File>[];
       final List<int> expectedBytes = <int>[];
       for (int i = 0; i < 5; i++) {
@@ -69,10 +70,10 @@ void main() {
       }
 
       final File dest = File(p.join(tempDir.path, 'out5.bin'));
-      await const BinaryConcatenator().concat(parts: parts, destination: dest);
+      final String returnedHash = await const BinaryConcatenator().concat(parts: parts, destination: dest);
 
       expect(await dest.readAsBytes(), expectedBytes);
-      expect(sha256.convert(await dest.readAsBytes()).toString(), sha256.convert(expectedBytes).toString());
+      expect(returnedHash, sha256.convert(expectedBytes).toString());
     });
 
     test('creates missing parent directory for destination', () async {
@@ -82,9 +83,10 @@ void main() {
       final File dest = File(p.join(tempDir.path, 'nested', 'deep', 'out.bin'));
       expect(dest.parent.existsSync(), isFalse);
 
-      await const BinaryConcatenator().concat(parts: <File>[part], destination: dest);
+      final String returnedHash = await const BinaryConcatenator().concat(parts: <File>[part], destination: dest);
       expect(dest.existsSync(), isTrue);
       expect(dest.parent.existsSync(), isTrue);
+      expect(returnedHash, sha256.convert(payload).toString());
     });
   });
 

@@ -52,19 +52,17 @@ final class DownloadQueued extends DownloadState {
 
 /// Post-transfer phase the active job is currently in. Drives UI copy
 /// so the user is never left staring at a frozen progress bar —
-/// `transferring` is the default (network bytes flowing), the other
-/// variants cover the on-device post-network pipeline steps that run
-/// invisibly between the last downloaded byte and [DownloadCompleted].
+/// `transferring` is the default (network bytes flowing), while
+/// `concatenating` covers the on-device single-pass step that streams
+/// every chunk into the reassembled file while computing its sha256
+/// inline. The concat's returned hash is the single correctness gate
+/// for the whole download; no separate per-chunk or final-verify
+/// phase is needed.
 ///
 /// - `transferring`: bytes in flight from the CDN. Default.
-/// - `verifyingChunk`: computing sha256 of a chunk (either just
-///   downloaded or pre-existing from a prior session). Can take tens
-///   of seconds on large (100 MB+) chunks.
-/// - `concatenating`: streaming the chunks into a single reassembled
-///   file on disk. Runs once all chunks are verified.
-/// - `verifyingFinal`: computing sha256 of the reassembled file.
-///   Runs once after concat, right before the atomic rename.
-enum DownloadPhase { transferring, verifyingChunk, concatenating, verifyingFinal }
+/// - `concatenating`: streaming chunks into the reassembled file +
+///   computing the final sha256 in the same pass.
+enum DownloadPhase { transferring, concatenating }
 
 /// The active job is transferring (or in a post-transfer verification
 /// phase — see [phase]). [remaining] lists the jobs still queued

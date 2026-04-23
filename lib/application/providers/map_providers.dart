@@ -188,7 +188,6 @@ Future<DownloadQueueStore> downloadQueueStore(Ref ref) async {
 Future<PmtilesDownloadController> pmtilesDownloadController(Ref ref) async {
   final supportDir = await ref.watch(appSupportDirProvider.future);
   final http = ref.watch(httpChunkDownloaderProvider);
-  final sha = ref.watch(sha256VerifierProvider);
   final cat = ref.watch(binaryConcatenatorProvider);
   final renamer = ref.watch(atomicRenamerProvider);
   final repo = await ref.watch(installedManifestRepositoryProvider.future);
@@ -199,7 +198,6 @@ Future<PmtilesDownloadController> pmtilesDownloadController(Ref ref) async {
   final controller = PmtilesDownloadController(
     appSupportDir: supportDir,
     httpDownloader: http,
-    sha256Verifier: sha,
     concatenator: cat,
     renamer: renamer,
     manifestRepository: repo,

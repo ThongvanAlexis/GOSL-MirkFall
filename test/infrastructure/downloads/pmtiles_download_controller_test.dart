@@ -9,6 +9,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/config/constants.dart';
+import 'package:mirkfall/domain/downloads/download_errors.dart';
 import 'package:mirkfall/domain/downloads/download_state.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
@@ -18,7 +19,6 @@ import 'package:mirkfall/infrastructure/downloads/binary_concatenator.dart';
 import 'package:mirkfall/infrastructure/downloads/download_queue_store.dart';
 import 'package:mirkfall/infrastructure/downloads/http_chunk_downloader.dart';
 import 'package:mirkfall/infrastructure/downloads/pmtiles_download_controller.dart';
-import 'package:mirkfall/infrastructure/downloads/sha256_verifier.dart';
 import 'package:mirkfall/infrastructure/platform/disk_space_checker.dart';
 import 'package:mirkfall/infrastructure/platform/ios_backup_excluder.dart';
 import 'package:path/path.dart' as p;
@@ -101,7 +101,6 @@ void main() {
     final PmtilesDownloadController controller = PmtilesDownloadController(
       appSupportDir: tempDir.path,
       httpDownloader: httpDownloader,
-      sha256Verifier: const Sha256Verifier(),
       concatenator: const BinaryConcatenator(),
       renamer: AtomicRenamer(),
       manifestRepository: manifest,
@@ -191,67 +190,61 @@ void main() {
   });
 
   group('PmtilesDownloadController — resume from staging', () {
-    test('path 2: fully-sized chunk on disk → sha256 re-runs, network skipped', () async {
-      // Simulates: prior session downloaded chunk A completely; app
-      // killed before moving to chunk B. On resume the chunk is
-      // already fully sized on disk, so the controller hashes it once
-      // (a sized-but-corrupt chunk from a kill-during-sha256 would be
-      // caught here) and, on match, proceeds without hitting the wire.
+    test('fully-sized chunks on disk are trusted (no per-chunk sha256, no network)', () async {
+      // Simulates: prior session downloaded chunks A and B completely;
+      // app killed before starting chunk C. On resume the fully-sized
+      // chunks are trusted as-is — no per-chunk sha256 runs, and the
+      // two corresponding CDN endpoints are never hit. Correctness is
+      // guaranteed by the reassembled sha256 that `concat` streams
+      // inline during the finalize step.
       await _withRealHttpClient(() async {
         final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
         final Uint8List b = Uint8List.fromList(List<int>.filled(1024, 0x22));
+        final Uint8List c = Uint8List.fromList(List<int>.filled(1024, 0x33));
 
         final Directory fraStaging = Directory(p.join(tempDir.path, kStagingDir, 'fra'));
         await fraStaging.create(recursive: true);
         await File(p.join(fraStaging.path, 'part00')).writeAsBytes(a);
+        await File(p.join(fraStaging.path, 'part01')).writeAsBytes(b);
 
         final FakeHttpServer srvA = await FakeHttpServer.bind(initialBytes: a);
         final FakeHttpServer srvB = await FakeHttpServer.bind(initialBytes: b);
+        final FakeHttpServer srvC = await FakeHttpServer.bind(initialBytes: c);
         addTearDown(() async {
           await srvA.close();
           await srvB.close();
+          await srvC.close();
         });
 
         final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
         final _Harness result = await makeController(httpDownloader: httpDownloader);
         final PmtilesDownloadController controller = result.controller;
 
-        final List<DownloadState> states = <DownloadState>[];
-        final StreamSubscription<DownloadState> sub = controller.stateStream.listen(states.add);
-        addTearDown(sub.cancel);
-
         final CountryEntry entry = _entryFor(
           alpha3Raw: 'fra',
-          chunkPayloads: <Uint8List>[a, b],
-          chunkUrls: <String>[srvA.base.resolve('/a').toString(), srvB.base.resolve('/b').toString()],
+          chunkPayloads: <Uint8List>[a, b, c],
+          chunkUrls: <String>[srvA.base.resolve('/a').toString(), srvB.base.resolve('/b').toString(), srvC.base.resolve('/c').toString()],
         );
 
         final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
         await controller.enqueueCountry(entry);
         await completedFuture;
 
-        expect(srvA.recordedRequests, isEmpty, reason: 'fully-sized local chunk should not be re-downloaded');
+        expect(srvA.recordedRequests, isEmpty, reason: 'trusted pre-existing chunk should not be re-downloaded');
+        expect(srvB.recordedRequests, isEmpty, reason: 'trusted pre-existing chunk should not be re-downloaded');
+        expect(srvC.recordedRequests.single.rangeHeader, isNull, reason: 'fresh chunk uses no Range header');
 
         final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
-        expect(await canonical.readAsBytes(), <int>[...a, ...b]);
-
-        // verifyingChunk phase must have fired for partIndex=0 —
-        // path 2 always hashes the pre-existing bytes before accepting
-        // them, so a corrupt/incompletely-verified chunk is caught.
-        final List<DownloadInProgress> verifyingForPart0 = states
-            .whereType<DownloadInProgress>()
-            .where((DownloadInProgress s) => s.phase == DownloadPhase.verifyingChunk && s.progress.currentPartIndex == 0)
-            .toList();
-        expect(verifyingForPart0, isNotEmpty, reason: 'pre-existing chunk must be hashed on resume');
+        expect(await canonical.readAsBytes(), <int>[...a, ...b, ...c]);
       });
     });
 
-    test('path 3: partial chunk on disk → HTTP Range resume finishes, then sha256', () async {
-      // Simulates: prior session was downloading chunk A and got
-      // killed halfway through. On resume the controller sees
-      // localSize < part.size, sends `Range: bytes=localSize-` to the
-      // CDN, appends the remaining bytes, and verifies the combined
-      // full chunk.
+    test('partial chunk on disk → HTTP Range resume finishes the chunk', () async {
+      // Simulates: prior session was downloading chunk A and got killed
+      // halfway through. On resume the controller sees localSize <
+      // part.size, sends `Range: bytes=localSize-` to the CDN, appends
+      // the remaining bytes; the final reassembled sha256 validates
+      // the full file.
       await _withRealHttpClient(() async {
         final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
         final Uint8List b = Uint8List.fromList(List<int>.filled(1024, 0x22));
@@ -281,8 +274,6 @@ void main() {
         await controller.enqueueCountry(entry);
         await completedFuture;
 
-        // srvA was hit with a Range-resume request for the remaining
-        // bytes — not a fresh download.
         expect(srvA.recordedRequests.map((r) => r.rangeHeader).toList(), <String?>['bytes=400-']);
 
         final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
@@ -290,86 +281,15 @@ void main() {
       });
     });
 
-    test('frontier invariant: pre-frontier fully-sized chunks are trusted (no sha256)', () async {
-      // Protocol invariant: the prior session would not have moved on
-      // to chunk N+1 without successfully verifying chunk N. So when
-      // the staging dir shows chunks 0..K fully sized + chunk K+1
-      // partial, chunks 0..K are trusted (no sha256) and only K+1 is
-      // hashed (after its Range-resumed download completes).
-      await _withRealHttpClient(() async {
-        final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
-        final Uint8List b = Uint8List.fromList(List<int>.filled(1024, 0x22));
-        final Uint8List c = Uint8List.fromList(List<int>.filled(1024, 0x33));
-        final Uint8List d = Uint8List.fromList(List<int>.filled(1024, 0x44));
-
-        final Directory fraStaging = Directory(p.join(tempDir.path, kStagingDir, 'fra'));
-        await fraStaging.create(recursive: true);
-        // chunks 0, 1 fully sized; chunk 2 partial; chunk 3 missing.
-        await File(p.join(fraStaging.path, 'part00')).writeAsBytes(a);
-        await File(p.join(fraStaging.path, 'part01')).writeAsBytes(b);
-        await File(p.join(fraStaging.path, 'part02')).writeAsBytes(c.sublist(0, 500));
-
-        final FakeHttpServer srvA = await FakeHttpServer.bind(initialBytes: a);
-        final FakeHttpServer srvB = await FakeHttpServer.bind(initialBytes: b);
-        final FakeHttpServer srvC = await FakeHttpServer.bind(initialBytes: c);
-        final FakeHttpServer srvD = await FakeHttpServer.bind(initialBytes: d);
-        addTearDown(() async {
-          await srvA.close();
-          await srvB.close();
-          await srvC.close();
-          await srvD.close();
-        });
-
-        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
-        final _Harness result = await makeController(httpDownloader: httpDownloader);
-        final PmtilesDownloadController controller = result.controller;
-
-        final List<DownloadState> states = <DownloadState>[];
-        final StreamSubscription<DownloadState> sub = controller.stateStream.listen(states.add);
-        addTearDown(sub.cancel);
-
-        final CountryEntry entry = _entryFor(
-          alpha3Raw: 'fra',
-          chunkPayloads: <Uint8List>[a, b, c, d],
-          chunkUrls: <String>[
-            srvA.base.resolve('/a').toString(),
-            srvB.base.resolve('/b').toString(),
-            srvC.base.resolve('/c').toString(),
-            srvD.base.resolve('/d').toString(),
-          ],
-        );
-
-        final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
-        await controller.enqueueCountry(entry);
-        await completedFuture;
-
-        expect(srvA.recordedRequests, isEmpty, reason: 'pre-frontier chunk 0 is trusted (no request)');
-        expect(srvB.recordedRequests, isEmpty, reason: 'pre-frontier chunk 1 is trusted (no request)');
-        expect(srvC.recordedRequests.map((r) => r.rangeHeader).toList(), <String?>['bytes=500-'], reason: 'frontier chunk 2 is Range-resumed');
-        expect(srvD.recordedRequests.single.rangeHeader, isNull, reason: 'post-frontier chunk 3 is fresh-downloaded');
-
-        final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
-        expect(await canonical.readAsBytes(), <int>[...a, ...b, ...c, ...d]);
-
-        // verifyingChunk phase must NOT have fired for partIndex 0 or
-        // 1 (trusted); it must have fired for 2 (frontier, Range-resumed)
-        // and 3 (post-frontier, fresh).
-        final Set<int> verifiedIndices = states
-            .whereType<DownloadInProgress>()
-            .where((DownloadInProgress s) => s.phase == DownloadPhase.verifyingChunk)
-            .map((DownloadInProgress s) => s.progress.currentPartIndex)
-            .toSet();
-        expect(verifiedIndices.contains(0), isFalse, reason: 'pre-frontier chunks are not sha256-checked');
-        expect(verifiedIndices.contains(1), isFalse, reason: 'pre-frontier chunks are not sha256-checked');
-        expect(verifiedIndices, containsAll(<int>{2, 3}));
-      });
-    });
-
-    test('path 2 sha256 mismatch → chunk is redownloaded from scratch', () async {
-      // Simulates: prior session wrote a fully-sized chunk but the
-      // bytes are corrupt (e.g. kill during a flush, cosmic ray). On
-      // resume path 2 hashes, detects mismatch, deletes the chunk,
-      // and restarts via path 1 (from scratch).
+    test('corrupt pre-existing chunk: reassembled sha256 catches it → DownloadError', () async {
+      // Simulates: prior session wrote chunk 0 but the bytes are
+      // corrupt (kill during flush, cosmic ray, manual tampering,
+      // whatever). The new model does NOT sha256 pre-existing chunks
+      // individually — it trusts them on size alone and relies on the
+      // single reassembled-file sha256 (streamed during concat) as
+      // the correctness gate. So we expect the download to complete
+      // all acquisitions, concat the (corrupt) bytes, detect the
+      // reassembled-hash mismatch, and emit DownloadError.
       await _withRealHttpClient(() async {
         final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
         final Uint8List corruptA = Uint8List.fromList(List<int>.filled(1024, 0xAA));
@@ -396,17 +316,15 @@ void main() {
           chunkUrls: <String>[srvA.base.resolve('/a').toString(), srvB.base.resolve('/b').toString()],
         );
 
-        final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
+        final Future<DownloadState> errorFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadError);
         await controller.enqueueCountry(entry);
-        await completedFuture;
+        final DownloadError err = await errorFuture as DownloadError;
+        expect(err.cause, isA<Sha256MismatchException>());
+        expect(srvA.recordedRequests, isEmpty, reason: 'corrupt pre-existing chunk is trusted at acquisition; only the reassembled hash catches it');
 
-        // After the mismatch the chunk is deleted and a fresh GET hits
-        // the server (no Range header — full download from byte 0).
-        expect(srvA.recordedRequests, isNotEmpty);
-        expect(srvA.recordedRequests.first.rangeHeader, isNull, reason: 'from-scratch download uses no Range header');
-
+        // Canonical file must NOT be committed on mismatch.
         final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
-        expect(await canonical.readAsBytes(), <int>[...a, ...b]);
+        expect(canonical.existsSync(), isFalse);
       });
     });
   });
