@@ -105,10 +105,27 @@ void main() {
       expect(fake.methodLog.where((String s) => s == 'dispose'), hasLength(1));
     });
 
-    test('calls after dispose throw StateError', () async {
+    test('calls after dispose silently no-op AND record in postDisposeInvocations (row #4)', () async {
+      // §3 row #4 regression: pre-fix, FakeMapView threw StateError on
+      // post-dispose calls while MapLibreMapView._aliveOrLog silently
+      // returned. Tests never exercised the production silent-ignore
+      // path. Now FakeMapView matches: silent return + record in
+      // postDisposeInvocations so assertions remain observable.
       final FakeMapView fake = FakeMapView();
       await fake.dispose();
-      expect(() => fake.showMap(null), throwsStateError);
+      final int logLenPreDisposedCall = fake.methodLog.length;
+
+      await fake.showMap(null);
+      await fake.setFollowMeEnabled(true);
+      await fake.moveCameraTo(latitude: 0, longitude: 0, zoom: 0);
+
+      // No StateError, no methodLog growth, no showMapInvocations entry.
+      expect(fake.methodLog.length, logLenPreDisposedCall);
+      expect(fake.showMapInvocations, isEmpty);
+
+      // The silent-ignore path was exercised — observable via the new
+      // postDisposeInvocations list.
+      expect(fake.postDisposeInvocations, containsAll(<String>['showMap', 'setFollowMeEnabled', 'moveCameraTo']));
     });
   });
 

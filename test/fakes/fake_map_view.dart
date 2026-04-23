@@ -74,23 +74,29 @@ class FakeMapView implements MapView {
     _viewportCtrl.add(v);
   }
 
+  /// Every post-dispose method name observed. Equivalent to the
+  /// production adapter's `_log.fine('$method called after dispose() —
+  /// silently ignored')` trace; tests can assert the silent-ignore path
+  /// was exercised (row #4 regression coverage).
+  final List<String> postDisposeInvocations = <String>[];
+
   @override
   Future<void> showMap(CountryCode? country) async {
-    _checkNotDisposed();
+    if (_noopIfDisposed('showMap')) return;
     methodLog.add('showMap(${country?.value ?? 'null'})');
     showMapInvocations.add(country);
   }
 
   @override
   Future<void> moveCameraTo({required double latitude, required double longitude, required double zoom}) async {
-    _checkNotDisposed();
+    if (_noopIfDisposed('moveCameraTo')) return;
     methodLog.add('moveCameraTo($latitude, $longitude, $zoom)');
     cameraMovesObserved.add(CameraMove(latitude: latitude, longitude: longitude, zoom: zoom, timestamp: DateTime.now().toUtc()));
   }
 
   @override
   Future<void> jumpCameraTo({required double latitude, required double longitude, required double zoom}) async {
-    _checkNotDisposed();
+    if (_noopIfDisposed('jumpCameraTo')) return;
     methodLog.add('jumpCameraTo($latitude, $longitude, $zoom)');
     // Record jumps in the same observation queue as animated moves —
     // tests that assert "camera moved at least once" work for either
@@ -100,21 +106,21 @@ class FakeMapView implements MapView {
 
   @override
   Future<void> setTheme(MapTheme theme) async {
-    _checkNotDisposed();
+    if (_noopIfDisposed('setTheme')) return;
     methodLog.add('setTheme(${theme.toJsonString()})');
     _currentTheme = theme;
   }
 
   @override
   Future<void> setUserLocation(Fix? fix) async {
-    _checkNotDisposed();
+    if (_noopIfDisposed('setUserLocation')) return;
     methodLog.add('setUserLocation(${fix?.id.value ?? 'null'})');
     lastUserLocationSet = fix;
   }
 
   @override
   Future<({double latitude, double longitude, double zoom})> queryViewport() async {
-    _checkNotDisposed();
+    if (_noopIfDisposed('queryViewport')) return _lastViewport ?? (latitude: 0.0, longitude: 0.0, zoom: 0.0);
     methodLog.add('queryViewport');
     return _lastViewport ?? (latitude: 0.0, longitude: 0.0, zoom: 0.0);
   }
@@ -124,21 +130,21 @@ class FakeMapView implements MapView {
 
   @override
   Future<void> markVisited(List<({double latitude, double longitude})> polygon) async {
-    _checkNotDisposed();
+    if (_noopIfDisposed('markVisited')) return;
     methodLog.add('markVisited(${polygon.length} pts)');
     lastVisitedPolygon = List<({double latitude, double longitude})>.from(polygon);
   }
 
   @override
   Future<void> addPointOfInterest({required String id, required double latitude, required double longitude, required String iconId}) async {
-    _checkNotDisposed();
+    if (_noopIfDisposed('addPointOfInterest')) return;
     methodLog.add('addPointOfInterest($id)');
     poiAddObservations.add(id);
   }
 
   @override
   Future<void> removePointOfInterest(String id) async {
-    _checkNotDisposed();
+    if (_noopIfDisposed('removePointOfInterest')) return;
     methodLog.add('removePointOfInterest($id)');
     poiRemoveObservations.add(id);
   }
@@ -156,15 +162,23 @@ class FakeMapView implements MapView {
 
   @override
   Future<void> setFollowMeEnabled(bool enabled) async {
-    _checkNotDisposed();
+    if (_noopIfDisposed('setFollowMeEnabled')) return;
     methodLog.add('setFollowMeEnabled($enabled)');
     _followMe = enabled;
   }
 
-  void _checkNotDisposed() {
+  /// Matches the production `MapLibreMapView._aliveOrLog` shape — a
+  /// post-dispose call silently returns instead of throwing. Records the
+  /// method name in [postDisposeInvocations] so tests can assert the
+  /// silent-ignore path was exercised. Row #4 (08-REVIEW.md §3): the
+  /// two adapters must agree on post-dispose semantics, otherwise tests
+  /// never cover the production silent-ignore path.
+  bool _noopIfDisposed(String method) {
     if (_disposed) {
-      throw StateError('FakeMapView: method called after dispose()');
+      postDisposeInvocations.add(method);
+      return true;
     }
+    return false;
   }
 }
 
