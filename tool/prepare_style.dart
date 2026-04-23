@@ -194,12 +194,14 @@ Future<int> runCheck({String? sourceDir, String? glyphsTarget, String? spritesTa
   spritesDir.createSync(recursive: true);
   int copiedSprites = 0;
   for (final String leafBasename in <String>['sprite.json', 'sprite.png', 'sprite@2x.png']) {
-    final File src = File(p.join(srcSprites.path, leafBasename));
-    if (!src.existsSync()) {
+    // Renamed from `src` to `spriteFile` — the outer `Directory src`
+    // (line 154) was being shadowed by an inner `File src` (§3 row #47).
+    final File spriteFile = File(p.join(srcSprites.path, leafBasename));
+    if (!spriteFile.existsSync()) {
       stderr.writeln('prepare_style: expected $leafBasename under ${srcSprites.path}');
       return 2;
     }
-    src.copySync(p.join(spritesOut, leafBasename));
+    spriteFile.copySync(p.join(spritesOut, leafBasename));
     copiedSprites++;
   }
 
