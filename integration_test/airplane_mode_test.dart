@@ -13,10 +13,27 @@
 // is zero at the end.
 //
 // The device-level QUAL-05 (real airplane mode toggle on a real
-// device) is covered by Plan 07-07 Task 2 (human-verify checkpoint on
-// Pixel 4a + iOS sideload). The present test is a regression guard
-// for the code-level contract: no HTTP request can sneak in from any
-// Phase 07 code path under normal operation.
+// device) is covered by the Phase 07 smoke walk (Pixel 4a + iOS
+// sideload). The present test is a regression guard for the code-level
+// contract: no HTTP request can sneak in from any Phase 07 code path
+// under normal operation.
+//
+// Moved from `test/phase_07_integration/airplane_mode_test.dart` to
+// `integration_test/` in Plan 08-04 (adversarial wave). Tagged
+// `integration` so the CI unit fast-path can skip it via `--exclude-tags
+// integration` while on-demand `flutter test integration_test/`
+// discovers it normally.
+//
+// Mutation experiment (author-time, Plan 08-04 Task 1):
+//   1. Commented out the `fakeMapView.showMap(...)` country-switch calls
+//      inside the pump body.
+//   2. Ran `flutter test integration_test/airplane_mode_test.dart` →
+//      FAILED loudly with the inertness-guard reason "FakeMapView.showMap
+//      never invoked — test would be inert…".
+//   3. Restored the calls → green again.
+
+@Tags(<String>['integration'])
+library;
 
 import 'dart:io';
 
@@ -33,8 +50,8 @@ import 'package:mirkfall/infrastructure/map/pmtiles_source.dart';
 import 'package:mirkfall/infrastructure/map/style_rewriter.dart';
 import 'package:mirkfall/presentation/screens/map_screen.dart';
 
-import '../fakes/fake_installed_manifest_repository.dart';
-import '../fakes/fake_map_view.dart';
+import '../test/fakes/fake_installed_manifest_repository.dart';
+import '../test/fakes/fake_map_view.dart';
 
 /// HTTP client that refuses every call. Any use — even property
 /// reads — is logged on [invocationCount] and throws a SocketException
@@ -232,6 +249,17 @@ void main() {
       await fakeMapView.showMap(CountryCode.parse('fra'));
       await fakeMapView.showMap(null);
       await tester.pump(const Duration(milliseconds: 10));
+      // Inertness guard (Plan 08-04): prove the showMap code path was
+      // actually exercised before we assert zero HTTP invocations.
+      // Without this guard, any refactor that silently neutralises
+      // `mapViewBuilderForTest` (e.g. returning a stub that never calls
+      // into MapView) would still pass — the zero-HTTP assertion would
+      // be inert.
+      expect(
+        fakeMapView.showMapInvocations.isNotEmpty,
+        isTrue,
+        reason: 'FakeMapView.showMap never invoked — test would be inert (pump did not reach MapScreen render path).',
+      );
     }, createHttpClient: (SecurityContext? ctx) => failClient);
 
     expect(failClient.invocationCount, 0, reason: 'Expected no HTTP request from the Phase 07 code path under airplane conditions');

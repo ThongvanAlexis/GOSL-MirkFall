@@ -15,11 +15,25 @@
 //    the copier -> auto-heal kicks in (file re-copied + sha256 matches
 //    again).
 //
-// This test lives under `integration_test/` per the plan's spec; it
-// runs under `flutter test` (TestWidgetsFlutterBinding) because the
-// FirstLaunchWorldCopier has a test-seam (`withAssetLoader`) that lets
-// us drive it with an in-memory byte stream instead of `rootBundle`.
-// Plan 07-07 Task 2 covers the real-asset path on a physical device.
+// This test lives under `integration_test/` per Plan 08-04 (adversarial
+// wave). It runs under `flutter test` (TestWidgetsFlutterBinding)
+// because the FirstLaunchWorldCopier has a test-seam (`withAssetLoader`)
+// that lets us drive it with an in-memory byte stream instead of
+// `rootBundle`. The Phase 07 smoke walk (Pixel 4a + iOS sideload)
+// covers the real-asset path on a physical device.
+//
+// Mutation experiment (author-time, Plan 08-04 Task 1):
+//   1. Neutralised the byte-flip in the "corrupt file → auto-heal"
+//      scenario (i.e. wrote the original bytes back to disk instead of
+//      corrupting a byte).
+//   2. Ran `flutter test integration_test/first_launch_world_copy_test.dart`
+//      → FAILED loudly on the inertness guard `sha256 of disk file ==
+//      worldSha256 (precondition neutralised)` — confirming the test
+//      would be inert if the corruption step were removed.
+//   3. Restored the byte-flip → green again.
+
+@Tags(<String>['integration'])
+library;
 
 import 'dart:io';
 import 'dart:typed_data';
@@ -56,9 +70,13 @@ void main() {
   });
 
   test('first launch on clean tempdir writes world.pmtiles with correct sha256', () async {
-    // Sanity: world.pmtiles does NOT exist pre-invocation.
+    // Inertness guard (Plan 08-04): world.pmtiles does NOT exist
+    // pre-invocation. Without this guard a leaked tempdir (or renamed
+    // target path) would silently pass — the post-condition would
+    // match the ALREADY-WRITTEN file instead of the new one. The test
+    // would be inert.
     final File target = File(p.join(tmpDir.path, kWorldPmtilesInternalPath));
-    expect(target.existsSync(), isFalse, reason: 'precondition: tempdir must be clean');
+    expect(target.existsSync(), isFalse, reason: 'precondition: tempdir must be clean — test would be inert otherwise');
 
     // Build the copier with the test seam so we do not depend on the
     // bundled asset in rootBundle (which requires a platform-view
@@ -122,7 +140,17 @@ void main() {
     final Uint8List corrupted = Uint8List.fromList(bytes);
     corrupted[0] = corrupted[0] ^ 0xFF;
     await target.writeAsBytes(corrupted, flush: true);
-    expect(sha256.convert(await target.readAsBytes()).toString(), isNot(worldSha256), reason: 'precondition: file must be corrupted after the flip');
+    // Inertness guard (Plan 08-04): the file on disk must actually
+    // differ from the expected sha BEFORE we call the copier again.
+    // If the byte-flip were neutralised, the next `ensureInstalled` call
+    // would legitimately short-circuit (idempotent path), NOT auto-heal,
+    // and the post-heal loaderCallCount == 2 assertion below would still
+    // pass — the test would be inert.
+    expect(
+      sha256.convert(await target.readAsBytes()).toString(),
+      isNot(worldSha256),
+      reason: 'precondition: file must be corrupted after the flip — test would be inert otherwise',
+    );
 
     // Invoke again: copier detects sha mismatch + re-copies from the
     // loader. Post-heal: file bytes match the original + loader was

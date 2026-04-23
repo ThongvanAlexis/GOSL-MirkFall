@@ -39,6 +39,22 @@
 //   container's lifetime and not re-hydrated when the second scope is
 //   mounted). Splitting into two tests gives each ProviderScope a
 //   fresh container + controller instance.
+//
+// Moved from `test/phase_07_integration/map_end_to_end_test.dart` to
+// `integration_test/` in Plan 08-04 (adversarial wave). Tagged
+// `integration` so the CI unit fast-path can skip it.
+//
+// Mutation experiment (author-time, Plan 08-04 Task 1):
+//   1. Skipped the `tester.tap(find.text('Aruba'))` step in the download
+//      scenario so the FakeDownloadQueueController never observed an
+//      enqueue.
+//   2. Ran `flutter test integration_test/map_end_to_end_test.dart` →
+//      FAILED loudly with the inertness-guard reason "no enqueue
+//      observed at tap step — test would be inert".
+//   3. Restored the tap → green again.
+
+@Tags(<String>['integration'])
+library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -157,22 +173,33 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Both catalog entries visible — Aruba + France.
-    expect(find.text('Aruba'), findsOneWidget);
-    expect(find.text('France'), findsOneWidget);
+    // Inertness guard step 1 (Plan 08-04): catalog entries rendered.
+    // Without this guard, a refactor that silently rendered an empty
+    // list would still pass the downstream "no enqueue observed"
+    // assertion — the test would be inert.
+    expect(find.text('Aruba'), findsOneWidget, reason: 'catalog list must render Aruba — test would be inert otherwise');
+    expect(find.text('France'), findsOneWidget, reason: 'catalog list must render France — test would be inert otherwise');
     // Aruba starts as "Disponible" (not installed).
     expect(find.textContaining('Disponible'), findsAtLeast(1));
 
     // Tap Aruba → confirm dialog → confirm.
     await tester.tap(find.text('Aruba'));
     await tester.pumpAndSettle();
-    expect(find.text('Télécharger Aruba ?'), findsOneWidget);
+    // Inertness guard step 2: confirm dialog actually opened — proves
+    // the tap routed into the screen's onTap handler.
+    expect(find.text('Télécharger Aruba ?'), findsOneWidget, reason: 'download-confirm dialog must open — test would be inert otherwise');
 
     final Finder dialogConfirm = find.descendant(of: find.byType(AlertDialog), matching: find.text('Télécharger'));
     expect(dialogConfirm, findsOneWidget);
     await tester.tap(dialogConfirm);
     await tester.pumpAndSettle();
 
+    // Inertness guard step 3 (Plan 08-04): the fake observed the
+    // enqueue. If any prior step failed to reach the controller, the
+    // state-sequence assertion further down would assert length-0 which
+    // still holds — the test would be inert. This guard makes the
+    // missing enqueue fail LOUDLY here instead.
+    expect(fakeDownload.enqueueObservations, isNotEmpty, reason: 'no enqueue observed at tap step — test would be inert');
     // The fake observed the enqueue + emitted the full transition
     // sequence.
     expect(fakeDownload.enqueueObservations, hasLength(1));
@@ -202,6 +229,20 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    // Inertness guard (Plan 08-04): the stub controller actually
+    // surfaced its seeded state. Without this guard, a refactor that
+    // silently replaces installedMapsControllerProvider's return value
+    // with an empty set would still pass the downstream "Aruba
+    // installed" lookup — because `findsOneWidget` would then just
+    // assert Aruba's text appears, which could come from the catalog
+    // section. Explicit guard: the seeded `installed` map is exposed
+    // on-screen.
+    expect(
+      fakeInstalled.build().installed.containsKey(CountryCode.parse('abw')),
+      isTrue,
+      reason: 'fakeInstalled did not expose Aruba — test would be inert',
+    );
 
     // World bundle row always present (MAP-07 non-deletable floor).
     // "Monde (intégré)" renders twice — once as _SectionHeader text

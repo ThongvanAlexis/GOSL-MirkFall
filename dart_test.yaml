@@ -15,3 +15,11 @@ tags:
   #   dart test --tags soak test/infrastructure/downloads/download_soak_test.dart
   soak:
     timeout: 10x
+  # Phase 08 plan 08-04 — integration tests absorbed from Plan 07-07 +
+  # phase_07_navigation_test. Live under `integration_test/` (Flutter
+  # convention) so `flutter test integration_test/` discovers them, but
+  # declared here as a known tag so the dart_test runner does not
+  # complain with "tag not specified" when they run. Same on-demand
+  # discipline as `soak`.
+  integration:
+    timeout: 2x
