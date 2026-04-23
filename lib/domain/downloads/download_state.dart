@@ -68,11 +68,18 @@ enum DownloadPhase { transferring, concatenating }
 /// phase — see [phase]). [remaining] lists the jobs still queued
 /// behind it (possibly empty — single-job downloads are a
 /// [DownloadInProgress] with empty [remaining]).
+///
+/// [snapshot] is the current progress reading. Named `snapshot` (not
+/// `progress`) to match [DownloadRetrying.snapshot] and
+/// [DownloadPaused.snapshot] — all three variants carry a
+/// `DownloadProgress` under the same field name so polymorphic
+/// dispatch can use a single pattern arm instead of three per-variant
+/// arms that only differ by field access.
 final class DownloadInProgress extends DownloadState {
-  const DownloadInProgress({required this.active, required this.progress, required this.remaining, this.phase = DownloadPhase.transferring});
+  const DownloadInProgress({required this.active, required this.snapshot, required this.remaining, this.phase = DownloadPhase.transferring});
 
   final DownloadJob active;
-  final DownloadProgress progress;
+  final DownloadProgress snapshot;
   final List<DownloadJob> remaining;
   final DownloadPhase phase;
 }
@@ -183,4 +190,39 @@ extension DownloadProgressFraction on DownloadProgress {
   /// safe because `@Assert('totalBytes > 0')` rejects zero at
   /// construction time.
   double get fractionDone => bytesDownloaded / totalBytes;
+}
+
+/// Polymorphic getters on [DownloadState] for the three variants that
+/// carry an active [DownloadJob] + a progress [snapshot]
+/// ([DownloadInProgress], [DownloadRetrying], [DownloadPaused]).
+///
+/// Consumers that only need "the current active job" / "the current
+/// snapshot" should use these getters instead of dispatching on each
+/// variant in a `switch`. The dispatch lives here once; UI code stays
+/// flat.
+///
+/// Terminal-variant states ([DownloadIdle], [DownloadQueued],
+/// [DownloadError], [DownloadCompleted], [DownloadCancelled]) return
+/// `null` — they have no "currently running" job with a live snapshot.
+/// Callers that need to distinguish the three active variants
+/// (in-progress vs retrying vs paused) still pattern-match; these
+/// getters cover the common "is there an active job at all" case.
+extension DownloadStateActive on DownloadState {
+  /// The active [DownloadJob] when the state is one of the three
+  /// running variants, `null` otherwise.
+  DownloadJob? get activeJob => switch (this) {
+    DownloadInProgress(:final active) => active,
+    DownloadRetrying(:final active) => active,
+    DownloadPaused(:final active) => active,
+    _ => null,
+  };
+
+  /// The current [DownloadProgress] snapshot when the state is one of
+  /// the three running variants, `null` otherwise.
+  DownloadProgress? get activeSnapshot => switch (this) {
+    DownloadInProgress(:final snapshot) => snapshot,
+    DownloadRetrying(:final snapshot) => snapshot,
+    DownloadPaused(:final snapshot) => snapshot,
+    _ => null,
+  };
 }

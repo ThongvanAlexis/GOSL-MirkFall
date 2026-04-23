@@ -91,12 +91,12 @@ class _FakeDownloadQueueController extends DownloadQueueController {
       DownloadQueued(queue: <DownloadJob>[job]),
       DownloadInProgress(
         active: job,
-        progress: DownloadProgress(bytesDownloaded: entry.totalBytes ~/ 2, totalBytes: entry.totalBytes, currentPartIndex: 0, totalParts: 1),
+        snapshot: DownloadProgress(bytesDownloaded: entry.totalBytes ~/ 2, totalBytes: entry.totalBytes, currentPartIndex: 0, totalParts: 1),
         remaining: const <DownloadJob>[],
       ),
       DownloadInProgress(
         active: job,
-        progress: DownloadProgress(bytesDownloaded: entry.totalBytes, totalBytes: entry.totalBytes, currentPartIndex: 0, totalParts: 1),
+        snapshot: DownloadProgress(bytesDownloaded: entry.totalBytes, totalBytes: entry.totalBytes, currentPartIndex: 0, totalParts: 1),
         remaining: const <DownloadJob>[],
       ),
       DownloadCompleted(alpha3: entry.alpha3, totalElapsed: const Duration(seconds: 1)),

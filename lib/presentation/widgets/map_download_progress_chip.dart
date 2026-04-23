@@ -50,21 +50,9 @@ class MapDownloadProgressChip extends ConsumerWidget {
     );
   }
 
-  CountryCode? _alpha3From(DownloadState state) {
-    return switch (state) {
-      DownloadInProgress(:final active) => active.alpha3,
-      DownloadPaused(:final active) => active.alpha3,
-      _ => null,
-    };
-  }
+  CountryCode? _alpha3From(DownloadState state) => state.activeJob?.alpha3;
 
-  double? _fractionFrom(DownloadState state) {
-    return switch (state) {
-      DownloadInProgress(:final progress) => progress.fractionDone,
-      DownloadPaused(:final snapshot) => snapshot.fractionDone,
-      _ => null,
-    };
-  }
+  double? _fractionFrom(DownloadState state) => state.activeSnapshot?.fractionDone;
 
   String _countryDisplayName(CountryCatalog? catalog, CountryCode alpha3) {
     if (catalog == null) return alpha3.value.toUpperCase();

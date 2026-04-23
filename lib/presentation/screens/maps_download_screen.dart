@@ -188,50 +188,15 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
     );
   }
 
-  CountryCode? _activeDownloadAlpha3(DownloadState state) {
-    return switch (state) {
-      DownloadInProgress(:final active) => active.alpha3,
-      DownloadPaused(:final active) => active.alpha3,
-      DownloadRetrying(:final active) => active.alpha3,
-      _ => null,
-    };
-  }
+  CountryCode? _activeDownloadAlpha3(DownloadState state) => state.activeJob?.alpha3;
 
-  double? _activeFraction(DownloadState state) {
-    return switch (state) {
-      DownloadInProgress(:final progress) => progress.fractionDone,
-      DownloadPaused(:final snapshot) => snapshot.fractionDone,
-      DownloadRetrying(:final snapshot) => snapshot.fractionDone,
-      _ => null,
-    };
-  }
+  double? _activeFraction(DownloadState state) => state.activeSnapshot?.fractionDone;
 
-  int? _activeBytesDownloaded(DownloadState state) {
-    return switch (state) {
-      DownloadInProgress(:final progress) => progress.bytesDownloaded,
-      DownloadPaused(:final snapshot) => snapshot.bytesDownloaded,
-      DownloadRetrying(:final snapshot) => snapshot.bytesDownloaded,
-      _ => null,
-    };
-  }
+  int? _activeBytesDownloaded(DownloadState state) => state.activeSnapshot?.bytesDownloaded;
 
-  int? _activePartIndex(DownloadState state) {
-    return switch (state) {
-      DownloadInProgress(:final progress) => progress.currentPartIndex,
-      DownloadPaused(:final snapshot) => snapshot.currentPartIndex,
-      DownloadRetrying(:final snapshot) => snapshot.currentPartIndex,
-      _ => null,
-    };
-  }
+  int? _activePartIndex(DownloadState state) => state.activeSnapshot?.currentPartIndex;
 
-  int? _activeTotalParts(DownloadState state) {
-    return switch (state) {
-      DownloadInProgress(:final progress) => progress.totalParts,
-      DownloadPaused(:final snapshot) => snapshot.totalParts,
-      DownloadRetrying(:final snapshot) => snapshot.totalParts,
-      _ => null,
-    };
-  }
+  int? _activeTotalParts(DownloadState state) => state.activeSnapshot?.totalParts;
 
   /// Returns the catalog version, or `''` when derivation throws (empty
   /// countries list — never expected in production, but keeps the widget

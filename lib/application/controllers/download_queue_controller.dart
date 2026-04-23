@@ -84,16 +84,7 @@ class DownloadQueueController extends _$DownloadQueueController {
   /// all queued jobs). The UI presents "1 / 3 downloading at 47%" via
   /// the state variant + this getter combined — summing fractions
   /// would conflate the progress metric across files of different sizes.
-  double? get aggregateProgressFraction {
-    final s = state;
-    if (s is DownloadInProgress) {
-      return s.progress.fractionDone;
-    }
-    if (s is DownloadPaused) {
-      return s.snapshot.fractionDone;
-    }
-    return null;
-  }
+  double? get aggregateProgressFraction => state.activeSnapshot?.fractionDone;
 
   /// Currently-queued jobs (excluding the active one) in FIFO order —
   /// mirrors the infra controller's `queuedJobs`.

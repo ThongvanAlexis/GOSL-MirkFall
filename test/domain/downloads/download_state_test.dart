@@ -53,12 +53,12 @@ void main() {
       expect(s.queue.single.alpha3, equals(CountryCode.parse('fra')));
     });
 
-    test('DownloadInProgress carries active + progress + remaining', () {
+    test('DownloadInProgress carries active + snapshot + remaining', () {
       final DownloadJob active = _mkJob('deu');
       final DownloadJob next = _mkJob('esp');
       final DownloadInProgress s = DownloadInProgress(
         active: active,
-        progress: DownloadProgress(bytesDownloaded: 500, totalBytes: 1024, currentPartIndex: 0, totalParts: 1),
+        snapshot: DownloadProgress(bytesDownloaded: 500, totalBytes: 1024, currentPartIndex: 0, totalParts: 1),
         remaining: <DownloadJob>[next],
       );
       expect(label(s), equals('inProgress'));

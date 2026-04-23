@@ -596,7 +596,7 @@ class PmtilesDownloadController {
     _emit(
       DownloadInProgress(
         active: job,
-        progress: DownloadProgress(
+        snapshot: DownloadProgress(
           bytesDownloaded: _accumulatedBytes.clamp(0, job.entry.reassembled.size),
           totalBytes: job.entry.reassembled.size,
           currentPartIndex: partIndex,

@@ -171,7 +171,7 @@ void main() {
       inner.pushState(
         DownloadInProgress(
           active: _mkJob('fra'),
-          progress: DownloadProgress(bytesDownloaded: 512, totalBytes: 1024, currentPartIndex: 0, totalParts: 1),
+          snapshot: DownloadProgress(bytesDownloaded: 512, totalBytes: 1024, currentPartIndex: 0, totalParts: 1),
           remaining: const <DownloadJob>[],
         ),
       );
@@ -191,7 +191,7 @@ void main() {
       expect(ctrl.aggregateProgressFraction, isNull);
     });
 
-    test('matches in-flight progress.fractionDone when state is InProgress', () async {
+    test('matches in-flight snapshot.fractionDone when state is InProgress', () async {
       final inner = _FakeInnerController();
       final container = makeContainer(inner: inner);
       addTearDown(container.dispose);
@@ -201,7 +201,7 @@ void main() {
       inner.pushState(
         DownloadInProgress(
           active: _mkJob('fra'),
-          progress: DownloadProgress(bytesDownloaded: 512, totalBytes: 1024, currentPartIndex: 0, totalParts: 1),
+          snapshot: DownloadProgress(bytesDownloaded: 512, totalBytes: 1024, currentPartIndex: 0, totalParts: 1),
           remaining: <DownloadJob>[_mkJob('esp')],
         ),
       );

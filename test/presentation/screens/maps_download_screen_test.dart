@@ -234,7 +234,7 @@ void main() {
       final fakeDownload = _FakeDownloadQueueController(
         initialState: DownloadInProgress(
           active: DownloadJob(alpha3: france.alpha3, entry: france, enqueuedAtUtc: DateTime.utc(2026, 4, 21)),
-          progress: DownloadProgress(bytesDownloaded: 1_000_000, totalBytes: 5_000_000, currentPartIndex: 0, totalParts: 1),
+          snapshot: DownloadProgress(bytesDownloaded: 1_000_000, totalBytes: 5_000_000, currentPartIndex: 0, totalParts: 1),
           remaining: const <DownloadJob>[],
         ),
       );

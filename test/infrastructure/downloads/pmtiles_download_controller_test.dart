@@ -526,7 +526,7 @@ void main() {
         // bytesDownloaded — proves the _accumulatedBytes counter is
         // reflected in the emitted state, not just the initial zero.
         expect(
-          progressEvents.any((DownloadInProgress e) => e.progress.bytesDownloaded > 0),
+          progressEvents.any((DownloadInProgress e) => e.snapshot.bytesDownloaded > 0),
           isTrue,
           reason: 'At least one emit must report non-zero bytesDownloaded',
         );

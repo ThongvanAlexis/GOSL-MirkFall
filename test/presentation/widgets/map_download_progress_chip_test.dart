@@ -59,7 +59,7 @@ void main() {
   testWidgets('visible with percent + country name when InProgress at 50%', (tester) async {
     final DownloadState seed = DownloadInProgress(
       active: _jobFor('fra'),
-      progress: DownloadProgress(bytesDownloaded: 500, totalBytes: 1000, currentPartIndex: 0, totalParts: 1),
+      snapshot: DownloadProgress(bytesDownloaded: 500, totalBytes: 1000, currentPartIndex: 0, totalParts: 1),
       remaining: const <DownloadJob>[],
     );
     await tester.pumpWidget(
