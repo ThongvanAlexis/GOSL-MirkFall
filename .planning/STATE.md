@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 08 plan 08-02 (POC evidence review §1b extraction — Android + iOS + airplane-mode snapshot) done — 08-03 unblocked
+current_plan: Phase 08 plan 08-03 (4-parallel-agent audit wave + blanket triage) done
 status: executing
-stopped_at: Completed 08-02-PLAN.md (POC evidence §1b extraction — verbatim from docs/phase-07-smoke.md + docs/phase-07-ios-animate-camera-crash.md + 7 screenshots; no fresh walk per CONTEXT lock; Plan 08-03 pre-class §2 + 4 sub-agents unblocked)
-last_updated: "2026-04-23T18:06:07.166Z"
+stopped_at: "Completed 08-03-PLAN.md (4-parallel-agent audit wave + blanket triage: 75 findings → 40 fix + 9 refactor + 0 waived + 10 defer-to-v2 + 16 accepted-as-is; .fixes-expected=49 snapshot; Plan 08-04 awaits user OK adversarial signal)"
+last_updated: "2026-04-23T18:50:54.223Z"
 last_activity: 2026-04-23
 progress:
   total_phases: 16
   completed_phases: 7
   total_plans: 42
-  completed_plans: 39
-  percent: 90
+  completed_plans: 40
+  percent: 95
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 08 Review Gate — Map — Plan 08-02 done 2026-04-23. §1b POC evidence review populated verbatim from Phase 07 artefacts (no fresh walk per CONTEXT lock 2026-04-23): Android Pixel 4a PASS + iOS iPhone 17 Pro PASS post-fix, 7 screenshots inline, 3 iOS fix commits (81d30c7 + ab497ab + 40b49d5), stack .ips excerpt + bisection probes + 4-tentatives fix evolution, airplane-mode SC#1 two-sided proof (runtime Step 6 PASS × 2 + static gate check_avoid_remote_pmtiles exit 0 on fbcbde6). One atomic commit on main (121c68c). Plan 08-03 unblocked (pre-class §2 + smell heuristics hot-spots table + 4 parallel sub-agents spawn — single tool-use message, 10 CONTEXT handoff items + 4 hot-spot rows committed BEFORE any Agent tool call per strict user-first ordering).
+**Current focus:** Phase 08 Review Gate — Map — Plan 08-03 done 2026-04-23. §2 fully populated (10 pre-class CONTEXT items + 4 smell heuristics hot-spots + 4 agent structured findings + narrative appendix verbatim). 4 `general-purpose` sub-agents spawned in ONE single tool-use message (Phase 02/04/06 precedent validated FOURTH cycle). Cross-cutting smell-heuristics brief (CLAUDE.md 2026-04-23 delta: fix-on-fix + over-state-machine) operationalized first cycle — 11 smell-tagged findings surfaced. §3 triage filled with user blanket decision: 40 fix + 9 refactor + 0 waived + 10 defer-to-v2 + 16 accepted-as-is = 75 total. `.fixes-expected=49` snapshot written for Plan 08-05 tally. 3 atomic commits on main (4aff041 pre-class + e8908d0 synthesis + 2d77d8a triage). Plan 08-04 (adversarial wave) awaits user unblock signal `OK adversarial` / `§3 validé, go 08-04`.
 
 ## Current Position
 
-Phase: 08 of 16 (Review Gate — Map) — 2 / 5 plans done — Plan 08-03 (pre-class §2 + 4 sub-agents audit wave) unblocked
-Current Plan: Phase 08 plan 08-02 (POC evidence review §1b extraction) done
-Total Plans in Phase 08: 2 / 5 done
-Status: Phase in progress; next `/gsd:execute-phase 08` will pick up Plan 08-03
+Phase: 08 of 16 (Review Gate — Map) — 3 / 5 plans done — Plan 08-04 (adversarial wave) awaits user unblock signal
+Current Plan: Phase 08 plan 08-03 (4-parallel-agent audit wave + blanket triage) done
+Total Plans in Phase 08: 3 / 5 done
+Status: Phase in progress; Plan 08-04 awaits user `OK adversarial` signal per Plan 08-03 Task 4 resume-signal contract
 Last Activity: 2026-04-23
 
-Progress: [█████████░] 93% — 39 / 42 plans executed across phases 01-08 (Phase 07 formally closed at 7/7 ; Phase 08 2/5 done).
+Progress: [██████████] 95% — 40 / 42 plans executed across phases 01-08 (Phase 07 formally closed at 7/7 ; Phase 08 3/5 done — Plan 08-03 triage committed 2d77d8a, Plan 08-04 pending user signal).
 
 ## Performance Metrics
 
@@ -88,6 +88,7 @@ Progress: [█████████░] 93% — 39 / 42 plans executed across
 | Phase 07-map-integration P06 | 24min | 4 tasks | 22 files (5 screens + 6 widgets + 11 test files) + 8 modified (router + app_shell + 4 Phase 05 screens + 3 Phase 05 tests) |
 | Phase 08-review-gate-map P01 | ~5 min (continuation agent, prior session did Task 1) | 3 tasks (Task 1 prior session; Tasks 2+3 this session) | 5 files across 3 atomic commits (08-REVIEW.md + 07-07-SUMMARY.md + 07-07-PLAN.md + ROADMAP.md + REQUIREMENTS.md) |
 | Phase 08-review-gate-map P02 | 2 min | 2 tasks | 1 files |
+| Phase 08-review-gate-map PP03 | 37 min | 4 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -301,6 +302,10 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 08-review-gate-map]: Verbatim extraction for POC evidence §1b — no paraphrasing, table shapes preserved from source docs rather than plan template (docs/phase-07-smoke.md uses 4-col # / Step / Result / Notes vs plan template's 3-col Step / Observation / Evidence)
 - [Phase 08-review-gate-map]: iOS <details> block includes pre-fix stack .ips + bisection probes + 4-tentatives fix evolution + post-fix PASS-with-caveat — full arc of crash → diagnosis → attempts → validated fix — sets up Plan 08-03 Agent #3 smell-heuristics lens on MapCameraController with complete history
 - [Phase 08-review-gate-map]: Airplane-mode snapshot labels runtime evidence (device Step 6 PASS × 2) and static gate (check_avoid_remote_pmtiles exit 0 on fbcbde6) as complementary two-sided proof of SC#1 zero tile HTTP — reusable pattern for Phase 10/12/14/16 review-gates with offline-mode requirements
+- [Phase 08-review-gate-map]: Plan 08-03: blanket triage 2026-04-23 — user verbatim 'do all the blocker, should, could, afterward I will do a full walk on both application and we will fix bugs then redo the same review' — all Blocker/Should/Could (49) → fix or refactor (smell-tagged architectural); all Noted (26) split into 16 accepted-as-is (positive ✓ confirmations) + 10 defer-to-v2 (minor items). No waivers. .fixes-expected=49 snapshot for Plan 08-05 tally.
+- [Phase 08-review-gate-map]: Plan 08-03: Smell-tagged architectural refactor decisions (9 total) separated from local fixes via explicit 'refactor' decision column — Row 11/12 MapCameraController + CountryResolverController listener consolidation; Row 20/29 DownloadState field-name unification + 8-variant collapse; Row 35/36 MapCamera state+enum collapse; Row 37 ActiveSessionState/AsyncError consolidation; Row 38 ActiveSessionController reconcile-pattern redesign; Row 39 MapScreen deactivate microtask redesign. Rule: smell-tagged findings requiring architectural rewrite → 'refactor'; smell-tagged findings with local patch → 'fix'. First review-gate encoding of CLAUDE.md 2026-04-23 smell-heuristics delta; precedent for Phases 10/12/14/16.
+- [Phase 08-review-gate-map]: Plan 08-03: 4-parallel-sub-agent audit wave pattern validated FOURTH cycle (Phase 02/04/06/08) — all 4 general-purpose agents spawned in ONE single tool-use message, hybrid layer+risk slicing (Map infra / Download / Controllers+Presentation / Natives+Assets+CI+Sweep) + CLAUDE.md smell-heuristics brief verbatim + pre-class briefing committed BEFORE spawn. Yielded 75 structured findings. Pattern locked for Phases 10/12/14/16.
+- [Phase 08-review-gate-map]: Plan 08-03: 1 SURPRISE Blocker surfaced (not in CONTEXT pre-class) — Agent #2 #1: pause busy-spin in _processQueue — _processJob returns (not breaks) on pause so outer while re-enters → re-emits DownloadPaused → loops forever until resume(). Smell-heuristics lens caught it (primary over-state-machine hot-spot). Local fix (Row 1: return → break); no Rule 4 architectural decision required. Plus surprise UNPINNED placeholder in prepare_style.dart:78 + missing glyphs/sprites real assets (Row 18, blocks Phase 09 real rendering).
 
 ### Pending Todos
 
@@ -327,6 +332,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-23T18:06:07.161Z
-Stopped at: Completed 08-02-PLAN.md (POC evidence §1b extraction — verbatim from docs/phase-07-smoke.md + docs/phase-07-ios-animate-camera-crash.md + 7 screenshots; no fresh walk per CONTEXT lock; Plan 08-03 pre-class §2 + 4 sub-agents unblocked)
+Last session: 2026-04-23T18:50:54.218Z
+Stopped at: Completed 08-03-PLAN.md (4-parallel-agent audit wave + blanket triage: 75 findings → 40 fix + 9 refactor + 0 waived + 10 defer-to-v2 + 16 accepted-as-is; .fixes-expected=49 snapshot; Plan 08-04 awaits user OK adversarial signal)
 Resume file: None
