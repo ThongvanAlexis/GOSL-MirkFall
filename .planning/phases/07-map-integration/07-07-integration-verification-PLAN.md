@@ -49,6 +49,14 @@ must_haves:
       pattern: "downloadQueueControllerProvider"
 ---
 
+> **⚠ SCOPE REDUCED — 2026-04-23**
+>
+> Plan 07-07 was scope-reduced at Phase 08 CONTEXT time. What actually landed under this plan: the physical device smoke walks (Android Pixel 4a + iOS iPhone 17 Pro) and the iOS animateCamera crash fix (commits `81d30c7` + `ab497ab` + `40b49d5`, 2026-04-22). The four integration tests originally scoped here are delivered in **Phase 08 Plan 08-04 (adversarial wave)** as permanent regression guards with inertness guards.
+>
+> See `.planning/phases/07-map-integration/07-07-SUMMARY.md` for the full rationale + list of deferred tests + cross-reference.
+>
+> The body below is preserved verbatim for git-trace purposes. Do NOT execute it as-is; follow Phase 08 Plan 08-04 instead.
+
 <objective>
 Close Phase 07 with integration tests + human-device smoke checkpoints that prove the three critical invariants no unit test can fully cover: (1) zero network for tiles under airplane conditions, (2) first-launch world-bundle copy actually works on a cold system, (3) the full user journey (create session → open map → download a country → see it in manage) works end-to-end. The human smokes sign off MAP-01 (airplane mode) + MAP-07 (first-launch) on real hardware before Phase 08 Review Gate opens.
 
