@@ -36,6 +36,26 @@ abstract class CountryCatalog with _$CountryCatalog {
   factory CountryCatalog.fromJson(Map<String, Object?> json) => _$CountryCatalogFromJson(json);
 }
 
+/// Regex matching the GitHub Release download URL shape —
+/// `.../releases/download/<tag>/<asset>`. The capture group isolates the
+/// tag segment. Shared between [CountryCatalogVersion.catalogVersion]
+/// (catalog-level, strict) and [extractReleaseTag] (entry-level, soft).
+final RegExp _kReleaseTagPattern = RegExp(r'/releases/download/([^/]+)/');
+
+/// Extracts the GitHub-Release tag from a single release-style asset URL.
+///
+/// Returns `null` when [url] does not match the
+/// `/releases/download/<tag>/` shape (fixture catalogs point at
+/// `https://example.test/...` and have no release tag). Callers decide
+/// what to do with a null result — strict callers throw, soft callers
+/// substitute a fallback.
+///
+/// Single source of truth for the regex literal; do not duplicate.
+String? extractReleaseTag(String url) {
+  final RegExpMatch? match = _kReleaseTagPattern.firstMatch(url);
+  return match?.group(1);
+}
+
 /// Lazily-computed helpers bolted onto [CountryCatalog].
 ///
 /// [catalogVersion] extracts the GitHub Release tag from the first
@@ -55,14 +75,11 @@ extension CountryCatalogVersion on CountryCatalog {
       throw const FormatException('CountryCatalog.catalogVersion: empty countries or parts list');
     }
     final String firstUrl = countries.first.parts.first.url;
-    // Regex literal — documented in README: release URLs follow the
-    // GitHub Release download scheme. Anchored on `/releases/download/`
-    // so a non-matching host fails loudly.
-    final RegExpMatch? match = RegExp(r'/releases/download/([^/]+)/').firstMatch(firstUrl);
-    if (match == null) {
+    final String? tag = extractReleaseTag(firstUrl);
+    if (tag == null) {
       throw FormatException('CountryCatalog.catalogVersion: URL does not match /releases/download/<tag>/ pattern: "$firstUrl"');
     }
-    return match.group(1)!;
+    return tag;
   }
 }
 

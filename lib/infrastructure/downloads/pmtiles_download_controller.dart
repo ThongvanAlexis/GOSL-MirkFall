@@ -622,20 +622,19 @@ class PmtilesDownloadController {
     }
   }
 
-  /// Extracts the GitHub-Release tag from [entry]'s first part URL.
-  /// Mirrors the lazy `CountryCatalog.catalogVersion` getter but on a
-  /// single entry — used so the manifest carries a per-country version
-  /// without re-wiring the controller through the parent catalog.
+  /// Extracts the GitHub-Release tag from [entry]'s first part URL —
+  /// soft variant. Shares the regex with `CountryCatalog.catalogVersion`
+  /// via [extractReleaseTag] (single source of truth).
   ///
   /// Returns a synthetic `untagged-YYYYMMDD` fallback when the URL
   /// shape does not match (fixture catalogs point at
   /// `https://example.test/...` and have no release tag). The fallback
   /// satisfies the `InstalledCountry.pmtilesVersion.length > 0`
-  /// invariant.
+  /// invariant — unlike the catalog-level getter, the controller must
+  /// not throw mid-download on a synthetic fixture URL.
   String _extractCatalogVersion(CountryEntry entry) {
     if (entry.parts.isEmpty) return _fallbackVersion();
-    final RegExpMatch? match = RegExp(r'/releases/download/([^/]+)/').firstMatch(entry.parts.first.url);
-    return match?.group(1) ?? _fallbackVersion();
+    return extractReleaseTag(entry.parts.first.url) ?? _fallbackVersion();
   }
 
   String _fallbackVersion() {
