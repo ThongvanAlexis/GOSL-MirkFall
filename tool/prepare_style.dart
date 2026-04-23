@@ -165,16 +165,22 @@ Future<int> runCheck({String? sourceDir, String? glyphsTarget, String? spritesTa
   }
 
   // Copy fonts/<fontstack>/*.pbf preserving sub-directory structure.
+  // listSync() order is filesystem-dependent (CLAUDE.md §Ordre des
+  // collections externes); sort by path before iterating so the
+  // resulting `copiedGlyphs` count + any future diff on log output
+  // is stable across Windows ↔ POSIX reruns.
   final Directory glyphsDir = Directory(glyphsOut);
   if (glyphsDir.existsSync()) glyphsDir.deleteSync(recursive: true);
   glyphsDir.createSync(recursive: true);
   int copiedGlyphs = 0;
-  for (final FileSystemEntity fontDir in srcFonts.listSync()) {
+  final List<FileSystemEntity> fontEntries = srcFonts.listSync()..sort((FileSystemEntity a, FileSystemEntity b) => a.path.compareTo(b.path));
+  for (final FileSystemEntity fontDir in fontEntries) {
     if (fontDir is! Directory) continue;
     final String stackBasename = p.basename(fontDir.path);
     final Directory target = Directory(p.join(glyphsOut, stackBasename));
     target.createSync(recursive: true);
-    for (final FileSystemEntity pbf in fontDir.listSync()) {
+    final List<FileSystemEntity> pbfEntries = fontDir.listSync()..sort((FileSystemEntity a, FileSystemEntity b) => a.path.compareTo(b.path));
+    for (final FileSystemEntity pbf in pbfEntries) {
       if (pbf is! File || !pbf.path.endsWith('.pbf')) continue;
       final String targetPath = p.join(target.path, p.basename(pbf.path));
       pbf.copySync(targetPath);
