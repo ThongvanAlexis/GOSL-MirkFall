@@ -14,6 +14,7 @@ import 'package:mirkfall/domain/installed_maps/installed_country.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest_repository.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
+import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_errors.dart';
 import 'package:mirkfall/infrastructure/downloads/atomic_renamer.dart';
 import 'package:mirkfall/infrastructure/downloads/binary_concatenator.dart';
@@ -139,8 +140,19 @@ class PmtilesDownloadController {
   }
 
   /// Enqueues [entry] for download. The first enqueue kicks off the
-  /// processing loop; subsequent calls append to the queue.
+  /// processing loop; subsequent calls append to the queue. Duplicate
+  /// enqueues of a country that is already the active job OR is already
+  /// waiting in the queue are silently dropped — the alternative is a
+  /// post-completion re-download of the same country from scratch, the
+  /// exact scenario that surfaced on a device walk after a resumed
+  /// download: the persisted queue held a job for `fra`, the user tapped
+  /// "Télécharger France" again, and both the resumed job + the new job
+  /// ran back-to-back, wiping the staging between them.
   Future<void> enqueueCountry(CountryEntry entry) async {
+    if (_alpha3IsActiveOrQueued(entry.alpha3)) {
+      _log.info('enqueueCountry: ${entry.alpha3.value} already active or queued — skipping duplicate enqueue');
+      return;
+    }
     final DownloadJob job = DownloadJob(alpha3: entry.alpha3, entry: entry, enqueuedAtUtc: DateTime.now().toUtc());
     _queue.add(job);
     await _persistQueue();
@@ -149,13 +161,34 @@ class PmtilesDownloadController {
   }
 
   /// Rehydrates the queue from the persistent store + resumes processing.
-  /// Called at app startup by Plan 07-05's bootstrap sequence.
+  /// Called at app startup by Plan 07-05's bootstrap sequence. Jobs whose
+  /// alpha3 is already queued in-memory are skipped (defense against a
+  /// double-rehydrate race, e.g. if a caller sidesteps the outer
+  /// `_rehydrated` flag).
   Future<void> rehydrate() async {
     final List<DownloadJob> saved = await _queueStore.load();
     if (saved.isEmpty) return;
-    _queue.addAll(saved);
+    for (final DownloadJob job in saved) {
+      if (_alpha3IsActiveOrQueued(job.alpha3)) {
+        _log.info('rehydrate: ${job.alpha3.value} already in queue — skipping');
+        continue;
+      }
+      _queue.add(job);
+    }
+    if (_queue.isEmpty) return;
     _emit(DownloadQueued(queue: List<DownloadJob>.unmodifiable(_queue)));
     _startProcessingIfIdle();
+  }
+
+  bool _alpha3IsActiveOrQueued(CountryCode alpha3) {
+    final CountryCode? active = switch (_state) {
+      DownloadInProgress(:final active) => active.alpha3,
+      DownloadPaused(:final active) => active.alpha3,
+      DownloadRetrying(:final active) => active.alpha3,
+      _ => null,
+    };
+    if (active == alpha3) return true;
+    return _queue.any((DownloadJob j) => j.alpha3 == alpha3);
   }
 
   /// Request a pause of the current in-flight job. Takes effect at the

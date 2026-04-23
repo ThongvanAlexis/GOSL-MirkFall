@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/downloads/download_errors.dart';
+import 'package:mirkfall/domain/downloads/download_job.dart';
 import 'package:mirkfall/domain/downloads/download_state.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
@@ -185,6 +186,44 @@ void main() {
         final File canonical = File(p.join(tempDir.path, kCountriesDir, 'deu.pmtiles'));
         final Uint8List onDisk = await canonical.readAsBytes();
         expect(onDisk, <int>[...a, ...b, ...c]);
+      });
+    });
+  });
+
+  group('PmtilesDownloadController — duplicate enqueue guard', () {
+    test('enqueueCountry on an alpha3 already in the queue is a no-op', () async {
+      await _withRealHttpClient(() async {
+        final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
+        final FakeHttpServer srvA = await FakeHttpServer.bind(initialBytes: a);
+        addTearDown(srvA.close);
+
+        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
+        final _Harness result = await makeController(httpDownloader: httpDownloader);
+        final PmtilesDownloadController controller = result.controller;
+
+        // Pre-seed the persisted queue via rehydrate() to simulate the
+        // "prior-session job was persisted" scenario (this is what the
+        // device-walk bug did: a persisted fra job + a user-tapped fra
+        // enqueue caused a post-completion re-download from scratch).
+        final CountryEntry entry = _entryFor(alpha3Raw: 'fra', chunkPayloads: <Uint8List>[a], chunkUrls: <String>[srvA.base.resolve('/a').toString()]);
+        final DownloadQueueStore store = DownloadQueueStore(appSupportDir: tempDir.path);
+        await store.save(<DownloadJob>[DownloadJob(alpha3: entry.alpha3, entry: entry, enqueuedAtUtc: DateTime.utc(2026, 4, 23))]);
+
+        final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
+
+        // Rehydrate loads the persisted job + starts processing. The
+        // user-level "Télécharger" tap lands as a second enqueueCountry
+        // call. Without the dedup guard, this would append a second fra
+        // job — the download would complete once, then restart from
+        // scratch (staging wiped by post-commit cleanup).
+        await controller.rehydrate();
+        await controller.enqueueCountry(entry);
+
+        await completedFuture;
+
+        // Single pass over the wire — the second enqueue was dropped.
+        expect(srvA.recordedRequests.length, 1, reason: 'duplicate enqueue must not trigger a second download pass');
+        expect(controller.queuedJobs, isEmpty, reason: 'queue drained to empty after the single job completes');
       });
     });
   });
