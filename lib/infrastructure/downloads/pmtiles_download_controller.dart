@@ -209,6 +209,7 @@ class PmtilesDownloadController {
         if (_cancelRequested) break;
       }
       if (_queue.isEmpty && _state is! DownloadPaused && _state is! DownloadError) {
+        _log.info('processQueue: queue drained — emitting DownloadIdle');
         _emit(const DownloadIdle());
       }
     } finally {
@@ -225,6 +226,12 @@ class PmtilesDownloadController {
     final Directory stagingDir = Directory(p.join(_appSupportDir, kStagingDir, job.alpha3.value));
     final File reassembledStaging = File(p.join(stagingDir.path, '${job.alpha3.value}.pmtiles'));
     final File finalFile = File(p.join(_appSupportDir, kCountriesDir, '${job.alpha3.value}.pmtiles'));
+
+    // Progress counter is per-job; zero it at entry so sequential jobs
+    // (second enqueue after a successful first) do not carry stale
+    // bytes that would clamp fractionDone to 100 % from the first
+    // emit of job N+1 onward.
+    _accumulatedBytes = 0;
 
     try {
       // 0. Preflight.
@@ -301,6 +308,7 @@ class PmtilesDownloadController {
       await _cleanupStaging(stagingDir);
 
       wallclock.stop();
+      _log.info('processJob ${job.alpha3.value}: done in ${wallclock.elapsed.inMilliseconds}ms — emitting DownloadCompleted');
       _emit(DownloadCompleted(alpha3: job.alpha3, totalElapsed: wallclock.elapsed));
       _queue.removeAt(0);
       await _persistQueue();
