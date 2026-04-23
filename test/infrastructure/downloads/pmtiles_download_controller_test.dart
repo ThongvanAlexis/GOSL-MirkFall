@@ -364,6 +364,12 @@ void main() {
         // Canonical file must NOT be committed on mismatch.
         final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
         expect(canonical.existsSync(), isFalse);
+
+        // Row #5 (Should) regression: on reassembled-sha256 mismatch,
+        // staging MUST be nuked to break the permanent-failure loop
+        // where re-enqueues would trust the same corrupt chunks and
+        // mismatch again forever.
+        expect(fraStaging.existsSync(), isFalse, reason: 'staging nuked on reassembled-sha mismatch to break the permanent-failure loop');
       });
     });
   });

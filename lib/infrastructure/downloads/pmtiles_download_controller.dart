@@ -385,6 +385,19 @@ class PmtilesDownloadController {
       await _persistQueue();
     } on Exception catch (e) {
       _log.warning('processJob ${job.alpha3.value} failed: $e');
+      // Row #5 (Should): when the reassembled sha256 mismatches, the
+      // staging bytes are proven corrupt at the reassembled level. The
+      // "trust chunks on size alone" model broke down (some chunk's
+      // bytes are size-correct-but-content-wrong) and we cannot localise
+      // which chunk. Keeping staging would let a subsequent re-enqueue
+      // concat the SAME corrupt bytes, mismatch again, loop forever.
+      // Nuke staging so the next attempt starts from network-fresh bytes.
+      // Other error classes (interruption, disk space, etc.) keep staging
+      // intact per existing resume design.
+      if (e is Sha256MismatchException && e.at == 'reassembled') {
+        _log.warning('processJob ${job.alpha3.value}: reassembled sha256 mismatch — nuking staging to break the permanent-failure loop');
+        await _cleanupStaging(stagingDir);
+      }
       _emit(DownloadError(active: job, cause: e));
       // Keep staging intact for a future resume. Remove the job from
       // the head of the queue to avoid blocking subsequent entries

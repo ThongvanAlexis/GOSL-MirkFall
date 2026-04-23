@@ -383,10 +383,10 @@ Secondary smells: `DownloadCompleted/Cancelled` drop full DownloadJob (finding #
 
 | # | Finding (title + file:line) | Severity | Smell tag | Decision | Rationale | Commit hash |
 |---|-----------------------------|----------|-----------|----------|-----------|-------------|
-| 1 | Pause busy-spin in `_processQueue` — `pmtiles_download_controller.dart:236-255,294-308` | Blocker | [smell:over-state-machine] | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
-| 2 | README "8-layer" drift — constant holds 7 (A1/A4 cross-lens) — `lib/infrastructure/map/README.md:14`, `style_layer_order.dart:35`, `constants.dart:218`, `map_errors.dart:123`, `style.json:5,8` | Should | — | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
-| 3 | StyleRewriter does NOT reject external URLs — audit claim unsubstantiated — `style_rewriter.dart:47-86`, `style_layer_order.dart:103-162` | Should | — | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
-| 4 | MapLibreMapView vs FakeMapView disagree on post-dispose semantics — `maplibre_map_view.dart:462`, `fake_map_view.dart:164` | Should | — | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
+| 1 | Pause busy-spin in `_processQueue` — `pmtiles_download_controller.dart:236-255,294-308` | Blocker | [smell:over-state-machine] | fix | blanket fix per user triage 2026-04-23 | acd6820 |
+| 2 | README "8-layer" drift — constant holds 7 (A1/A4 cross-lens) — `lib/infrastructure/map/README.md:14`, `style_layer_order.dart:35`, `constants.dart:218`, `map_errors.dart:123`, `style.json:5,8` | Should | — | fix | blanket fix per user triage 2026-04-23 (merged with #15 — same "8→7 layer" concern) | 5dd35fa |
+| 3 | StyleRewriter does NOT reject external URLs — audit claim unsubstantiated — `style_rewriter.dart:47-86`, `style_layer_order.dart:103-162` | Should | — | fix | blanket fix per user triage 2026-04-23 | f5d1ea3 |
+| 4 | MapLibreMapView vs FakeMapView disagree on post-dispose semantics — `maplibre_map_view.dart:462`, `fake_map_view.dart:164` | Should | — | fix | blanket fix per user triage 2026-04-23 | 7681847 |
 | 5 | Permanent-failure loop on reassembled sha256 mismatch — `pmtiles_download_controller.dart:337-339,414-429,375-385` | Should | [smell:fix-on-fix] | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
 | 6 | Protocol doc drift — step 2 "per-chunk sha256" no longer implemented — `pmtiles_download_controller.dart:30-51`, `README.md:14` | Should | — | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
 | 7 | `_accumulatedBytes` corruption on 200-OK-restart fallback mid-resume — `pmtiles_download_controller.dart:455-459`, `http_chunk_downloader.dart:113-115` | Should | — | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
@@ -397,7 +397,7 @@ Secondary smells: `DownloadCompleted/Cancelled` drop full DownloadJob (finding #
 | 12 | CountryResolverController has TWO parallel manifest listener paths (_manifestSub + _manifestStreamSub) — `country_resolver_controller.dart:189-215` | Should | [smell:fix-on-fix] | refactor | blanket refactor per user triage 2026-04-23 — smell-tagged architectural | (pending Plan 08-05) |
 | 13 | InstalledMapsController bypasses `installedManifestProvider` and attaches to `repo.updates` directly — `installed_maps_controller.dart:75-103` | Should | — | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
 | 14 | MapCameraController.openForSession body is now "do nothing to camera" with 16-line comment — `map_camera_controller.dart:118-165` | Should | [smell:fix-on-fix] | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
-| 15 | style.json metadata description drift — "8-layer" but actual 7 (A4/A1 cross-lens) — `assets/maps/style.json:5,8` | Should | [smell:fix-on-fix] | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
+| 15 | style.json metadata description drift — "8-layer" but actual 7 (A4/A1 cross-lens) — `assets/maps/style.json:5,8` | Should | [smell:fix-on-fix] | fix | blanket fix per user triage 2026-04-23 (merge-by-concern with #2) | 5dd35fa |
 | 16 | Phase 07 tool scripts have no paired tests (generate_tiny_pmtiles / generate_world_sha256 / prepare_style / simplify_polygons) — `tool/test/` | Should | — | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
 | 17 | tool/README.md does not document any Phase 07 tool — `tool/README.md` | Should | — | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
 | 18 | `prepare_style.dart` pin-SHA is `UNPINNED` + placeholder glyphs/sprites — `tool/prepare_style.dart:78` | Should | — | fix | blanket fix per user triage 2026-04-23 | (pending Plan 08-05) |
