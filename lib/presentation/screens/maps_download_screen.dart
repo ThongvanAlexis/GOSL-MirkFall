@@ -343,6 +343,15 @@ class _CountryTile extends ConsumerWidget {
             final int chunkTotal = activeTotalParts ?? retrying?.snapshot.totalParts ?? 1;
             subtitleWidget = Text('Vérification du bloc ${chunkIndex + 1}/$chunkTotal (sha256)', overflow: TextOverflow.ellipsis);
             leading = Icons.verified_outlined;
+          case DownloadPhase.verifyingResumedData:
+            // Resume optimisation: the chunk already on disk was
+            // verified during a prior session, so we're just
+            // acknowledging it (no actual sha256 happens during this
+            // phase — the reassembled global sha256 is the safety
+            // net). Dedicated copy so the user understands the
+            // fast-forward through already-downloaded parts.
+            subtitleWidget = const Text('Vérification des données pré-téléchargées', overflow: TextOverflow.ellipsis);
+            leading = Icons.fast_forward_outlined;
           case DownloadPhase.concatenating:
             subtitleWidget = const Text('Assemblage des fichiers…', overflow: TextOverflow.ellipsis);
             leading = Icons.merge_type_outlined;

@@ -60,11 +60,17 @@ final class DownloadQueued extends DownloadState {
 /// - `verifyingChunk`: computing sha256 of a just-downloaded chunk
 ///   before accepting it. Can take tens of seconds on large
 ///   (100 MB+) chunks.
+/// - `verifyingResumedData`: the current chunk was already fully on
+///   disk from a prior session — the pipeline is acknowledging the
+///   pre-existing bytes + skipping the per-chunk sha256 (which was
+///   already computed successfully the first time around; the
+///   reassembled global sha256 later catches any disk-level
+///   corruption that would have slipped through).
 /// - `concatenating`: streaming the chunks into a single reassembled
 ///   file on disk. Runs once all chunks are verified.
 /// - `verifyingFinal`: computing sha256 of the reassembled file.
 ///   Runs once after concat, right before the atomic rename.
-enum DownloadPhase { transferring, verifyingChunk, concatenating, verifyingFinal }
+enum DownloadPhase { transferring, verifyingChunk, verifyingResumedData, concatenating, verifyingFinal }
 
 /// The active job is transferring (or in a post-transfer verification
 /// phase — see [phase]). [remaining] lists the jobs still queued

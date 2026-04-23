@@ -190,6 +190,61 @@ void main() {
     });
   });
 
+  group('PmtilesDownloadController — resume from staging', () {
+    test('pre-existing complete chunks skip network + per-chunk sha256; verifyingResumedData phase emitted', () async {
+      await _withRealHttpClient(() async {
+        final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
+        final Uint8List b = Uint8List.fromList(List<int>.filled(1024, 0x22));
+        final Uint8List c = Uint8List.fromList(List<int>.filled(1024, 0x33));
+
+        // Chunk A is already fully on disk in staging (as if a prior
+        // session had downloaded + verified it). The server for A is
+        // wired but should never be hit — we assert that below.
+        final Directory fraStaging = Directory(p.join(tempDir.path, kStagingDir, 'fra'));
+        await fraStaging.create(recursive: true);
+        await File(p.join(fraStaging.path, 'part00')).writeAsBytes(a);
+
+        final FakeHttpServer srvA = await FakeHttpServer.bind(initialBytes: a);
+        final FakeHttpServer srvB = await FakeHttpServer.bind(initialBytes: b);
+        final FakeHttpServer srvC = await FakeHttpServer.bind(initialBytes: c);
+        addTearDown(() async {
+          await srvA.close();
+          await srvB.close();
+          await srvC.close();
+        });
+
+        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
+        final _Harness result = await makeController(httpDownloader: httpDownloader);
+        final PmtilesDownloadController controller = result.controller;
+
+        final List<DownloadState> states = <DownloadState>[];
+        final StreamSubscription<DownloadState> sub = controller.stateStream.listen(states.add);
+        addTearDown(sub.cancel);
+
+        final CountryEntry entry = _entryFor(
+          alpha3Raw: 'fra',
+          chunkPayloads: <Uint8List>[a, b, c],
+          chunkUrls: <String>[srvA.base.resolve('/a').toString(), srvB.base.resolve('/b').toString(), srvC.base.resolve('/c').toString()],
+        );
+
+        final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
+        await controller.enqueueCountry(entry);
+        await completedFuture;
+
+        expect(srvA.recordedRequests, isEmpty, reason: 'pre-existing complete chunk must not be re-downloaded');
+
+        final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
+        expect(await canonical.readAsBytes(), <int>[...a, ...b, ...c]);
+
+        // The resumed-data phase was emitted at least once (for chunk A);
+        // the normal verifyingChunk phase was emitted for chunks B and C.
+        final Set<DownloadPhase> phases = states.whereType<DownloadInProgress>().map((DownloadInProgress s) => s.phase).toSet();
+        expect(phases, contains(DownloadPhase.verifyingResumedData));
+        expect(phases, contains(DownloadPhase.verifyingChunk));
+      });
+    });
+  });
+
   group('PmtilesDownloadController — mid-chunk progress emission', () {
     test('emits multiple DownloadInProgress events while a single chunk streams', () async {
       // Regression guard for the UX bug: before this fix, progress only

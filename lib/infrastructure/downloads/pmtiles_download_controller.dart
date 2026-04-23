@@ -262,16 +262,24 @@ class PmtilesDownloadController {
 
         final ChunkPart part = job.entry.parts[i];
         final File partFile = File(p.join(stagingDir.path, 'part${i.toString().padLeft(2, '0')}'));
-        await _downloadChunkWithRetries(part: part, destination: partFile, job: job, partIndex: i);
-        // Phase 07-07 (2026-04-22) — emit a verifyingChunk phase so
-        // the UI can show "Vérification du chunk" during the sha256
-        // compute. On large (100 MB+) chunks this step can take tens
-        // of seconds and would otherwise freeze the progress bar
-        // silently, making the user think the download hung.
-        _emitInProgress(job: job, partIndex: i, phase: DownloadPhase.verifyingChunk);
-        _log.info('chunk ${job.alpha3.value}.part$i verify: sha256 starting (size=${part.size})');
-        await _verifyChunkWithOneRetry(part: part, partFile: partFile, job: job, partIndex: i);
-        _log.info('chunk ${job.alpha3.value}.part$i verify: OK');
+        final bool preExistingComplete = await _downloadChunkWithRetries(part: part, destination: partFile, job: job, partIndex: i);
+        if (preExistingComplete) {
+          // Resume optimisation (Phase 07-07 device-smoke, 2026-04-22):
+          // this chunk was already fully on disk when the job started,
+          // which means a prior session had already passed its per-chunk
+          // sha256 check (the download protocol verifies EVERY chunk
+          // immediately after writing it). Re-hashing here would waste
+          // tens of seconds per 100 MB chunk with no safety benefit —
+          // the reassembled global sha256 run below catches any
+          // disk-level corruption that would somehow have made a
+          // previously-verified file go bad.
+          _log.info('chunk ${job.alpha3.value}.part$i verify: SKIPPED (pre-existing complete — already verified in a prior session)');
+        } else {
+          _emitInProgress(job: job, partIndex: i, phase: DownloadPhase.verifyingChunk);
+          _log.info('chunk ${job.alpha3.value}.part$i verify: sha256 starting (size=${part.size})');
+          await _verifyChunkWithOneRetry(part: part, partFile: partFile, job: job, partIndex: i);
+          _log.info('chunk ${job.alpha3.value}.part$i verify: OK');
+        }
         partFiles.add(partFile);
       }
 
@@ -342,12 +350,20 @@ class PmtilesDownloadController {
     }
   }
 
-  Future<void> _downloadChunkWithRetries({required ChunkPart part, required File destination, required DownloadJob job, required int partIndex}) async {
+  /// Downloads [part] into [destination] with up to
+  /// [kDownloadRetryAttempts] retries on transient HTTP failures.
+  /// Returns `true` when the chunk was already fully on disk at entry
+  /// (resume optimisation — the caller can skip the per-chunk sha256
+  /// verify; see `_processJob`). Returns `false` otherwise (new bytes
+  /// were written during this call, a fresh sha256 check is required).
+  Future<bool> _downloadChunkWithRetries({required ChunkPart part, required File destination, required DownloadJob job, required int partIndex}) async {
     // Pre-check: if the staging chunk is already exactly the expected
-    // size, skip the network round-trip. The sha256 verify step below
-    // validates the bytes so a stale / corrupt on-disk chunk still
-    // gets re-downloaded correctly; here we only short-circuit the
-    // HTTP request.
+    // size, skip the network round-trip AND the per-chunk sha256
+    // (signalled to the caller via the `true` return). A prior session
+    // already verified these bytes; re-hashing a 100 MB chunk on resume
+    // costs tens of seconds of wallclock and user confusion. The
+    // reassembled-file sha256 later in the protocol still catches any
+    // disk-level corruption that would have snuck past.
     //
     // Phase 07 device-smoke (2026-04-22) — without this guard, a
     // kill-during-download that leaves a part fully written on disk
@@ -361,10 +377,10 @@ class PmtilesDownloadController {
     if (await destination.exists()) {
       final int localSize = await destination.length();
       if (localSize == part.size) {
-        _log.info('chunk ${job.alpha3.value}.part$partIndex staging already complete (size=$localSize) — skipping network, proceeding to sha256 verify');
+        _log.info('chunk ${job.alpha3.value}.part$partIndex staging already complete (size=$localSize) — skipping network + skipping per-chunk sha256');
         _accumulatedBytes += localSize;
-        _emitInProgress(job: job, partIndex: partIndex);
-        return;
+        _emitInProgress(job: job, partIndex: partIndex, phase: DownloadPhase.verifyingResumedData);
+        return true;
       }
       if (localSize > part.size) {
         _log.warning('chunk ${job.alpha3.value}.part$partIndex staging size $localSize > expected ${part.size} — deleting to restart from byte 0');
@@ -373,7 +389,7 @@ class PmtilesDownloadController {
     }
     DownloadInterruptedException? lastError;
     for (int attempt = 0; attempt < kDownloadRetryAttempts; attempt++) {
-      if (_cancelRequested) return;
+      if (_cancelRequested) return false;
       try {
         _emitInProgress(job: job, partIndex: partIndex);
         DateTime lastEmit = DateTime.now();
@@ -395,7 +411,7 @@ class PmtilesDownloadController {
             _emitInProgress(job: job, partIndex: partIndex);
           },
         );
-        return;
+        return false;
       } on DownloadInterruptedException catch (e) {
         lastError = e;
         // Phase 07-07 (2026-04-22): upgraded to WARNING (was INFO) and
