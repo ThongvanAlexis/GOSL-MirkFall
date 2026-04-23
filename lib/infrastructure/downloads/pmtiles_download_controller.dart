@@ -240,6 +240,13 @@ class PmtilesDownloadController {
         final DownloadJob job = _queue.first;
         await _processJob(job);
         if (_cancelRequested) break;
+        // When [_processJob] emits DownloadPaused it returns early without
+        // removing [job] from the queue head. Without this break the outer
+        // while-loop would immediately re-enter _processJob on the same
+        // paused job, re-emit DownloadPaused, and tight-spin until
+        // [resume()] flips [_pauseRequested]. The loop exits here and
+        // [resume()] restarts processing via [_startProcessingIfIdle].
+        if (_pauseRequested) break;
       }
       if (_queue.isEmpty && _state is! DownloadPaused && _state is! DownloadError) {
         _log.info('processQueue: queue drained — emitting DownloadIdle');
@@ -247,7 +254,11 @@ class PmtilesDownloadController {
       }
     } finally {
       _cancelRequested = false;
-      _pauseRequested = false;
+      // Deliberately do NOT reset _pauseRequested here: a pause-then-loop-
+      // exit must leave the flag set so [resume()] can observe it + clear
+      // it on resume. Row #28 (Could) tracks the earlier cosmetic reset
+      // that was load-bearing only for busy-spin; with the break above
+      // the reset is no longer needed.
       if (_processingDone != null && !_processingDone!.isCompleted) {
         _processingDone!.complete();
       }

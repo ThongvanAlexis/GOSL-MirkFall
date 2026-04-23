@@ -424,6 +424,69 @@ void main() {
     });
   });
 
+  group('PmtilesDownloadController — pause/resume (row #1 Blocker regression)', () {
+    test('pause() breaks the processing loop, not busy-spin; resume() finishes the download', () async {
+      // Plan 08-05 row #1 Blocker regression. Pre-fix behaviour: when
+      // [_processJob] emitted DownloadPaused + returned, the outer
+      // `while (_queue.isNotEmpty)` loop in [_processQueue] re-invoked
+      // _processJob on the same paused job, re-emitted DownloadPaused,
+      // and tight-spun until resume() flipped [_pauseRequested]. Fix
+      // adds `if (_pauseRequested) break;` after the _processJob call;
+      // this test proves the loop exits cleanly (bounded number of
+      // DownloadPaused emits) and resume() restarts + completes.
+      await _withRealHttpClient(() async {
+        final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
+        final Uint8List b = Uint8List.fromList(List<int>.filled(1024, 0x22));
+        final FakeHttpServer srvA = await FakeHttpServer.bind(initialBytes: a);
+        final FakeHttpServer srvB = await FakeHttpServer.bind(initialBytes: b);
+        addTearDown(() async {
+          await srvA.close();
+          await srvB.close();
+        });
+
+        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
+        final _Harness result = await makeController(httpDownloader: httpDownloader);
+        final PmtilesDownloadController controller = result.controller;
+
+        final List<DownloadState> states = <DownloadState>[];
+        final StreamSubscription<DownloadState> sub = controller.stateStream.listen(states.add);
+        addTearDown(sub.cancel);
+
+        final CountryEntry entry = _entryFor(
+          alpha3Raw: 'fra',
+          chunkPayloads: <Uint8List>[a, b],
+          chunkUrls: <String>[srvA.base.resolve('/a').toString(), srvB.base.resolve('/b').toString()],
+        );
+
+        // Pause BEFORE any processing starts. The queue is rehydrated-
+        // via-save so the first iteration of _processQueue sees
+        // _pauseRequested=true at the first check inside _processJob.
+        final DownloadQueueStore store = DownloadQueueStore(appSupportDir: tempDir.path);
+        await store.save(<DownloadJob>[DownloadJob(alpha3: entry.alpha3, entry: entry, enqueuedAtUtc: DateTime.utc(2026, 4, 23))]);
+        await controller.pause();
+        await controller.rehydrate();
+
+        // Wait for a DownloadPaused emit + let the loop breathe for a
+        // window that would contain THOUSANDS of busy-spin iterations
+        // if the bug still existed.
+        await controller.stateStream.firstWhere((DownloadState s) => s is DownloadPaused);
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+
+        final int pausedEmits = states.whereType<DownloadPaused>().length;
+        expect(pausedEmits, lessThanOrEqualTo(2), reason: 'paused emits should be bounded (not busy-spin); observed $pausedEmits');
+
+        // Resume → download should complete.
+        final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
+        await controller.resume();
+        await completedFuture;
+
+        final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
+        expect(canonical.existsSync(), isTrue);
+        expect(await canonical.readAsBytes(), <int>[...a, ...b]);
+      });
+    });
+  });
+
   group('PmtilesDownloadController — preflight', () {
     test('insufficient disk space emits DownloadError(DiskSpaceInsufficient)', () async {
       // Preflight runs before any HTTP call, so this test does not
