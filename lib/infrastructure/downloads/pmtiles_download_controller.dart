@@ -152,9 +152,21 @@ class PmtilesDownloadController {
   /// download: the persisted queue held a job for `fra`, the user tapped
   /// "Télécharger France" again, and both the resumed job + the new job
   /// ran back-to-back, wiping the staging between them.
+  ///
+  /// Row #10 (Should): an alpha3 already present in the installed
+  /// manifest with a sha256 matching [entry.reassembled.sha256] is
+  /// ALSO silently dropped — a full re-download would just produce the
+  /// bytes that are already on disk, wasting bandwidth + storage
+  /// churn. A manifest entry with a DIFFERENT sha256 is treated as
+  /// stale (catalog advertised a newer bundle) and the download
+  /// proceeds normally; the commit step will overwrite the stale file.
   Future<void> enqueueCountry(CountryEntry entry) async {
     if (_alpha3IsActiveOrQueued(entry.alpha3)) {
       _log.info('enqueueCountry: ${entry.alpha3.value} already active or queued — skipping duplicate enqueue');
+      return;
+    }
+    if (await _alreadyInstalledWithMatchingSha(entry)) {
+      _log.info('enqueueCountry: ${entry.alpha3.value} already installed with matching sha256 — skipping duplicate download');
       return;
     }
     final DownloadJob job = DownloadJob(alpha3: entry.alpha3, entry: entry, enqueuedAtUtc: DateTime.now().toUtc());
@@ -162,6 +174,19 @@ class PmtilesDownloadController {
     await _persistQueue();
     _emit(DownloadQueued(queue: List<DownloadJob>.unmodifiable(_queue)));
     _startProcessingIfIdle();
+  }
+
+  /// Returns true when [entry.alpha3] is already present in the
+  /// installed manifest AND the installed sha256 matches
+  /// [entry.reassembled.sha256]. A mismatch means the catalog has
+  /// advertised a newer bundle; the caller proceeds with a full
+  /// re-download that will overwrite the stale file via the usual
+  /// commit + manifest-rewrite path.
+  Future<bool> _alreadyInstalledWithMatchingSha(CountryEntry entry) async {
+    final InstalledManifest manifest = await _manifestRepository.read();
+    final InstalledCountry? existing = manifest.installed[entry.alpha3.value];
+    if (existing == null) return false;
+    return existing.sha256 == entry.reassembled.sha256;
   }
 
   /// Rehydrates the queue from the persistent store + resumes processing.

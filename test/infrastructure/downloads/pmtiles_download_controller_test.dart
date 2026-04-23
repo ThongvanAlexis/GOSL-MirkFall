@@ -12,6 +12,7 @@ import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/downloads/download_errors.dart';
 import 'package:mirkfall/domain/downloads/download_job.dart';
 import 'package:mirkfall/domain/downloads/download_state.dart';
+import 'package:mirkfall/domain/installed_maps/installed_country.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
@@ -90,13 +91,27 @@ void main() {
 
   tearDown(() async {
     if (tempDir.existsSync()) {
-      await tempDir.delete(recursive: true);
+      try {
+        await tempDir.delete(recursive: true);
+      } on FileSystemException {
+        // Windows occasionally holds the temp dir open through an
+        // HttpClient that hasn't finished tearing down; a second
+        // delete attempt after a short yield usually succeeds. If it
+        // still fails, we leave the dir to the OS's %TEMP% cleanup —
+        // no test correctness depends on this, only tidiness.
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        try {
+          await tempDir.delete(recursive: true);
+        } on FileSystemException {
+          // Swallow: test passed, just the cleanup couldn't complete.
+        }
+      }
     }
   });
 
-  Future<_Harness> makeController({required HttpChunkDownloader httpDownloader, int freeBytes = 100_000_000}) async {
+  Future<_Harness> makeController({required HttpChunkDownloader httpDownloader, int freeBytes = 100_000_000, InstalledManifest? initialManifest}) async {
     _stubDiskSpaceChannel(freeBytes);
-    final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository();
+    final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository(initial: initialManifest);
     addTearDown(manifest.close);
     final _FakeIosBackupExcluder excluder = _FakeIosBackupExcluder();
     final PmtilesDownloadController controller = PmtilesDownloadController(
@@ -224,6 +239,95 @@ void main() {
         // Single pass over the wire — the second enqueue was dropped.
         expect(srvA.recordedRequests.length, 1, reason: 'duplicate enqueue must not trigger a second download pass');
         expect(controller.queuedJobs, isEmpty, reason: 'queue drained to empty after the single job completes');
+      });
+    });
+  });
+
+  group('PmtilesDownloadController — already-installed dedup (row #10 regression)', () {
+    test('enqueueCountry on an alpha3 already installed with matching sha256 is a no-op', () async {
+      // Regression guard for row #10 (Should): before the fix, tapping
+      // "Télécharger France" a second time after France was already on
+      // disk would trigger a full re-download from scratch even though
+      // the bytes would be identical. The manifest-aware dedup now
+      // drops the enqueue when the installed sha256 matches the
+      // catalog's reassembled.sha256.
+      await _withRealHttpClient(() async {
+        final Uint8List payload = Uint8List.fromList(List<int>.filled(1024, 0xA5));
+        final FakeHttpServer server = await FakeHttpServer.bind(initialBytes: payload);
+        addTearDown(server.close);
+
+        final CountryEntry entry = _entryFor(
+          alpha3Raw: 'fra',
+          chunkPayloads: <Uint8List>[payload],
+          chunkUrls: <String>[server.base.resolve('/fra/part01').toString()],
+        );
+
+        // Pre-seed the manifest as if fra was previously installed with
+        // a sha256 matching the catalog entry.
+        final InstalledCountry alreadyInstalled = InstalledCountry(
+          alpha3: entry.alpha3,
+          installedAtUtc: DateTime.utc(2026, 4, 22),
+          fileSize: entry.reassembled.size,
+          pmtilesVersion: 'v20260419',
+          sha256: entry.reassembled.sha256,
+          filePath: 'maps/countries/fra.pmtiles',
+        );
+        final InstalledManifest seeded = InstalledManifest.empty().copyWithInsert(alreadyInstalled);
+
+        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
+        addTearDown(() => httpDownloader.close(force: true));
+        final _Harness result = await makeController(httpDownloader: httpDownloader, initialManifest: seeded);
+        final PmtilesDownloadController controller = result.controller;
+
+        // Subscribe BEFORE the enqueue so we'd catch any stray event.
+        final List<DownloadState> states = <DownloadState>[];
+        final StreamSubscription<DownloadState> sub = controller.stateStream.listen(states.add);
+        addTearDown(sub.cancel);
+
+        await controller.enqueueCountry(entry);
+
+        // Give the processing loop any chance to run (it shouldn't).
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(server.recordedRequests, isEmpty, reason: 'no network traffic must fire when the bundle is already on disk');
+        expect(controller.queuedJobs, isEmpty, reason: 'no job must be persisted');
+        expect(states.whereType<DownloadInProgress>(), isEmpty, reason: 'no DownloadInProgress must be emitted');
+      });
+    });
+
+    test('enqueueCountry proceeds normally when installed sha256 differs (catalog advertised newer bundle)', () async {
+      await _withRealHttpClient(() async {
+        final Uint8List newerPayload = Uint8List.fromList(List<int>.filled(1024, 0x5A));
+        final FakeHttpServer server = await FakeHttpServer.bind(initialBytes: newerPayload);
+        addTearDown(server.close);
+
+        final CountryEntry entry = _entryFor(
+          alpha3Raw: 'fra',
+          chunkPayloads: <Uint8List>[newerPayload],
+          chunkUrls: <String>[server.base.resolve('/fra/part01').toString()],
+        );
+
+        // Pre-seed with a STALE sha256 (previous version of the bundle).
+        final InstalledCountry staleInstalled = InstalledCountry(
+          alpha3: entry.alpha3,
+          installedAtUtc: DateTime.utc(2026, 4, 22),
+          fileSize: 1024,
+          pmtilesVersion: 'v20260101',
+          sha256: 'f' * 64,
+          filePath: 'maps/countries/fra.pmtiles',
+        );
+        final InstalledManifest seeded = InstalledManifest.empty().copyWithInsert(staleInstalled);
+
+        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
+        addTearDown(() => httpDownloader.close(force: true));
+        final _Harness result = await makeController(httpDownloader: httpDownloader, initialManifest: seeded);
+        final PmtilesDownloadController controller = result.controller;
+
+        final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
+        await controller.enqueueCountry(entry);
+        await completedFuture;
+
+        expect(server.recordedRequests, isNotEmpty, reason: 'mismatched sha256 must trigger a real re-download');
       });
     });
   });
