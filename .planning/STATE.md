@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 08 plan 08-03 (4-parallel-agent audit wave + blanket triage) done
+current_plan: Phase 08 plan 08-04 (adversarial wave) done
 status: executing
-stopped_at: "Completed 08-03-PLAN.md (4-parallel-agent audit wave + blanket triage: 75 findings → 40 fix + 9 refactor + 0 waived + 10 defer-to-v2 + 16 accepted-as-is; .fixes-expected=49 snapshot; Plan 08-04 awaits user OK adversarial signal)"
-last_updated: "2026-04-23T18:50:54.223Z"
+stopped_at: "Completed 08-04-PLAN.md (adversarial wave: 7 inertness-guarded tests + 1 CI gate + 1 throwaway adversarial branch CI red + 2 soak edges + §4 10-block evidence; 8 atomic commits on main from 46c84e0..54f0a4e; .fixes-expected=49 untouched; Plan 08-05 fix-loop unblocked)"
+last_updated: "2026-04-23T19:48:00.000Z"
 last_activity: 2026-04-23
 progress:
   total_phases: 16
   completed_phases: 7
   total_plans: 42
-  completed_plans: 40
-  percent: 95
+  completed_plans: 41
+  percent: 98
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 08 Review Gate — Map — Plan 08-03 done 2026-04-23. §2 fully populated (10 pre-class CONTEXT items + 4 smell heuristics hot-spots + 4 agent structured findings + narrative appendix verbatim). 4 `general-purpose` sub-agents spawned in ONE single tool-use message (Phase 02/04/06 precedent validated FOURTH cycle). Cross-cutting smell-heuristics brief (CLAUDE.md 2026-04-23 delta: fix-on-fix + over-state-machine) operationalized first cycle — 11 smell-tagged findings surfaced. §3 triage filled with user blanket decision: 40 fix + 9 refactor + 0 waived + 10 defer-to-v2 + 16 accepted-as-is = 75 total. `.fixes-expected=49` snapshot written for Plan 08-05 tally. 3 atomic commits on main (4aff041 pre-class + e8908d0 synthesis + 2d77d8a triage). Plan 08-04 (adversarial wave) awaits user unblock signal `OK adversarial` / `§3 validé, go 08-04`.
+**Current focus:** Phase 08 Review Gate — Map — Plan 08-04 done 2026-04-23. §4 Adversarial evidence populated with 10 blocks. 9 tasks executed: 3 integration tests MOVED via git mv + 1 NEW integration test + 3 permanent unit tests + 1 CI gate + paired test + ci.yml amendment + adversarial branch `adversarial/08-style-external-url` pushed + CI red observed (run 24855188920) + branch deleted local+remote + 2 soak edge cases appended. 8 atomic commits on main (46c84e0 → 54f0a4e). Final CI green on main (run 24854744018, run 24855442109 pending post-docs-commit). `.fixes-expected=49` untouched. Plan 08-05 (fix loop) unblocked — 40 fix + 9 refactor findings ready.
 
 ## Current Position
 
-Phase: 08 of 16 (Review Gate — Map) — 3 / 5 plans done — Plan 08-04 (adversarial wave) awaits user unblock signal
-Current Plan: Phase 08 plan 08-03 (4-parallel-agent audit wave + blanket triage) done
-Total Plans in Phase 08: 3 / 5 done
-Status: Phase in progress; Plan 08-04 awaits user `OK adversarial` signal per Plan 08-03 Task 4 resume-signal contract
+Phase: 08 of 16 (Review Gate — Map) — 4 / 5 plans done — Plan 08-05 (fix loop) next
+Current Plan: Phase 08 plan 08-04 (adversarial wave) done
+Total Plans in Phase 08: 4 / 5 done
+Status: Phase in progress; Plan 08-05 (fix loop + CI-green closure) next
 Last Activity: 2026-04-23
 
-Progress: [██████████] 95% — 40 / 42 plans executed across phases 01-08 (Phase 07 formally closed at 7/7 ; Phase 08 3/5 done — Plan 08-03 triage committed 2d77d8a, Plan 08-04 pending user signal).
+Progress: [██████████] 98% — 41 / 42 plans executed across phases 01-08 (Phase 07 formally closed at 7/7 ; Phase 08 4/5 done — Plan 08-04 adversarial wave committed 54f0a4e, Plan 08-05 fix loop pending).
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Progress: [██████████] 95% — 40 / 42 plans executed across
 | Phase 08-review-gate-map P01 | ~5 min (continuation agent, prior session did Task 1) | 3 tasks (Task 1 prior session; Tasks 2+3 this session) | 5 files across 3 atomic commits (08-REVIEW.md + 07-07-SUMMARY.md + 07-07-PLAN.md + ROADMAP.md + REQUIREMENTS.md) |
 | Phase 08-review-gate-map P02 | 2 min | 2 tasks | 1 files |
 | Phase 08-review-gate-map PP03 | 37 min | 4 tasks | 2 files |
+| Phase 08-review-gate-map P04 | ~2h 45m (incl. 3 CI wait cycles) | 9 tasks | 14 files (7 created + 7 modified) across 8 atomic commits on main + 2 throwaway-branch-only commits (deleted post-archive) |
 
 ## Accumulated Context
 
