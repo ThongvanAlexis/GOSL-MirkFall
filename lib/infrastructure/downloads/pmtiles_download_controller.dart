@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/downloads/download_errors.dart';
@@ -417,6 +418,12 @@ class PmtilesDownloadController {
   /// snapshots + [DownloadInProgress] emissions.
   int _accumulatedBytes = 0;
 
+  /// Test-only observer for the byte accumulator. Row #7 regression
+  /// uses this to assert that the internal counter is correct (not
+  /// just the emit-time clamped snapshot).
+  @visibleForTesting
+  int get debugAccumulatedBytes => _accumulatedBytes;
+
   Future<void> _preflight(CountryEntry entry) async {
     final int free = await _diskSpaceChecker.freeBytes(path: _appSupportDir);
     final int needed = (entry.reassembled.size * kDiskSpaceSafetyMarginMultiplier).ceil();
@@ -482,21 +489,36 @@ class PmtilesDownloadController {
     // Account for bytes already on disk; the onProgress callback in
     // _httpDownloadWithRetries tops up the counter as new bytes arrive.
     _accumulatedBytes += localSize;
-    await _httpDownloadWithRetries(part: part, partFile: partFile, job: job, partIndex: partIndex);
+    final DownloadChunkResult? result = await _httpDownloadWithRetries(part: part, partFile: partFile, job: job, partIndex: partIndex);
+    // Row #7 (Should) regression: if the server ignored the Range header
+    // and restarted from byte 0, the onProgress callback has re-added
+    // the full part.size of bytes. Subtract the pre-added localSize to
+    // avoid double-counting (else _accumulatedBytes ends up at
+    // localSize + reassembled.size and subsequent chunks/UI emits report
+    // bogus totals masked only by the clamp at emit-time).
+    if (result == DownloadChunkResult.restartedFrom200) {
+      _log.fine('chunk ${job.alpha3.value}.part$partIndex: 200-OK restart detected — reverting pre-added localSize=$localSize');
+      _accumulatedBytes -= localSize;
+    }
   }
 
   /// Shared download retry loop used by the from-scratch and resume-
   /// partial paths. Emits [DownloadInProgress] at the start of the
   /// chunk and throttled mid-chunk, and [DownloadRetrying] during the
   /// backoff window between attempts.
-  Future<void> _httpDownloadWithRetries({required ChunkPart part, required File partFile, required DownloadJob job, required int partIndex}) async {
+  ///
+  /// Returns the [DownloadChunkResult] from the last (successful)
+  /// attempt so the caller can compensate for byte-count edge cases
+  /// (resume-path needs to un-pre-add localSize when the server
+  /// ignored the Range header — see row #7). Null on cancel.
+  Future<DownloadChunkResult?> _httpDownloadWithRetries({required ChunkPart part, required File partFile, required DownloadJob job, required int partIndex}) async {
     DownloadInterruptedException? lastError;
     for (int attempt = 0; attempt < kDownloadRetryAttempts; attempt++) {
-      if (_cancelRequested) return;
+      if (_cancelRequested) return null;
       try {
         _emitInProgress(job: job, partIndex: partIndex);
         DateTime lastEmit = DateTime.now();
-        await _httpDownloader.downloadWithResume(
+        final DownloadChunkResult result = await _httpDownloader.downloadWithResume(
           url: Uri.parse(part.url),
           destination: partFile,
           onProgress: (int delta, int? _) {
@@ -509,7 +531,7 @@ class PmtilesDownloadController {
             _emitInProgress(job: job, partIndex: partIndex);
           },
         );
-        return;
+        return result;
       } on DownloadInterruptedException catch (e) {
         lastError = e;
         _log.warning('chunk ${job.alpha3.value}.part$partIndex attempt ${attempt + 1} failed: $e');

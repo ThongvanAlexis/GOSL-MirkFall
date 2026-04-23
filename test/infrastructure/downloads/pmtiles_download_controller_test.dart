@@ -430,6 +430,62 @@ void main() {
     });
   });
 
+  group('PmtilesDownloadController — accumulated bytes on 200-OK restart (row #7 regression)', () {
+    test('staged localSize is NOT double-counted when server ignores Range header', () async {
+      // Regression guard for row #7 (Should) : before the fix, when a
+      // resume-partial attempt got 200 OK instead of 206 Partial
+      // Content, the controller had already pre-added `localSize` to
+      // `_accumulatedBytes` under the assumption that the remote would
+      // append only the missing tail. The ServeIgnoringRange path
+      // restarts the download from byte 0 (destination truncated); the
+      // onProgress callback then re-accumulates the FULL part.size of
+      // bytes, so the counter ends up at `localSize + reassembled.size`
+      // — observable here via `debugAccumulatedBytes`. The UI layer
+      // masks the overflow via `clamp()` at emit-time, but the internal
+      // drift bleeds into subsequent-chunk emits of a multi-part job
+      // and produces bogus pause snapshots.
+      //
+      // After the fix, when `downloadWithResume` returns
+      // `DownloadChunkResult.restartedFrom200`, the pre-added
+      // `localSize` is reverted so the final counter equals exactly
+      // `reassembled.size`.
+      await _withRealHttpClient(() async {
+        final Uint8List payload = Uint8List.fromList(List<int>.filled(2048, 0x77));
+        final FakeHttpServer server = await FakeHttpServer.bind(initialBytes: payload);
+        server.behaviour = const ServeIgnoringRange();
+        addTearDown(server.close);
+
+        // Seed a partial chunk with garbage to force the resume path.
+        // Any localSize > 0 and < part.size works.
+        const int localSize = 512;
+        final File stagedPart = File(p.join(tempDir.path, kStagingDir, 'gbr', 'part00'));
+        await stagedPart.parent.create(recursive: true);
+        await stagedPart.writeAsBytes(Uint8List.fromList(List<int>.filled(localSize, 0xEE)));
+
+        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
+        final _Harness result = await makeController(httpDownloader: httpDownloader);
+        final PmtilesDownloadController controller = result.controller;
+
+        final CountryEntry entry = _entryFor(
+          alpha3Raw: 'gbr',
+          chunkPayloads: <Uint8List>[payload],
+          chunkUrls: <String>[server.base.resolve('/gbr/part01').toString()],
+        );
+        final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
+        await controller.enqueueCountry(entry);
+        await completedFuture;
+
+        // The byte accumulator at the end of the job must equal the
+        // reassembled size exactly — not `reassembled.size + localSize`.
+        expect(
+          controller.debugAccumulatedBytes,
+          entry.reassembled.size,
+          reason: 'row #7: 200-OK restart must not double-count the pre-added localSize',
+        );
+      });
+    }, timeout: const Timeout(Duration(seconds: 60)));
+  });
+
   group('PmtilesDownloadController — pause/resume (row #1 Blocker regression)', () {
     test('pause() breaks the processing loop, not busy-spin; resume() finishes the download', () async {
       // Plan 08-05 row #1 Blocker regression. Pre-fix behaviour: when
