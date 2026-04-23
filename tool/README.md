@@ -50,6 +50,71 @@ Reruns cleanly on repeated invocations.
 Canned sqlite3 query script for the DB produced by `walk_db.dart`. Works
 under `sqlite3.exe mirkfall.db < tool/inspect_db.sql` on Windows/POSIX.
 
+### `check_platform_manifests.dart`
+
+Platform-manifest gate: asserts `android/app/src/main/AndroidManifest.xml`
+declares the Phase 05 GPS permissions + Phase 07 `INTERNET` + the
+`BootCompletedReceiver`, and `ios/Runner/Info.plist` carries the location
+usage-description strings (non-empty, no TODO). Exits 1 on any missing or
+placeholder entry.
+
+### `check_avoid_maplibre_leak.dart`
+
+MAP-06 seam gate: asserts `import 'package:maplibre_gl/...'` only appears
+under `lib/infrastructure/map/`. Application / domain / presentation code
+consumes the domain `MapView` interface, not the SDK directly. Prevents
+accidental re-coupling the first time a follow-up renderer is considered.
+
+### `check_avoid_remote_pmtiles.dart`
+
+MAP-05 seam gate: scans every `.dart` / `.json` file under `lib/`, `test/`,
+and `assets/` for `pmtiles://http:` / `pmtiles://https:` URIs (the
+MapLibre PMTiles plugin scheme wrapping HTTP). Enforces the "zero network
+for map tiles" V1.0 promise at lint time rather than at user-reported bug
+time.
+
+### `check_style_no_external_url.dart`
+
+Complement to `check_avoid_remote_pmtiles.dart`: scans
+`assets/maps/style.json` for bare `http[s]://…` URLs in source URLs, tile
+arrays, glyphs path, and sprite path. Catches the "designer pasted a
+Mapbox Studio tile URL" regression that the pmtiles-scheme scanner does
+not see (HTTP tiles in a style.json don't embed the `pmtiles://` wrapper).
+
+### `generate_tiny_pmtiles.dart`
+
+Build-time script that writes a 1 KB stub PMTiles file at
+`test/fixtures/pmtiles/tiny.pmtiles` (PMTiles v3 magic + zero padding).
+Used by the Phase 07 download-soak tests for byte-level checks on the
+reassembled artefact. Idempotent; the output is committed alongside this
+script so CI does not re-run the generator.
+
+### `generate_world_sha256.dart`
+
+Build-time script that stream-reads `assets/maps/world.pmtiles`, computes
+its sha256, and emits `lib/config/world_bundle_sha256.dart` with a single
+`const String kWorldBundleSha256`. Re-run whenever the world bundle is
+updated; the emitted file is committed alongside the asset bump. The
+first-launch world copier uses the const for a zero-cost integrity check
+at boot (closes 07-RESEARCH Open Question #5).
+
+### `prepare_style.dart`
+
+One-shot maintenance script that refreshes the bundled map glyphs +
+sprites from the upstream Protomaps basemaps-assets repository at a
+pinned commit SHA. Intentionally **not** run by CI — invoked manually
+when the upstream assets are updated.
+
+### `simplify_polygons.dart`
+
+One-shot maintenance script that consumes country polygons from the
+user-provided `C:\claude_checkouts\countries\data\<alpha3>.geo.json`
+tree and emits axis-aligned bounding-box simplifications under
+`assets/maps/polygons/<alpha3>.geo.json`. The Phase 07 country resolver
+uses those bounding boxes to answer "is this viewport centre inside
+alpha3?" at load time. Re-run manually whenever the source polygons
+change.
+
 ---
 
 ## Python tooling (Phase 05)
