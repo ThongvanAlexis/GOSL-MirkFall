@@ -213,6 +213,37 @@ class _MapLibreMapViewWidgetState extends State<MapLibreMapViewWidget> {
 /// yields blank tiles. `setStyle` is the correct path in maplibre_gl
 /// 0.25.0. Full-style re-parse is slower than a source swap but
 /// negligible on the Phase 07 world+country style skeleton.
+///
+/// Bundles the two pieces of user-location puck bookkeeping that always
+/// mutate together — prevents them from drifting into independent flags
+/// scattered across [showMap] / [setUserLocation] (row #21 fix-on-fix
+/// smell).
+///
+/// - [layerInstalled] : whether the GeoJSON source + circle layer
+///   currently exist on the MapLibre style. Flipped false by [showMap]
+///   because `setStyle` wipes every runtime annotation.
+/// - [lastFix] : most recent fix pushed through [setUserLocation].
+///   Retained across style swaps so [showMap] can re-apply the puck on
+///   the freshly-loaded style.
+class _UserLocationPuckState {
+  const _UserLocationPuckState({this.layerInstalled = false, this.lastFix});
+
+  final bool layerInstalled;
+  final Fix? lastFix;
+
+  /// After a `setStyle` call: the layer is gone, but retain [lastFix]
+  /// so the caller can re-apply the puck on the new style.
+  _UserLocationPuckState markLayerWiped() => _UserLocationPuckState(lastFix: lastFix);
+
+  /// After a successful `addGeoJsonSource` + `addCircleLayer` pair.
+  _UserLocationPuckState markLayerInstalled() => _UserLocationPuckState(layerInstalled: true, lastFix: lastFix);
+
+  /// Record the fix that was just pushed (null clears the puck intent).
+  /// Layer-installed bit is preserved — the fix value is independent
+  /// of whether the style currently hosts the layer.
+  _UserLocationPuckState withFix(Fix? fix) => _UserLocationPuckState(layerInstalled: layerInstalled, lastFix: fix);
+}
+
 class _MapLibreMapViewAdapter implements MapView {
   _MapLibreMapViewAdapter({required MapLibreMapController controller, required StyleRewriter styleRewriter, required PmtilesSource pmtilesSource})
     : _controller = controller,
@@ -263,14 +294,14 @@ class _MapLibreMapViewAdapter implements MapView {
   /// A caller-owned source + layer sidesteps the AnnotationManager
   /// entirely — we re-add explicitly in [showMap] when the flip
   /// below says so.
-  bool _userLocationLayerInstalled = false;
-
-  /// Last fix pushed through [setUserLocation]. Retained so [showMap] can
-  /// re-apply the puck after a `setStyle` swap — MapLibre wipes every
-  /// runtime annotation (addCircle/addSymbol) during a style change, so
-  /// the Circle pointer goes stale and a fresh `addCircle` is required
-  /// once the new style has loaded.
-  Fix? _lastUserLocationFix;
+  ///
+  /// Groups the two pieces of puck state that always mutate together:
+  /// - [layerInstalled] : whether the GeoJSON source + circle layer
+  ///   currently exist on the MapLibre style. Reset to `false` by
+  ///   [showMap] because `setStyle` wipes runtime annotations.
+  /// - [lastFix] : most recent fix pushed through [setUserLocation],
+  ///   retained so [showMap] can re-apply the puck on the new style.
+  _UserLocationPuckState _puckState = const _UserLocationPuckState();
 
   late final VoidCallback _cameraListener;
   bool _followMe = false;
@@ -298,9 +329,10 @@ class _MapLibreMapViewAdapter implements MapView {
 
     // Flip the installed flag — setStyle wiped every non-initial
     // source + layer. The next setUserLocation call will re-install
-    // the GeoJSON source + circle layer from scratch.
-    _userLocationLayerInstalled = false;
-    final Fix? restore = _lastUserLocationFix;
+    // the GeoJSON source + circle layer from scratch. Preserve
+    // [lastFix] so it can be re-applied below.
+    _puckState = _puckState.markLayerWiped();
+    final Fix? restore = _puckState.lastFix;
     if (restore != null) {
       _log.info('showMap(${country?.value ?? 'world'}): re-applying user-location puck');
       await setUserLocation(restore);
@@ -337,9 +369,9 @@ class _MapLibreMapViewAdapter implements MapView {
   @override
   Future<void> setUserLocation(Fix? fix) async {
     if (!_aliveOrLog('setUserLocation')) return;
-    _lastUserLocationFix = fix;
+    _puckState = _puckState.withFix(fix);
     if (fix == null) {
-      if (_userLocationLayerInstalled) {
+      if (_puckState.layerInstalled) {
         // Hide by clearing source data — leaves the layer in place
         // for cheap re-show on the next fix, avoids a re-add cycle.
         await _controller.setGeoJsonSource(_kUserLocationSourceId, _emptyFeatureCollection());
@@ -348,7 +380,7 @@ class _MapLibreMapViewAdapter implements MapView {
       return;
     }
     final Map<String, dynamic> geojson = _pointFeatureCollection(longitude: fix.longitude, latitude: fix.latitude);
-    if (!_userLocationLayerInstalled) {
+    if (!_puckState.layerInstalled) {
       // First call on this style: install the source + layer via the
       // regular style addSource/addLayer method-channel calls. This
       // path does NOT go through the AnnotationManager.
@@ -363,7 +395,7 @@ class _MapLibreMapViewAdapter implements MapView {
         // [MapView] port stays the same.
         const CircleLayerProperties(circleRadius: 7.0, circleColor: '#2b7cd6', circleStrokeColor: '#ffffff', circleStrokeWidth: 2.0),
       );
-      _userLocationLayerInstalled = true;
+      _puckState = _puckState.markLayerInstalled();
       _log.info('setUserLocation: puck source+layer INSTALLED at (${fix.latitude}, ${fix.longitude})');
     } else {
       // Update the source data only — a single method-channel call,
