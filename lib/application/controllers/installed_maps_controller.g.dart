@@ -85,7 +85,7 @@ final class InstalledMapsControllerProvider extends $NotifierProvider<InstalledM
   }
 }
 
-String _$installedMapsControllerHash() => r'e30289058a298c87e39c7aebfb11b34351843c0f';
+String _$installedMapsControllerHash() => r'ed0a69331cdf23eee5ade9f2ae3e05c8459001b1';
 
 /// Presentation-facing view over the installed-maps manifest + catalog.
 ///

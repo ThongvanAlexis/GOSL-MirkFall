@@ -2,13 +2,10 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-import 'dart:async';
-
 import 'package:logging/logging.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/domain/installed_maps/installed_country.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
-import 'package:mirkfall/domain/installed_maps/installed_manifest_repository.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -55,51 +52,24 @@ class InstalledMapsState {
 class InstalledMapsController extends _$InstalledMapsController {
   static final Logger _log = Logger('application.controllers.installed_maps');
 
-  StreamSubscription<InstalledManifest>? _manifestSub;
-  InstalledManifest _latestManifest = InstalledManifest.empty();
-
   @override
   InstalledMapsState build() {
-    // Catalog is read via ref.watch so the derived state refreshes on
-    // catalog load (first-frame AsyncLoading -> AsyncData transition).
-    final catalogSnap = ref.watch(countryCatalogProvider);
+    // Catalog + manifest both flow through the existing providers.
+    // Row #13 (Should) — previously this controller opened a direct
+    // `repo.updates.listen(...)` subscription next to the
+    // `installedManifestProvider` StreamProvider, producing two
+    // parallel listener paths over the same broadcast stream. Using
+    // `ref.watch` on the provider is the idiomatic Riverpod way; the
+    // StreamProvider already seeds from `repo.read()` on subscribe +
+    // forwards `repo.updates`, and `keepAlive: true` on both this
+    // controller and the StreamProvider guarantees a single subscriber.
+    final AsyncValue<CountryCatalog> catalogSnap = ref.watch(countryCatalogProvider);
+    final AsyncValue<InstalledManifest> manifestSnap = ref.watch(installedManifestProvider);
+
     final CountryCatalog? catalog = catalogSnap.value;
+    final InstalledManifest manifest = manifestSnap.value ?? InstalledManifest.empty();
 
-    ref.onDispose(() async {
-      await _manifestSub?.cancel();
-      _manifestSub = null;
-    });
-
-    // Attach directly to the manifest repository's broadcast stream
-    // rather than going through the StreamProvider layer — the
-    // StreamProvider's value propagation to ref.watch has timing
-    // edge cases we would rather not race with. Also seed the initial
-    // _latestManifest from a synchronous read so the first build()
-    // already reflects on-disk state.
-    _attachRepoListenerIfNeeded();
-
-    return _derive(manifest: _latestManifest, catalog: catalog);
-  }
-
-  void _attachRepoListenerIfNeeded() {
-    if (_manifestSub != null) return;
-    unawaited(() async {
-      try {
-        final InstalledManifestRepository repo = await ref.read(installedManifestRepositoryProvider.future);
-        final InstalledManifest initial = await repo.read();
-        _latestManifest = initial;
-        // Rebuild with the freshly-read manifest.
-        final catalogSnap = ref.read(countryCatalogProvider);
-        state = _derive(manifest: _latestManifest, catalog: catalogSnap.value);
-        _manifestSub = repo.updates.listen((m) {
-          _latestManifest = m;
-          final catalogSnap = ref.read(countryCatalogProvider);
-          state = _derive(manifest: _latestManifest, catalog: catalogSnap.value);
-        });
-      } on Object catch (e, st) {
-        _log.warning('failed to attach manifest listener', e, st);
-      }
-    }());
+    return _derive(manifest: manifest, catalog: catalog);
   }
 
   /// Deletes a country via the Plan 07-04 [CountryDeleteService]. The

@@ -85,13 +85,18 @@ void main() {
     await repo.write(manifest);
     await container.read(countryCatalogProvider.future);
 
-    // Trigger controller build + let ref.watch pump the catalog + manifest.
-    container.read(installedMapsControllerProvider);
+    // Attach a listener so `ref.watch` on the upstream StreamProvider
+    // keeps re-triggering this controller's `build()` as the stream
+    // emits. Without a listener, Riverpod treats the controller as
+    // unused and does not propagate dependency changes, even with
+    // `keepAlive: true`.
+    final ProviderSubscription<InstalledMapsState> sub = container.listen<InstalledMapsState>(installedMapsControllerProvider, (_, _) {});
+    addTearDown(sub.close);
     // Poll until the state reflects the seeded manifest (StreamProvider's
     // first emission is async: it awaits repo.read() then yields).
     for (int i = 0; i < 40; i++) {
       await Future<void>.delayed(const Duration(milliseconds: 25));
-      final s = container.read(installedMapsControllerProvider);
+      final InstalledMapsState s = container.read(installedMapsControllerProvider);
       if (s.installed.length == installed.length) break;
     }
     return container;
