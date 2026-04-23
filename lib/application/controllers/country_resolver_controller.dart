@@ -11,7 +11,6 @@ import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_view.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderSubscription;
 import 'package:mirkfall/infrastructure/map/country_resolver.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -65,8 +64,10 @@ class CountryResolverState {
 /// - Result is `null` (water / zoom<3) → set activeCountry=null +
 ///   `mapView.showMap(null)` switches to the world bundle.
 ///
-/// Re-derivation trigger: [installedManifestProvider] changes (country
-/// added / removed) cause a rebuild of the internal [CountryResolver]
+/// Re-derivation trigger: the controller subscribes directly to the
+/// installed-manifest repository's broadcast stream (see
+/// [_attachManifestListenerIfNeeded]). Every manifest write (country
+/// added / removed) triggers a rebuild of the internal [CountryResolver]
 /// polygon map via [CountryPolygonLoader]. The controller re-runs the
 /// resolve on the last-known viewport + emits the new active state.
 @Riverpod(keepAlive: true)
@@ -80,7 +81,7 @@ class CountryResolverController extends _$CountryResolverController {
 
   MapView? _mapView;
   StreamSubscription<({double latitude, double longitude, double zoom})>? _viewportSub;
-  ProviderSubscription<AsyncValue<InstalledManifest>>? _manifestSub;
+  StreamSubscription<InstalledManifest>? _manifestSub;
   Timer? _debounceTimer;
   ({double latitude, double longitude, double zoom})? _lastViewport;
   CountryResolver _resolver = CountryResolver(installedPolygons: const <CountryCode, List<CountryPolygonRing>>{});
@@ -184,34 +185,35 @@ class CountryResolverController extends _$CountryResolverController {
     );
   }
 
-  StreamSubscription<InstalledManifest>? _manifestStreamSub;
-
+  /// Single-path manifest listener: subscribes directly to
+  /// `repo.updates` (a broadcast stream) and triggers a resolver
+  /// rebuild on every manifest write. Reads the current manifest once
+  /// at attach-time to seed the resolver so the first `_resolveAndApply`
+  /// call does not race an empty polygon table.
+  ///
+  /// Why not `ref.listen(installedManifestProvider)`: the StreamProvider
+  /// wrapper around `repo.updates` introduces an async boot window
+  /// (`yield await repo.read()` then `yield* repo.updates`) where early
+  /// writes can be swallowed. Subscribing straight to the broadcast
+  /// stream removes that boot race and collapses the two parallel paths
+  /// the controller previously maintained (§3 row #12).
   void _attachManifestListenerIfNeeded() {
-    // Primary path: watch installedManifestProvider. Triggers a rebuild
-    // whenever the StreamProvider emits a new manifest.
-    _manifestSub ??= ref.listen<AsyncValue<InstalledManifest>>(installedManifestProvider, (previous, next) {
-      final value = next.value;
-      if (value != null) {
-        unawaited(_rebuildResolver(value));
+    if (_manifestSub != null) return;
+    unawaited(() async {
+      try {
+        final repo = await ref.read(installedManifestRepositoryProvider.future);
+        // Seed the resolver with whatever the repo currently holds —
+        // covers the test scenario where the manifest is written BEFORE
+        // the controller boots, plus the cold-start case where the
+        // first rebuild needs the initial polygons loaded.
+        unawaited(_rebuildResolver(await repo.read()));
+        _manifestSub = repo.updates.listen((m) {
+          unawaited(_rebuildResolver(m));
+        });
+      } on Object catch (e, st) {
+        _log.warning('failed to attach manifest stream listener', e, st);
       }
-    }, fireImmediately: true);
-    // Secondary path: listen directly to the repo's broadcast stream —
-    // ensures resolver rebuilds even if the StreamProvider layer has not
-    // been subscribed (test scenarios that bypass the provider +
-    // production races where the controller is driven before the
-    // UI tree mounts a ConsumerWidget that watches the manifest).
-    if (_manifestStreamSub == null) {
-      unawaited(() async {
-        try {
-          final repo = await ref.read(installedManifestRepositoryProvider.future);
-          _manifestStreamSub = repo.updates.listen((m) {
-            unawaited(_rebuildResolver(m));
-          });
-        } on Object catch (e, st) {
-          _log.warning('failed to attach manifest stream listener', e, st);
-        }
-      }());
-    }
+    }());
   }
 
   Future<void> _rebuildResolver(InstalledManifest manifest) async {
@@ -316,10 +318,8 @@ class CountryResolverController extends _$CountryResolverController {
     _debounceTimer = null;
     _viewportSub?.cancel();
     _viewportSub = null;
-    _manifestSub?.close();
+    _manifestSub?.cancel();
     _manifestSub = null;
-    _manifestStreamSub?.cancel();
-    _manifestStreamSub = null;
     _mapView = null;
   }
 }
