@@ -126,6 +126,20 @@ jobs:
       - name: Check avoid_remote_pmtiles
         run: dart run tool/check_avoid_remote_pmtiles.dart
 
+      # Phase 08 plan 08-04 — offline-only style gate. Scans
+      # `assets/maps/style.json` for external http[s]:// URLs in the
+      # known URL-bearing fields (sources.*.url, sources.*.tiles[],
+      # glyphs, sprite). Companion to `check_avoid_remote_pmtiles`
+      # (which catches `pmtiles://http[s]:` scheme wrappers). This
+      # scanner catches bare HTTP URLs in tile arrays that the pmtiles-
+      # scheme scanner would miss — a designer pasting a Mapbox Studio
+      # tile URL into a style-variant commit would flip airplane-mode
+      # UX red without this gate. Exit 0/1/2 contract; paired unit test
+      # under tool/test/check_style_no_external_url_test.dart (picked
+      # up by the existing `Tool scripts unit tests` step above).
+      - name: Check style no external URL
+        run: dart run tool/check_style_no_external_url.dart
+
       - name: Flutter unit + widget tests
         run: flutter test
 
