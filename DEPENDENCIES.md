@@ -242,6 +242,20 @@ Assets bundled inside the APK/IPA that are **not** resolved by `flutter pub get`
 | World bundle PMTiles (z0-2) | `C:\claude_checkouts\files_for_mirkfall\world-z2.pmtiles` (user-provided) | Data = ODbL 1.0 (OSM via Protomaps) | Phase 07 plan 07-01 — 856 KB zoom-0-through-2 world tile bundle. Copied byte-identical into `assets/maps/world.pmtiles`; sha256 emitted at build-time into `lib/config/world_bundle_sha256.dart` by `tool/generate_world_sha256.dart`. Non-deletable floor per MAP-07. | 2026-04-20 |
 | Country polygons (bounding simplification) | `C:\claude_checkouts\countries\data\<alpha3>.geo.json` (user-provided, derived from OSM admin boundaries) | ODbL 1.0 (OSM derivation) | Phase 07 plan 07-01 — simplified GeoJSON polygons used by `country_resolver.dart` (Phase 07 plan 07-03 scope) for viewport-center → alpha3 decisions. Simplification done one-shot via `mapshaper` or equivalent; ≤ 5 MB total budget. Attribution covered by the same OSM ODbL notice as the PMTiles bundles. | 2026-04-20 |
 
+## SDK-bundled test harnesses
+
+Test-only harnesses shipped with the Flutter SDK itself (`sdk: flutter`
+in `pubspec.yaml`). They are not resolved from pub.dev, have no
+versioned row in `pubspec.lock` beyond `version: "0.0.0"` + `source: sdk`,
+and are therefore out of scope for `tool/check_dependencies_md.dart`
+(which only reconciles pub.dev-correlated rows). Listed here so the
+audit trail covers every dev surface.
+
+| Harness | License | Notes | Date |
+|---------|---------|-------|------|
+| flutter_test | BSD-3-Clause | SDK-shipped widget/unit testing framework. Pulls `fake_async`, `leak_tracker*`, `matcher`, `test_api`, `mockito` transitively (all in the Transitive dependencies table above). Never linked into release APK/IPA. | 2026-04-17 |
+| integration_test | BSD-3-Clause | Phase 07 plan 07-07 — SDK-shipped harness that lets `flutter test integration_test/` discover tests under the top-level `integration_test/` directory. MirkFall tests pump `MapScreen` under a `FakeMapView` override so they run under the VM (no emulator needed in CI). Pulls `webdriver`, `process`, `sync_http` transitively (all documented in the Transitive dependencies table). Dev-only, never linked into release APK/IPA. Added 2026-04-21. | 2026-04-21 |
+
 ## Tooling / GitHub Actions
 
 Third-party GitHub Actions to be used by the CI pipeline (Plan 01-04).
