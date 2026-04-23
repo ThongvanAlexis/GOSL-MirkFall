@@ -466,47 +466,214 @@ Secondary smells: `DownloadCompleted/Cancelled` drop full DownloadJob (finding #
 ### Test 1: integration_test/airplane_mode_test.dart (MOVE + inertness guards)
 *`git mv` from `test/phase_07_integration/airplane_mode_test.dart` → `integration_test/airplane_mode_test.dart`, add `@Tags(['integration'])`, add inertness guard (pre-assert `FakeMapView.showMapInvocations.isNotEmpty` before asserting `_FailAllHttpClient.invocationCount == 0`). Covers MAP-01 subset of QUAL-05.*
 
-(pending)
+- **File:** `integration_test/airplane_mode_test.dart`
+- **Type:** permanent regression guard (integration test, `@Tags(['integration'])`)
+- **Covers:** MAP-01 + QUAL-05 subset (airplane-mode zero tile HTTP)
+- **Commit hash:** `46c84e0` — `test(08-rev): move 3 Phase 07 integration tests to integration_test/ + inertness guards` (shared with Tests #2 + #3 via a single `git mv` commit — see rename detection in `git log --follow`)
+- **Verify command:** `flutter test integration_test/airplane_mode_test.dart`
+- **Test run result:** PASS 2026-04-23 (1/1 testWidgets)
+- **Inertness guard (quote):**
+  ```dart
+  // Inertness guard (Plan 08-04): prove the showMap code path was
+  // actually exercised before we assert zero HTTP invocations.
+  expect(
+    fakeMapView.showMapInvocations.isNotEmpty,
+    isTrue,
+    reason: 'FakeMapView.showMap never invoked — test would be inert (pump did not reach MapScreen render path).',
+  );
+  ```
+- **Mutation experiment (author-time):** Skipped the `await fakeMapView.showMap(...)` country-switch calls inside the pump body. Re-ran `flutter test integration_test/airplane_mode_test.dart` and observed FAIL with the reason `FakeMapView.showMap never invoked — test would be inert…`. Restored the calls, re-ran, green. Documented inline at the file header.
 
 ### Test 2: integration_test/first_launch_world_copy_test.dart (MOVE + inertness guards)
 *`git mv` from `test/phase_07_integration/first_launch_world_copy_test.dart` → `integration_test/first_launch_world_copy_test.dart`, add inertness guards per §4 Test #2 contract. Covers MAP-07 + auto-heal (scenarios A/B/C).*
 
-(pending)
+- **File:** `integration_test/first_launch_world_copy_test.dart`
+- **Type:** permanent regression guard (integration test, `@Tags(['integration'])`)
+- **Covers:** MAP-07 (world-bundle copy + auto-heal), scenarios A (fresh clean tempdir) / B (idempotent no-op) / C (corrupt-byte heal)
+- **Commit hash:** `46c84e0` (shared move commit)
+- **Verify command:** `flutter test integration_test/first_launch_world_copy_test.dart`
+- **Test run result:** PASS 2026-04-23 (3/3 tests)
+- **Inertness guards (quotes):**
+  ```dart
+  // Scenario A — clean-tempdir precondition
+  expect(target.existsSync(), isFalse, reason: 'precondition: tempdir must be clean — test would be inert otherwise');
+
+  // Scenario C — byte-flip-actually-corrupts precondition
+  expect(
+    sha256.convert(await target.readAsBytes()).toString(),
+    isNot(worldSha256),
+    reason: 'precondition: file must be corrupted after the flip — test would be inert otherwise',
+  );
+  ```
+- **Mutation experiment (author-time):** Neutralised the byte-flip in scenario C (wrote the original bytes back instead of corrupting). Re-ran `flutter test integration_test/first_launch_world_copy_test.dart` → FAILED with the corrupted-sha inertness-guard reason (pre-fix-sha matched worldSha256 so the next `ensureInstalled` short-circuits). Restored the flip → green.
 
 ### Test 3: integration_test/map_end_to_end_test.dart (MOVE + inertness guards)
 *`git mv` from `test/phase_07_integration/map_end_to_end_test.dart` → `integration_test/map_end_to_end_test.dart`, add inertness guards. Covers MAP-08/09/10 full user journey (download + display + delete + fallback).*
 
-(pending)
+- **File:** `integration_test/map_end_to_end_test.dart`
+- **Type:** permanent regression guard (integration test, `@Tags(['integration'])`)
+- **Covers:** MAP-08/09/10 subset — Aruba download flow + MapsManageScreen post-install listing + "Monde (intégré)" non-deletable floor
+- **Commit hash:** `46c84e0` (shared move commit)
+- **Verify command:** `flutter test integration_test/map_end_to_end_test.dart`
+- **Test run result:** PASS 2026-04-23 (2/2 testWidgets)
+- **Inertness guards (quotes) — 4 guards distributed at journey steps:**
+  ```dart
+  // Step 1 — catalog rendered
+  expect(find.text('Aruba'), findsOneWidget, reason: 'catalog list must render Aruba — test would be inert otherwise');
+  // Step 2 — confirm dialog opened post-tap
+  expect(find.text('Télécharger Aruba ?'), findsOneWidget, reason: 'download-confirm dialog must open — test would be inert otherwise');
+  // Step 3 — enqueue observed post-confirm-tap
+  expect(fakeDownload.enqueueObservations, isNotEmpty, reason: 'no enqueue observed at tap step — test would be inert');
+  // Manage-screen — seeded state surfaces
+  expect(
+    fakeInstalled.build().installed.containsKey(CountryCode.parse('abw')),
+    isTrue,
+    reason: 'fakeInstalled did not expose Aruba — test would be inert',
+  );
+  ```
+- **Mutation experiment (author-time):** Skipped the `tester.tap(find.text('Aruba'))` call — the enqueue observation would stay empty. Re-ran `flutter test integration_test/map_end_to_end_test.dart` → FAILED on the `enqueueObservations, isNotEmpty` guard with reason "no enqueue observed at tap step — test would be inert". Restored the tap → green.
 
 ### Test 4: integration_test/phase_07_navigation_test.dart (NEW)
 *Brand-new file. Covers router 5 new routes + back-navigation + deep-links for Phase 07 screens (/map + /maps-download + /maps-manage + /style-import + /style-export). Inertness guard: pre-assert GoRouter received push/go events AND screens emitted a build().*
 
-(pending)
+- **File:** `integration_test/phase_07_navigation_test.dart`
+- **Type:** permanent regression guard (integration test, `@Tags(['integration'])`)
+- **Covers:** Phase 07 router 5 new routes (/map + /maps/download + /maps/manage + /styles/import + /styles/export) + back-nav sanity (canPop=false after go + `go('/')` fallback) + 2 deep-link scenarios
+- **Commit hash:** `8103312` — `test(08-rev): add integration_test/phase_07_navigation_test.dart`
+- **Verify command:** `flutter test integration_test/phase_07_navigation_test.dart`
+- **Test run result:** PASS 2026-04-23 (8/8 testWidgets)
+- **Inertness guards (quotes) — per-scenario home-rendered + active-location match:**
+  ```dart
+  // Home button rendered before navigation driven
+  expect(find.text('push /map'), findsOneWidget, reason: 'home screen did not render /map push button — test inert');
+  // Navigation landed on target (not home '/')
+  expect(_activeLocation(router), equals('/map'), reason: 'router did not navigate to /map — test inert');
+  // Deep-link: initialLocation propagated
+  expect(_activeLocation(router), equals('/styles/import'), reason: 'router initialLocation did not stick — test inert');
+  ```
+- **Mutation experiment (author-time):** Replaced `router.go('/map')` with a no-op call in the forward tests → each FAILED loudly with the active-location inertness-guard reason "router did not navigate to /map — test inert". Restored → green. Navigation API choice (`router.go` rather than `router.push`) documented inline: go_router's `push` routes through RouteInformationProvider + platform channels that do not deterministically flush under the integration_test binding.
 
 ### Test 5: test/infrastructure/assets/world_bundle_sha256_test.dart (NEW permanent unit test)
 *Recompute sha256 of `assets/maps/world.pmtiles` via `crypto sha256.bind` streaming + assert equal to `kWorldBundleSha256` constant. Inertness guard: file exists + size > 0. Protects against asset-change-without-constant-update silent drift.*
 
-(pending)
+- **File:** `test/infrastructure/assets/world_bundle_sha256_test.dart`
+- **Type:** permanent regression guard (pure-Dart unit test)
+- **Covers:** `kWorldBundleSha256` drift detection — catches `assets/maps/world.pmtiles` regeneration without matching `tool/generate_world_sha256.dart` re-run (would otherwise loop FirstLaunchWorldCopier auto-heal on every launch)
+- **Commit hash:** `b28e25d` — `test(08-rev): add 3 permanent unit tests — world-bundle-sha256 + manifest-atomicity + no-httpclient-scan` (shared with Tests #6 + #7)
+- **Verify command:** `dart test test/infrastructure/assets/world_bundle_sha256_test.dart`
+- **Test run result:** PASS 2026-04-23 (1/1 test, current sha `62782f3bbc16bc3d3d005299007374d3e281dcdc97e5282ec04c027e867f38d6`)
+- **Inertness guard (quote):**
+  ```dart
+  expect(
+    bundleFile.existsSync(),
+    isTrue,
+    reason: 'assets/maps/world.pmtiles missing — test inert. A refactor that renames the asset without updating this path would silently pass on an empty-stream sha256 comparison.',
+  );
+  expect(bundleFile.lengthSync(), greaterThan(0), reason: 'assets/maps/world.pmtiles is empty — test inert (empty-stream sha256 would be compared).');
+  ```
+- **Mutation experiment (author-time):** Temporarily set `kWorldBundleSha256` to a hex-digit-flipped wrong constant. Ran `dart test test/infrastructure/assets/world_bundle_sha256_test.dart` → FAILED loudly with the "world.pmtiles asset drifted from kWorldBundleSha256 constant" message. Reverted → green.
 
 ### Test 6: test/infrastructure/downloads/manifest_atomicity_contract_test.dart (NEW permanent unit test)
 *Inject FS fake throwing at 4 points (before tempfile, during tempfile write, after tempfile write, during rename) + assert post-throw file state is either unchanged or totally updated. Inertness guard: fake FS received ≥ 1 write before throw. Complements the 6 soak scenarios with a narrow repo-level contract.*
 
-(pending)
+- **File:** `test/infrastructure/downloads/manifest_atomicity_contract_test.dart`
+- **Type:** permanent regression guard (pure-Dart unit test)
+- **Covers:** `JsonFileInstalledManifestRepository` atomicity contract — 4 scenarios over real tempdir I/O (no FS-injection seam; design note inline): happy write / stale `.tmp` sibling tolerance / concurrent-write mutex serialization / broadcast-stream ordering
+- **Commit hash:** `b28e25d` (shared permanent-unit-test commit)
+- **Verify command:** `dart test test/infrastructure/downloads/manifest_atomicity_contract_test.dart`
+- **Test run result:** PASS 2026-04-23 (4/4 tests)
+- **Inertness guards (quotes):**
+  ```dart
+  // Scenario 1: clean tempdir precondition
+  expect(File(canonicalPath).existsSync(), isFalse, reason: 'tempdir not clean — test inert');
+  // Scenario 2: initial write actually landed
+  expect(initialContents.isNotEmpty, isTrue, reason: 'initial write did not materialise — test inert (later .tmp-sibling check would not discriminate)');
+  // Scenario 3: concurrent writes produced a file
+  expect(File(canonicalPath).existsSync(), isTrue, reason: 'concurrent writes produced no canonical file — test inert');
+  // Scenario 4: broadcast stream actually emitted
+  expect(observed, isNotEmpty, reason: 'broadcast stream emitted no events — test inert');
+  ```
+- **Mutation experiment (author-time):** Locally replaced `await tmp.rename(_filename)` with `await tmp.copy(_filename)` (breaks atomicity: copy is non-atomic on Windows + leaves the `.tmp` hanging). Ran the suite → scenario 2 (stale `.tmp` tolerance) diverged on the `.tmp`-cleanup observation. Noted inline that this test is necessary but not sufficient — the soak scenarios cover end-to-end kill-mid-rename paths. Reverted → green.
+- **Design note (documented inline):** The repo deliberately has no FS-injection seam per CLAUDE.md §Wrappers. The test exercises atomicity via real I/O + tempdir snapshots rather than a mock FS, which is both more faithful + less cargo-cult than a delegation-wrapper + FakeFileSystem interface.
 
 ### Test 7: test/infrastructure/network/no_httpclient_in_unit_tests_test.dart (NEW permanent unit test)
 *Pure-Dart scan `test/` (exclude `integration_test/` + files with `@Tags(['integration'])`) for `HttpClient()` / `http.Client()` / `Dio()` patterns. Inertness guard: scan visited ≥ N files. Protects against unit tests silently acquiring real network.*
 
-(pending)
+- **File:** `test/infrastructure/network/no_httpclient_in_unit_tests_test.dart`
+- **Type:** permanent regression guard (pure-Dart unit test, meta-scan)
+- **Covers:** static-level network isolation — complements `integration_test/airplane_mode_test.dart` runtime-level isolation (a unit test that instantiates `HttpClient()` directly would sneak past the runtime HttpOverrides scope)
+- **Commit hash:** `b28e25d` (shared permanent-unit-test commit)
+- **Verify command:** `dart test test/infrastructure/network/no_httpclient_in_unit_tests_test.dart`
+- **Test run result:** PASS 2026-04-23 (1/1 test; scan visited ~110 `.dart` files under `test/` with zero violations)
+- **Inertness guard (quote):**
+  ```dart
+  expect(
+    dartFiles.length,
+    greaterThan(50),
+    reason: 'test/ scan visited only ${dartFiles.length} Dart files — test inert. A refactor renaming or emptying test/ without updating this test would silently pass the "no violations" check on an empty set.',
+  );
+  ```
+- **Mutation experiment (author-time):** Temporarily added `final _c = HttpClient();` to `test/infrastructure/db/app_database_test.dart`. Ran `dart test test/infrastructure/network/no_httpclient_in_unit_tests_test.dart` → FAILED loudly listing the violating file + line. Removed the line → green.
+- **Exclusions (documented inline):** files with `@Tags(['integration'])` or `@Tags(['soak'])` are skipped (integration tests legitimately spin up shelf servers; soak tests use `_RealHttpOverrides`). Lines containing `fake` / `Fake` (case-insensitive) + lines with `implements HttpClient` / `extends HttpClient` are treated as fake-class definitions, not instantiations.
 
 ### Test 8: tool/check_style_no_external_url.dart adversarial CI run (throwaway branch adversarial/08-style-external-url)
 *Branch `adversarial/08-style-external-url`: poison commit injects `"url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png"` into `assets/maps/style.json`. CI step `Check style no external URL` (added to `.github/workflows/ci.yml` `gates` job in Plan 08-04) MUST fail with exit 1 and stderr identifying the file path + JSON path + offending URL. Branch deleted local + remote post-archivage; main `on.push.branches` stays `[main]`-only.*
 
-(pending)
+- **Type:** throwaway adversarial branch → real CI red
+- **Branch:** `adversarial/08-style-external-url` (deleted local + remote post-archive)
+- **Poison commit hash:** `5a4610d` — `poison(adversarial/08): inject https tile URL in style.json to exercise check_style_no_external_url` (injected `"tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.pbf"]` into `sources.mirkfall_map`)
+- **CI trigger expansion commit hash:** `06b19e5` — `ci(adversarial/08): expand on.push.branches to include adversarial/**` (inline expansion on THIS branch only; main's trigger stays `[main]`-only)
+- **CI run URL:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24855188920
+- **CI run conclusion:** `failure` (gates job) — Build Android + iOS `skipped` (proper `needs: gates` dependency)
+- **Failed step:** step #12 `Tool scripts unit tests` — fired before step #17 `Check style no external URL` because the paired test's scenario 1 runs against the REAL production style.json path (now poisoned on the branch) and expected exit 0, got exit 1. BOTH code paths proven in one run: (a) the scanner itself emits exit 1 with correct stderr, (b) the paired test catches the drift via the same library entry point. The scanner stderr was also printed in-log ahead of the test failure — double-coverage evidence.
+- **Exit code:** 1 (policy violation, matches `runCheck()` contract)
+- **Stderr excerpt (verbatim from CI log):**
+  ```
+  check_style_no_external_url: 1 external URL(s) detected in assets/maps/style.json:
+    assets/maps/style.json: sources.mirkfall_map.tiles[0] = https://tile.openstreetmap.org/{z}/{x}/{y}.pbf
+
+  Rule (MAP-05 / MAP-09): MirkFall renders offline-only. Any http[s]:// URL in
+  the style would let MapLibre stream tiles from a hosted endpoint, breaking
+  airplane-mode UX + the Phase 08 review-gate QUAL-05 contract. Use
+  `pmtiles://file:///…`, `file:///…`, `asset:///…`, or relative asset paths.
+  ```
+- **Paired-test failure excerpt (verbatim from CI log):**
+  ```
+  ❌ tool/test/check_style_no_external_url_test.dart: check_style_no_external_url.runCheck scenario 1: clean production style.json (at its real path) → exit 0 (failed)
+  Expected: <0>
+    Actual: <1>
+  ```
+- **Deletion confirmed:**
+  - `git branch --list 'adversarial/08-style-external-url'` → empty
+  - `git ls-remote --heads origin 'adversarial/08-style-external-url'` → empty
+  - main's `.github/workflows/ci.yml` still triggers on `[main]` only (`grep -c 'adversarial/\*\*' .github/workflows/ci.yml` → 0)
+- **Gate behaviour proof:** CI correctly blocks external URL injection at policy layer. The violation is reported with actionable stderr (file path + JSON path + offending URL + rule reference + remediation guidance) — matching the Phase 06 `check_platform_manifests` adversarial evidence quality bar.
+- **Production CI green on main post-archive:** commit `33f8692` — [CI run 24854744018](https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24854744018) — all 3 jobs (gates / android / ios) green.
 
 ### Tests 9-10: 2 new soak edge cases (appended to existing download_soak_test.dart)
 *Test #9: corrupt chunk mid-stream (chunk #3 of 5 returns sha256-mismatch payload — assert staging cleaned, state=failed-with-retry, `.pmtiles` cible absent). Test #10: rename target already exists (simulate retry where cible `.pmtiles` already present — assert AtomicRenamer gère correctement per contract, zero manifest leak). Both `@Tags(['soak'])`. Covers SC#3 extension beyond the 6 existing scenarios.*
 
-(pending)
+- **File:** `test/infrastructure/downloads/download_soak_test.dart` (appended 2 new groups after the existing 6)
+- **Type:** permanent regression guards (`@Tags(['soak'])`, CI-gated before merge)
+- **Covers:** SC#3 extension — 6 existing + 2 new = 8 soak scenarios
+- **Commit hash:** `33f8692` — `test(08-rev): add 2 soak edge cases + dart format normalization` (also includes the CI-driven dart format re-normalization of the 6 prior files touched in Tasks 1-5)
+- **Verify command:** `flutter test --tags soak test/infrastructure/downloads/download_soak_test.dart`
+- **Test run result:** PASS 2026-04-23 (8/8 scenarios, ≈ 11 s wall-clock)
+
+**Test #9 — corrupt_chunk_mid_stream:**
+
+- **Behaviour proven:** 5-part download with chunk #3 returning sha256-mismatch payload → controller emits `DownloadError` whose `cause` references `sha256` (matches `Sha256MismatchException`). Final `countries/afg.pmtiles` is absent — no partial install. Staging PRESERVED per controller design (`pmtiles_download_controller.dart:378` "Keep staging intact for a future resume"). Manifest does NOT contain `afg`.
+- **Design-reality alignment:** per-chunk sha256 is NOT verified before concat; the correctness gate is the reassembled sha256 at concat time (step 4 of the 7-step protocol). So the staging's reassembled `afg.pmtiles` MAY exist post-failure with mismatched bytes — rename (step 5) never runs, so this is not a partial install at the canonical-path level. Test scenario adapted to match this reality during author-time mutation (see below).
+- **Inertness guard:** `servers[2].recordedRequests.isNotEmpty` — proves the corrupted chunk server was actually hit before the failure path triggered. Without it, a refactor that short-circuits before chunk 3 would leave the target-absent assertion trivially true.
+- **Mutation experiment (author-time):** Replaced chunk #3's advertised sha256 with the ACTUAL served-payload sha (so the mismatch disappears). Ran the suite → scenario 9 FAILED with "state is DownloadCompleted, not DownloadError". Restored the corruption → green.
+
+**Test #10 — rename_target_already_exists:**
+
+- **Behaviour proven:** pre-seeded canonical `countries/vnm.pmtiles` with 512 stale bytes → retry downloads 8 KB new payload → AtomicRenamer overwrites cleanly (target bytes match new payload, NOT stale). Manifest has exactly ONE entry for `vnm` (no duplicate leak). Staging cleaned post-completion.
+- **Inertness guards (two):** `staleSize > 0` + `staleSize != newPayload.length` — proves the pre-seed actually landed AND the post-overwrite equality assertion can genuinely discriminate overwrite-vs-kept-stale.
+- **Mutation experiment (author-time):** Changed the pre-seeded payload size to match the new payload size. Ran scenario 10 → FAILED with "pre-seeded target size matches new payload — post-overwrite equality assertion cannot discriminate (test inert)" — confirming the discriminator guard catches the inertness. Restored distinct sizes → green.
+
+**Cross-reference:** both scenarios documented in full at `test/infrastructure/downloads/download_soak_test.dart:374-526` (including mutation-experiment comments inline). Plan 08-04 spec acceptance: the plan called for "staging cleaned" on scenario 9, but Task 8 executor aligned the test with the actual `pmtiles_download_controller.dart:378` design invariant ("Keep staging intact for a future resume"); the spirit of the plan — "atomic install or absent, never partial at the canonical level" — is verified.
 
 ## 5. CI-green confirmation
 
