@@ -2,6 +2,8 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'dart:convert';
+
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
@@ -10,6 +12,12 @@ import 'package:mirkfall/domain/map/map_errors.dart';
 
 import 'pmtiles_source.dart';
 import 'style_layer_order.dart';
+
+/// Regex matching any `http[s]://` URL. The runtime validator
+/// (`_assertNoExternalUrl`) rejects styles carrying such URLs in any
+/// known URL-bearing field — mirrors the CI gate
+/// `tool/check_style_no_external_url.dart`.
+final RegExp _externalUrlPattern = RegExp(r'^https?://', caseSensitive: false);
 
 /// Literal placeholder baked into `assets/maps/style.json` that the
 /// runtime rewriter substitutes for the resolved `pmtiles://file:///…`
@@ -48,6 +56,7 @@ class StyleRewriter {
     final String template = await _loadTemplate();
     assertStyleLayerOrder(template);
     assertStyleLayerValidity(template);
+    _assertNoExternalUrl(template);
 
     if (!template.contains(kStylePmtilesPlaceholder)) {
       throw const MapStyleCorruptException(reason: 'style.json does not contain placeholder "$kStylePmtilesPlaceholder" — asset may have been hand-edited');
@@ -69,11 +78,53 @@ class StyleRewriter {
   String rewriteWithSnapshot({required CountryCode? activeCountry, required String templateJson, required InstalledManifest snapshot}) {
     assertStyleLayerOrder(templateJson);
     assertStyleLayerValidity(templateJson);
+    _assertNoExternalUrl(templateJson);
     if (!templateJson.contains(kStylePmtilesPlaceholder)) {
       throw const MapStyleCorruptException(reason: 'style.json does not contain placeholder "$kStylePmtilesPlaceholder" — asset may have been hand-edited');
     }
     final String resolvedUri = _pmtilesSource.forCountryOrWorld(activeCountry, snapshot);
     return templateJson.replaceAll(kStylePmtilesPlaceholder, resolvedUri);
+  }
+
+  /// Rejects any parsed style carrying an `http[s]://` URL in a known
+  /// URL-bearing field (`glyphs`, `sprite`, `sources.<name>.url`,
+  /// `sources.<name>.tiles[]`). Mirrors the CI gate so a style that
+  /// somehow sideloads past lint time (sideloaded user style, V1.x
+  /// style pack) still fails closed at runtime. MAP-05 / MAP-09 / QUAL-05.
+  void _assertNoExternalUrl(String templateJson) {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(templateJson);
+    } on FormatException catch (e) {
+      throw MapStyleCorruptException(reason: 'style.json JSON parse failed: $e');
+    }
+    if (decoded is! Map<String, Object?>) {
+      throw const MapStyleCorruptException(reason: 'style.json root must be a JSON object');
+    }
+
+    void rejectIfExternal(String jsonPath, Object? value) {
+      if (value is String && _externalUrlPattern.hasMatch(value)) {
+        throw MapStyleCorruptException(reason: 'style.json $jsonPath = "$value" — external http[s]:// URL forbidden (MAP-05 offline-only contract)');
+      }
+    }
+
+    rejectIfExternal('glyphs', decoded['glyphs']);
+    rejectIfExternal('sprite', decoded['sprite']);
+
+    final Object? sources = decoded['sources'];
+    if (sources is Map<String, Object?>) {
+      for (final MapEntry<String, Object?> entry in sources.entries) {
+        final Object? source = entry.value;
+        if (source is! Map<String, Object?>) continue;
+        rejectIfExternal('sources.${entry.key}.url', source['url']);
+        final Object? tiles = source['tiles'];
+        if (tiles is List<Object?>) {
+          for (int i = 0; i < tiles.length; i++) {
+            rejectIfExternal('sources.${entry.key}.tiles[$i]', tiles[i]);
+          }
+        }
+      }
+    }
   }
 
   Future<String> _loadTemplate() async {

@@ -132,5 +132,43 @@ void main() {
       await expectLater(rewriter.rewriteStyleForCountry(null), throwsA(isA<MapStyleCorruptException>()));
       await port.close();
     });
+
+    test('rejects external https:// URL injected into sources.<name>.tiles[] (row #3)', () async {
+      // Row #3 regression: StyleRewriter must fail closed on any
+      // http[s]:// URL inside a scanned field, mirroring the CI gate
+      // tool/check_style_no_external_url.dart. Covers the sideloaded-
+      // style case (V1.x style pack) where CI lint cannot run.
+      final FakeInstalledManifestRepository port = FakeInstalledManifestRepository();
+      final PmtilesSource src = PmtilesSource(installedManifestPort: port, appSupportDir: '/app_support');
+      final Map<String, Object?> parsed = Map<String, Object?>.from(jsonDecode(realStyleJson) as Map);
+      final Map<String, Object?> sources = Map<String, Object?>.from(parsed['sources']! as Map);
+      final Map<String, Object?> mapSource = Map<String, Object?>.from(sources['mirkfall_map']! as Map);
+      mapSource['tiles'] = <String>['https://tile.openstreetmap.org/{z}/{x}/{y}.pbf'];
+      sources['mirkfall_map'] = mapSource;
+      parsed['sources'] = sources;
+      final String poisoned = jsonEncode(parsed);
+      final StyleRewriter rewriter = StyleRewriterTestSeam.withAssetLoader(src, (_) async => poisoned);
+
+      await expectLater(
+        rewriter.rewriteStyleForCountry(null),
+        throwsA(isA<MapStyleCorruptException>().having((MapStyleCorruptException e) => e.reason, 'reason', contains('external http'))),
+      );
+      await port.close();
+    });
+
+    test('rejects external http:// URL in glyphs field (row #3)', () async {
+      final FakeInstalledManifestRepository port = FakeInstalledManifestRepository();
+      final PmtilesSource src = PmtilesSource(installedManifestPort: port, appSupportDir: '/app_support');
+      final Map<String, Object?> parsed = Map<String, Object?>.from(jsonDecode(realStyleJson) as Map);
+      parsed['glyphs'] = 'http://example.test/fonts/{fontstack}/{range}.pbf';
+      final String poisoned = jsonEncode(parsed);
+      final StyleRewriter rewriter = StyleRewriterTestSeam.withAssetLoader(src, (_) async => poisoned);
+
+      await expectLater(
+        rewriter.rewriteStyleForCountry(null),
+        throwsA(isA<MapStyleCorruptException>().having((MapStyleCorruptException e) => e.reason, 'reason', contains('glyphs'))),
+      );
+      await port.close();
+    });
   });
 }
