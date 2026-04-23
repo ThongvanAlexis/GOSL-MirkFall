@@ -477,11 +477,7 @@ void main() {
 
         // The byte accumulator at the end of the job must equal the
         // reassembled size exactly — not `reassembled.size + localSize`.
-        expect(
-          controller.debugAccumulatedBytes,
-          entry.reassembled.size,
-          reason: 'row #7: 200-OK restart must not double-count the pre-added localSize',
-        );
+        expect(controller.debugAccumulatedBytes, entry.reassembled.size, reason: 'row #7: 200-OK restart must not double-count the pre-added localSize');
       });
     }, timeout: const Timeout(Duration(seconds: 60)));
   });

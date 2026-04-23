@@ -511,7 +511,12 @@ class PmtilesDownloadController {
   /// attempt so the caller can compensate for byte-count edge cases
   /// (resume-path needs to un-pre-add localSize when the server
   /// ignored the Range header — see row #7). Null on cancel.
-  Future<DownloadChunkResult?> _httpDownloadWithRetries({required ChunkPart part, required File partFile, required DownloadJob job, required int partIndex}) async {
+  Future<DownloadChunkResult?> _httpDownloadWithRetries({
+    required ChunkPart part,
+    required File partFile,
+    required DownloadJob job,
+    required int partIndex,
+  }) async {
     DownloadInterruptedException? lastError;
     for (int attempt = 0; attempt < kDownloadRetryAttempts; attempt++) {
       if (_cancelRequested) return null;
