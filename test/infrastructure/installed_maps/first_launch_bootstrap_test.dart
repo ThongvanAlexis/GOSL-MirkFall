@@ -132,7 +132,7 @@ void main() {
       expect(bootstrap.orphanStagingAlpha3s, isEmpty);
     });
 
-    test('case A — staging dir for an installed alpha3 is DELETED', () async {
+    test('staging dir for an installed alpha3 (post-commit leftover) is DELETED', () async {
       final Directory staging = Directory(p.join(tempDir.path, kStagingDir));
       await staging.create(recursive: true);
       final Directory fraStaging = Directory(p.join(staging.path, 'fra'));
@@ -156,7 +156,7 @@ void main() {
       expect(bootstrap.orphanStagingAlpha3s, isEmpty);
     });
 
-    test('case B1 — staging dir matching a queued job is PRESERVED + reported', () async {
+    test('staging dir matching a queued job is PRESERVED + reported', () async {
       final Directory staging = Directory(p.join(tempDir.path, kStagingDir));
       await staging.create(recursive: true);
       final Directory fraStaging = Directory(p.join(staging.path, 'fra'));
@@ -181,7 +181,7 @@ void main() {
       expect(bootstrap.orphanStagingAlpha3s, <String>['fra']);
     });
 
-    test('case B2 — staging dir with no manifest + no queue entry is DELETED', () async {
+    test('staging dir with no manifest + no queue entry (abandoned) is DELETED', () async {
       final Directory staging = Directory(p.join(tempDir.path, kStagingDir));
       await staging.create(recursive: true);
       final Directory deuStaging = Directory(p.join(staging.path, 'deu'));
@@ -205,12 +205,12 @@ void main() {
       expect(bootstrap.orphanStagingAlpha3s, isEmpty);
     });
 
-    test('mixed — A + B1 + B2 are routed independently', () async {
+    test('mixed — in-queue keep / everything else delete', () async {
       final Directory staging = Directory(p.join(tempDir.path, kStagingDir));
       await staging.create(recursive: true);
-      final Directory fra = Directory(p.join(staging.path, 'fra'))..createSync(); // case A
-      final Directory deu = Directory(p.join(staging.path, 'deu'))..createSync(); // case B1
-      final Directory esp = Directory(p.join(staging.path, 'esp'))..createSync(); // case B2
+      final Directory fra = Directory(p.join(staging.path, 'fra'))..createSync(); // in manifest (post-commit leftover)
+      final Directory deu = Directory(p.join(staging.path, 'deu'))..createSync(); // in queue (resumable)
+      final Directory esp = Directory(p.join(staging.path, 'esp'))..createSync(); // abandoned
 
       final FakeInstalledManifestRepository manifest = FakeInstalledManifestRepository(initial: InstalledManifest.empty().copyWithInsert(_makeCountry('fra')));
       addTearDown(manifest.close);

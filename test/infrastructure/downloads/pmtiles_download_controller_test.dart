@@ -191,65 +191,12 @@ void main() {
   });
 
   group('PmtilesDownloadController — resume from staging', () {
-    test('pre-existing chunk WITH verified marker skips network + per-chunk sha256', () async {
-      await _withRealHttpClient(() async {
-        final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
-        final Uint8List b = Uint8List.fromList(List<int>.filled(1024, 0x22));
-        final Uint8List c = Uint8List.fromList(List<int>.filled(1024, 0x33));
-
-        // Chunk A is fully on disk AND has a `.verified` marker (as if
-        // a prior session had completed its sha256 check). The server
-        // for A should never be hit, and no verifyingChunk phase emit
-        // should occur for partIndex=0.
-        final Directory fraStaging = Directory(p.join(tempDir.path, kStagingDir, 'fra'));
-        await fraStaging.create(recursive: true);
-        await File(p.join(fraStaging.path, 'part00')).writeAsBytes(a);
-        await File(p.join(fraStaging.path, 'part00.verified')).writeAsBytes(const <int>[]);
-
-        final FakeHttpServer srvA = await FakeHttpServer.bind(initialBytes: a);
-        final FakeHttpServer srvB = await FakeHttpServer.bind(initialBytes: b);
-        final FakeHttpServer srvC = await FakeHttpServer.bind(initialBytes: c);
-        addTearDown(() async {
-          await srvA.close();
-          await srvB.close();
-          await srvC.close();
-        });
-
-        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
-        final _Harness result = await makeController(httpDownloader: httpDownloader);
-        final PmtilesDownloadController controller = result.controller;
-
-        final List<DownloadState> states = <DownloadState>[];
-        final StreamSubscription<DownloadState> sub = controller.stateStream.listen(states.add);
-        addTearDown(sub.cancel);
-
-        final CountryEntry entry = _entryFor(
-          alpha3Raw: 'fra',
-          chunkPayloads: <Uint8List>[a, b, c],
-          chunkUrls: <String>[srvA.base.resolve('/a').toString(), srvB.base.resolve('/b').toString(), srvC.base.resolve('/c').toString()],
-        );
-
-        final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
-        await controller.enqueueCountry(entry);
-        await completedFuture;
-
-        expect(srvA.recordedRequests, isEmpty, reason: 'pre-verified chunk must not be re-downloaded');
-
-        final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
-        expect(await canonical.readAsBytes(), <int>[...a, ...b, ...c]);
-
-        final Set<DownloadPhase> phases = states.whereType<DownloadInProgress>().map((DownloadInProgress s) => s.phase).toSet();
-        expect(phases, contains(DownloadPhase.verifyingResumedData));
-        expect(phases, contains(DownloadPhase.verifyingChunk));
-      });
-    });
-
-    test('pre-existing chunk WITHOUT verified marker → network skipped but sha256 re-runs', () async {
-      // Simulates: a prior session fully downloaded chunk A but was
-      // killed mid-sha256. The chunk bytes are on disk, but no marker
-      // attests the check actually completed. On resume we must NOT
-      // skip the per-chunk sha256 (that's the user-reported bug the
-      // marker was added to fix).
+    test('path 2: fully-sized chunk on disk → sha256 re-runs, network skipped', () async {
+      // Simulates: prior session downloaded chunk A completely; app
+      // killed before moving to chunk B. On resume the chunk is
+      // already fully sized on disk, so the controller hashes it once
+      // (a sized-but-corrupt chunk from a kill-during-sha256 would be
+      // caught here) and, on match, proceeds without hitting the wire.
       await _withRealHttpClient(() async {
         final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
         final Uint8List b = Uint8List.fromList(List<int>.filled(1024, 0x22));
@@ -257,7 +204,6 @@ void main() {
         final Directory fraStaging = Directory(p.join(tempDir.path, kStagingDir, 'fra'));
         await fraStaging.create(recursive: true);
         await File(p.join(fraStaging.path, 'part00')).writeAsBytes(a);
-        // Deliberately NO part00.verified marker.
 
         final FakeHttpServer srvA = await FakeHttpServer.bind(initialBytes: a);
         final FakeHttpServer srvB = await FakeHttpServer.bind(initialBytes: b);
@@ -284,25 +230,35 @@ void main() {
         await controller.enqueueCountry(entry);
         await completedFuture;
 
-        expect(srvA.recordedRequests, isEmpty, reason: 'correctly-sized local chunk still skips the network round-trip');
+        expect(srvA.recordedRequests, isEmpty, reason: 'fully-sized local chunk should not be re-downloaded');
 
         final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
         expect(await canonical.readAsBytes(), <int>[...a, ...b]);
 
-        // verifyingChunk phase MUST have fired for partIndex=0 — the
-        // marker was absent, so the unverified chunk was re-hashed.
+        // verifyingChunk phase must have fired for partIndex=0 —
+        // path 2 always hashes the pre-existing bytes before accepting
+        // them, so a corrupt/incompletely-verified chunk is caught.
         final List<DownloadInProgress> verifyingForPart0 = states
             .whereType<DownloadInProgress>()
             .where((DownloadInProgress s) => s.phase == DownloadPhase.verifyingChunk && s.progress.currentPartIndex == 0)
             .toList();
-        expect(verifyingForPart0, isNotEmpty, reason: 'unverified pre-existing chunk must be re-hashed on resume');
+        expect(verifyingForPart0, isNotEmpty, reason: 'pre-existing chunk must be hashed on resume');
       });
     });
 
-    test('fresh download writes a verified marker after each chunk passes sha256', () async {
+    test('path 3: partial chunk on disk → HTTP Range resume finishes, then sha256', () async {
+      // Simulates: prior session was downloading chunk A and got
+      // killed halfway through. On resume the controller sees
+      // localSize < part.size, sends `Range: bytes=localSize-` to the
+      // CDN, appends the remaining bytes, and verifies the combined
+      // full chunk.
       await _withRealHttpClient(() async {
         final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
         final Uint8List b = Uint8List.fromList(List<int>.filled(1024, 0x22));
+
+        final Directory fraStaging = Directory(p.join(tempDir.path, kStagingDir, 'fra'));
+        await fraStaging.create(recursive: true);
+        await File(p.join(fraStaging.path, 'part00')).writeAsBytes(a.sublist(0, 400));
 
         final FakeHttpServer srvA = await FakeHttpServer.bind(initialBytes: a);
         final FakeHttpServer srvB = await FakeHttpServer.bind(initialBytes: b);
@@ -321,28 +277,58 @@ void main() {
           chunkUrls: <String>[srvA.base.resolve('/a').toString(), srvB.base.resolve('/b').toString()],
         );
 
-        // Snapshot the staging dir right BEFORE the final cleanup wipes
-        // it — we poll for the canonical file to appear, then check the
-        // markers that (briefly) exist before the cleanup step.
-        //
-        // Simpler: just verify the end-state — the atomic commit + the
-        // final cleanup step removes the entire staging dir, including
-        // markers. So instead we assert that during the active download
-        // every verifyingChunk emission has a matching marker on disk
-        // immediately after.
-        final List<DownloadState> states = <DownloadState>[];
-        final StreamSubscription<DownloadState> sub = controller.stateStream.listen(states.add);
-        addTearDown(sub.cancel);
+        final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
+        await controller.enqueueCountry(entry);
+        await completedFuture;
+
+        // srvA was hit with a Range-resume request for the remaining
+        // bytes — not a fresh download.
+        expect(srvA.recordedRequests.map((r) => r.rangeHeader).toList(), <String?>['bytes=400-']);
+
+        final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
+        expect(await canonical.readAsBytes(), <int>[...a, ...b]);
+      });
+    });
+
+    test('path 2 sha256 mismatch → chunk is redownloaded from scratch', () async {
+      // Simulates: prior session wrote a fully-sized chunk but the
+      // bytes are corrupt (e.g. kill during a flush, cosmic ray). On
+      // resume path 2 hashes, detects mismatch, deletes the chunk,
+      // and restarts via path 1 (from scratch).
+      await _withRealHttpClient(() async {
+        final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
+        final Uint8List corruptA = Uint8List.fromList(List<int>.filled(1024, 0xAA));
+        final Uint8List b = Uint8List.fromList(List<int>.filled(1024, 0x22));
+
+        final Directory fraStaging = Directory(p.join(tempDir.path, kStagingDir, 'fra'));
+        await fraStaging.create(recursive: true);
+        await File(p.join(fraStaging.path, 'part00')).writeAsBytes(corruptA);
+
+        final FakeHttpServer srvA = await FakeHttpServer.bind(initialBytes: a);
+        final FakeHttpServer srvB = await FakeHttpServer.bind(initialBytes: b);
+        addTearDown(() async {
+          await srvA.close();
+          await srvB.close();
+        });
+
+        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
+        final _Harness result = await makeController(httpDownloader: httpDownloader);
+        final PmtilesDownloadController controller = result.controller;
+
+        final CountryEntry entry = _entryFor(
+          alpha3Raw: 'fra',
+          chunkPayloads: <Uint8List>[a, b],
+          chunkUrls: <String>[srvA.base.resolve('/a').toString(), srvB.base.resolve('/b').toString()],
+        );
 
         final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
         await controller.enqueueCountry(entry);
         await completedFuture;
 
-        // Staging dir gone (cleanup ran on commit) → markers gone too,
-        // but the fact that the download completed without re-downloading
-        // anything a second time implies markers were written correctly.
-        final Directory fraStaging = Directory(p.join(tempDir.path, kStagingDir, 'fra'));
-        expect(fraStaging.existsSync(), isFalse);
+        // After the mismatch the chunk is deleted and a fresh GET hits
+        // the server (no Range header — full download from byte 0).
+        expect(srvA.recordedRequests, isNotEmpty);
+        expect(srvA.recordedRequests.first.rangeHeader, isNull, reason: 'from-scratch download uses no Range header');
 
         final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
         expect(await canonical.readAsBytes(), <int>[...a, ...b]);

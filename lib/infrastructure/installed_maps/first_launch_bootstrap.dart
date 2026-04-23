@@ -29,24 +29,13 @@ import 'package:path/path.dart' as p;
 /// 1. Delegate the world-bundle copy to [FirstLaunchWorldCopier] — same
 ///    idempotence + auto-heal semantics as Plan 07-03.
 /// 2. Scan `<app_support>/[kStagingDir]` (aka `maps/staging/`) for
-///    per-alpha3 subdirectories and clean up dead state. Three cases
-///    are distinguished against the installed manifest + the persisted
-///    download queue:
-///    - staging dir + alpha3 is in `installed.json` → leftover from a
-///      successful atomic commit whose final cleanup step failed;
-///      DELETE the staging dir.
-///    - staging dir + alpha3 NOT in manifest + IS in persisted queue →
-///      genuinely in-flight, the queue's `rehydrate()` will pick it
-///      up; LEAVE the staging dir alone so the chunk pre-check in
-///      `PmtilesDownloadController._downloadChunkWithRetries` can
-///      reuse the already-downloaded bytes.
-///    - staging dir + alpha3 NOT in manifest + NOT in persisted
-///      queue → abandoned (user killed app before the queue was
-///      persisted, or queue file was corrupt and got reset);
-///      DELETE the staging dir. The user has to manually re-enqueue
-///      the country — the staging wouldn't speed up that re-enqueue
-///      since leaving it lying around indefinitely would accumulate
-///      disk waste the user has no UI path to clear.
+///    per-alpha3 subdirectories. A staging dir whose alpha3 is still
+///    in the persisted download queue is left alone (the download
+///    controller's `rehydrate()` will resume it and reuse whatever
+///    bytes are already on disk). Everything else is deleted — that
+///    covers both "prior commit succeeded but post-commit cleanup
+///    failed" (alpha3 is in the manifest) and "abandoned mid-download
+///    without a queue entry" (neither manifest nor queue).
 /// 3. On iOS only, invoke [IosBackupExcluder.excludePath] on the whole
 ///    `<app_support>/maps` tree. Closes Open Question #3: per-country
 ///    PMTiles bundles can be hundreds of MB, and iCloud backup of
@@ -232,26 +221,14 @@ class FirstLaunchBootstrap {
       if (entity is! Directory) continue;
       final String alpha3 = p.basename(entity.path);
 
-      if (manifest.installed.containsKey(alpha3)) {
-        // Case A — atomic commit succeeded (pmtiles in manifest), only
-        // the cleanup step failed. The staging dir is pure disk waste.
-        _log.info('staging dir for alpha3=$alpha3 matches installed manifest entry — deleting leftover at ${entity.path}');
-        await _deleteStagingDir(entity);
-        continue;
-      }
-
       if (queuedAlpha3Set.contains(alpha3)) {
-        // Case B1 — genuinely pending. The rehydrate() path will reuse
-        // the bytes on disk via the chunk pre-check; DO NOT delete.
         _log.info('staging dir for alpha3=$alpha3 matches a persisted queue entry — leaving intact for rehydrate() (${entity.path})');
         resumableOrphans.add(alpha3);
         continue;
       }
 
-      // Case B2 — abandoned (app killed before queue persisted, or
-      // queue file corrupted + reset). No consumer will ever pick
-      // this up; delete to reclaim disk.
-      _log.info('abandoned staging dir for alpha3=$alpha3 (no manifest entry, no queue entry) — deleting ${entity.path}');
+      final bool inManifest = manifest.installed.containsKey(alpha3);
+      _log.info('deleting staging dir for alpha3=$alpha3 (inManifest=$inManifest, inQueue=false) at ${entity.path}');
       await _deleteStagingDir(entity);
     }
     return resumableOrphans;
