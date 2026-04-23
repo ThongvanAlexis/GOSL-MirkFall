@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 08 plan 08-01 (Scaffold + user-first §1 + Phase 07 closure) done — 08-02 unblocked
+current_plan: Phase 08 plan 08-02 (POC evidence review §1b extraction — Android + iOS + airplane-mode snapshot) done — 08-03 unblocked
 status: executing
-stopped_at: Completed 08-01-PLAN.md (Tasks 2+3 executed as continuation agent after 'rien vu' user response; Phase 07 formally closed)
-last_updated: "2026-04-23T14:20:00.000Z"
+stopped_at: Completed 08-02-PLAN.md (POC evidence §1b extraction — verbatim from docs/phase-07-smoke.md + docs/phase-07-ios-animate-camera-crash.md + 7 screenshots; no fresh walk per CONTEXT lock; Plan 08-03 pre-class §2 + 4 sub-agents unblocked)
+last_updated: "2026-04-23T18:06:07.166Z"
 last_activity: 2026-04-23
 progress:
   total_phases: 16
   completed_phases: 7
   total_plans: 42
-  completed_plans: 38
+  completed_plans: 39
   percent: 90
 ---
 
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 08 Review Gate — Map — Plan 08-01 done 2026-04-23. 08-REVIEW.md 5-section scaffold landed (§1b per-device placeholders, §2 Pre-known from CONTEXT 10 + Smell heuristics hot-spots table, §4 ten adversarial evidence blocks). §1 User-observed findings captured with explicit "Aucune observation utilisateur" marker (user 'rien vu' response 2026-04-23). Phase 07 structurally closed in same plan: 07-07-SUMMARY.md written capturing scope-reduction (smoke + iOS fix kept, 4 integration tests absorbed into Phase 08 Plan 08-04), 07-07-PLAN.md annotated SCOPE REDUCED header block, ROADMAP Phase 07 row → 7/7 Complete 2026-04-23, REQUIREMENTS MAP-05/06/07/08/10 Traceability rows → Complete. Three atomic commits on main (fe23f9a / 580de38 / bf74aad). Plan 08-02 (POC evidence review §1b — extract docs/phase-07-smoke.md + docs/phase-07-ios-animate-camera-crash.md + 7 screenshots) unblocked.
+**Current focus:** Phase 08 Review Gate — Map — Plan 08-02 done 2026-04-23. §1b POC evidence review populated verbatim from Phase 07 artefacts (no fresh walk per CONTEXT lock 2026-04-23): Android Pixel 4a PASS + iOS iPhone 17 Pro PASS post-fix, 7 screenshots inline, 3 iOS fix commits (81d30c7 + ab497ab + 40b49d5), stack .ips excerpt + bisection probes + 4-tentatives fix evolution, airplane-mode SC#1 two-sided proof (runtime Step 6 PASS × 2 + static gate check_avoid_remote_pmtiles exit 0 on fbcbde6). One atomic commit on main (121c68c). Plan 08-03 unblocked (pre-class §2 + smell heuristics hot-spots table + 4 parallel sub-agents spawn — single tool-use message, 10 CONTEXT handoff items + 4 hot-spot rows committed BEFORE any Agent tool call per strict user-first ordering).
 
 ## Current Position
 
-Phase: 08 of 16 (Review Gate — Map) — 1 / 5 plans done — Plan 08-02 (POC evidence review §1b) unblocked
-Current Plan: Phase 08 plan 08-01 (Scaffold + user-first §1 + Phase 07 closure) done
-Total Plans in Phase 08: 1 / 5 done (0/5 started prior to this plan)
-Status: Phase in progress; next `/gsd:execute-phase 08` will pick up Plan 08-02
+Phase: 08 of 16 (Review Gate — Map) — 2 / 5 plans done — Plan 08-03 (pre-class §2 + 4 sub-agents audit wave) unblocked
+Current Plan: Phase 08 plan 08-02 (POC evidence review §1b extraction) done
+Total Plans in Phase 08: 2 / 5 done
+Status: Phase in progress; next `/gsd:execute-phase 08` will pick up Plan 08-03
 Last Activity: 2026-04-23
 
-Progress: [█████████░] 90% — 38 / 42 plans executed across phases 01-08 (Phase 07 formally closed at 7/7 ; Phase 08 1/5 done).
+Progress: [█████████░] 93% — 39 / 42 plans executed across phases 01-08 (Phase 07 formally closed at 7/7 ; Phase 08 2/5 done).
 
 ## Performance Metrics
 
@@ -87,6 +87,7 @@ Progress: [█████████░] 90% — 38 / 42 plans executed across
 | Phase 07-map-integration P05 | 42min | 3 tasks | 11 files (5 lib sources + 5 tests + main.dart modification) |
 | Phase 07-map-integration P06 | 24min | 4 tasks | 22 files (5 screens + 6 widgets + 11 test files) + 8 modified (router + app_shell + 4 Phase 05 screens + 3 Phase 05 tests) |
 | Phase 08-review-gate-map P01 | ~5 min (continuation agent, prior session did Task 1) | 3 tasks (Task 1 prior session; Tasks 2+3 this session) | 5 files across 3 atomic commits (08-REVIEW.md + 07-07-SUMMARY.md + 07-07-PLAN.md + ROADMAP.md + REQUIREMENTS.md) |
+| Phase 08-review-gate-map P02 | 2 min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -297,6 +298,9 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 08-review-gate-map]: Plan 07-07 original file kept on disk with `> **⚠ SCOPE REDUCED — 2026-04-23**` header annotation rather than deleted or renamed. Preserves git history + enables archaeology of original plan intent. Reusable pattern for any future plan scope-reduced mid-phase.
 - [Phase 08-review-gate-map]: REQUIREMENTS Traceability rows simplified to bare `| REQ-ID | Phase NN | Complete |` on phase-close (stripped inline "Plan 07-XX pending" prose) — plan-by-plan trace now lives in XX-SUMMARY.md cross-references + REQUIREMENTS footer `Last updated` date. Precedent for Phase 09/11/13/15 close-out.
 - [Phase 08-review-gate-map]: gsd-tools `commit` wrapper has quoting issue with non-ASCII subject lines (e.g. `§1`) on Windows bash shell — arguments get split on whitespace and the words after the section sign are misinterpreted as pathspecs. Workaround: fall back to `git add` + `git commit -m` via heredoc for subjects containing `§`, `€`, etc. Noted for future review-gate plans if they want section symbols in subjects.
+- [Phase 08-review-gate-map]: Verbatim extraction for POC evidence §1b — no paraphrasing, table shapes preserved from source docs rather than plan template (docs/phase-07-smoke.md uses 4-col # / Step / Result / Notes vs plan template's 3-col Step / Observation / Evidence)
+- [Phase 08-review-gate-map]: iOS <details> block includes pre-fix stack .ips + bisection probes + 4-tentatives fix evolution + post-fix PASS-with-caveat — full arc of crash → diagnosis → attempts → validated fix — sets up Plan 08-03 Agent #3 smell-heuristics lens on MapCameraController with complete history
+- [Phase 08-review-gate-map]: Airplane-mode snapshot labels runtime evidence (device Step 6 PASS × 2) and static gate (check_avoid_remote_pmtiles exit 0 on fbcbde6) as complementary two-sided proof of SC#1 zero tile HTTP — reusable pattern for Phase 10/12/14/16 review-gates with offline-mode requirements
 
 ### Pending Todos
 
@@ -323,6 +327,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-23T13:57:39.242Z
-Stopped at: Phase 08 context gathered
-Resume file: .planning/phases/08-review-gate-map/08-CONTEXT.md
+Last session: 2026-04-23T18:06:07.161Z
+Stopped at: Completed 08-02-PLAN.md (POC evidence §1b extraction — verbatim from docs/phase-07-smoke.md + docs/phase-07-ios-animate-camera-crash.md + 7 screenshots; no fresh walk per CONTEXT lock; Plan 08-03 pre-class §2 + 4 sub-agents unblocked)
+Resume file: None
