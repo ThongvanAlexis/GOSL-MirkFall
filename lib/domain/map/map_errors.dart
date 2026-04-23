@@ -120,11 +120,12 @@ class DiskSpaceInsufficientException implements Exception {
 }
 
 /// Thrown when `assets/maps/style.json` is unparseable or fails the
-/// frozen 8-layer structural check.
+/// frozen 7-layer structural check.
 ///
-/// The 8-layer order (`background, landcover, water, boundaries, roads,
-/// pois, mirk_fog, user_location`) is frozen as of Plan 07-01 — Plan
-/// 07-06's `map_style_layer_order_test.dart` asserts it explicitly, and
+/// The 7-layer order (`background, landcover, water, boundaries, roads,
+/// pois, mirk_fog`) is frozen as of Plan 07-07 device smoke (post
+/// `user_location` layer removal) — Plan 07-06's
+/// `map_style_layer_order_test.dart` asserts it explicitly, and
 /// the runtime style loader surfaces a [MapStyleCorruptException] with
 /// actionable [reason] when a bundled (or sideloaded) style drifts.
 class MapStyleCorruptException implements Exception {

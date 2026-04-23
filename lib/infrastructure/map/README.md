@@ -11,7 +11,7 @@ Every other `lib/` module consumes the [`MapView`](../../domain/map/map_view.dar
 | `maplibre_map_view.dart` | Concrete `MapView` adapter. The sole `import 'package:maplibre_gl/maplibre_gl.dart'` consumer. |
 | `pmtiles_source.dart` | Runtime URI resolver: `CountryCode?` → `pmtiles://file:///<path>`. Never emits remote URIs (MAP-05). Includes the top-level `localPmtilesUri()` helper. |
 | `style_rewriter.dart` | Loads `assets/maps/style.json`, substitutes `YOUR_PMTILES_PATH_PLACEHOLDER` with the resolved PMTiles URI. Returns raw JSON for `setStyle`. |
-| `style_layer_order.dart` | Frozen 8-layer constant + two validators (`assertStyleLayerOrder`, `assertStyleLayerValidity`). Pure Dart. |
+| `style_layer_order.dart` | Frozen 7-layer constant + two validators (`assertStyleLayerOrder`, `assertStyleLayerValidity`). Pure Dart. |
 | `country_resolver.dart` | Viewport-center → alpha3 lookup via point-in-polygon + `CountryPolygonLoader` for the bundled GeoJSONs. |
 | `first_launch_world_copier.dart` | MAP-07 non-deletable floor: copies `assets/maps/world.pmtiles` → `<app_support>/maps/world.pmtiles` with sha256 verify + auto-heal. |
 | `geo/point_in_polygon.dart` | Hand-rolled Rosetta-style ray-cast primitive. |

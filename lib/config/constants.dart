@@ -215,8 +215,10 @@ const String kInstalledManifestPath = 'maps/installed.json';
 const String kCountryPolygonsAssetPath = 'assets/maps/polygons';
 
 /// Asset path for the Protomaps basemaps neutral style JSON (frozen
-/// 8-layer order: background / landcover / water / boundaries / roads /
-/// pois / mirk_fog / user_location). Glyphs + sprites point to
+/// 7-layer order: background / landcover / water / boundaries / roads /
+/// pois / mirk_fog — `user_location` was removed post Phase 07 device
+/// smoke in favour of maplibre_gl's built-in `addCircle` annotation
+/// manager). Glyphs + sprites point to
 /// `asset:///assets/maps/glyphs|sprites/…` URIs; the tile source URL is
 /// a `pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER` placeholder
 /// rewritten at runtime by `PmtilesSource` (Phase 07 plan 07-03).
