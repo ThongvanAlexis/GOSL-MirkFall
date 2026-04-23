@@ -61,26 +61,26 @@ Launch flow under test:
 
 ## Entry 1 — Android (Pixel 4a or equivalent)
 
-- **Device:** _(fill in: e.g. Pixel 4a)_
-- **OS version:** _(fill in: e.g. Android 14)_
-- **MirkFall build:** _(fill in: commit hash from the CI run)_
-- **APK source:** _(fill in: GitHub Actions artifact URL)_
-- **Date of walk (UTC):** _(fill in)_
-- **Walk duration:** _(fill in: total elapsed time)_
+- **Device:** Pixel 4a
+- **OS version:** Android 13 (4.14.302)
+- **MirkFall build:** fbcbde6a2569baad84b3104eceed51b437e38ed4
+- **APK source:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24834805699/artifacts/6601556400
+- **Date of walk (UTC):** 20260423 14h40
+- **Walk duration:** 2 minutes
 
 ### Step-by-step results
 
-| # | Step                                                | Result  | Notes                          |
-| - | --------------------------------------------------- | ------- | ------------------------------ |
-| 1 | Install + first launch                              | _PASS_  |                                |
-| 2 | "Préparation de la carte…" then SessionListScreen   | _PASS_  |                                |
-| 3 | Create + start session                              | _PASS_  |                                |
-| 4 | MapScreen: map renders + AppBar affordances visible | _PASS_  |                                |
-| 5 | Burger menu: 3 tiles + 3 live-data rows             | _PASS_  |                                |
-| 6 | Airplane mode cold-start: map still renders         | _PASS_  |                                |
-| 7 | Aruba download completes                            | _PASS_  |                                |
-| 8 | Aruba in Manage screen with correct size + version  | _PASS_  |                                |
-| 9 | Delete Aruba → disappears + world row stays         | _PASS_  |                                |
+| #   | Step                                                | Result | Notes |
+| --- | --------------------------------------------------- | ------ | ----- |
+| 1   | Install + first launch                              | _PASS_ |       |
+| 2   | "Préparation de la carte…" then SessionListScreen   | _PASS_ |       |
+| 3   | Create + start session                              | _PASS_ |       |
+| 4   | MapScreen: map renders + AppBar affordances visible | _PASS_ |       |
+| 5   | Burger menu: 3 tiles + 3 live-data rows             | _PASS_ |       |
+| 6   | Airplane mode cold-start: map still renders         | _PASS_ |       |
+| 7   | Aruba download completes                            | _PASS_ |       |
+| 8   | Aruba in Manage screen with correct size + version  | _PASS_ |       |
+| 9   | Delete Aruba → disappears + world row stays         | _PASS_ |       |
 
 ### Screenshots
 
@@ -92,52 +92,47 @@ Launch flow under test:
 
 ### Verdict
 
-**PENDING** — fill in `PASS` / `BLOCKER <description>` after the walk.
-
----
+**PASS**
 
 ## Entry 2 — iOS (via CI-produced unsigned IPA + sideload)
 
-- **Device:** _(fill in: e.g. iPhone 12 mini)_
-- **iOS version:** _(fill in)_
-- **Sideload method:** _(fill in: SideStore / AltStore / other)_
-- **IPA source:** _(fill in: GitHub Actions artifact URL)_
-- **Date of walk (UTC):** _(fill in)_
-- **Walk duration:** _(fill in)_
+- **Device:** Iphone 17 pro
+- **iOS version:** 26.3.1 (a)
+- **MirkFall build:** fbcbde6a2569baad84b3104eceed51b437e38ed4
+- **Sideload method:** Iloader (side store)
+- **IPA source:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24834805699/artifacts/6601494748
+- **Date of walk (UTC):** 20260423 15h00
+- **Walk duration:** _2 minutes_
 
 ### Step-by-step results
 
-| # | Step                                                                           | Result | Notes                 |
-| - | ------------------------------------------------------------------------------ | ------ | --------------------- |
-| 1 | Sideload + first launch                                                        | _PASS_ |                       |
-| 2 | "Préparation de la carte…" then SessionListScreen                              | _PASS_ |                       |
-| 3 | Create + start session                                                         | _PASS_ |                       |
-| 4 | MapScreen: map renders + AppBar affordances visible                            | _PASS_ |                       |
-| 5 | Burger menu: 3 tiles + 3 live-data rows                                        | _PASS_ |                       |
-| 6 | Airplane mode cold-start: map still renders                                    | _PASS_ |                       |
-| 7 | Aruba download completes                                                       | _PASS_ |                       |
-| 8 | Aruba in Manage screen with correct size + version                             | _PASS_ |                       |
-| 9 | Delete Aruba → disappears + world row stays                                    | _PASS_ |                       |
-| 10 | Xcode container inspection: `Library/Application Support/mirkfall/maps/` tree exists AND `world.pmtiles` + installed country `.pmtiles` are marked `NSURLIsExcludedFromBackupKey=1` (inspect via `xattr -l` on the extracted container) | _PASS_ |                       |
+| #   | Step                                                                                                                                                                                                                                    | Result | Notes |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ----- |
+| 1   | Sideload + first launch                                                                                                                                                                                                                 | _PASS_ |       |
+| 2   | "Préparation de la carte…" then SessionListScreen                                                                                                                                                                                       | _PASS_ |       |
+| 3   | Create + start session                                                                                                                                                                                                                  | _PASS_ |       |
+| 4   | MapScreen: map renders + AppBar affordances visible                                                                                                                                                                                     | _PASS_ |       |
+| 5   | Burger menu: 3 tiles + 3 live-data rows                                                                                                                                                                                                 | _PASS_ |       |
+| 6   | Airplane mode cold-start: map still renders                                                                                                                                                                                             | _PASS_ |       |
+| 7   | Aruba download completes                                                                                                                                                                                                                | _PASS_ |       |
+| 8   | Aruba in Manage screen with correct size + version                                                                                                                                                                                      | _PASS_ |       |
+| 9   | Delete Aruba → disappears + world row stays                                                                                                                                                                                             | _PASS_ |       |
+| 10  | Xcode container inspection: `Library/Application Support/mirkfall/maps/` tree exists AND `world.pmtiles` + installed country `.pmtiles` are marked `NSURLIsExcludedFromBackupKey=1` (inspect via `xattr -l` on the extracted container) | _N/A_  | No macOS available for this project — IPAs are CI-built on GitHub Actions and sideloaded via SideStore. The code-path is covered by `test/infrastructure/platform/ios_backup_excluder_test.dart` (platform-channel contract) and `test/phase_07_integration/map_end_to_end_test.dart` (commit-step wiring). Falling back to `PASS-with-caveat` per the rubric clause below. |
 
 ### Screenshots
 
 - (a) MapScreen + attribution + burger menu → `docs/phase-07-smoke-screenshots/ios-01-map-screen.png`
 - (b) Aruba download completion → `docs/phase-07-smoke-screenshots/ios-02-download-complete.png`
-- (c) Xcode container inspection proving maps/ tree + backup-exclude → `docs/phase-07-smoke-screenshots/ios-03-xcode-container.png`
+- (c) Xcode container inspection — _skipped, see step 10 note above_
 
 ### Verdict
 
-**PENDING** — fill in `PASS` / `PASS-with-caveat <description>` / `BLOCKER <description>` after the walk.
+**PASS-with-caveat** — every interactive step passed on the iPhone 17 Pro under iOS 26.3.1. The sole caveat is step 10 (Xcode container inspection of the `NSURLIsExcludedFromBackupKey` attribute) which this project cannot perform end-to-end: builds happen on GitHub Actions' `macos-latest` runners, the IPA is downloaded + sideloaded via SideStore, and there is no local macOS toolchain to mount the device's container and run `xattr -l`. The backup-exclude code-path is covered at the boundary by dedicated tests — operator will re-litigate at Phase 08 Review Gate if evidence of the on-device attribute is required.
 
 ---
 
 ## Overall Phase 07 close verdict
 
-- **Android smoke:** PENDING
-- **iOS smoke:** PENDING
-- **Ready for Phase 08 Review Gate:** PENDING
-
-User signal required: type `approved` in response to the Plan 07-07
-checkpoint message once both entries are filled in and both verdicts
-are PASS (or iOS PASS-with-caveat and user accepts).
+- **Android smoke:** approved
+- **iOS smoke:** approved (PASS-with-caveat — step 10 not performable from the project's CI-only macOS setup; see Entry 2 Verdict for details)
+- **Ready for Phase 08 Review Gate:** approved
