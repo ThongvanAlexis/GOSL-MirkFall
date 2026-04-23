@@ -191,7 +191,18 @@ Format: `[severity] Title — 1-line explanation — file:line`. Severities: Blo
 
 *Filled by Plan 08-03 Task 1 BEFORE spawning sub-agents. Source: 08-CONTEXT.md §Implementation Decisions / §2 pre-class items (10 items). Committed as `docs(08-rev): pre-class 10 CONTEXT handoff items into §2` before any Agent tool call.*
 
-(pending — 10 entries: water filter Noted | background V2 Noted | iOS animateCamera fix Noted | Plan 07-07 absorbed Should | pmtiles-heal Noted | smell category inline | ROADMAP+REQ sync Should | tool simplify/generate Could-or-Noted | CountryResolver edges Should-if-findings-else-Noted | DEPENDENCIES Noted)
+| # | Item | Severity | Rationale |
+|---|------|----------|-----------|
+| 1 | Water filter Polygon/MultiPolygon only (rivers-as-LineString invisibles) | Noted | User-decided 2026-04-21 post-device-smoke. Water encodé LineString dans source-layer Protomaps n'est pas rendered ; enrichissement complet reporté phase V1.x. Ref `07-06-SUMMARY.md §Post-ship amendments` + `07-CONTEXT.md §<deferred>`. |
+| 2 | Background downloads → V2 backlog (Android FGS + iOS URLSession.background) | Noted | User-decided 2026-04-21 post-device-smoke. Download suspendu au screen-lock V1.0 (resume Range-based au foreground) ; vrai background V2 per `PROJECT.md §V2 Backlog`. Agent #3 vérifie copy UX ne promet pas "background continues". |
+| 3 | iOS animateCamera crash RÉSOLU 2026-04-22 | Noted | Commits `81d30c7` + `ab497ab` + `40b49d5`. Ref `docs/phase-07-ios-animate-camera-crash.md`. Agent #3 vérifie la fix tient + qu'aucun `// fix for edge case` n'est introduit. |
+| 4 | Plan 07-07 absorbed → ROADMAP+REQUIREMENTS sync | Should | **Fix landed in Plan 08-01 Task 3** (MAP-05/06/07/08/10 Complete ; Plan 07-07 scope-reduced ; `07-07-SUMMARY.md` written). Row confirms done ; regression re-opens as fix-in-loop. |
+| 5 | pmtiles-heal path in FirstLaunchBootstrap (mid-rename kill recovery) | Noted | Invariant shipped Plan 07-04. Agent #1 + Agent #2 vérifient heal path cohérent avec atomic rename + que soak scenario #6 est la couverture test. |
+| 6 | Smell heuristics hot-spots (4 components) | category-inline | See `### Smell heuristics hot-spots` table below. Not a single finding row but a category anchor pointing agents at 4 pressure points. |
+| 7 | ROADMAP/REQUIREMENTS sync obligatoire | Should | Dupliqué avec #4 volontairement (catch either lens). Agent #4 flag si drift ré-introduit ; fix en §5 closure checklist (Plan 08-05 Task 4). |
+| 8 | `tool/simplify_polygons.dart` + `tool/generate_tiny_pmtiles.dart` audit | Could/Noted | Agent #4 lens : licences deps / output déterministe / paired tests / README. |
+| 9 | CountryResolver edge cases (SC#2) | Should-if-findings-else-Noted | Agent #1 lens : frontier 2 pays / viewport beyond installed country → fallback world bundle / zoom world-only / polygon simplification lossy (bbox-only). Severity escalates to Should si gap tests surfaced. |
+| 10 | DEPENDENCIES.md audit deltas Phase 07 | Noted | maplibre_gl 0.25.0 BSD-3 + crypto + shelf. Agent #4 confirm licence + télémétrie-zero + deps transitives rescan (no GPL/AGPL contamination), version pinning strict match `pubspec.yaml`. |
 
 ### Smell heuristics hot-spots
 
@@ -199,7 +210,10 @@ Format: `[severity] Title — 1-line explanation — file:line`. Severities: Blo
 
 | Component | File path | Primary Agent | Smell pattern to look for |
 |-----------|-----------|---------------|---------------------------|
-| (pending — 4 rows) | | | |
+| PmtilesDownloadController 7-step | `lib/infrastructure/downloads/pmtiles_download_controller.dart` | **#2** | **State machine tirée par les cheveux** — sealed states sync-only, dispatcher géant par step, transitions quasi-toutes-vers-toutes si échec. Q : est-ce qu'une fonction pure séquentielle + Result-type propagation ferait le même boulot que les 7 états nommés ? |
+| MapCameraController follow/pan/iOS-fix | `lib/application/controllers/map_camera_controller.dart` | **#3** | **Code alambiqué par empilement de fix** — booleans accumulés (isFollowing / hasBeenInitialized / _pendingCamera), early returns post-fix iOS crash. Q : est-ce que la fix iOS animateCamera (commits 81d30c7/ab497ab/40b49d5) a introduit des guards défensifs qui révèlent un design sous-jacent à revoir ? |
+| StyleRewriter + 2 validators | `lib/infrastructure/map/style_rewriter.dart` | **#1** | **Dispatcher duplication** — switch par validator type, logique répétée entre branches. Q : est-ce que les 2 validators partagent assez de surface pour fusionner en un validator-chain strategy ? |
+| ActiveSessionController + ActiveSessionState Phase 05 legacy | `lib/application/controllers/active_session_controller.dart` | **#3** | **Sealed states intermediate-sync-only** — états Idle/Starting/Tracking/Stopping/ErrorState Phase 05 ; touché par 07-05 controllers wiring (MapCameraController hook). Q : est-ce que 07-05 a amplifié une state-machine sur-dimensionnée ? |
 
 ### Agent #1 — Map infra + seam purity
 *Scope: `lib/domain/map/` + `lib/infrastructure/map/` + `tool/check_avoid_maplibre_leak.dart` + `tool/check_avoid_remote_pmtiles.dart` + paired tests. Hot-spot: StyleRewriter + 2 validators.*
