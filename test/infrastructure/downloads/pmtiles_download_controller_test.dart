@@ -290,6 +290,81 @@ void main() {
       });
     });
 
+    test('frontier invariant: pre-frontier fully-sized chunks are trusted (no sha256)', () async {
+      // Protocol invariant: the prior session would not have moved on
+      // to chunk N+1 without successfully verifying chunk N. So when
+      // the staging dir shows chunks 0..K fully sized + chunk K+1
+      // partial, chunks 0..K are trusted (no sha256) and only K+1 is
+      // hashed (after its Range-resumed download completes).
+      await _withRealHttpClient(() async {
+        final Uint8List a = Uint8List.fromList(List<int>.filled(1024, 0x11));
+        final Uint8List b = Uint8List.fromList(List<int>.filled(1024, 0x22));
+        final Uint8List c = Uint8List.fromList(List<int>.filled(1024, 0x33));
+        final Uint8List d = Uint8List.fromList(List<int>.filled(1024, 0x44));
+
+        final Directory fraStaging = Directory(p.join(tempDir.path, kStagingDir, 'fra'));
+        await fraStaging.create(recursive: true);
+        // chunks 0, 1 fully sized; chunk 2 partial; chunk 3 missing.
+        await File(p.join(fraStaging.path, 'part00')).writeAsBytes(a);
+        await File(p.join(fraStaging.path, 'part01')).writeAsBytes(b);
+        await File(p.join(fraStaging.path, 'part02')).writeAsBytes(c.sublist(0, 500));
+
+        final FakeHttpServer srvA = await FakeHttpServer.bind(initialBytes: a);
+        final FakeHttpServer srvB = await FakeHttpServer.bind(initialBytes: b);
+        final FakeHttpServer srvC = await FakeHttpServer.bind(initialBytes: c);
+        final FakeHttpServer srvD = await FakeHttpServer.bind(initialBytes: d);
+        addTearDown(() async {
+          await srvA.close();
+          await srvB.close();
+          await srvC.close();
+          await srvD.close();
+        });
+
+        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
+        final _Harness result = await makeController(httpDownloader: httpDownloader);
+        final PmtilesDownloadController controller = result.controller;
+
+        final List<DownloadState> states = <DownloadState>[];
+        final StreamSubscription<DownloadState> sub = controller.stateStream.listen(states.add);
+        addTearDown(sub.cancel);
+
+        final CountryEntry entry = _entryFor(
+          alpha3Raw: 'fra',
+          chunkPayloads: <Uint8List>[a, b, c, d],
+          chunkUrls: <String>[
+            srvA.base.resolve('/a').toString(),
+            srvB.base.resolve('/b').toString(),
+            srvC.base.resolve('/c').toString(),
+            srvD.base.resolve('/d').toString(),
+          ],
+        );
+
+        final Future<DownloadState> completedFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
+        await controller.enqueueCountry(entry);
+        await completedFuture;
+
+        expect(srvA.recordedRequests, isEmpty, reason: 'pre-frontier chunk 0 is trusted (no request)');
+        expect(srvB.recordedRequests, isEmpty, reason: 'pre-frontier chunk 1 is trusted (no request)');
+        expect(srvC.recordedRequests.map((r) => r.rangeHeader).toList(), <String?>['bytes=500-'], reason: 'frontier chunk 2 is Range-resumed');
+        expect(srvD.recordedRequests.single.rangeHeader, isNull, reason: 'post-frontier chunk 3 is fresh-downloaded');
+
+        final File canonical = File(p.join(tempDir.path, kCountriesDir, 'fra.pmtiles'));
+        expect(await canonical.readAsBytes(), <int>[...a, ...b, ...c, ...d]);
+
+        // verifyingChunk phase must NOT have fired for partIndex 0 or
+        // 1 (trusted); it must have fired for 2 (frontier, Range-resumed)
+        // and 3 (post-frontier, fresh).
+        final Set<int> verifiedIndices = states
+            .whereType<DownloadInProgress>()
+            .where((DownloadInProgress s) => s.phase == DownloadPhase.verifyingChunk)
+            .map((DownloadInProgress s) => s.progress.currentPartIndex)
+            .toSet();
+        expect(verifiedIndices.contains(0), isFalse, reason: 'pre-frontier chunks are not sha256-checked');
+        expect(verifiedIndices.contains(1), isFalse, reason: 'pre-frontier chunks are not sha256-checked');
+        expect(verifiedIndices, containsAll(<int>{2, 3}));
+      });
+    });
+
     test('path 2 sha256 mismatch → chunk is redownloaded from scratch', () async {
       // Simulates: prior session wrote a fully-sized chunk but the
       // bytes are corrupt (e.g. kill during a flush, cosmic ray). On

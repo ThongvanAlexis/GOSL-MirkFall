@@ -234,7 +234,17 @@ class PmtilesDownloadController {
       // 0. Preflight.
       await _preflight(job.entry);
 
-      // 1+2. Download + per-chunk verify.
+      // 1+2. Download + per-chunk verify. Pre-compute the "frontier"
+      // chunk index — the highest one with any bytes on disk — so we
+      // can trust every earlier fully-sized chunk without re-hashing
+      // it. Protocol invariant: `_acquireChunk` only returns after the
+      // chunk is verified, and the loop below only advances to chunk
+      // `i+1` after `_acquireChunk` returns. Therefore if bytes for
+      // chunk N exist on disk, a prior session DID successfully verify
+      // every chunk in [0, N-1]. The reassembled global sha256 later
+      // catches any post-verify disk corruption that could slip past.
+      final int frontier = _findFrontierChunkIndex(stagingDir, job.entry.parts.length);
+
       final List<File> partFiles = <File>[];
       for (int i = 0; i < job.entry.parts.length; i++) {
         if (_cancelRequested) {
@@ -262,6 +272,20 @@ class PmtilesDownloadController {
 
         final ChunkPart part = job.entry.parts[i];
         final File partFile = File(p.join(stagingDir.path, 'part${i.toString().padLeft(2, '0')}'));
+
+        if (i < frontier && partFile.existsSync() && partFile.lengthSync() == part.size) {
+          // Trust path: a fully-sized chunk earlier than the frontier.
+          // The protocol invariant attests it was verified before the
+          // prior session moved on. Fast-forward the progress counter,
+          // emit a transferring-phase update so the UI jumps the bar,
+          // and move on — no sha256 here.
+          _log.info('chunk ${job.alpha3.value}.part$i trusted (frontier=$frontier, size=${part.size}) — skipping network + sha256');
+          _accumulatedBytes += part.size;
+          _emitInProgress(job: job, partIndex: i);
+          partFiles.add(partFile);
+          continue;
+        }
+
         await _acquireChunk(part: part, partFile: partFile, job: job, partIndex: i);
         partFiles.add(partFile);
       }
@@ -331,6 +355,23 @@ class PmtilesDownloadController {
     if (free < needed) {
       throw DiskSpaceInsufficientException(neededBytes: needed, freeBytes: free);
     }
+  }
+
+  /// Scans [stagingDir] for `part##` files and returns the highest
+  /// index with any bytes on disk, or -1 if none exist. Used at the
+  /// top of [_processJob] to locate the chunk the prior session was
+  /// working on when it died — every chunk strictly below that index
+  /// can be trusted without a fresh sha256, because the protocol
+  /// invariant (verify-before-advance) guarantees they were hashed
+  /// successfully in the prior session.
+  int _findFrontierChunkIndex(Directory stagingDir, int totalParts) {
+    if (!stagingDir.existsSync()) return -1;
+    int frontier = -1;
+    for (int i = 0; i < totalParts; i++) {
+      final File f = File(p.join(stagingDir.path, 'part${i.toString().padLeft(2, '0')}'));
+      if (f.existsSync()) frontier = i;
+    }
+    return frontier;
   }
 
   /// Ensures [partFile] contains the exact bytes of [part] by the time
