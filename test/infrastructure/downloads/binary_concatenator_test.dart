@@ -76,6 +76,25 @@ void main() {
       expect(returnedHash, sha256.convert(expectedBytes).toString());
     });
 
+    test('onPartStart fires once per part with 0-indexed position', () async {
+      final Uint8List a = Uint8List(10)..fillRange(0, 10, 0x11);
+      final Uint8List b = Uint8List(10)..fillRange(0, 10, 0x22);
+      final Uint8List c = Uint8List(10)..fillRange(0, 10, 0x33);
+      final File pa = await writePart('a.bin', a);
+      final File pb = await writePart('b.bin', b);
+      final File pc = await writePart('c.bin', c);
+
+      final File dest = File(p.join(tempDir.path, 'out_cb.bin'));
+      final List<(int, int)> callbacks = <(int, int)>[];
+      await const BinaryConcatenator().concat(
+        parts: <File>[pa, pb, pc],
+        destination: dest,
+        onPartStart: (int partIndex, int totalParts) => callbacks.add((partIndex, totalParts)),
+      );
+
+      expect(callbacks, <(int, int)>[(0, 3), (1, 3), (2, 3)]);
+    });
+
     test('creates missing parent directory for destination', () async {
       final Uint8List payload = Uint8List(10)..fillRange(0, 10, 0x42);
       final File part = await writePart('p.bin', payload);

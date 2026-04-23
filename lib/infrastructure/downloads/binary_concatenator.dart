@@ -35,12 +35,18 @@ class BinaryConcatenator {
   /// Concatenates every file in [parts] into [destination] and returns
   /// the sha256 (hex) of the reassembled bytes.
   ///
+  /// [onPartStart] (optional) fires BEFORE the bytes of each part are
+  /// streamed, with the 0-indexed part number and the total parts
+  /// count. Drives the "Assemblage du bloc N/M" subtitle in the
+  /// download UI — concat on a 5 GB bundle takes minutes, and without
+  /// these emits the user sees a frozen progress bar.
+  ///
   /// Throws:
   /// - [ConcatFailureException] when the parts list is empty, a part is
   ///   missing, or the underlying IOSink write fails mid-stream. The
   ///   partially-written [destination] is unlinked before the exception
   ///   propagates.
-  Future<String> concat({required List<File> parts, required File destination}) async {
+  Future<String> concat({required List<File> parts, required File destination, void Function(int partIndex, int totalParts)? onPartStart}) async {
     if (parts.isEmpty) {
       throw const ConcatFailureException(reason: 'parts list was empty');
     }
@@ -57,7 +63,9 @@ class BinaryConcatenator {
     bool closed = false;
     bool hasherClosed = false;
     try {
-      for (final File part in parts) {
+      for (int i = 0; i < parts.length; i++) {
+        onPartStart?.call(i, parts.length);
+        final File part = parts[i];
         // Iterate filesystem chunks ourselves (instead of addStream) so
         // we can tee each buffer into both the destination sink and the
         // sha256 chunked converter — one disk read feeds both.

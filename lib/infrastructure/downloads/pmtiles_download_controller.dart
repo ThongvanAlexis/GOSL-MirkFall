@@ -309,9 +309,19 @@ class PmtilesDownloadController {
       // 2. Concat + verify in a single pass: BinaryConcatenator streams
       // every byte into the reassembled file AND into a sha256 chunked
       // converter simultaneously, returning the final digest at EOF.
-      _emitInProgress(job: job, partIndex: job.entry.parts.length - 1, phase: DownloadPhase.concatenating);
+      // onPartStart re-emits DownloadInProgress(concatenating) with
+      // the 0-indexed current part so the UI subtitle can render
+      // "Assemblage du bloc N/M + vérification finale…" rather than a
+      // single frozen label for the 30 s–3 min single-pass finalize.
+      _emitInProgress(job: job, partIndex: 0, phase: DownloadPhase.concatenating);
       _log.info('concat+hash ${job.alpha3.value}: starting (${job.entry.parts.length} parts → reassembled ${job.entry.reassembled.size} bytes)');
-      final String reassembledHash = await _concatenator.concat(parts: partFiles, destination: reassembledStaging);
+      final String reassembledHash = await _concatenator.concat(
+        parts: partFiles,
+        destination: reassembledStaging,
+        onPartStart: (int partIndex, int _) {
+          _emitInProgress(job: job, partIndex: partIndex, phase: DownloadPhase.concatenating);
+        },
+      );
       _log.info('concat+hash ${job.alpha3.value}: OK');
       if (reassembledHash != job.entry.reassembled.sha256) {
         throw Sha256MismatchException(expected: job.entry.reassembled.sha256, actual: reassembledHash, at: 'reassembled');
