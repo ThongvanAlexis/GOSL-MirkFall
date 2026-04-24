@@ -141,6 +141,19 @@ class MapCameraController extends _$MapCameraController {
     //
     // The remaining `_viewportSub` is the ONLY manual StreamSubscription
     // because MapView.viewportUpdates is a plain Stream, not a provider.
+    //
+    // Phase 08.1-REVIEW §3 row #11 — the single-subscription invariant
+    // for `_viewportSub` is upheld from three angles:
+    //   a. `_attachMapViewIfReady` cancels+replaces on adapter change
+    //      (guard at the `if (identical(current, _mapView)) return;`).
+    //   b. `_tearDown` cancels+nulls on provider dispose.
+    //   c. Riverpod's own build/dispose cycle: when the provider is
+    //      invalidated, a FRESH controller instance is constructed on
+    //      next build(), so stale ivars from the previous instance are
+    //      unreachable — no risk of re-touching a disposed sub.
+    // The `_viewportSub?.cancel()` guard in `_attachMapViewIfReady` is
+    // still load-bearing for in-lifetime adapter swaps (a) and
+    // documents the invariant for future readers.
     ref.listen<MapView?>(mapViewProvider, (previous, next) {
       _attachMapViewIfReady();
     });
