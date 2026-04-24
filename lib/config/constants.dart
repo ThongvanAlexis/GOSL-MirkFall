@@ -276,3 +276,40 @@ const int kDownloadCompletedSnackbarSeconds = 3;
 /// the error message itself is longer and the user may want to read
 /// the cause before retrying.
 const int kDownloadErrorSnackbarSeconds = 5;
+
+/// Style-source ID for the GeoJSON source carrying the user-location
+/// puck's current position. Namespaced with `mirkfall_` so a downstream
+/// style tweak cannot accidentally collide. Hoisted here (rather than
+/// file-local in `maplibre_map_view.dart`) per CLAUDE.md §Magic numbers
+/// so any future widget that re-publishes the puck source references
+/// the same string identifier.
+const String kUserLocationSourceId = 'mirkfall_user_location_source';
+
+/// Style-layer ID for the circle layer that renders the user-location
+/// puck. Pairs with [kUserLocationSourceId].
+const String kUserLocationLayerId = 'mirkfall_user_location_layer';
+
+/// Debounce window on viewport updates for the `CountryResolverController`.
+/// 500 ms matches the `CountryResolver.resolveForViewportUpdates`
+/// default; keeps continuous-gesture panning off the point-in-polygon
+/// hot path.
+const Duration kCountryResolverViewportDebounce = Duration(milliseconds: 500);
+
+/// Debounce window for the `MapCameraController` pending-move flag.
+/// Larger than MapLibre's own idle-emit latency (~200 ms) but small
+/// enough that a subsequent user pan within the same second still
+/// registers as user intent. Tuned for the Plan 07-06 hot path.
+const Duration kMapCameraPendingMoveDebounce = Duration(milliseconds: 1000);
+
+/// Relative path (under `<app_support>/`) for the download queue
+/// persistence JSON used by `DownloadQueueStore`. Lives alongside the
+/// installed manifest under `maps/`.
+const String kDownloadQueueStorePath = 'maps/download_queue.json';
+
+/// Timeout for the native disk-space MethodChannel invocation. 5 s is
+/// conservative — `StatFs` (Android) and `attributesOfFileSystem` (iOS)
+/// both complete in sub-millisecond on consumer hardware; a pending
+/// call past 5 s signals a wedged native side. Lives here per
+/// CLAUDE.md §Timeouts: "Valeurs dans `lib/config/constants.dart`,
+/// pas hardcodées dans le code d'appel".
+const Duration kDiskSpaceCheckTimeout = Duration(seconds: 5);

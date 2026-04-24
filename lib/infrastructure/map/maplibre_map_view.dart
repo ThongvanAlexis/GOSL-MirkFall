@@ -8,21 +8,13 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_theme.dart';
 import 'package:mirkfall/domain/map/map_view.dart';
 
 import 'style_rewriter.dart';
-
-/// Style-source ID for the GeoJSON source carrying the user-location
-/// puck's current position. Namespaced with `mirkfall_` so a downstream
-/// style tweak cannot accidentally collide.
-const String _kUserLocationSourceId = 'mirkfall_user_location_source';
-
-/// Style-layer ID for the circle layer that renders the puck. Pairs
-/// with [_kUserLocationSourceId].
-const String _kUserLocationLayerId = 'mirkfall_user_location_layer';
 
 /// GeoJSON FeatureCollection with a single Point feature at
 /// ([longitude], [latitude]). Used to push the puck position.
@@ -364,7 +356,7 @@ class _MapLibreMapViewAdapter implements MapView {
       if (_puckState.layerInstalled) {
         // Hide by clearing source data — leaves the layer in place
         // for cheap re-show on the next fix, avoids a re-add cycle.
-        await _controller.setGeoJsonSource(_kUserLocationSourceId, _emptyFeatureCollection());
+        await _controller.setGeoJsonSource(kUserLocationSourceId, _emptyFeatureCollection());
       }
       _log.info('setUserLocation(null): puck cleared');
       return;
@@ -374,10 +366,10 @@ class _MapLibreMapViewAdapter implements MapView {
       // First call on this style: install the source + layer via the
       // regular style addSource/addLayer method-channel calls. This
       // path does NOT go through the AnnotationManager.
-      await _controller.addGeoJsonSource(_kUserLocationSourceId, geojson);
+      await _controller.addGeoJsonSource(kUserLocationSourceId, geojson);
       await _controller.addCircleLayer(
-        _kUserLocationSourceId,
-        _kUserLocationLayerId,
+        kUserLocationSourceId,
+        kUserLocationLayerId,
         // Default MapLibre location-puck colours: solid blue fill +
         // white stroke. Matches the convention every major GPS app
         // uses (Google Maps, Apple Maps, OsmAnd) — future swap to a
@@ -390,7 +382,7 @@ class _MapLibreMapViewAdapter implements MapView {
     } else {
       // Update the source data only — a single method-channel call,
       // no layer mutation, no AnnotationManager involvement.
-      await _controller.setGeoJsonSource(_kUserLocationSourceId, geojson);
+      await _controller.setGeoJsonSource(kUserLocationSourceId, geojson);
       _log.fine('setUserLocation: puck UPDATED at (${fix.latitude}, ${fix.longitude})');
     }
     // Follow-me: centre the camera on the new fix. Uses animateCamera

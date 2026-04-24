@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
@@ -73,11 +74,6 @@ class CountryResolverState {
 @Riverpod(keepAlive: true)
 class CountryResolverController extends _$CountryResolverController {
   static final Logger _log = Logger('application.controllers.country_resolver');
-
-  /// Debounce window on viewport updates. 500 ms matches the Plan 07-03
-  /// CountryResolver's own `resolveForViewportUpdates` default; keeps
-  /// continuous-gesture panning off the point-in-polygon hot path.
-  static const Duration _kViewportDebounce = Duration(milliseconds: 500);
 
   MapView? _mapView;
   StreamSubscription<({double latitude, double longitude, double zoom})>? _viewportSub;
@@ -249,7 +245,7 @@ class CountryResolverController extends _$CountryResolverController {
   void _onViewportUpdate(({double latitude, double longitude, double zoom}) v) {
     _lastViewport = v;
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(_kViewportDebounce, () {
+    _debounceTimer = Timer(kCountryResolverViewportDebounce, () {
       unawaited(_resolveAndApply(v));
     });
   }

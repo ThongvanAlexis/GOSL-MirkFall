@@ -100,12 +100,6 @@ final class MapCameraFreePan extends MapCameraState {
 class MapCameraController extends _$MapCameraController {
   static final Logger _log = Logger('application.controllers.map_camera');
 
-  /// Debounce window for the pending-move flag. Larger than MapLibre's
-  /// own idle-emit latency (typically ~200 ms) but small enough that a
-  /// subsequent user pan within the same second still registers as user
-  /// intent. Tuned for the Plan 07-06 hot path.
-  static const Duration _kPendingMoveDebounce = Duration(milliseconds: 1000);
-
   MapView? _mapView;
   StreamSubscription<({double latitude, double longitude, double zoom})>? _viewportSub;
   bool _cameraMovePending = false;
@@ -298,7 +292,7 @@ class MapCameraController extends _$MapCameraController {
   Future<void> _moveCameraTo(MapView mapView, {required double latitude, required double longitude, required double zoom}) async {
     _cameraMovePending = true;
     _pendingResetTimer?.cancel();
-    _pendingResetTimer = Timer(_kPendingMoveDebounce, () {
+    _pendingResetTimer = Timer(kMapCameraPendingMoveDebounce, () {
       _cameraMovePending = false;
     });
     _currentZoom = zoom;

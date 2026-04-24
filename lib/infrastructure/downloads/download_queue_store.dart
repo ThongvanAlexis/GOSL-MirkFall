@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:logging/logging.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/downloads/download_job.dart';
 import 'package:path/path.dart' as p;
 
@@ -24,10 +25,8 @@ import 'package:path/path.dart' as p;
 /// recoverable by re-adding the countries.
 class DownloadQueueStore {
   DownloadQueueStore({required String appSupportDir, Logger? logger})
-    : _filename = p.join(appSupportDir, _kRelativePath),
+    : _filename = p.join(appSupportDir, kDownloadQueueStorePath),
       _log = logger ?? Logger('infrastructure.downloads.download_queue_store');
-
-  static const String _kRelativePath = 'maps/download_queue.json';
 
   final String _filename;
   final Logger _log;

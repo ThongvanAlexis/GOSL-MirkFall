@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
+import 'package:mirkfall/config/constants.dart';
 
 /// MethodChannel name shared with Android Kotlin + iOS Swift sides.
 /// Triple-source truth: any change must land on all three sides in
@@ -31,28 +32,22 @@ class DiskSpaceChecker {
 
   final MethodChannel _channel;
 
-  /// Timeout for the platform call. 5 s is conservative — `StatFs` and
-  /// `attributesOfFileSystem` both complete in sub-millisecond on
-  /// consumer hardware; a pending call past 5 s signals a wedged native
-  /// side rather than a slow filesystem.
-  static const Duration _kTimeout = Duration(seconds: 5);
-
   /// Returns the free bytes reported by the filesystem at [path].
   ///
   /// Throws:
   /// - [TimeoutException] when the native side doesn't respond within
-  ///   [_kTimeout].
+  ///   [kDiskSpaceCheckTimeout].
   /// - [DiskSpaceCheckException] wrapping any `PlatformException` or
   ///   other native error.
   Future<int> freeBytes({required String path}) async {
     try {
-      final Object? raw = await _channel.invokeMethod<Object?>('freeBytes', <String, Object>{'path': path}).timeout(_kTimeout);
+      final Object? raw = await _channel.invokeMethod<Object?>('freeBytes', <String, Object>{'path': path}).timeout(kDiskSpaceCheckTimeout);
       if (raw is int) return raw;
       // Some platform-channel setups auto-box to num; coerce to int.
       if (raw is num) return raw.toInt();
       throw DiskSpaceCheckException('unexpected platform result type: ${raw?.runtimeType}');
     } on TimeoutException {
-      _log.warning('freeBytes: timed out after ${_kTimeout.inSeconds}s for path=$path');
+      _log.warning('freeBytes: timed out after ${kDiskSpaceCheckTimeout.inSeconds}s for path=$path');
       rethrow;
     } on PlatformException catch (e, st) {
       _log.warning('freeBytes platform error: ${e.code} ${e.message}', e, st);
