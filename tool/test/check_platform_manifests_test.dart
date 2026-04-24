@@ -132,6 +132,30 @@ void main() {
       expect(code, 1);
     });
 
+    test('returns 1 when BootCompletedReceiver lacks android:exported="true" (row #49 regression guard)', () async {
+      // Flip the exported flag to false — Android 12+ install-gate failure
+      // condition + breaks auto-resume on reboot. The check_platform_manifests
+      // gate must catch this before it ships (row #49 rationale).
+      final String poisoned = _cleanAndroidManifest.replaceFirst('android:exported="true"', 'android:exported="false"');
+      await File(androidPath).writeAsString(poisoned);
+      await File(iosPath).writeAsString(_cleanInfoPlist);
+
+      final int code = await check_platform_manifests.runCheck(androidManifestPath: androidPath, infoPlistPath: iosPath);
+      expect(code, 1, reason: 'BootCompletedReceiver without android:exported="true" must be a policy violation');
+    });
+
+    test('returns 1 when BootCompletedReceiver is missing exported attribute entirely (row #49 regression guard)', () async {
+      // Strip the attribute — same failure mode as exported=false because
+      // Android 12+ defaults to false when the attribute is omitted on
+      // receivers that declare intent filters.
+      final String poisoned = _cleanAndroidManifest.replaceFirst(' android:exported="true"', '');
+      await File(androidPath).writeAsString(poisoned);
+      await File(iosPath).writeAsString(_cleanInfoPlist);
+
+      final int code = await check_platform_manifests.runCheck(androidManifestPath: androidPath, infoPlistPath: iosPath);
+      expect(code, 1, reason: 'BootCompletedReceiver without exported attribute must be a policy violation on Android 12+');
+    });
+
     test('returns 1 when AndroidManifest is missing the BootCompletedReceiver declaration', () async {
       // Strip the whole <receiver>…</receiver> block.
       final String poisoned = _cleanAndroidManifest.replaceFirst(RegExp(r'<receiver[\s\S]*?</receiver>'), '');

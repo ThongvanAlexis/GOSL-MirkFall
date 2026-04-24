@@ -22,7 +22,11 @@ import 'dart:io';
 ///     per-country PMTiles bundles; without it, the download controller
 ///     throws SecurityException on the first GET)
 ///   - `<receiver android:name=".BootCompletedReceiver">` with the
-///     BOOT_COMPLETED intent-filter action.
+///     BOOT_COMPLETED intent-filter action. The receiver MUST declare
+///     `android:exported="true"` (Android 12+ install-gate contract —
+///     BOOT_COMPLETED is system-delivered, the receiver is a per-app
+///     inter-process boundary). Row #49 (§3 Phase 08 review) added the
+///     exported-flag guard to protect against accidental regressions.
 ///
 /// `ios/Runner/Info.plist` MUST contain (Phase 05 QUAL-04):
 ///
@@ -88,6 +92,23 @@ Future<int> runCheck({String? androidManifestPath, String? infoPlistPath}) async
   // BootCompletedReceiver declaration.
   if (!RegExp(r'<receiver[^>]*android:name="\.BootCompletedReceiver"').hasMatch(androidContents)) {
     violations.add('AndroidManifest.xml missing <receiver android:name=".BootCompletedReceiver"> declaration');
+  }
+  // BootCompletedReceiver MUST stay `android:exported="true"` — Android
+  // 12+ rejects the app install otherwise when targeting SDK 31+.
+  // BOOT_COMPLETED is delivered by the system (not the app itself), so
+  // the receiver is an inter-process boundary and must be exported.
+  // Row #49 (§3) flagged the flag's absence from this gate as a
+  // regression risk — `dart format` or an accidental edit could flip it
+  // to `false` and the device would silently lose the auto-resume path.
+  final RegExp bootReceiverBlockRegex = RegExp(r'<receiver[^>]*android:name="\.BootCompletedReceiver"[^>]*>', dotAll: true);
+  final RegExpMatch? bootReceiverMatch = bootReceiverBlockRegex.firstMatch(androidContents);
+  if (bootReceiverMatch != null) {
+    final String receiverTag = bootReceiverMatch.group(0)!;
+    if (!receiverTag.contains('android:exported="true"')) {
+      violations.add(
+        'AndroidManifest.xml BootCompletedReceiver must stay android:exported="true" (Android 12+ install-gate + system-delivered BOOT_COMPLETED intent contract)',
+      );
+    }
   }
   // BOOT_COMPLETED intent-filter action.
   if (!RegExp(r'<action\s+android:name="android\.intent\.action\.BOOT_COMPLETED"').hasMatch(androidContents)) {
