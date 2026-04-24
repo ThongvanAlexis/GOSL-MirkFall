@@ -47,6 +47,9 @@ class BinaryConcatenator {
   ///   partially-written [destination] is unlinked before the exception
   ///   propagates.
   Future<String> concat({required List<File> parts, required File destination, void Function(int partIndex, int totalParts)? onPartStart}) async {
+    // Pre-open guards: throw ConcatFailureException directly without going through the
+    // try/catch below. Addresses row #30 (§3) — wrapping these would have produced
+    // misleading "IOSink write failed: ConcatFailureException(...)" rewrap chains.
     if (parts.isEmpty) {
       throw const ConcatFailureException(reason: 'parts list was empty');
     }
@@ -55,7 +58,11 @@ class BinaryConcatenator {
         throw ConcatFailureException(reason: 'part missing: ${part.path}');
       }
     }
-    await destination.parent.create(recursive: true);
+    try {
+      await destination.parent.create(recursive: true);
+    } on FileSystemException catch (e) {
+      throw ConcatFailureException(reason: 'could not create destination parent ${destination.parent.path}: ${e.message}');
+    }
 
     final IOSink sink = destination.openWrite();
     final _DigestCollector collector = _DigestCollector();
@@ -80,23 +87,37 @@ class BinaryConcatenator {
       hasher.close();
       hasherClosed = true;
       return collector.digest.toString();
-    } on Object catch (e) {
-      if (!closed) {
-        // Best-effort close; ignore failures, the write path already failed.
-        await sink.close().catchError((Object _) => sink);
+    } on FileSystemException catch (e) {
+      await _cleanup(sink: sink, sinkClosed: closed, hasher: hasher, hasherClosed: hasherClosed, destination: destination);
+      throw ConcatFailureException(reason: 'filesystem I/O failed during concat: ${e.message}');
+    } on IOException catch (e) {
+      await _cleanup(sink: sink, sinkClosed: closed, hasher: hasher, hasherClosed: hasherClosed, destination: destination);
+      throw ConcatFailureException(reason: 'I/O error during concat: $e');
+    }
+  }
+
+  /// Cleanup on concat failure — close sink (best-effort), close hasher, delete partial destination.
+  /// Keeps the "staging or absent, never garbage" invariant on the failure path.
+  Future<void> _cleanup({
+    required IOSink sink,
+    required bool sinkClosed,
+    required ByteConversionSink hasher,
+    required bool hasherClosed,
+    required File destination,
+  }) async {
+    if (!sinkClosed) {
+      // Best-effort close; ignore failures, the write path already failed.
+      await sink.close().catchError((Object _) => sink);
+    }
+    if (!hasherClosed) {
+      hasher.close();
+    }
+    if (destination.existsSync()) {
+      try {
+        await destination.delete();
+      } on FileSystemException {
+        // Best-effort cleanup; don't mask the original failure.
       }
-      if (!hasherClosed) {
-        hasher.close();
-      }
-      if (destination.existsSync()) {
-        try {
-          await destination.delete();
-        } on FileSystemException {
-          // Best-effort cleanup; don't mask the original failure.
-        }
-      }
-      if (e is ConcatFailureException) rethrow;
-      throw ConcatFailureException(reason: 'IOSink write failed: $e');
     }
   }
 }
