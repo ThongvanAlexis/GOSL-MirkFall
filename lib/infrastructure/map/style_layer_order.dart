@@ -46,24 +46,7 @@ const List<String> kStyleLayerOrder = <String>['background', 'landcover', 'water
 /// so the helper can be reused from any caller (production style loader,
 /// unit tests, tooling scripts).
 void assertStyleLayerOrder(String styleJson) {
-  final Map<String, Object?> parsed = _parseStyleOrThrow(styleJson);
-  final List<Object?>? rawLayers = parsed['layers'] is List ? parsed['layers'] as List<Object?> : null;
-  if (rawLayers == null) {
-    throw const MapStyleCorruptException(reason: 'style.layers must be an array');
-  }
-
-  final List<String> actualIds = <String>[];
-  for (int i = 0; i < rawLayers.length; i++) {
-    final Object? raw = rawLayers[i];
-    if (raw is! Map) {
-      throw MapStyleCorruptException(reason: 'style.layers[$i] is not a JSON object');
-    }
-    final Object? id = raw['id'];
-    if (id is! String) {
-      throw MapStyleCorruptException(reason: 'style.layers[$i].id must be a string');
-    }
-    actualIds.add(id);
-  }
+  final List<String> actualIds = <String>[for (final _LayerRef ref in _iterateStyleLayers(styleJson)) ref.id];
 
   if (actualIds.length != kStyleLayerOrder.length) {
     throw MapStyleCorruptException(
@@ -103,14 +86,10 @@ void assertStyleLayerOrder(String styleJson) {
 void assertStyleLayerValidity(String styleJson) {
   final Map<String, Object?> parsed = _parseStyleOrThrow(styleJson);
   final Map<String, Object?> sources = _requireMap(parsed, 'sources', 'style.sources');
-  final List<Object?> rawLayers = _requireList(parsed, 'layers', 'style.layers');
 
-  for (int i = 0; i < rawLayers.length; i++) {
-    final Object? raw = rawLayers[i];
-    if (raw is! Map) {
-      throw MapStyleCorruptException(reason: 'style.layers[$i] is not a JSON object');
-    }
-    final String id = _requireString(raw, 'id', 'style.layers[$i].id');
+  for (final _LayerRef ref in _iterateStyleLayers(styleJson, parsed: parsed)) {
+    final Map<Object?, Object?> raw = ref.raw;
+    final String id = ref.id;
     final String type = _requireString(raw, 'type', 'style.layers[$id].type');
 
     switch (type) {
@@ -161,6 +140,41 @@ void assertStyleLayerValidity(String styleJson) {
   }
 }
 
+/// A single style.layers[i] entry after basic shape validation —
+/// guarantees the entry is a JSON object with a string `id`. Shared by
+/// [assertStyleLayerOrder] (order check) and [assertStyleLayerValidity]
+/// (per-type shape check) so the parse + iterate + shape-guard path
+/// exists exactly once.
+class _LayerRef {
+  _LayerRef({required this.index, required this.id, required this.raw});
+
+  final int index;
+  final String id;
+  final Map<Object?, Object?> raw;
+}
+
+/// Parses [styleJson] (or reuses an already-parsed [parsed] map) and
+/// yields each `style.layers[i]` entry as a [_LayerRef]. Throws
+/// [MapStyleCorruptException] for any malformed entry.
+Iterable<_LayerRef> _iterateStyleLayers(String styleJson, {Map<String, Object?>? parsed}) sync* {
+  final Map<String, Object?> root = parsed ?? _parseStyleOrThrow(styleJson);
+  final Object? rawLayers = root['layers'];
+  if (rawLayers is! List) {
+    throw const MapStyleCorruptException(reason: 'style.layers must be an array');
+  }
+  for (int i = 0; i < rawLayers.length; i++) {
+    final Object? raw = rawLayers[i];
+    if (raw is! Map) {
+      throw MapStyleCorruptException(reason: 'style.layers[$i] is not a JSON object');
+    }
+    final Object? id = raw['id'];
+    if (id is! String) {
+      throw MapStyleCorruptException(reason: 'style.layers[$i].id must be a string');
+    }
+    yield _LayerRef(index: i, id: id, raw: raw);
+  }
+}
+
 Map<String, Object?> _parseStyleOrThrow(String styleJson) {
   Object? decoded;
   try {
@@ -180,14 +194,6 @@ Map<String, Object?> _requireMap(Map<Object?, Object?> src, String key, String p
     throw MapStyleCorruptException(reason: '$path must be a JSON object');
   }
   return Map<String, Object?>.from(v);
-}
-
-List<Object?> _requireList(Map<Object?, Object?> src, String key, String path) {
-  final Object? v = src[key];
-  if (v is! List) {
-    throw MapStyleCorruptException(reason: '$path must be an array');
-  }
-  return List<Object?>.from(v);
 }
 
 String _requireString(Map<Object?, Object?> src, String key, String path) {
