@@ -326,7 +326,7 @@ class PmtilesDownloadController {
       for (int i = 0; i < job.entry.parts.length; i++) {
         if (_cancelRequested) {
           await _cleanupStaging(stagingDir);
-          _emit(DownloadCancelled(alpha3: job.alpha3));
+          _emit(DownloadCancelled(active: job));
           _queue.removeAt(0);
           await _persistQueue();
           return;
@@ -409,7 +409,7 @@ class PmtilesDownloadController {
 
       wallclock.stop();
       _log.info('processJob ${job.alpha3.value}: done in ${wallclock.elapsed.inMilliseconds}ms — emitting DownloadCompleted');
-      _emit(DownloadCompleted(alpha3: job.alpha3, totalElapsed: wallclock.elapsed));
+      _emit(DownloadCompleted(active: job, totalElapsed: wallclock.elapsed));
       _queue.removeAt(0);
       await _persistQueue();
     } on Exception catch (e) {

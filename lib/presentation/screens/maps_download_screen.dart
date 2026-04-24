@@ -92,7 +92,9 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
       } else if (next is DownloadCompleted && previous is! DownloadCompleted) {
         messenger.showSnackBar(
           SnackBar(
-            content: Text('${_displayNameFor(next.alpha3, catalogAsync.value)} téléchargé ✓'),
+            // next.active carries the full DownloadJob → entry → name, so the
+            // snackbar no longer needs a catalog lookup (addresses §3 row #42).
+            content: Text('${next.active.entry.name} téléchargé ✓'),
             duration: const Duration(seconds: kDownloadCompletedSnackbarSeconds),
           ),
         );
@@ -109,18 +111,6 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
         data: (catalog) => _buildBody(context, catalog, installedState, downloadState),
       ),
     );
-  }
-
-  /// Looks up the display name for [code] in [catalog] so completion /
-  /// error snackbars show the human-readable country name instead of
-  /// the raw alpha3 code. Falls back to uppercased alpha3 when either
-  /// the catalog is still loading or the code is not listed.
-  String _displayNameFor(CountryCode code, CountryCatalog? catalog) {
-    if (catalog == null) return code.value.toUpperCase();
-    for (final CountryEntry e in catalog.countries) {
-      if (e.alpha3 == code) return e.name;
-    }
-    return code.value.toUpperCase();
   }
 
   Widget _buildBody(BuildContext context, CountryCatalog catalog, InstalledMapsState installedState, DownloadState downloadState) {

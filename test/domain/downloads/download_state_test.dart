@@ -100,15 +100,19 @@ void main() {
       expect(s.cause, isA<DownloadInterruptedException>());
     });
 
-    test('DownloadCompleted is terminal with elapsed duration', () {
-      final DownloadCompleted s = DownloadCompleted(alpha3: CountryCode.parse('aru'), totalElapsed: const Duration(seconds: 42));
+    test('DownloadCompleted is terminal with elapsed duration + active job (row #42)', () {
+      final DownloadCompleted s = DownloadCompleted(active: _mkJob('aru'), totalElapsed: const Duration(seconds: 42));
       expect(label(s), equals('completed'));
       expect(s.totalElapsed, equals(const Duration(seconds: 42)));
+      expect(s.alpha3, equals(CountryCode.parse('aru')), reason: 'alpha3 convenience getter forwards to active.alpha3');
+      expect(s.active.entry.name, equals('ARU'));
     });
 
-    test('DownloadCancelled is terminal with alpha3', () {
-      final DownloadCancelled s = DownloadCancelled(alpha3: CountryCode.parse('deu'));
+    test('DownloadCancelled is terminal with active job (row #42)', () {
+      final DownloadCancelled s = DownloadCancelled(active: _mkJob('deu'));
       expect(label(s), equals('cancelled'));
+      expect(s.alpha3, equals(CountryCode.parse('deu')), reason: 'alpha3 convenience getter forwards to active.alpha3');
+      expect(s.active.entry.name, equals('DEU'));
     });
   });
 

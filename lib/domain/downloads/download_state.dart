@@ -187,23 +187,36 @@ final class DownloadError extends DownloadState {
   final Exception cause;
 }
 
-/// Terminal state — job finished successfully. Carries [totalElapsed]
-/// for telemetry-free on-screen display (local time measurement, not
-/// sent anywhere per CLAUDE.md §télémétrie interdite).
+/// Terminal state — job finished successfully. Carries the full
+/// [DownloadJob] so UI consumers can render the country name + size
+/// without re-querying the catalog (addresses §3 row #42 asymmetry —
+/// the other non-Idle variants already carry DownloadJob active).
+/// [totalElapsed] is for telemetry-free on-screen display (local time
+/// measurement, not sent anywhere per CLAUDE.md §télémétrie interdite).
 final class DownloadCompleted extends DownloadState {
-  const DownloadCompleted({required this.alpha3, required this.totalElapsed});
+  const DownloadCompleted({required this.active, required this.totalElapsed});
 
-  final CountryCode alpha3;
+  final DownloadJob active;
   final Duration totalElapsed;
+
+  /// Alpha-3 of the completed job. Convenience shortcut matching the
+  /// previous public surface so consumers can keep reading `.alpha3`
+  /// without pattern-matching into `.active.alpha3`.
+  CountryCode get alpha3 => active.alpha3;
 }
 
 /// Terminal state — job was cancelled by user action (delete from
 /// queue, or explicit cancel on the in-flight job). Staging files are
-/// cleaned up by the pipeline.
+/// cleaned up by the pipeline. Carries the full [DownloadJob] so UI
+/// consumers can render a "Téléchargement de X annulé" without a
+/// catalog lookup (addresses §3 row #42).
 final class DownloadCancelled extends DownloadState {
-  const DownloadCancelled({required this.alpha3});
+  const DownloadCancelled({required this.active});
 
-  final CountryCode alpha3;
+  final DownloadJob active;
+
+  /// Alpha-3 of the cancelled job. Convenience shortcut.
+  CountryCode get alpha3 => active.alpha3;
 }
 
 /// Why the active download was paused. Drives UI copy + auto-resume

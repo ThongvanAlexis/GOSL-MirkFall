@@ -99,7 +99,7 @@ class _FakeDownloadQueueController extends DownloadQueueController {
         snapshot: DownloadProgress(bytesDownloaded: entry.totalBytes, totalBytes: entry.totalBytes, currentPartIndex: 0, totalParts: 1),
         remaining: const <DownloadJob>[],
       ),
-      DownloadCompleted(alpha3: entry.alpha3, totalElapsed: const Duration(seconds: 1)),
+      DownloadCompleted(active: job, totalElapsed: const Duration(seconds: 1)),
     ];
     for (final DownloadState t in transitions) {
       state = t;
