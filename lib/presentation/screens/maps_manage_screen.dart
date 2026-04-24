@@ -63,7 +63,7 @@ class MapsManageScreen extends ConsumerWidget {
           _InstalledCountryTile(
             entry: installed,
             displayName: _nameFor(catalog, installed.alpha3),
-            updatesAvailable: state.updatesAvailable.contains(installed.alpha3),
+            updatesAvailable: state.updatesAvailableSet.contains(installed.alpha3),
           ),
         const Divider(),
         Padding(

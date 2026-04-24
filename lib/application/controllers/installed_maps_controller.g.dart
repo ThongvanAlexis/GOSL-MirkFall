@@ -11,13 +11,13 @@ part of 'installed_maps_controller.dart';
 /// Presentation-facing view over the installed-maps manifest + catalog.
 ///
 /// Watches [installedManifestProvider] + [countryCatalogProvider] and
-/// projects the triple of `(installed map, updatesAvailable set,
+/// projects the triple of `(installed map, updatesAvailableSet,
 /// totalDiskUsageBytes)`. Exposes a [deleteCountry] method that
 /// delegates to the Plan 07-04 `CountryDeleteService` (which enforces
 /// the `CountryCode.world` sentinel guard) + the repo's atomic write
 /// triggers a manifest refresh via the broadcast stream.
 ///
-/// The `updatesAvailable` set is a strict inequality check:
+/// The `updatesAvailableSet` set is a strict inequality check:
 /// `installedCountry.pmtilesVersion != catalog.catalogVersion`. A
 /// manifest entry with pmtilesVersion `"v20260419"` against a catalog
 /// tagged `"v20260501"` flags the country as updatable; same tag means
@@ -31,13 +31,13 @@ final installedMapsControllerProvider = InstalledMapsControllerProvider._();
 /// Presentation-facing view over the installed-maps manifest + catalog.
 ///
 /// Watches [installedManifestProvider] + [countryCatalogProvider] and
-/// projects the triple of `(installed map, updatesAvailable set,
+/// projects the triple of `(installed map, updatesAvailableSet,
 /// totalDiskUsageBytes)`. Exposes a [deleteCountry] method that
 /// delegates to the Plan 07-04 `CountryDeleteService` (which enforces
 /// the `CountryCode.world` sentinel guard) + the repo's atomic write
 /// triggers a manifest refresh via the broadcast stream.
 ///
-/// The `updatesAvailable` set is a strict inequality check:
+/// The `updatesAvailableSet` set is a strict inequality check:
 /// `installedCountry.pmtilesVersion != catalog.catalogVersion`. A
 /// manifest entry with pmtilesVersion `"v20260419"` against a catalog
 /// tagged `"v20260501"` flags the country as updatable; same tag means
@@ -48,13 +48,13 @@ final class InstalledMapsControllerProvider extends $NotifierProvider<InstalledM
   /// Presentation-facing view over the installed-maps manifest + catalog.
   ///
   /// Watches [installedManifestProvider] + [countryCatalogProvider] and
-  /// projects the triple of `(installed map, updatesAvailable set,
+  /// projects the triple of `(installed map, updatesAvailableSet,
   /// totalDiskUsageBytes)`. Exposes a [deleteCountry] method that
   /// delegates to the Plan 07-04 `CountryDeleteService` (which enforces
   /// the `CountryCode.world` sentinel guard) + the repo's atomic write
   /// triggers a manifest refresh via the broadcast stream.
   ///
-  /// The `updatesAvailable` set is a strict inequality check:
+  /// The `updatesAvailableSet` set is a strict inequality check:
   /// `installedCountry.pmtilesVersion != catalog.catalogVersion`. A
   /// manifest entry with pmtilesVersion `"v20260419"` against a catalog
   /// tagged `"v20260501"` flags the country as updatable; same tag means
@@ -85,18 +85,18 @@ final class InstalledMapsControllerProvider extends $NotifierProvider<InstalledM
   }
 }
 
-String _$installedMapsControllerHash() => r'ed0a69331cdf23eee5ade9f2ae3e05c8459001b1';
+String _$installedMapsControllerHash() => r'0d616392b0ed2bbeeefa23d2df4c8ed27e9c7217';
 
 /// Presentation-facing view over the installed-maps manifest + catalog.
 ///
 /// Watches [installedManifestProvider] + [countryCatalogProvider] and
-/// projects the triple of `(installed map, updatesAvailable set,
+/// projects the triple of `(installed map, updatesAvailableSet,
 /// totalDiskUsageBytes)`. Exposes a [deleteCountry] method that
 /// delegates to the Plan 07-04 `CountryDeleteService` (which enforces
 /// the `CountryCode.world` sentinel guard) + the repo's atomic write
 /// triggers a manifest refresh via the broadcast stream.
 ///
-/// The `updatesAvailable` set is a strict inequality check:
+/// The `updatesAvailableSet` set is a strict inequality check:
 /// `installedCountry.pmtilesVersion != catalog.catalogVersion`. A
 /// manifest entry with pmtilesVersion `"v20260419"` against a catalog
 /// tagged `"v20260501"` flags the country as updatable; same tag means

@@ -151,7 +151,7 @@ InstalledMapsState _installedStateFor(List<String> alpha3s) {
     map[code] = entry;
     total += entry.fileSize;
   }
-  return InstalledMapsState(installed: map, updatesAvailable: const <CountryCode>{}, totalDiskUsageBytes: total);
+  return InstalledMapsState(installed: map, updatesAvailableSet: const <CountryCode>{}, totalDiskUsageBytes: total);
 }
 
 void main() {

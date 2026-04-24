@@ -23,8 +23,10 @@ part of 'country_resolver_controller.dart';
 /// - Result is `null` (water / zoom<3) → set activeCountry=null +
 ///   `mapView.showMap(null)` switches to the world bundle.
 ///
-/// Re-derivation trigger: [installedManifestProvider] changes (country
-/// added / removed) cause a rebuild of the internal [CountryResolver]
+/// Re-derivation trigger: the controller subscribes directly to the
+/// installed-manifest repository's broadcast stream (see
+/// [_attachManifestListenerIfNeeded]). Every manifest write (country
+/// added / removed) triggers a rebuild of the internal [CountryResolver]
 /// polygon map via [CountryPolygonLoader]. The controller re-runs the
 /// resolve on the last-known viewport + emits the new active state.
 
@@ -46,8 +48,10 @@ final countryResolverControllerProvider = CountryResolverControllerProvider._();
 /// - Result is `null` (water / zoom<3) → set activeCountry=null +
 ///   `mapView.showMap(null)` switches to the world bundle.
 ///
-/// Re-derivation trigger: [installedManifestProvider] changes (country
-/// added / removed) cause a rebuild of the internal [CountryResolver]
+/// Re-derivation trigger: the controller subscribes directly to the
+/// installed-manifest repository's broadcast stream (see
+/// [_attachManifestListenerIfNeeded]). Every manifest write (country
+/// added / removed) triggers a rebuild of the internal [CountryResolver]
 /// polygon map via [CountryPolygonLoader]. The controller re-runs the
 /// resolve on the last-known viewport + emits the new active state.
 final class CountryResolverControllerProvider extends $NotifierProvider<CountryResolverController, CountryResolverState> {
@@ -66,8 +70,10 @@ final class CountryResolverControllerProvider extends $NotifierProvider<CountryR
   /// - Result is `null` (water / zoom<3) → set activeCountry=null +
   ///   `mapView.showMap(null)` switches to the world bundle.
   ///
-  /// Re-derivation trigger: [installedManifestProvider] changes (country
-  /// added / removed) cause a rebuild of the internal [CountryResolver]
+  /// Re-derivation trigger: the controller subscribes directly to the
+  /// installed-manifest repository's broadcast stream (see
+  /// [_attachManifestListenerIfNeeded]). Every manifest write (country
+  /// added / removed) triggers a rebuild of the internal [CountryResolver]
   /// polygon map via [CountryPolygonLoader]. The controller re-runs the
   /// resolve on the last-known viewport + emits the new active state.
   CountryResolverControllerProvider._()
@@ -94,7 +100,7 @@ final class CountryResolverControllerProvider extends $NotifierProvider<CountryR
   }
 }
 
-String _$countryResolverControllerHash() => r'047c47c32eb2e0c25202e9470295c17eac5a677a';
+String _$countryResolverControllerHash() => r'5ad57721d1d4673856fd6939c6c402e849b12fc6';
 
 /// Orchestrates viewport → country hot-swap.
 ///
@@ -111,8 +117,10 @@ String _$countryResolverControllerHash() => r'047c47c32eb2e0c25202e9470295c17eac
 /// - Result is `null` (water / zoom<3) → set activeCountry=null +
 ///   `mapView.showMap(null)` switches to the world bundle.
 ///
-/// Re-derivation trigger: [installedManifestProvider] changes (country
-/// added / removed) cause a rebuild of the internal [CountryResolver]
+/// Re-derivation trigger: the controller subscribes directly to the
+/// installed-manifest repository's broadcast stream (see
+/// [_attachManifestListenerIfNeeded]). Every manifest write (country
+/// added / removed) triggers a rebuild of the internal [CountryResolver]
 /// polygon map via [CountryPolygonLoader]. The controller re-runs the
 /// resolve on the last-known viewport + emits the new active state.
 

@@ -109,11 +109,11 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 100));
       final state = container.read(installedMapsControllerProvider);
       expect(state.installed, isEmpty);
-      expect(state.updatesAvailable, isEmpty);
+      expect(state.updatesAvailableSet, isEmpty);
       expect(state.totalDiskUsageBytes, equals(0));
     });
 
-    test('3 installed, 1 with stale pmtiles_version → updatesAvailable size 1 + totalDiskUsageBytes sum correct', () async {
+    test('3 installed, 1 with stale pmtiles_version → updatesAvailableSet size 1 + totalDiskUsageBytes sum correct', () async {
       final container = await buildContainer(
         installed: <InstalledCountry>[
           _mkInstalled('fra', fileSize: 100_000_000),
@@ -128,15 +128,15 @@ void main() {
       expect(state.installed, hasLength(3));
       expect(state.installed[CountryCode.parse('fra')]!.fileSize, equals(100_000_000));
       expect(state.totalDiskUsageBytes, equals(225_000_000));
-      expect(state.updatesAvailable, equals(<CountryCode>{CountryCode.parse('deu')}));
+      expect(state.updatesAvailableSet, equals(<CountryCode>{CountryCode.parse('deu')}));
     });
 
-    test('all installed countries current → updatesAvailable is empty', () async {
+    test('all installed countries current → updatesAvailableSet is empty', () async {
       final container = await buildContainer(installed: <InstalledCountry>[_mkInstalled('fra'), _mkInstalled('esp')], catalogTag: 'v20260419');
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       final state = container.read(installedMapsControllerProvider);
-      expect(state.updatesAvailable, isEmpty);
+      expect(state.updatesAvailableSet, isEmpty);
     });
   });
 

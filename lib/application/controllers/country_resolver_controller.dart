@@ -226,20 +226,20 @@ class CountryResolverController extends _$CountryResolverController {
       // Plan 07-05 banner ("Télécharger ce pays") could never surface.
       final AsyncValue<CountryCatalog> catalogSnap = ref.read(countryCatalogProvider);
       final CountryCatalog? catalog = catalogSnap.value;
-      final Set<CountryCode> codesToLoad = <CountryCode>{};
+      final Set<CountryCode> codesToLoadSet = <CountryCode>{};
       if (catalog != null) {
         for (final CountryEntry c in catalog.countries) {
-          codesToLoad.add(c.alpha3);
+          codesToLoadSet.add(c.alpha3);
         }
       }
       // Always include installed codes too (they might come from a
       // manifest that predates the current catalog).
       for (final String key in manifest.installed.keys) {
-        codesToLoad.add(CountryCode.parse(key));
+        codesToLoadSet.add(CountryCode.parse(key));
       }
-      final Map<CountryCode, List<CountryPolygonRing>> polygons = await _polygonLoader.loadPolygonsForInstalled(codesToLoad);
+      final Map<CountryCode, List<CountryPolygonRing>> polygons = await _polygonLoader.loadPolygonsForInstalled(codesToLoadSet);
       _resolver = CountryResolver(installedPolygons: polygons);
-      _log.fine('rebuilt CountryResolver with ${polygons.length} polygon set(s) (requested ${codesToLoad.length})');
+      _log.fine('rebuilt CountryResolver with ${polygons.length} polygon set(s) (requested ${codesToLoadSet.length})');
     } on Object catch (e, st) {
       _log.warning('failed to rebuild CountryResolver', e, st);
     }

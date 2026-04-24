@@ -27,6 +27,22 @@ part of 'map_camera_controller.dart';
 /// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
 /// the widget publishes a [MapView] adapter via [mapViewProvider] and the
 /// controller lazily attaches its listeners on first use.
+///
+/// ## iOS initial-camera seeding (Phase 07-07 fix)
+///
+/// [openForSession] deliberately does NOT issue any
+/// camera-moving method-channel call on first open. Two earlier
+/// attempts crashed MapLibre.framework with identical native stack
+/// traces — once with `animateCamera` (commit 604988f) and once with
+/// the animator-free `moveCamera` (commit 3b23c8d). The convergence
+/// proves the bug is about ANY camera-state mutation issued in the
+/// window right after `onStyleLoaded`, not about which method is
+/// used. Resolution: the initial viewport is supplied via
+/// `MapLibreMap.initialCameraPosition` at widget-build time (see
+/// `_buildMapStack` in `map_screen.dart`); by the time
+/// [openForSession] runs, the MLNMapView already shows the right
+/// viewport and the controller only needs to prime the puck + flip
+/// follow-me on.
 
 @ProviderFor(MapCameraController)
 final mapCameraControllerProvider = MapCameraControllerProvider._();
@@ -50,6 +66,22 @@ final mapCameraControllerProvider = MapCameraControllerProvider._();
 /// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
 /// the widget publishes a [MapView] adapter via [mapViewProvider] and the
 /// controller lazily attaches its listeners on first use.
+///
+/// ## iOS initial-camera seeding (Phase 07-07 fix)
+///
+/// [openForSession] deliberately does NOT issue any
+/// camera-moving method-channel call on first open. Two earlier
+/// attempts crashed MapLibre.framework with identical native stack
+/// traces — once with `animateCamera` (commit 604988f) and once with
+/// the animator-free `moveCamera` (commit 3b23c8d). The convergence
+/// proves the bug is about ANY camera-state mutation issued in the
+/// window right after `onStyleLoaded`, not about which method is
+/// used. Resolution: the initial viewport is supplied via
+/// `MapLibreMap.initialCameraPosition` at widget-build time (see
+/// `_buildMapStack` in `map_screen.dart`); by the time
+/// [openForSession] runs, the MLNMapView already shows the right
+/// viewport and the controller only needs to prime the puck + flip
+/// follow-me on.
 final class MapCameraControllerProvider extends $NotifierProvider<MapCameraController, MapCameraState> {
   /// Orchestrates the map camera on the /map screen:
   /// - Opens a session view with Z=[kInitialSessionMapZoom] zoom centred on
@@ -70,6 +102,22 @@ final class MapCameraControllerProvider extends $NotifierProvider<MapCameraContr
   /// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
   /// the widget publishes a [MapView] adapter via [mapViewProvider] and the
   /// controller lazily attaches its listeners on first use.
+  ///
+  /// ## iOS initial-camera seeding (Phase 07-07 fix)
+  ///
+  /// [openForSession] deliberately does NOT issue any
+  /// camera-moving method-channel call on first open. Two earlier
+  /// attempts crashed MapLibre.framework with identical native stack
+  /// traces — once with `animateCamera` (commit 604988f) and once with
+  /// the animator-free `moveCamera` (commit 3b23c8d). The convergence
+  /// proves the bug is about ANY camera-state mutation issued in the
+  /// window right after `onStyleLoaded`, not about which method is
+  /// used. Resolution: the initial viewport is supplied via
+  /// `MapLibreMap.initialCameraPosition` at widget-build time (see
+  /// `_buildMapStack` in `map_screen.dart`); by the time
+  /// [openForSession] runs, the MLNMapView already shows the right
+  /// viewport and the controller only needs to prime the puck + flip
+  /// follow-me on.
   MapCameraControllerProvider._()
     : super(
         from: null,
@@ -94,7 +142,7 @@ final class MapCameraControllerProvider extends $NotifierProvider<MapCameraContr
   }
 }
 
-String _$mapCameraControllerHash() => r'124a201698214e9286208f267b31ecd7d039e580';
+String _$mapCameraControllerHash() => r'c201ce0475d3713df6e50a7ed4227886d9d606dc';
 
 /// Orchestrates the map camera on the /map screen:
 /// - Opens a session view with Z=[kInitialSessionMapZoom] zoom centred on
@@ -115,6 +163,22 @@ String _$mapCameraControllerHash() => r'124a201698214e9286208f267b31ecd7d039e580
 /// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
 /// the widget publishes a [MapView] adapter via [mapViewProvider] and the
 /// controller lazily attaches its listeners on first use.
+///
+/// ## iOS initial-camera seeding (Phase 07-07 fix)
+///
+/// [openForSession] deliberately does NOT issue any
+/// camera-moving method-channel call on first open. Two earlier
+/// attempts crashed MapLibre.framework with identical native stack
+/// traces — once with `animateCamera` (commit 604988f) and once with
+/// the animator-free `moveCamera` (commit 3b23c8d). The convergence
+/// proves the bug is about ANY camera-state mutation issued in the
+/// window right after `onStyleLoaded`, not about which method is
+/// used. Resolution: the initial viewport is supplied via
+/// `MapLibreMap.initialCameraPosition` at widget-build time (see
+/// `_buildMapStack` in `map_screen.dart`); by the time
+/// [openForSession] runs, the MLNMapView already shows the right
+/// viewport and the controller only needs to prime the puck + flip
+/// follow-me on.
 
 abstract class _$MapCameraController extends $Notifier<MapCameraState> {
   MapCameraState build();

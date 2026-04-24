@@ -91,7 +91,7 @@ final class DownloadQueueControllerProvider extends $NotifierProvider<DownloadQu
   }
 }
 
-String _$downloadQueueControllerHash() => r'bd2571aa602bdcf1fcf135106c80029c9e476eb5';
+String _$downloadQueueControllerHash() => r'ac2d8284d9f89dc47046e6ba68169169a8374797';
 
 /// UI-layer wrapper around [PmtilesDownloadController].
 ///

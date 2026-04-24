@@ -104,7 +104,7 @@ void main() {
     testWidgets('lists 3 countries from catalog + marks 1 as Installed', (tester) async {
       final InstalledMapsState seed = InstalledMapsState(
         installed: <CountryCode, InstalledCountry>{CountryCode.parse('fra'): _installed('fra')},
-        updatesAvailable: const <CountryCode>{},
+        updatesAvailableSet: const <CountryCode>{},
         totalDiskUsageBytes: 5 * 1024 * 1024,
       );
       final fakeDownload = _FakeDownloadQueueController();
@@ -264,7 +264,7 @@ void main() {
     testWidgets('stale pmtilesVersion surfaces "Mise à jour disponible"', (tester) async {
       final InstalledMapsState seed = InstalledMapsState(
         installed: <CountryCode, InstalledCountry>{CountryCode.parse('fra'): _installed('fra', version: 'v20260101')},
-        updatesAvailable: <CountryCode>{CountryCode.parse('fra')},
+        updatesAvailableSet: <CountryCode>{CountryCode.parse('fra')},
         totalDiskUsageBytes: 5 * 1024 * 1024,
       );
       final fakeDownload = _FakeDownloadQueueController();

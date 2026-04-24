@@ -743,7 +743,7 @@ final class PmtilesDownloadControllerProvider
   }
 }
 
-String _$pmtilesDownloadControllerHash() => r'7ea4e0ba79af31c5daaf73e357066e9187b3d439';
+String _$pmtilesDownloadControllerHash() => r'8fd1a90180b84773dbf20d7dc14979ca8becce96';
 
 /// [CountryDeleteService] — world-bundle-guarded per-country uninstall.
 
@@ -848,7 +848,7 @@ final class FirstLaunchBootstrapProvider extends $FunctionalProvider<AsyncValue<
   }
 }
 
-String _$firstLaunchBootstrapHash() => r'06b7e60c5e8738a2ee14c3805c318dc94fc3f1fc';
+String _$firstLaunchBootstrapHash() => r'b60fc3c0e805e055c690ca9540e97f2076563c77';
 
 /// Mutable [MapView] reference published by the Plan 07-06
 /// `MapLibreMapViewWidget` via its `onReady` callback.
@@ -1025,7 +1025,7 @@ final class MapViewportZoomProvider extends $NotifierProvider<MapViewportZoom, d
   }
 }
 
-String _$mapViewportZoomHash() => r'bf741c02f1968e52657fc30a3631df2e22de2301';
+String _$mapViewportZoomHash() => r'f76d62859c0725e4d9de4465767cf2c35f6b78ef';
 
 /// Current MapLibre viewport zoom level. Null until the MapView is ready
 /// and the first `onCameraIdle` viewport event fires.

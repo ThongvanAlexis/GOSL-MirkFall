@@ -17,31 +17,33 @@ part 'installed_maps_controller.g.dart';
 ///
 /// - [installed]: alpha3 → [InstalledCountry] snapshot. Map, not list,
 ///   so callers look up by alpha3 in O(1).
-/// - [updatesAvailable]: subset of alpha3 keys whose
+/// - [updatesAvailableSet]: subset of alpha3 keys whose
 ///   `pmtilesVersion != currentCatalogVersion`. Drives the "update
 ///   available" badge.
 /// - [totalDiskUsageBytes]: sum of `fileSize` across every installed
 ///   country, for the settings storage row.
 class InstalledMapsState {
-  const InstalledMapsState({required this.installed, required this.updatesAvailable, required this.totalDiskUsageBytes});
+  const InstalledMapsState({required this.installed, required this.updatesAvailableSet, required this.totalDiskUsageBytes});
 
-  const InstalledMapsState.empty() : installed = const <CountryCode, InstalledCountry>{}, updatesAvailable = const <CountryCode>{}, totalDiskUsageBytes = 0;
+  const InstalledMapsState.empty() : installed = const <CountryCode, InstalledCountry>{}, updatesAvailableSet = const <CountryCode>{}, totalDiskUsageBytes = 0;
 
   final Map<CountryCode, InstalledCountry> installed;
-  final Set<CountryCode> updatesAvailable;
+  // Renamed from `updatesAvailable` to follow CLAUDE.md §Naming — `Set<T>`
+  // fields carry a `Set` suffix (row #46).
+  final Set<CountryCode> updatesAvailableSet;
   final int totalDiskUsageBytes;
 }
 
 /// Presentation-facing view over the installed-maps manifest + catalog.
 ///
 /// Watches [installedManifestProvider] + [countryCatalogProvider] and
-/// projects the triple of `(installed map, updatesAvailable set,
+/// projects the triple of `(installed map, updatesAvailableSet,
 /// totalDiskUsageBytes)`. Exposes a [deleteCountry] method that
 /// delegates to the Plan 07-04 `CountryDeleteService` (which enforces
 /// the `CountryCode.world` sentinel guard) + the repo's atomic write
 /// triggers a manifest refresh via the broadcast stream.
 ///
-/// The `updatesAvailable` set is a strict inequality check:
+/// The `updatesAvailableSet` set is a strict inequality check:
 /// `installedCountry.pmtilesVersion != catalog.catalogVersion`. A
 /// manifest entry with pmtilesVersion `"v20260419"` against a catalog
 /// tagged `"v20260501"` flags the country as updatable; same tag means
@@ -92,22 +94,22 @@ class InstalledMapsController extends _$InstalledMapsController {
       totalBytes += entry.fileSize;
     }
 
-    final Set<CountryCode> updates = <CountryCode>{};
+    final Set<CountryCode> updatesSet = <CountryCode>{};
     if (catalog != null) {
       final String catalogVersion;
       try {
         catalogVersion = catalog.catalogVersion;
       } on FormatException catch (e) {
-        _log.warning('catalog.catalogVersion extraction failed: $e — updatesAvailable will be empty');
-        return InstalledMapsState(installed: installedByCode, updatesAvailable: const <CountryCode>{}, totalDiskUsageBytes: totalBytes);
+        _log.warning('catalog.catalogVersion extraction failed: $e — updatesAvailableSet will be empty');
+        return InstalledMapsState(installed: installedByCode, updatesAvailableSet: const <CountryCode>{}, totalDiskUsageBytes: totalBytes);
       }
       for (final InstalledCountry entry in installedByCode.values) {
         if (entry.pmtilesVersion != catalogVersion) {
-          updates.add(entry.alpha3);
+          updatesSet.add(entry.alpha3);
         }
       }
     }
 
-    return InstalledMapsState(installed: installedByCode, updatesAvailable: updates, totalDiskUsageBytes: totalBytes);
+    return InstalledMapsState(installed: installedByCode, updatesAvailableSet: updatesSet, totalDiskUsageBytes: totalBytes);
   }
 }

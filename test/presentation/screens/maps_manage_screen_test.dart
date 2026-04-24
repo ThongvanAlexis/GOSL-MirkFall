@@ -84,7 +84,7 @@ void main() {
           CountryCode.parse('fra'): _installed('fra'),
           CountryCode.parse('deu'): _installed('deu', version: 'v20260101'),
         },
-        updatesAvailable: <CountryCode>{CountryCode.parse('deu')},
+        updatesAvailableSet: <CountryCode>{CountryCode.parse('deu')},
         totalDiskUsageBytes: 10 * 1024 * 1024,
       );
       await tester.pumpWidget(
@@ -107,7 +107,7 @@ void main() {
     testWidgets('tap delete → confirm → controller.deleteCountry called', (tester) async {
       final InstalledMapsState seed = InstalledMapsState(
         installed: <CountryCode, InstalledCountry>{CountryCode.parse('fra'): _installed('fra')},
-        updatesAvailable: const <CountryCode>{},
+        updatesAvailableSet: const <CountryCode>{},
         totalDiskUsageBytes: 5 * 1024 * 1024,
       );
       final fake = _FakeInstalledMapsController(seed: seed);
