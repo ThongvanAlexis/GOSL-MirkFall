@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Plan 08.1-05 (fix-loop + closure; 15 fixes queued from Plan 08.1-03 §3 triage)
-status: Phase 08.1 open; next plan Plan 08.1-05 fix-loop + closure
-stopped_at: Completed 08.1-04-PLAN.md (§4 Adversarial evidence populated on main 997f5df; gate-verification-only wave; 8 CI gates green on 0b0b781; adversarial branches clean; N=0 walk-finding-driven regression tests per §1b snapshot; 730/730 tests green; Plan 08.1-05 unblocked)
-last_updated: "2026-04-24T16:22:00.000Z"
+current_plan: "Phase 08.1 re-review closed, Phase 09 Fog Rendering remains unblocked"
+status: "Phase 08.1 closed 2026-04-24; Phase 09 Fog Rendering unblocked"
+stopped_at: "Phase 08.1 closure committed 2026-04-24 — 5 plans done via /gsd:insert-phase decimal pathway (completed_phases counter unchanged per ROADMAP §Phase Numbering escape-hatch; completed_plans 46 → 47; final commit 1c3400c CI green on all 3 jobs run 24900922812)"
+last_updated: "2026-04-24T17:30:00.000Z"
 last_activity: 2026-04-24
 progress:
   total_phases: 17
   completed_phases: 8
   total_plans: 47
-  completed_plans: 46
-  percent: 98
+  completed_plans: 47
+  percent: 100
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 08.1 Re-Review — Post-Walk Audit OPEN (2026-04-24). Plan 08.1-04 complete (4/5) — gate-verification-only wave on main `997f5df`: 8 existing CI gates verified green on `0b0b781` (check_headers 300 files / check_licenses 189 packages / check_dependencies_md 189 packages / check_domain_purity 57 files / check_platform_manifests / check_avoid_maplibre_leak 149 files / check_avoid_remote_pmtiles 536 files / check_style_no_external_url) + `adversarial/08-style-external-url` confirmed deleted remote + no `adversarial/08.1-*` branches (1-branch-per-gate-script convention held 5th cycle) + N=0 walk-finding-driven permanent regression tests per §1b snapshot (review phase introduces no new runtime behavior per CLAUDE.md §Code Review Phases; reused Phase 07 walks already cover all walk-surfaceable bugs). §4 populated with 3 sub-blocks (A gate table / B branch hygiene table / C N=0 walk rationale). Plan 08.1-05 unblocked: 15 fixes queued (1 Blocker Row #37 UI-contract-vaporware + 5 Shoulds + 9 Coulds, per Plan 08.1-03 §3 triage decision "fix the could and should").
+**Current focus:** Phase 08.1 Re-Review — Post-Walk Audit CLOSED 2026-04-24. Plan 08.1-05 complete (5/5) — Strategy A per-finding atomic commits applied all 15 §3 fix-triaged rows (1 Blocker row #1 Row #37 UI-contract-vaporware GpsError recovery routing restored + 5 Shoulds + 9 Coulds) as 14 atomic commits (rows #5+#6 merged into one CountryResolver async-boot race commit) + 1 chore follow-up (dart format align of row #12 hoist). Final commit `1c3400c` CI green on all 3 jobs (gates / android / ios, run 24900922812). All 8 existing CI gates re-run locally on final commit: green. Test suite 731/731 on final commit. Commit-prefix split: 8 × fix / 3 × refactor (smell-tagged rows #7 #8 #10) / 3 × docs (rows #11 #14 #15) / 1 × chore. §3 Commit hash column populated for all 15 rows. §5 CI-green confirmation filled. 08.1-REVIEW.md Status flipped open → closed, Closed date 2026-04-24. `.fixes-expected` scratch deleted at closure. ROADMAP Phase 08.1 row flipped 4/5 In Progress → 5/5 Complete with date. STATE.md accumulated decisions records Phase 08.1 closure entry with walk retrospective + smell re-check outcome + /gsd:insert-phase numbering rationale. Phase 09 Fog Rendering remains unblocked (Phase 08.1 was re-audit not blocker; Phase 09 was unblocked by Phase 08 closure, eligibility unchanged).
 
 ## Current Position
 
-Phase: 08.1 of 16.x (Re-Review — Post-Walk Audit) — OPEN 2026-04-24 — 4 / 5 plans done
-Current Plan: Plan 08.1-05 (fix-loop + closure; 15 fixes queued from Plan 08.1-03 §3 triage)
-Total Plans in Phase 08.1: 4 / 5 done
-Status: Phase 08.1 open; next plan Plan 08.1-05 fix-loop + closure
+Phase: 08.1 of 16.x (Re-Review — Post-Walk Audit) — CLOSED 2026-04-24 — 5 / 5 plans done
+Current Plan: none (Phase 08.1 closed; next integer phase is Phase 09 Fog Rendering, unblocked)
+Total Plans in Phase 08.1: 5 / 5 done
+Status: Phase 08.1 closed 2026-04-24; Phase 09 Fog Rendering unblocked
 Last Activity: 2026-04-24
 
-Progress: [█████████▉] 98% — 46 / 47 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 open at 4/5).
+Progress: [██████████] 100% — 47 / 47 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5). Phase 09+ TBD adds new plans; 100% reflects the current planned-plan universe.
 
 ## Performance Metrics
 
@@ -316,6 +316,7 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 08.1-rereview-post-walk]: Walk-finding-driven regression test candidates for Plan 08.1-04 = None. Plan 08.1-04 confirmed as gate-verification-only wave (N=0 new permanent tests). Next fresh walk lands naturally in Phase 09 (next feature phase).
 - [Phase 08.1-rereview-post-walk]: Plan 08.1-04 gate-verification-only wave complete on main `997f5df` (5th cycle of review-phase no-new-gate-no-new-branch default-skip, locked Phases 02+04+06+08+08.1). All 8 existing CI gates green on `0b0b781` (check_headers 300 files / check_licenses 189 packages / check_dependencies_md 189 packages / check_domain_purity 57 files / check_platform_manifests Android+iOS / check_avoid_maplibre_leak 149 files / check_avoid_remote_pmtiles 536 files / check_style_no_external_url style.json). Empirical proof that Phase 08 49-fix loop (commits `254b5d2 → ae6a4b6`) introduced zero regression in any gate's scan surface. `adversarial/08-style-external-url` confirmed deleted remote + no `adversarial/08.1-*` branches (1-branch-per-gate-script convention). §4 populated in ONE atomic commit (collapsed Task 3 N=0 + Task 4 §4 populate per Phase 06 Plan 06-04 precedent). Test suite 730/730 green on retry (one-off -1 on first run cleared; historical flakiness per Phase 08 relay 5 drop_then_retry). Plan 08.1-05 unblocked.
 - [Phase 08.1-rereview-post-walk]: Plan 08.1-04 pattern-locked for Phase 10/12/14/16 review gates: gate-verification-only §4 format = 3 sub-blocks (A N-gate table with Exit+Scan scope+Status columns / B branch hygiene table with Branch+Phase+Expected+Actual+Check command columns / C N=0 walk-finding-driven tests with rationale paragraph quoting §1b snapshot verbatim + cumulative test-surface count from preceding phases). Tasks 1+2 verification-only without per-task commits (observations don't need mutation commits). Task 3+4 collapse into single atomic commit when N=0.
+- [Phase 08.1-rereview-post-walk]: re-review closed 2026-04-24 — 1 Blocker fixed (row #1 Row #37 UI-contract-vaporware GpsError recovery routing restored at SessionDetailScreen._handleGpsError) + 5 Shoulds fixed (rows #2 pause-then-cancel unstrand / #3 echo-window multi-echo / #4 toggleFollowMe race / #5+#6 CountryResolver async-boot races merged into one commit) + 9 Coulds fixed (rows #7 activeJob fold + #8 heal+purge single write + #9 _bestEffort log level + #10 drop isCentering getter + #11 _viewportSub doc + #12 Duration hoist + #13 mapView nullify gate + #14 pubspec text + #15 ROADMAP checkboxes) — total 14 atomic commits + 1 chore dart-format follow-up. Commit-prefix split: 8 × fix, 3 × refactor (smell-tagged #7 #8 #10), 3 × docs (#11 #14 #15), 1 × chore. Walk outcome: PASS Android (Pixel 4a 2026-04-21) + PASS-with-caveat iOS (iPhone 17 Pro 2026-04-22/23 post-fix, Xcode-container-inspection N/A) — reused Phase 07 walks as §1b runtime baseline, no fresh walk captured (review phase introduces no new runtime behavior per CLAUDE.md §Code Review Phases). Smell-refactor re-check result: 0 new smells introduced by Phase 08's 9 smell-refactors; 4 new smell-tagged findings surfaced from agents (rows #2 fix-on-fix / #3 fix-on-fix / #7 over-state-machine / #10 derived-boolean + #13 fix-on-fix) — all decided fix/refactor, none deferred or waived. Walk-finding-driven regression tests added: 0 permanent (one regression test added for row #2 cancel-while-paused as part of that fix commit, scoped as fix-test, not walk-regression). Adversarial default-skip convention held: 0 new CI gates, 0 new adversarial branches (5th cycle locked Phases 02+04+06+08+08.1). Fix strategy: Strategy A per-finding atomic commits (08.1-RESEARCH §Open Question 3 recommendation for N≤15; 15 fixes single session feasible, no relay handoff needed). Numbering: inserted via /gsd:insert-phase (ROADMAP §Phase Numbering decimal escape-hatch) — completed_phases counter unchanged at 8, completed_plans incremented 46 → 47 (Plan 08.1-05 closure). CLAUDE.md §Code Review Phases "pas de .5" directive is scoped to standard sequential phases, NOT /gsd:insert-phase insertions. Phase 08.1 is the SECOND review-gate encoding of CLAUDE.md 2026-04-23 smell-heuristics delta — validates template on narrower scope (15 findings vs Phase 08's 49). Precedent for Phases 10/12/14/16 REVIEW gates AND for future /gsd:insert-phase invocations (hypothetical 10.1, 12.1, etc.). Phase 09 Fog Rendering remains unblocked (Phase 08.1 is re-audit, not blocker; Phase 09 was unblocked by Phase 08 closure and eligibility is unchanged). Final commit 1c3400c CI green on run 24900922812 (all 3 jobs gates/android/ios success). 8 CI gates re-verified locally on final commit. Test suite 731/731 green.
 
 ### Roadmap Evolution
 
@@ -346,6 +347,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-24T16:22:00.000Z
-Stopped at: Completed 08.1-04-PLAN.md (§4 Adversarial evidence populated on main 997f5df; gate-verification-only wave; 8 CI gates verified green on 0b0b781; adversarial/08-style-external-url still deleted remote + no adversarial/08.1-* branches; N=0 walk-finding-driven permanent regression tests per §1b snapshot; test suite 730/730 green; Plan 08.1-05 fix-loop + closure unblocked)
+Last session: 2026-04-24T17:30:00.000Z
+Stopped at: Phase 08.1 closure committed 2026-04-24 — 5 plans done via /gsd:insert-phase decimal pathway; final commit 1c3400c CI green on run 24900922812 (all 3 jobs gates/android/ios success); §3 all 15 rows have commit hashes; §5 CI-green confirmation filled; REVIEW status=closed; .fixes-expected scratch deleted; ROADMAP Phase 08.1 row 5/5 Complete. Phase 09 Fog Rendering remains unblocked (Phase 08.1 is re-audit, not blocker).
 Resume file: None
