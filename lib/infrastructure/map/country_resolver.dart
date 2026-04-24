@@ -16,6 +16,12 @@ import 'geo/point_in_polygon.dart';
 /// [pointInPolygon].
 typedef CountryPolygonRing = List<({double lat, double lon})>;
 
+/// Per-country polygon bundle used by [CountryResolver]'s internal
+/// iteration. Named record so iteration order is frozen as a `List`
+/// (not a `Map`) — the ordering contract is then intrinsic to the type
+/// rather than relying on the caller passing an ordered `Map`.
+typedef _InstalledPolygons = ({CountryCode alpha3, List<CountryPolygonRing> rings});
+
 /// Viewport-to-country resolver.
 ///
 /// Given a viewport center (lat, lon) and zoom level, returns the alpha3
@@ -36,27 +42,37 @@ typedef CountryPolygonRing = List<({double lat, double lon})>;
 /// The Phase 07 Wave 0 polygon simplifier emits axis-aligned bounding
 /// boxes (see 07-01 §Decisions). Neighbouring countries share boundary
 /// longitudes — e.g. France + Germany overlap on the Rhine band. The
-/// resolver iterates `installedPolygons` in insertion order and returns
-/// the FIRST match. Callers that need deterministic iteration should
-/// pass a `LinkedHashMap` seeded with the installed-order from the
-/// manifest. Documented here because the behaviour is load-bearing for
-/// UI consistency.
+/// resolver iterates the installed set and returns the FIRST match.
+///
+/// Iteration order contract : the order of the [installedPolygons]
+/// entries passed to the constructor is CAPTURED into an internal
+/// `List<_InstalledPolygons>` at construction time, so even if the
+/// caller's map later mutates (or is a `HashMap` with undefined
+/// iteration), the resolver's tie-break order stays deterministic.
+/// Callers should still seed the map from the manifest's installed
+/// order so the captured snapshot matches user intent.
 class CountryResolver {
-  CountryResolver({required Map<CountryCode, List<CountryPolygonRing>> installedPolygons}) : _polygons = installedPolygons;
+  CountryResolver({required Map<CountryCode, List<CountryPolygonRing>> installedPolygons})
+    : _installed = <_InstalledPolygons>[
+        for (final MapEntry<CountryCode, List<CountryPolygonRing>> entry in installedPolygons.entries) (alpha3: entry.key, rings: entry.value),
+      ];
 
-  final Map<CountryCode, List<CountryPolygonRing>> _polygons;
+  /// Frozen iteration list : captures caller iteration order at
+  /// construction time. `List` guarantees the tie-break order cannot
+  /// silently change if the caller later reorders their map.
+  final List<_InstalledPolygons> _installed;
 
   /// Returns the installed alpha3 whose polygon contains `(lat, lon)`,
   /// or `null` for world fallback (zoom < [`kWorldFallbackZoomCutoff`]
   /// OR no polygon contains the centre).
   CountryCode? resolve({required double latitude, required double longitude, required double zoom}) {
     if (zoom < kWorldFallbackZoomCutoff) return null;
-    if (_polygons.isEmpty) return null;
+    if (_installed.isEmpty) return null;
 
-    for (final MapEntry<CountryCode, List<CountryPolygonRing>> entry in _polygons.entries) {
-      for (final CountryPolygonRing ring in entry.value) {
+    for (final _InstalledPolygons entry in _installed) {
+      for (final CountryPolygonRing ring in entry.rings) {
         if (pointInPolygon(lat: latitude, lon: longitude, ring: ring)) {
-          return entry.key;
+          return entry.alpha3;
         }
       }
     }
