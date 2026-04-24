@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/controllers/country_resolver_controller.dart';
@@ -242,40 +243,50 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // MapViewHolder handles the transition back to null via dispose of
     // the underlying adapter.
     if (!mounted) return;
-    // Workaround for flutter-maplibre-gl 0.25.0 issue #717 (fixed by
-    // PR #719 on release-0.26.0, not yet published to pub.dev):
-    // the iOS plugin invokes onStyleLoadedCallback synchronously while
-    // MLNMapView's internal state is not yet committed. Any subsequent
-    // method-channel call in that same runloop turn (setUserLocation,
-    // animateCamera, addCircle, etc.) throws a C++ exception inside
-    // MapLibre Native that propagates unhandled through __cxa_throw →
-    // std::terminate → _objc_terminate → abort → SIGABRT, killing the
-    // app with the native crash Runner-2026-04-22-092721.ips captured
-    // (frames 9-13 all in MapLibre.framework, frame 14 in the plugin's
-    // onMethodCall dispatch).
-    //
-    // Deferring the provider publication + session-open by one runloop
-    // tick mirrors PR #719's `DispatchQueue.main.async` fix on the
-    // native side, buying MapLibre time to finalise its render-thread
-    // state. Remove this indirection when `maplibre_gl` >= 0.26.0
-    // lands on pub.dev.
-    Future<void>.delayed(Duration.zero, () {
-      if (!mounted) return;
-      ref.read(mapViewProvider.notifier).set(adapter);
-      final ActiveSessionState? sessionState = ref.read(activeSessionControllerProvider).value;
-      if (sessionState is Tracking) {
-        // Phase 07-07 probe B (2026-04-22) — re-enable openForSession
-        // after confirming the crash disappears with `user_location`
-        // style layer removed. If the crash stays gone with this call
-        // active, the style layer was the sole trigger; if it returns,
-        // this call needs a stronger defer or a redesign.
-        //
-        // Fire-and-forget: openForSession is async but the widget doesn't
-        // need to block on it — the controller publishes state changes
-        // through Riverpod which propagate back via the FAB's ref.watch.
-        unawaited(ref.read(mapCameraControllerProvider.notifier).openForSession(sessionState.sessionId));
-      }
-    });
+    // Defer publication by one frame — see [_publishMapViewAfterFrame] for
+    // the maplibre_gl 0.25.0 crash this avoids. Row #40 (§3) swapped the
+    // previous Future.delayed(Duration.zero) for SchedulerBinding's
+    // post-frame callback to make the "wait until the current frame
+    // commits" intent explicit in the API used.
+    SchedulerBinding.instance.addPostFrameCallback((_) => _publishMapViewAfterFrame(adapter));
+  }
+
+  /// Publishes the [MapView] adapter to [mapViewProvider] and, when a
+  /// session is already Tracking, opens the camera controller — both
+  /// scheduled for the next frame so MapLibre has finished its render-thread
+  /// commit before any method-channel calls land on the native side.
+  ///
+  /// Workaround for flutter-maplibre-gl 0.25.0 issue #717 (fixed by
+  /// PR #719 on release-0.26.0, not yet published to pub.dev): the iOS
+  /// plugin invokes onStyleLoadedCallback synchronously while MLNMapView's
+  /// internal state is not yet committed. Any subsequent method-channel
+  /// call in that same runloop turn (setUserLocation, animateCamera,
+  /// addCircle, etc.) throws a C++ exception inside MapLibre Native that
+  /// propagates unhandled through __cxa_throw → std::terminate →
+  /// _objc_terminate → abort → SIGABRT, killing the app (see native
+  /// crash report Runner-2026-04-22-092721.ips — frames 9-13 in
+  /// MapLibre.framework, frame 14 in the plugin's onMethodCall dispatch).
+  ///
+  /// The post-frame callback mirrors PR #719's `DispatchQueue.main.async`
+  /// fix on the native side, buying MapLibre time to finalise its
+  /// render-thread state. Remove this indirection when `maplibre_gl`
+  /// >= 0.26.0 lands on pub.dev.
+  void _publishMapViewAfterFrame(MapView adapter) {
+    if (!mounted) return;
+    ref.read(mapViewProvider.notifier).set(adapter);
+    final ActiveSessionState? sessionState = ref.read(activeSessionControllerProvider).value;
+    if (sessionState is Tracking) {
+      // Phase 07-07 probe B (2026-04-22) — re-enable openForSession
+      // after confirming the crash disappears with `user_location`
+      // style layer removed. If the crash stays gone with this call
+      // active, the style layer was the sole trigger; if it returns,
+      // this call needs a stronger defer or a redesign.
+      //
+      // Fire-and-forget: openForSession is async but the widget doesn't
+      // need to block on it — the controller publishes state changes
+      // through Riverpod which propagate back via the FAB's ref.watch.
+      unawaited(ref.read(mapCameraControllerProvider.notifier).openForSession(sessionState.sessionId));
+    }
   }
 }
 
