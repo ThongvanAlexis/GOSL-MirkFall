@@ -180,7 +180,7 @@ flutter:
   # directory ships in the APK/IPA:
   #   - world.pmtiles (Day-1 z0-2 world bundle, 856 KB)
   #   - catalog.json (192+ country catalog with GitHub Release download URLs)
-  #   - style.json (Protomaps basemaps neutral style with frozen 8-layer
+  #   - style.json (Protomaps basemaps neutral style with frozen 7-layer
   #     order and `pmtiles://file:///…` placeholder rewritten at runtime)
   #   - glyphs/ (Protomaps basemaps-assets fonts, OFL license)
   #   - sprites/ (Protomaps basemaps-assets sprites, CC0 license)
