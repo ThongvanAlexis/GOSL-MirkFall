@@ -201,15 +201,17 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
   3. L'interface `MirkRenderer` expose `paint(Canvas, Size, MirkPaintContext)`, `update(Duration)`, `dispose()` et **rien d'autre** ; elle n'impose ni `ui.Image` ni format intermédiaire
   4. Avec une fixture de 50k sub-tiles révélées chargée en DB, le DevTools confirme que l'animation du mirk ne fait rebuild aucun autre layer (`RepaintBoundary` isolation effective) et que la frame reste ≤ 16 ms sur un device milieu de gamme Android
   5. Le viewport filtering est en place : seuls les parent-tiles intersectant la viewport courante sont peints ; un test de régression prévient la dégradation future
-**Plans** (8 plans, 7 waves):
-- [ ] 09-fog-rendering/09-01-PLAN.md — Wave 1: Wave-0 scaffolding (constants, new files, test stubs, fixture tools, dart_test.yaml mirk-perf tag, CI gate stubs)
-- [ ] 09-fog-rendering/09-02-PLAN.md — Wave 2: MirkPaintContext + MirkStyleConfig (6 variants) Freezed extensions + SimplexNoise2D (Ken Perlin 2001 hand-rolled)
-- [ ] 09-fog-rendering/09-03-PLAN.md — Wave 2: computeRevealMask body (TDD — bbox prune + Haversine per-cell intersect)
-- [ ] 09-fog-rendering/09-04-PLAN.md — Wave 3: 4 concrete MirkRenderer implementations (atmospheric/solid/candlelight/heavenly_clouds) + VisibleMirkTile + projection helper
-- [ ] 09-fog-rendering/09-05-PLAN.md — Wave 4: MirkRendererFactory + kBuiltinMirkStyles registry + 3 Riverpod providers (factory/builtins/activeRenderer) with lifecycle dispose
-- [ ] 09-fog-rendering/09-06-PLAN.md — Wave 5: RevealStreamingController (2s/20fix batch) + MirkStyleSessionController + ActiveSessionController initial-20m hook + fix-stream forwarding
-- [ ] 09-fog-rendering/09-07-PLAN.md — Wave 6: MirkOverlay widget (Ticker + RepaintBoundary + CustomPainter) + MirkStylePickerSheet + burger menu wire-up + MapScreen integration
-- [ ] 09-fog-rendering/09-08-PLAN.md — Wave 7: 50k fixture builder + perf test + RepaintBoundary isolation test + viewport filtering test + docs closure
+**Plans** (10 plans, 7 waves):
+- [ ] 09-fog-rendering/09-01-PLAN.md — Wave 1: Scaffolding Part 1/3 — constants + dart_test.yaml mirk-perf tag + style_layer_order.dart docstring + test/constants_test.dart (revision B5 split)
+- [ ] 09-fog-rendering/09-01b-PLAN.md — Wave 1: Scaffolding Part 2/3 — lib/ source scaffolds (renderers, factory, registry, noise, controllers, providers, widgets incl. MirkInitialRevealFade)
+- [ ] 09-fog-rendering/09-01c-PLAN.md — Wave 1: Scaffolding Part 3/3 — test/ + tool/ scaffolds (22 test files + 3 fixtures + 3 fakes + 3 tool scripts + CI gate wiring)
+- [ ] 09-fog-rendering/09-02-PLAN.md — Wave 2: MirkPaintContext + VisibleMirkTile + MirkStyleConfig (6 variants) Freezed extensions + SimplexNoise2D (single MirkPaintContext extension event)
+- [ ] 09-fog-rendering/09-03-PLAN.md — Wave 2: computeRevealMask body (TDD with explicit RED / GREEN / REFACTOR tasks — bbox prune + Haversine per-cell intersect)
+- [ ] 09-fog-rendering/09-04-PLAN.md — Wave 3: 4 concrete MirkRenderer implementations (atmospheric/solid/candlelight/heavenly_clouds) + MirkProjection + tile_cell_iteration helpers (consume-only, no Freezed re-extension)
+- [ ] 09-fog-rendering/09-05-PLAN.md — Wave 4: MirkRendererFactory + kBuiltinMirkStyles registry + 3 Riverpod providers with concrete ProviderContainer override snippets + lifecycle dispose
+- [ ] 09-fog-rendering/09-06-PLAN.md — Wave 5: RevealStreamingController (2s/20fix batch) + MirkStyleSessionController + ActiveSessionController initial-20m hook + LocationStream.lastKnownFix port extension
+- [ ] 09-fog-rendering/09-07-PLAN.md — Wave 6: MirkOverlay + MirkInitialRevealFade (500ms fade) + mapViewportProvider + MirkStylePickerSheet + burger menu wire-up + MapScreen integration
+- [ ] 09-fog-rendering/09-08-PLAN.md — Wave 7: 50k fixture builder + perf test + RepaintBoundary isolation + viewport filtering tests + _harness.dart + fake_revealed_tile_store extensions + docs closure
 
 ### Phase 10: Review Gate — Fog
 **Goal**: Auditer la perf du rendu et la pureté du seam `MirkRenderer`. Le rendu shader V1.x doit pouvoir arriver sans toucher au reste.
