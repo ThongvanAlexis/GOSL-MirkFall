@@ -116,10 +116,19 @@ class FirstLaunchBootstrap {
 
   /// Runs the full bootstrap sequence. Idempotent; safe to call on
   /// every app launch.
+  ///
+  /// Phase 08.1-REVIEW §3 row #8 — heal + purge compute mutations
+  /// in-memory only; a single manifest write at the end of [run]
+  /// commits whatever changed. Pre-fix the two helpers each issued
+  /// their own write, double-touching `installed.json` on every
+  /// launch that had both a heal AND a purge to do. The new shape
+  /// still no-ops when neither helper mutated (mutated-flag short
+  /// circuits the write).
   Future<void> run() async {
     await _worldCopier.ensureInstalled();
 
     InstalledManifest manifest = await _manifestRepository.read();
+    final InstalledManifest original = manifest;
 
     // Heal step: if a `.pmtiles` file exists under countries/ but has no
     // manifest entry, recompute its sha256 and reinsert the entry. The
@@ -132,6 +141,10 @@ class FirstLaunchBootstrap {
     // backing file is missing. Catches a crash between
     // CountryDeleteService's file-delete + manifest-rewrite steps.
     manifest = await _purgeOrphanManifestEntries(manifest);
+
+    if (!identical(manifest, original)) {
+      await _manifestRepository.write(manifest);
+    }
 
     orphanStagingAlpha3s = await _scanStagingOrphans(manifest);
 
@@ -219,9 +232,9 @@ class FirstLaunchBootstrap {
       _log.info('heal: re-inserted manifest entry for alpha3=$alpha3Raw (sha256=$computedSha)');
     }
 
-    if (healedAlpha3s.isNotEmpty) {
-      await _manifestRepository.write(current);
-    }
+    // Row #8 (08.1) -- defer manifest write to [run]. Returns the
+    // possibly-mutated manifest; caller writes once at the end after
+    // purge has also run.
     return current;
   }
 
@@ -262,9 +275,9 @@ class FirstLaunchBootstrap {
       purgedOrphanManifestAlpha3s.add(alpha3Raw);
       _log.info('purge: removed orphan manifest entry alpha3=$alpha3Raw (backing file missing)');
     }
-    if (purgedOrphanManifestAlpha3s.isNotEmpty) {
-      await _manifestRepository.write(current);
-    }
+    // Row #8 (08.1) -- defer manifest write to [run]. Returns the
+    // possibly-mutated manifest; caller consolidates heal + purge
+    // writes into a single atomic rewrite.
     return current;
   }
 
