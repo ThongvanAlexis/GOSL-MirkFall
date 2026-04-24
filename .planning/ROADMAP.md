@@ -179,6 +179,18 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 - [x] 08-review-gate-map/08-04-PLAN.md — Wave 4: Adversarial wave — 3 MOVE + 1 NEW integration tests absorbed from Plan 07-07 + 3 new permanent unit tests + 1 new CI gate tool/check_style_no_external_url.dart + paired test + CI amendment + 1 adversarial branch CI red evidence + 2 new soak edge cases + §4 populated with 10 evidence blocks (completed 2026-04-23)
 - [x] 08-review-gate-map/08-05-PLAN.md — Wave 5: Fix-loop (Strategy A per-finding atomic commits per user directive 2026-04-23) + §5 CI-green closure + status=closed + STATE.md + ROADMAP.md update + Phase 09 unblocked (completed 2026-04-24)
 
+### Phase 08.1: Re-Review — Post-Walk Audit (INSERTED)
+
+**Goal:** Re-review Phase 07 + Phase 08 after successful Android + iOS walks. Catch what Phase 08's first review pass missed. Reuse 08-CONTEXT.md smell heuristics + 4-agent pattern, narrowed scope to delta (walk findings + areas the 49-fix loop touched).
+**Requirements**: —
+**Depends on:** Phase 8
+**Plans** (5 plans, 5 waves):
+- [ ] 08.1-rereview-post-walk/08.1-01-PLAN.md — Wave 1: Scaffold 08.1-REVIEW.md 5-section skeleton + §1b per-device walk placeholders + §2 7 pre-class + smell re-check table (6 rows) + §4 default-skip-adversarial + §1 user-first IDE capture + ROADMAP Phase 08.1 row + 5-plan list
+- [ ] 08.1-rereview-post-walk/08.1-02-PLAN.md — Wave 2: Walk-evidence capture — user runs Android + iOS walks, commits docs/phase-08.1-walk.md + docs/phase-08.1-walk-screenshots/, Plan 08.1-02 extracts into §1b per-device <details> blocks (blocking checkpoint on walk artifacts present)
+- [ ] 08.1-rereview-post-walk/08.1-03-PLAN.md — Wave 3: Pre-class 7 handoff items + 6 smell re-check rows into §2 + 4 parallel sub-agent audits (re-balanced slicing around Phase 08 delta: #1 downloads + #2 controllers + #3 presentation+walk + #4 tests+tooling+natives+CI+CLAUDE.md) + findings synthesis + user triage into §3 with smell-tag column
+- [ ] 08.1-rereview-post-walk/08.1-04-PLAN.md — Wave 4: Adversarial wave DEFAULT-SKIP (no new CI gate → no new branch per 1-branch-per-gate-script convention) — verify 8 existing gates still green + existing adversarial branches still deleted remote + add N walk-finding-driven inertness-guarded permanent regression tests (default N=0 unless walk demands)
+- [ ] 08.1-rereview-post-walk/08.1-05-PLAN.md — Wave 5: Fix-loop (Strategy A or B per user directive at kickoff) + §5 CI-green closure + status=closed + STATE.md + ROADMAP.md update (Phase 08.1 row flipped 0/5 → 5/5 Complete with date) + Phase 09 remains unblocked
+
 ### Phase 09: Fog Rendering
 **Goal**: Le livrable visuel qui donne au produit son identité : un mirk vivant et atmosphérique (pas un aplat noir) qui se dissipe autour de l'utilisateur en temps réel, avec une architecture de rendu strictement découplée via `MirkRenderer`. Passer ici sans dégrader à > 50k tiles révélées est la barre de qualité.
 **Depends on**: Phase 08 (Review Gate Map)
