@@ -194,10 +194,10 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 ### Phase 09: Fog Rendering
 **Goal**: Le livrable visuel qui donne au produit son identité : un mirk vivant et atmosphérique (pas un aplat noir) qui se dissipe autour de l'utilisateur en temps réel, avec une architecture de rendu strictement découplée via `MirkRenderer`. Passer ici sans dégrader à > 50k tiles révélées est la barre de qualité.
 **Depends on**: Phase 08 (Review Gate Map)
-**Requirements**: MIRK-01, MIRK-02, MIRK-04, MIRK-05, MIRK-06
+**Requirements**: MIRK-01, MIRK-02, MIRK-04, MIRK-05, MIRK-06, MIRK-07
 **Success Criteria** (what must be TRUE):
-  1. Quand la session est active, un rayon circulaire autour de la position courante est effacé du mirk en temps réel (fréquence pilotée par `distanceFilter` + batch flush 5s/50fixes) ; le rayon par défaut (25-50 m, décidé en début de phase et stocké dans `lib/config/constants.dart`) est configurable (la UI de réglage arrive en Phase 13)
-  2. Le style par défaut est **animé et atmosphérique** (noise mouvant, pas un aplat noir) ; un second style built-in variant démontre que le seam fonctionne — ajouter un style ne nécessite qu'un nouveau fichier, zéro modification du cœur (vérifié par code review)
+  1. Quand la session est active, un rayon circulaire autour de la position courante est effacé du mirk en temps réel (fréquence pilotée par `distanceFilter` + batch flush **2s/20fixes** — configurable via `kRevealFlushIntervalSeconds` et `kRevealFlushMaxFixes` dans `lib/config/constants.dart`) ; le rayon par défaut (25-50 m, décidé en début de phase et stocké dans `lib/config/constants.dart`) est configurable (la UI de réglage arrive en Phase 13)
+  2. L'app fournit **4 variants built-in** (`atmospheric` (défaut), `solid`, `candlelight`, `heavenly_clouds`), chacun implémenté comme une classe distincte dans `lib/infrastructure/mirk/` ; le défaut (`atmospheric`) est **animé et atmosphérique** (noise mouvant, pas un aplat noir) ; ajouter un style ne nécessite qu'un nouveau fichier, zéro modification du cœur (vérifié par code review)
   3. L'interface `MirkRenderer` expose `paint(Canvas, Size, MirkPaintContext)`, `update(Duration)`, `dispose()` et **rien d'autre** ; elle n'impose ni `ui.Image` ni format intermédiaire
   4. Avec une fixture de 50k sub-tiles révélées chargée en DB, le DevTools confirme que l'animation du mirk ne fait rebuild aucun autre layer (`RepaintBoundary` isolation effective) et que la frame reste ≤ 16 ms sur un device milieu de gamme Android
   5. Le viewport filtering est en place : seuls les parent-tiles intersectant la viewport courante sont peints ; un test de régression prévient la dégradation future
