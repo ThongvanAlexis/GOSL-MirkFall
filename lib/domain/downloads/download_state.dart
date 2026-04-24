@@ -15,16 +15,69 @@ part 'download_state.freezed.dart';
 /// Sealed hierarchy describing the state of the per-country download
 /// pipeline at any point in time.
 ///
-/// Eight variants covering the full lifecycle:
-/// - [DownloadIdle] — no active queue
-/// - [DownloadQueued] — one or more jobs waiting, none in flight yet
-/// - [DownloadInProgress] — one job actively transferring, others waiting
-/// - [DownloadRetrying] — the active job hit a transient failure and is
-///   between retry attempts (backoff in flight)
-/// - [DownloadPaused] — the active job is paused (see [PauseReason])
-/// - [DownloadError] — the active job failed with an [Exception]
-/// - [DownloadCompleted] — a job finished successfully (terminal)
-/// - [DownloadCancelled] — a job was cancelled by user action (terminal)
+/// Eight variants covering the full lifecycle, partitioned into three
+/// groups :
+///
+/// **Quiescent** (no active job, no in-flight work) :
+/// - [DownloadIdle] — no active queue, no pending jobs
+/// - [DownloadQueued] — jobs persisted, loop not yet started
+///
+/// **Running** (one job is active; carries `active` + `snapshot`) :
+/// - [DownloadInProgress] — actively transferring (default)
+///                         or concatenating (post-transfer phase)
+/// - [DownloadRetrying]  — between retry attempts (backoff in flight)
+/// - [DownloadPaused]    — paused by user / connectivity / retry-exhaust
+///
+/// **Terminal** (one job has concluded; UI surfaces result + moves on) :
+/// - [DownloadError]     — errored ; non-terminal from the caller's
+///                         perspective (retry button returns to Queued)
+/// - [DownloadCompleted] — terminal success
+/// - [DownloadCancelled] — terminal cancellation (user action)
+///
+/// Valid transition graph :
+///
+/// ```
+///                  ┌─────────────┐
+///                  │    Idle     │◀─────────────────────┐
+///                  └──────┬──────┘                      │
+///                   enqueue() / rehydrate              drain
+///                         ▼                             │
+///                  ┌─────────────┐                      │
+///         ┌───────▶│   Queued    │◀─┐                   │
+///         │        └──────┬──────┘  │                   │
+///         │        loop picks job   │                   │
+///         │               ▼         │                   │
+///      retry      ┌──────────────┐  │ retry /           │
+///      success    │  InProgress  │  │ continue next     │
+///         │       └──┬──┬──┬─────┘  │                   │
+///         │     pause│  │  │error   │                   │
+///         │          │  │  │        │                   │
+///         │          ▼  │  ▼        │                   │
+///         │    ┌──────────┐  ┌─────────────┐            │
+///         │    │  Paused  │  │    Error    │────────────┤
+///         │    └────┬─────┘  └─────────────┘            │
+///         │  resume │                                   │
+///         │         ▼                                   │
+///         │   ┌──────────────┐                          │
+///         └───│  Retrying    │                          │
+///             └──────┬───────┘                          │
+///                    │ reassembled sha ok               │
+///                    ▼                                  │
+///             ┌──────────────┐     cancelActive ┌──────────────┐
+///             │  Completed   │     ───────────▶ │  Cancelled   │
+///             └──────────────┘                  └──────────────┘
+/// ```
+///
+/// Row #29 (Could, [smell:over-state-machine]) : the 8 variants DO form
+/// a valid graph when grouped as above. The earlier concern was the
+/// per-variant dispatcher duplication — resolved in row #20 via the
+/// [DownloadStateActive] extension's `activeJob` + `activeSnapshot`
+/// polymorphic getters, so UI code no longer pattern-matches over
+/// InProgress / Retrying / Paused individually for field access. The
+/// remaining transition graph above is the minimum required by the UI
+/// contract (pause semantics + retry visibility + terminal
+/// surfacing) — no variant can be collapsed without losing user-
+/// visible signal.
 ///
 /// Callers pattern-match exhaustively (Dart-3 sealed semantics) —
 /// downstream plans MUST NOT add `is DownloadX` chains, which would
