@@ -185,7 +185,7 @@ class ActiveSessionController extends _$ActiveSessionController {
     _currentSessionId = null;
   }
 
-  /// Runs [op] and swallows any exception with a `_log.fine` marker
+  /// Runs [op] and swallows any exception with a `_log.warning` marker
   /// tagged by [context]. Used on the best-effort housekeeping paths
   /// (rollback + stop) where a secondary failure must NOT mask the
   /// primary signal — whether the primary is a propagating exception
@@ -200,11 +200,19 @@ class ActiveSessionController extends _$ActiveSessionController {
   /// Phase 06 Blocker #1 + CLAUDE.md §Error handling level 3; the
   /// helper makes the pattern a one-liner at each call site so
   /// reviewers see FIVE best-effort calls instead of five staircases.
+  ///
+  /// Phase 08.1-REVIEW §3 row #9 (Could) — log level flipped from
+  /// `fine` to `warning`. The `logging` package defaults to
+  /// `Level.INFO` in production; `fine` sits below that threshold and
+  /// was silently dropped into the void, so best-effort failures
+  /// never reached the FileLogger. `warning` matches the log level
+  /// used by `MapCameraController`'s own best-effort paths and
+  /// honours CLAUDE.md §Error handling "log dans le fichier de logs".
   Future<void> _bestEffort(String context, Future<void> Function() op) async {
     try {
       await op();
     } on Object catch (e, st) {
-      _log.fine(context, e, st);
+      _log.warning(context, e, st);
     }
   }
 
