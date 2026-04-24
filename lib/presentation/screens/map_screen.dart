@@ -67,6 +67,28 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   void deactivate() {
+    // Phase 08.1-REVIEW §3 row #13 (Could). `deactivate()` fires on
+    // two very different events:
+    //
+    //  1. REAL teardown — the /map route is being popped, the state
+    //     will be disposed, the MapView adapter will be torn down.
+    //     The microtask below MUST fire so controllers release their
+    //     stale reference to the dying native surface.
+    //  2. KEPT-ALIVE re-parent — rotation / AutomaticKeepAliveClientMixin /
+    //     TabView migration. `deactivate()` fires, `activate()` fires
+    //     right after, the native MapLibre surface keeps rendering the
+    //     whole time. Nullifying `mapViewProvider` during (2) opens a
+    //     null-gap where a GPS fix landing in the window causes the
+    //     MapCameraController to skip its `moveCameraTo`; briefly
+    //     loses follow-me mid-rotation.
+    //
+    // Discrimination: in a REAL teardown, the scheduled microtask sees
+    // `mounted == false` (the state has been disposed by the next
+    // microtask tick). In a KEPT-ALIVE re-parent, `mounted` stays
+    // true across the deactivate/activate pair. The microtask guards
+    // on `mounted` and skips the nullify when we're still alive — the
+    // adapter reference then stays valid across the rotation and the
+    // controllers never see a null-gap.
     _nullifyMapViewProviderAfterDeactivate();
     super.deactivate();
   }
@@ -113,6 +135,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _nullifyMapViewProviderAfterDeactivate() {
     final MapViewHolder notifier = ref.read(mapViewProvider.notifier);
     Future<void>.microtask(() {
+      // Phase 08.1-REVIEW §3 row #13 (Could). Skip nullify when the
+      // State is still mounted — a kept-alive re-parent (rotation,
+      // TabView migration) fires deactivate()+activate() in quick
+      // succession without tearing down the native surface. See
+      // [deactivate] docstring for the two-scenario breakdown.
+      if (mounted) return;
       try {
         notifier.set(null);
       } on Object catch (_) {
