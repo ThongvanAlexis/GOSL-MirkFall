@@ -100,7 +100,7 @@ final class CountryResolverControllerProvider extends $NotifierProvider<CountryR
   }
 }
 
-String _$countryResolverControllerHash() => r'5ad57721d1d4673856fd6939c6c402e849b12fc6';
+String _$countryResolverControllerHash() => r'5a2f42f67b4482f8772fdce94f87f5e262c8f748';
 
 /// Orchestrates viewport → country hot-swap.
 ///

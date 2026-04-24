@@ -84,8 +84,7 @@ final mapCameraControllerProvider = MapCameraControllerProvider._();
 /// [openForSession] runs, the MLNMapView already shows the right
 /// viewport and the controller only needs to prime the puck + flip
 /// follow-me on.
-final class MapCameraControllerProvider
-    extends $NotifierProvider<MapCameraController, MapCameraState> {
+final class MapCameraControllerProvider extends $NotifierProvider<MapCameraController, MapCameraState> {
   /// Orchestrates the map camera on the /map screen:
   /// - Opens a session view with Z=[kInitialSessionMapZoom] zoom centred on
   ///   the latest session fix (or the last-known fix from the active
@@ -142,15 +141,11 @@ final class MapCameraControllerProvider
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(MapCameraState value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<MapCameraState>(value),
-    );
+    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<MapCameraState>(value));
   }
 }
 
-String _$mapCameraControllerHash() =>
-    r'e67e8516bad34b1a9d1172f7659a97d571697831';
+String _$mapCameraControllerHash() => r'e67e8516bad34b1a9d1172f7659a97d571697831';
 
 /// Orchestrates the map camera on the /map screen:
 /// - Opens a session view with Z=[kInitialSessionMapZoom] zoom centred on
@@ -195,14 +190,7 @@ abstract class _$MapCameraController extends $Notifier<MapCameraState> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<MapCameraState, MapCameraState>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<MapCameraState, MapCameraState>,
-              MapCameraState,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<AnyNotifier<MapCameraState, MapCameraState>, MapCameraState, Object?, Object?>;
     element.handleCreate(ref, build);
   }
 }
