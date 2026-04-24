@@ -152,7 +152,6 @@ void main() {
       final MapCameraState centeringState = container.read(mapCameraControllerProvider);
       expect(centeringState, isA<MapCameraFollowing>());
       expect((centeringState as MapCameraFollowing).hasFirstFix, isFalse);
-      expect(centeringState.isCentering, isTrue);
       expect(fakeMapView.cameraMovesObserved, isEmpty);
 
       // Push a fix; listener fires.

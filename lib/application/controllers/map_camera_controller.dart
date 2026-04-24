@@ -21,10 +21,10 @@ part 'map_camera_controller.g.dart';
 /// Transitions driven by the controller:
 /// - `Idle` — no session open; map stays where it is.
 /// - `Following(hasFirstFix: false)` — session open, waiting on first
-///   fix; UI surfaces "En attente du GPS…" (see `isCentering`). The
-///   previous `Centering` variant is folded into this — it differed
-///   from `Following(hasFirstFix: true)` only by the `hasFirstFix`
-///   boolean (row #36, smell:over-state-machine).
+///   fix; UI surfaces "En attente du GPS…" by pattern-matching on
+///   `hasFirstFix: false`. The previous `Centering` variant is folded
+///   into this — it differed from `Following(hasFirstFix: true)` only
+///   by the `hasFirstFix` boolean (row #36, smell:over-state-machine).
 /// - `Following(hasFirstFix: true)` — camera pans to every new fix
 ///   (zoom preserved).
 /// - `FreePan` — user manually panned; camera does not auto-follow.
@@ -40,11 +40,18 @@ final class MapCameraIdle extends MapCameraState {
 
 /// Follow-me is active for [sessionId]. When [hasFirstFix] is `false`
 /// the controller is waiting on the first GPS fix and the UI surfaces
-/// an "En attente du GPS…" indicator via [isCentering]. Once the first
+/// an "En attente du GPS…" indicator by pattern-matching on the field
+/// directly (`MapCameraFollowing(hasFirstFix: false)`). Once the first
 /// fix lands the controller re-emits this state with `hasFirstFix:
 /// true` and every subsequent fix drives [MapView.moveCameraTo] at the
 /// current zoom. Manual pan transitions the controller to
 /// [MapCameraFreePan].
+///
+/// Phase 08.1-REVIEW §3 row #10 — the previous `isCentering` getter
+/// re-discriminated the sealed variant on a derived boolean. Removed:
+/// consumers pattern-match on `hasFirstFix` directly so any future
+/// semantic extension (e.g. "stale fix") becomes a field, not another
+/// getter to fan out.
 final class MapCameraFollowing extends MapCameraState {
   const MapCameraFollowing({required this.sessionId, required this.hasFirstFix});
 
@@ -55,11 +62,6 @@ final class MapCameraFollowing extends MapCameraState {
   /// `false` while the controller is still waiting (the "En attente
   /// du GPS…" UX surface).
   final bool hasFirstFix;
-
-  /// Convenience flag for UI surfaces that previously switched on
-  /// `state is MapCameraCentering`. A following-state is "centering"
-  /// exactly while waiting on its first fix.
-  bool get isCentering => !hasFirstFix;
 }
 
 /// User manually panned. Follow-me is disabled; new fixes are observed

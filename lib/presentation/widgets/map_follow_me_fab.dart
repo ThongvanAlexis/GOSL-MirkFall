@@ -15,9 +15,9 @@ import 'package:mirkfall/application/controllers/map_camera_controller.dart';
 /// Tap delegates to [MapCameraController.toggleFollowMe] when follow-me
 /// can actually toggle. When the state is [MapCameraIdle] (no session
 /// active on /map) or [MapCameraFollowing] still waiting on the first
-/// GPS fix (`isCentering`), toggling silently no-ops at the controller
-/// level — the FAB surfaces a snackbar instead so the user gets
-/// immediate feedback that the button is recognised but inert.
+/// GPS fix (`hasFirstFix: false`), toggling silently no-ops at the
+/// controller level — the FAB surfaces a snackbar instead so the user
+/// gets immediate feedback that the button is recognised but inert.
 class MapFollowMeFab extends ConsumerWidget {
   const MapFollowMeFab({super.key});
 
@@ -25,8 +25,8 @@ class MapFollowMeFab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final MapCameraState state = ref.watch(mapCameraControllerProvider);
     // "Actively following" = Following with a fix. The pre-first-fix
-    // flavour (isCentering) paints inactive so the user sees the FAB
-    // is recognised but not yet auto-panning.
+    // flavour (hasFirstFix: false) paints inactive so the user sees
+    // the FAB is recognised but not yet auto-panning.
     final bool isActivelyFollowing = state is MapCameraFollowing && state.hasFirstFix;
     final ColorScheme cs = Theme.of(context).colorScheme;
     return FloatingActionButton.small(
@@ -36,9 +36,15 @@ class MapFollowMeFab extends ConsumerWidget {
       foregroundColor: isActivelyFollowing ? cs.onPrimary : cs.onSecondaryContainer,
       onPressed: () async {
         final MapCameraState currentState = ref.read(mapCameraControllerProvider);
+        // Phase 08.1-REVIEW §3 row #10 (Could). Pattern-match on
+        // `hasFirstFix` directly rather than the derived `isCentering`
+        // getter; keeping the discrimination at the sealed-variant
+        // field level scales cleanly if a third following-semantic
+        // lands (e.g. "stale fix") — that future variant would add a
+        // field, not a getter that has to be re-fanned-out here.
         final String? ineligibleReason = switch (currentState) {
           MapCameraIdle() => 'Démarre une session pour activer le centrage GPS',
-          MapCameraFollowing(isCentering: true) => 'En attente du premier fix GPS…',
+          MapCameraFollowing(hasFirstFix: false) => 'En attente du premier fix GPS…',
           MapCameraFollowing() || MapCameraFreePan() => null,
         };
         if (ineligibleReason != null) {
