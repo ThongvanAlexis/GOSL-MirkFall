@@ -17,12 +17,13 @@ part of 'map_camera_controller.dart';
 /// - Detects manual user pan (a viewport update NOT triggered by this
 ///   controller's own `moveCameraTo` calls) and disables follow-me.
 ///
-/// The detection heuristic uses a pending-flag + debounce window. Before
-/// every controller-initiated `moveCameraTo`, we set `_cameraMovePending`
-/// and start a 1-second timer; viewport updates arriving while the flag
-/// is set are ignored (they ARE the controller's own camera moves
-/// echoing back through MapLibre's `onCameraIdle` callback). Updates
-/// arriving OUTSIDE the pending window are treated as user pan.
+/// Echo-suppression is done by timestamp comparison: every
+/// controller-initiated `moveCameraTo` records `_lastProgrammaticMoveAt`.
+/// A viewport update within [kMapCameraPendingMoveDebounce] of that
+/// timestamp is treated as MapLibre's `onCameraIdle` echoing the
+/// controller's own move back; anything older is a genuine user pan.
+/// Per CLAUDE.md §State "préférer la déduction au tracking" — no
+/// explicit boolean flag + no timer lifecycle to juggle.
 ///
 /// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
 /// the widget publishes a [MapView] adapter via [mapViewProvider] and the
@@ -56,12 +57,13 @@ final mapCameraControllerProvider = MapCameraControllerProvider._();
 /// - Detects manual user pan (a viewport update NOT triggered by this
 ///   controller's own `moveCameraTo` calls) and disables follow-me.
 ///
-/// The detection heuristic uses a pending-flag + debounce window. Before
-/// every controller-initiated `moveCameraTo`, we set `_cameraMovePending`
-/// and start a 1-second timer; viewport updates arriving while the flag
-/// is set are ignored (they ARE the controller's own camera moves
-/// echoing back through MapLibre's `onCameraIdle` callback). Updates
-/// arriving OUTSIDE the pending window are treated as user pan.
+/// Echo-suppression is done by timestamp comparison: every
+/// controller-initiated `moveCameraTo` records `_lastProgrammaticMoveAt`.
+/// A viewport update within [kMapCameraPendingMoveDebounce] of that
+/// timestamp is treated as MapLibre's `onCameraIdle` echoing the
+/// controller's own move back; anything older is a genuine user pan.
+/// Per CLAUDE.md §State "préférer la déduction au tracking" — no
+/// explicit boolean flag + no timer lifecycle to juggle.
 ///
 /// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
 /// the widget publishes a [MapView] adapter via [mapViewProvider] and the
@@ -82,7 +84,8 @@ final mapCameraControllerProvider = MapCameraControllerProvider._();
 /// [openForSession] runs, the MLNMapView already shows the right
 /// viewport and the controller only needs to prime the puck + flip
 /// follow-me on.
-final class MapCameraControllerProvider extends $NotifierProvider<MapCameraController, MapCameraState> {
+final class MapCameraControllerProvider
+    extends $NotifierProvider<MapCameraController, MapCameraState> {
   /// Orchestrates the map camera on the /map screen:
   /// - Opens a session view with Z=[kInitialSessionMapZoom] zoom centred on
   ///   the latest session fix (or the last-known fix from the active
@@ -92,12 +95,13 @@ final class MapCameraControllerProvider extends $NotifierProvider<MapCameraContr
   /// - Detects manual user pan (a viewport update NOT triggered by this
   ///   controller's own `moveCameraTo` calls) and disables follow-me.
   ///
-  /// The detection heuristic uses a pending-flag + debounce window. Before
-  /// every controller-initiated `moveCameraTo`, we set `_cameraMovePending`
-  /// and start a 1-second timer; viewport updates arriving while the flag
-  /// is set are ignored (they ARE the controller's own camera moves
-  /// echoing back through MapLibre's `onCameraIdle` callback). Updates
-  /// arriving OUTSIDE the pending window are treated as user pan.
+  /// Echo-suppression is done by timestamp comparison: every
+  /// controller-initiated `moveCameraTo` records `_lastProgrammaticMoveAt`.
+  /// A viewport update within [kMapCameraPendingMoveDebounce] of that
+  /// timestamp is treated as MapLibre's `onCameraIdle` echoing the
+  /// controller's own move back; anything older is a genuine user pan.
+  /// Per CLAUDE.md §State "préférer la déduction au tracking" — no
+  /// explicit boolean flag + no timer lifecycle to juggle.
   ///
   /// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
   /// the widget publishes a [MapView] adapter via [mapViewProvider] and the
@@ -138,11 +142,15 @@ final class MapCameraControllerProvider extends $NotifierProvider<MapCameraContr
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(MapCameraState value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<MapCameraState>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<MapCameraState>(value),
+    );
   }
 }
 
-String _$mapCameraControllerHash() => r'c201ce0475d3713df6e50a7ed4227886d9d606dc';
+String _$mapCameraControllerHash() =>
+    r'50849f0bd5cef90c5efe4b66babe83072362cd4c';
 
 /// Orchestrates the map camera on the /map screen:
 /// - Opens a session view with Z=[kInitialSessionMapZoom] zoom centred on
@@ -153,12 +161,13 @@ String _$mapCameraControllerHash() => r'c201ce0475d3713df6e50a7ed4227886d9d606dc
 /// - Detects manual user pan (a viewport update NOT triggered by this
 ///   controller's own `moveCameraTo` calls) and disables follow-me.
 ///
-/// The detection heuristic uses a pending-flag + debounce window. Before
-/// every controller-initiated `moveCameraTo`, we set `_cameraMovePending`
-/// and start a 1-second timer; viewport updates arriving while the flag
-/// is set are ignored (they ARE the controller's own camera moves
-/// echoing back through MapLibre's `onCameraIdle` callback). Updates
-/// arriving OUTSIDE the pending window are treated as user pan.
+/// Echo-suppression is done by timestamp comparison: every
+/// controller-initiated `moveCameraTo` records `_lastProgrammaticMoveAt`.
+/// A viewport update within [kMapCameraPendingMoveDebounce] of that
+/// timestamp is treated as MapLibre's `onCameraIdle` echoing the
+/// controller's own move back; anything older is a genuine user pan.
+/// Per CLAUDE.md §State "préférer la déduction au tracking" — no
+/// explicit boolean flag + no timer lifecycle to juggle.
 ///
 /// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
 /// the widget publishes a [MapView] adapter via [mapViewProvider] and the
@@ -186,7 +195,14 @@ abstract class _$MapCameraController extends $Notifier<MapCameraState> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<MapCameraState, MapCameraState>;
-    final element = ref.element as $ClassProviderElement<AnyNotifier<MapCameraState, MapCameraState>, MapCameraState, Object?, Object?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<MapCameraState, MapCameraState>,
+              MapCameraState,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }

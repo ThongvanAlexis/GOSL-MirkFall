@@ -70,12 +70,13 @@ final class MapCameraFreePan extends MapCameraState {
 /// - Detects manual user pan (a viewport update NOT triggered by this
 ///   controller's own `moveCameraTo` calls) and disables follow-me.
 ///
-/// The detection heuristic uses a pending-flag + debounce window. Before
-/// every controller-initiated `moveCameraTo`, we set `_cameraMovePending`
-/// and start a 1-second timer; viewport updates arriving while the flag
-/// is set are ignored (they ARE the controller's own camera moves
-/// echoing back through MapLibre's `onCameraIdle` callback). Updates
-/// arriving OUTSIDE the pending window are treated as user pan.
+/// Echo-suppression is done by timestamp comparison: every
+/// controller-initiated `moveCameraTo` records `_lastProgrammaticMoveAt`.
+/// A viewport update within [kMapCameraPendingMoveDebounce] of that
+/// timestamp is treated as MapLibre's `onCameraIdle` echoing the
+/// controller's own move back; anything older is a genuine user pan.
+/// Per CLAUDE.md §State "préférer la déduction au tracking" — no
+/// explicit boolean flag + no timer lifecycle to juggle.
 ///
 /// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
 /// the widget publishes a [MapView] adapter via [mapViewProvider] and the
@@ -102,8 +103,14 @@ class MapCameraController extends _$MapCameraController {
 
   MapView? _mapView;
   StreamSubscription<({double latitude, double longitude, double zoom})>? _viewportSub;
-  bool _cameraMovePending = false;
-  Timer? _pendingResetTimer;
+
+  /// Wall-clock timestamp of the most recent controller-initiated
+  /// `moveCameraTo` — used by [_onViewportUpdate] to distinguish echoes
+  /// from genuine user pans. `null` means no programmatic move yet.
+  /// Replaces the previous `bool _cameraMovePending` + `Timer`
+  /// bookkeeping (row #35 — see class docstring for rationale).
+  DateTime? _lastProgrammaticMoveAt;
+
   double _currentZoom = kInitialSessionMapZoom.toDouble();
 
   @override
@@ -200,17 +207,9 @@ class MapCameraController extends _$MapCameraController {
       // this the controller kept calling setUserLocation /
       // moveCameraTo on a dead adapter, cascading into iOS crashes
       // on the 2026-04-21 device smoke.
-      //
-      // Also cancel `_pendingResetTimer` — it filters echoes from the
-      // MapView's viewport stream, pointless without a MapView. Keeps
-      // widget-test teardown clean (otherwise the 1 s timer outlives
-      // `tester.pumpAndSettle` and trips the test framework's
-      // "Timer still pending after widget tree was disposed" check).
       _viewportSub?.cancel();
       _viewportSub = null;
-      _pendingResetTimer?.cancel();
-      _pendingResetTimer = null;
-      _cameraMovePending = false;
+      _lastProgrammaticMoveAt = null;
       _mapView = null;
       return;
     }
@@ -287,29 +286,27 @@ class MapCameraController extends _$MapCameraController {
     // has already been updated above.
   }
 
-  /// Wraps [MapView.moveCameraTo] with the pending-flag bookkeeping so
-  /// the controller's own camera moves do not feed back as user pans.
+  /// Wraps [MapView.moveCameraTo] with a timestamp record so the
+  /// controller's own camera moves do not feed back as user pans.
   Future<void> _moveCameraTo(MapView mapView, {required double latitude, required double longitude, required double zoom}) async {
-    _cameraMovePending = true;
-    _pendingResetTimer?.cancel();
-    _pendingResetTimer = Timer(kMapCameraPendingMoveDebounce, () {
-      _cameraMovePending = false;
-    });
+    _lastProgrammaticMoveAt = DateTime.now();
     _currentZoom = zoom;
     await mapView.moveCameraTo(latitude: latitude, longitude: longitude, zoom: zoom);
   }
 
-  /// Handles a settled viewport event. If the flag is set, the move is
-  /// our own echo and we ignore it. Otherwise the user manually panned
-  /// — transition Following → FreePan + drop follow-me.
+  /// Handles a settled viewport event. If the event arrives within
+  /// [kMapCameraPendingMoveDebounce] of our last programmatic move, it
+  /// is MapLibre's `onCameraIdle` echoing our own moveCameraTo back —
+  /// ignore it. Otherwise the user manually panned: transition
+  /// Following → FreePan + drop follow-me.
   Future<void> _onViewportUpdate(({double latitude, double longitude, double zoom}) v) async {
     _currentZoom = v.zoom;
-    if (_cameraMovePending) {
-      // This update is the settled echo of our own moveCameraTo call.
-      // Clear the flag — subsequent updates within the debounce window
-      // are treated as user pans (the legitimate user-intent signal).
-      _cameraMovePending = false;
-      _pendingResetTimer?.cancel();
+    final DateTime? last = _lastProgrammaticMoveAt;
+    if (last != null && DateTime.now().difference(last) < kMapCameraPendingMoveDebounce) {
+      // Echo of our own moveCameraTo — clear the timestamp so any
+      // subsequent update within the same window is classified as a
+      // legitimate user pan (the user-intent signal).
+      _lastProgrammaticMoveAt = null;
       return;
     }
     final current = state;
@@ -330,10 +327,9 @@ class MapCameraController extends _$MapCameraController {
   }
 
   void _tearDown() {
-    _pendingResetTimer?.cancel();
-    _pendingResetTimer = null;
     _viewportSub?.cancel();
     _viewportSub = null;
+    _lastProgrammaticMoveAt = null;
     _mapView = null;
   }
 }
