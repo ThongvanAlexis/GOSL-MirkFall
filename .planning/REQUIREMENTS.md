@@ -50,7 +50,7 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 - [x] **MIRK-03**: Le mirk effacé reste effacé pour toute la durée de vie de la session (pas de re-brumage)
 - [ ] **MIRK-04**: Le mirk a un rendu vivant / atmosphérique (nuageux, mouvant, animé) — pas un simple aplat noir
 - [ ] **MIRK-05**: L'architecture de rendu expose une interface `MirkRenderer` abstraite : ajouter un style ne demande qu'un nouveau fichier, zéro modification du cœur
-- [ ] **MIRK-06**: L'app fournit au moins un style de mirk par défaut (atmosphérique)
+- [ ] **MIRK-06**: L'app fournit **4 styles de mirk built-in** en Phase 09 : `atmospheric` (défaut), `solid`, `candlelight`, `heavenly_clouds`. Chacun est implémenté comme une classe renderer distincte dans `lib/infrastructure/mirk/`, prouvant le seam MIRK-05 trois fois (amendé 2026-04-24 Phase 09 CONTEXT)
 - [ ] **MIRK-07**: Un sélecteur dans le menu in-session (burger menu Phase 07) permet de choisir le style de mirk actif **pour la session courante** parmi les styles installés ; le changement s'applique immédiatement à la carte
 - [ ] **MIRK-08**: Utilisateur peut importer un style de mirk depuis un fichier JSON (format versionné)
 - [ ] **MIRK-09**: Utilisateur peut supprimer un style de mirk importé
@@ -212,7 +212,7 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | MIRK-04 | Phase 09 | Pending |
 | MIRK-05 | Phase 09 | Pending |
 | MIRK-06 | Phase 09 | Pending |
-| MIRK-07 | Phase 13 | Pending |
+| MIRK-07 | Phase 09 | Pending |
 | MIRK-08 | Phase 13 | Pending |
 | MIRK-09 | Phase 13 | Pending |
 | MIRK-10 | Phase 13 | Pending |
@@ -286,16 +286,17 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | 03 Persistence & Domain Models | SESS-06 (DB invariant), MIRK-03 (storage invariant) | 2 |
 | 05 GPS & Session Lifecycle | SESS (8: 01-05, 07-09), GPS (8), QUAL (4: 01-04) | 20 |
 | 07 Map Integration | MAP (6) | 6 |
-| 09 Fog Rendering | MIRK (5: 01, 02, 04, 05, 06) | 5 |
+| 09 Fog Rendering | MIRK (6: 01, 02, 04, 05, 06, 07) | 6 |
 | 11 Markers & Categories | MARK (10), CAT (6) | 16 |
-| 13 Import/Export, Mirk Styles & Options | PORT (13), MIRK (4: 07-10), OPT (7) | 24 |
+| 13 Import/Export, Mirk Styles & Options | PORT (13), MIRK (3: 08-10), OPT (7) | 23 |
 | 15 Polish, About & Release | ABOUT (5), QUAL (1: 05) | 6 |
 | **Total mappé** | | **87 — chaque REQ mappé à exactement une phase** |
 
-*Somme de vérification : 8 + 2 + 20 + 6 + 5 + 16 + 24 + 6 = 87 ✓*
+*Somme de vérification : 8 + 2 + 20 + 6 + 6 + 16 + 23 + 6 = 87 ✓*
 
 ---
 *Requirements defined: 2026-04-17*
 *Traceability filled by gsd-roadmapper: 2026-04-17 (also corrected the 77→86 arithmetic)*
-*Last updated: 2026-04-23 — Phase 07 closed via Phase 08 Plan 08-01 Task 3 : MAP-05/06/07/08/10 → Complete, integration tests absorbed into Phase 08 Plan 08-04.*
+*Last updated: 2026-04-24 — Phase 09 CONTEXT amendments : MIRK-06 (4 variants built-in au lieu de "au moins un"), MIRK-07 (déplacé Phase 13 → Phase 09, livré en même temps que les 4 builtins). Phase 09 = 6 REQ, Phase 13 = 23 REQ.*
+*Previous update: 2026-04-23 — Phase 07 closed via Phase 08 Plan 08-01 Task 3 : MAP-05/06/07/08/10 → Complete, integration tests absorbed into Phase 08 Plan 08-04.*
 *Previous update: 2026-04-20 — Phase 07 CONTEXT amendments : MAP-08 (catalog en asset bundlé, schema `alpha3/name/parts/reassembled`), MAP-09 (chunks binaires bruts + concat binaire, pas ZIP), MIRK-07 (sélecteur in-session menu), MIRK-10 (style carte + mirk par session, plus global), OPT-03 (défaut pour nouvelles sessions).*
