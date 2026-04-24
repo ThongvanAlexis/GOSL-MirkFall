@@ -93,6 +93,24 @@ class CountryResolverController extends _$CountryResolverController {
     ref.listen<MapView?>(mapViewProvider, (previous, next) {
       _attachMapViewIfReady();
     });
+    // Phase 08.1-REVIEW §3 row #6. Trigger a resolver rebuild whenever
+    // the countryCatalogProvider transitions to AsyncData. Pre-fix,
+    // `_rebuildResolver` read the catalog synchronously via `ref.read`;
+    // on cold start with the catalog still AsyncLoading the polygon
+    // load set collapsed to "installed manifest keys only" (pre-rewrite
+    // behaviour) and there was no mechanism to rebuild once the
+    // catalog finished loading. User panning into a non-installed
+    // country during that 200ms window never saw the banner.
+    ref.listen<AsyncValue<CountryCatalog>>(countryCatalogProvider, (previous, next) {
+      // Only rebuild on AsyncData transitions — re-reads of the same
+      // data fire identical events but rebuilding is idempotent so
+      // the extra work is harmless. Skip if we don't yet have a
+      // manifest to feed in.
+      if (next is! AsyncData<CountryCatalog>) return;
+      final AsyncValue<InstalledManifest> manifestSnap = ref.read(installedManifestProvider);
+      final InstalledManifest manifest = manifestSnap.value ?? InstalledManifest.empty();
+      unawaited(_rebuildResolver(manifest));
+    });
     _attachIfNeeded();
     return const CountryResolverState();
   }
@@ -193,19 +211,33 @@ class CountryResolverController extends _$CountryResolverController {
   /// writes can be swallowed. Subscribing straight to the broadcast
   /// stream removes that boot race and collapses the two parallel paths
   /// the controller previously maintained (§3 row #12).
+  ///
+  /// ## Order matters — Phase 08.1 row #5 fix
+  ///
+  /// The listener is wired BEFORE the initial `repo.read()` so any
+  /// `repo.write(manifest)` landing in the gap between "I want the
+  /// current manifest" and "I am ready for updates" is captured. The
+  /// pre-fix order (`await repo.read()` then `repo.updates.listen`)
+  /// re-introduced the same async-boot race the rewrite claimed to
+  /// kill, just one layer deeper.
   void _attachManifestListenerIfNeeded() {
     if (_manifestSub != null) return;
     unawaited(() async {
       try {
         final repo = await ref.read(installedManifestRepositoryProvider.future);
-        // Seed the resolver with whatever the repo currently holds —
-        // covers the test scenario where the manifest is written BEFORE
-        // the controller boots, plus the cold-start case where the
-        // first rebuild needs the initial polygons loaded.
-        unawaited(_rebuildResolver(await repo.read()));
+        // Attach FIRST — any write landing during the `repo.read()`
+        // below will be captured by this listener rather than dropped.
         _manifestSub = repo.updates.listen((m) {
           unawaited(_rebuildResolver(m));
         });
+        // Seed the resolver with whatever the repo currently holds —
+        // covers the test scenario where the manifest is written BEFORE
+        // the controller boots, plus the cold-start case where the
+        // first rebuild needs the initial polygons loaded. If the read
+        // + a concurrent write both land, both trigger a rebuild; the
+        // later one wins (idempotent rebuild — the resolver field is
+        // overwritten wholesale).
+        unawaited(_rebuildResolver(await repo.read()));
       } on Object catch (e, st) {
         _log.warning('failed to attach manifest stream listener', e, st);
       }
