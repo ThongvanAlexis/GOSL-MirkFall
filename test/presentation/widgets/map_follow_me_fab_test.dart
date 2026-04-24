@@ -27,7 +27,7 @@ class _FakeMapCameraController extends MapCameraController {
     if (current is MapCameraFollowing) {
       state = MapCameraFreePan(sessionId: current.sessionId);
     } else if (current is MapCameraFreePan) {
-      state = MapCameraFollowing(sessionId: current.sessionId);
+      state = MapCameraFollowing(sessionId: current.sessionId, hasFirstFix: true);
     }
   }
 }
@@ -35,8 +35,8 @@ class _FakeMapCameraController extends MapCameraController {
 void main() {
   final SessionId sid = SessionId.parse('sess_01ARZ3NDEKTSV4RRFFQ69G5FAV');
 
-  testWidgets('renders with primary tint when MapCameraFollowing', (tester) async {
-    final fake = _FakeMapCameraController(initialState: MapCameraFollowing(sessionId: sid));
+  testWidgets('renders with primary tint when MapCameraFollowing(hasFirstFix: true)', (tester) async {
+    final fake = _FakeMapCameraController(initialState: MapCameraFollowing(sessionId: sid, hasFirstFix: true));
     await tester.pumpWidget(
       ProviderScope(
         overrides: [mapCameraControllerProvider.overrideWith(() => fake)],
@@ -97,8 +97,8 @@ void main() {
     expect(fake.toggleCalls, equals(0));
   });
 
-  testWidgets('tap while MapCameraCentering surfaces a "waiting for first fix" snackbar', (tester) async {
-    final fake = _FakeMapCameraController(initialState: MapCameraCentering(sessionId: sid));
+  testWidgets('tap while MapCameraFollowing(hasFirstFix: false) surfaces a "waiting for first fix" snackbar', (tester) async {
+    final fake = _FakeMapCameraController(initialState: MapCameraFollowing(sessionId: sid, hasFirstFix: false));
     await tester.pumpWidget(
       ProviderScope(
         overrides: [mapCameraControllerProvider.overrideWith(() => fake)],

@@ -9,33 +9,36 @@ import 'package:mirkfall/application/controllers/map_camera_controller.dart';
 /// Material FAB that toggles the map's follow-me camera mode.
 ///
 /// Colour tint reflects the current [MapCameraState]:
-/// - [MapCameraFollowing] → primary colour (follow-me active)
+/// - [MapCameraFollowing] with a first fix → primary colour (follow-me active)
 /// - Any other state → secondary colour (follow-me inactive / unavailable)
 ///
-/// Tap delegates to [MapCameraController.toggleFollowMe] when the state
-/// is [MapCameraFollowing] or [MapCameraFreePan]. When the state is
-/// [MapCameraIdle] (no session active on /map) or [MapCameraCentering]
-/// (awaiting the first GPS fix), toggling silently no-ops at the
-/// controller level — the FAB surfaces a snackbar instead so the user
-/// gets immediate feedback that the button is recognised but inert.
+/// Tap delegates to [MapCameraController.toggleFollowMe] when follow-me
+/// can actually toggle. When the state is [MapCameraIdle] (no session
+/// active on /map) or [MapCameraFollowing] still waiting on the first
+/// GPS fix (`isCentering`), toggling silently no-ops at the controller
+/// level — the FAB surfaces a snackbar instead so the user gets
+/// immediate feedback that the button is recognised but inert.
 class MapFollowMeFab extends ConsumerWidget {
   const MapFollowMeFab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final MapCameraState state = ref.watch(mapCameraControllerProvider);
-    final bool isFollowing = state is MapCameraFollowing;
+    // "Actively following" = Following with a fix. The pre-first-fix
+    // flavour (isCentering) paints inactive so the user sees the FAB
+    // is recognised but not yet auto-panning.
+    final bool isActivelyFollowing = state is MapCameraFollowing && state.hasFirstFix;
     final ColorScheme cs = Theme.of(context).colorScheme;
     return FloatingActionButton.small(
       heroTag: 'map_follow_me_fab',
-      tooltip: isFollowing ? 'Quitter le suivi' : 'Me suivre',
-      backgroundColor: isFollowing ? cs.primary : cs.secondaryContainer,
-      foregroundColor: isFollowing ? cs.onPrimary : cs.onSecondaryContainer,
+      tooltip: isActivelyFollowing ? 'Quitter le suivi' : 'Me suivre',
+      backgroundColor: isActivelyFollowing ? cs.primary : cs.secondaryContainer,
+      foregroundColor: isActivelyFollowing ? cs.onPrimary : cs.onSecondaryContainer,
       onPressed: () async {
         final MapCameraState currentState = ref.read(mapCameraControllerProvider);
         final String? ineligibleReason = switch (currentState) {
           MapCameraIdle() => 'Démarre une session pour activer le centrage GPS',
-          MapCameraCentering() => 'En attente du premier fix GPS…',
+          MapCameraFollowing(isCentering: true) => 'En attente du premier fix GPS…',
           MapCameraFollowing() || MapCameraFreePan() => null,
         };
         if (ineligibleReason != null) {
@@ -44,7 +47,7 @@ class MapFollowMeFab extends ConsumerWidget {
         }
         await ref.read(mapCameraControllerProvider.notifier).toggleFollowMe();
       },
-      child: Icon(isFollowing ? Icons.gps_fixed : Icons.gps_not_fixed),
+      child: Icon(isActivelyFollowing ? Icons.gps_fixed : Icons.gps_not_fixed),
     );
   }
 }

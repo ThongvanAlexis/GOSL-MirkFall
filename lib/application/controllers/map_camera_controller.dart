@@ -20,9 +20,13 @@ part 'map_camera_controller.g.dart';
 ///
 /// Transitions driven by the controller:
 /// - `Idle` — no session open; map stays where it is.
-/// - `Centering` — waiting on first fix after `openForSession(id)` with
-///   no prior fix available; UI surfaces "En attente du GPS…".
-/// - `FollowingUser` — camera pans to every new fix (zoom preserved).
+/// - `Following(hasFirstFix: false)` — session open, waiting on first
+///   fix; UI surfaces "En attente du GPS…" (see `isCentering`). The
+///   previous `Centering` variant is folded into this — it differed
+///   from `Following(hasFirstFix: true)` only by the `hasFirstFix`
+///   boolean (row #36, smell:over-state-machine).
+/// - `Following(hasFirstFix: true)` — camera pans to every new fix
+///   (zoom preserved).
 /// - `FreePan` — user manually panned; camera does not auto-follow.
 sealed class MapCameraState {
   const MapCameraState();
@@ -34,27 +38,33 @@ final class MapCameraIdle extends MapCameraState {
   const MapCameraIdle();
 }
 
-/// A session is open but no fix has arrived yet. The controller's
-/// internal listener will transition to [MapCameraFollowing] as soon as
-/// the first fix lands.
-final class MapCameraCentering extends MapCameraState {
-  const MapCameraCentering({required this.sessionId});
-
-  final SessionId sessionId;
-}
-
-/// Follow-me is active. Every new fix triggers [MapView.moveCameraTo]
-/// at the current zoom level. Manual pan transitions the controller to
+/// Follow-me is active for [sessionId]. When [hasFirstFix] is `false`
+/// the controller is waiting on the first GPS fix and the UI surfaces
+/// an "En attente du GPS…" indicator via [isCentering]. Once the first
+/// fix lands the controller re-emits this state with `hasFirstFix:
+/// true` and every subsequent fix drives [MapView.moveCameraTo] at the
+/// current zoom. Manual pan transitions the controller to
 /// [MapCameraFreePan].
 final class MapCameraFollowing extends MapCameraState {
-  const MapCameraFollowing({required this.sessionId});
+  const MapCameraFollowing({required this.sessionId, required this.hasFirstFix});
 
   final SessionId sessionId;
+
+  /// `true` once the session has delivered at least one fix — the
+  /// point where `Centering` semantics flip to `Following` proper.
+  /// `false` while the controller is still waiting (the "En attente
+  /// du GPS…" UX surface).
+  final bool hasFirstFix;
+
+  /// Convenience flag for UI surfaces that previously switched on
+  /// `state is MapCameraCentering`. A following-state is "centering"
+  /// exactly while waiting on its first fix.
+  bool get isCentering => !hasFirstFix;
 }
 
 /// User manually panned. Follow-me is disabled; new fixes are observed
-/// (via [lastKnownFix]) but do NOT trigger camera moves. Toggling
-/// follow-me re-centers on the last fix.
+/// but do NOT trigger camera moves. Toggling follow-me re-centers on
+/// the last fix.
 final class MapCameraFreePan extends MapCameraState {
   const MapCameraFreePan({required this.sessionId});
 
@@ -140,8 +150,10 @@ class MapCameraController extends _$MapCameraController {
 
   /// Opens the map for [sessionId]: centres the camera on the latest
   /// known fix at Z=[kInitialSessionMapZoom] and enables follow-me. If
-  /// no fix is available yet, transitions to [MapCameraCentering] and
-  /// waits for the first fix via the active-session listener.
+  /// no fix is available yet, transitions to
+  /// [MapCameraFollowing] with `hasFirstFix: false` (the former
+  /// `Centering` flavour) and waits for the first fix via the
+  /// active-session listener.
   Future<void> openForSession(SessionId sessionId) async {
     _attachMapViewIfReady();
     final MapView? mapView = ref.read(mapViewProvider);
@@ -164,14 +176,14 @@ class MapCameraController extends _$MapCameraController {
         }
       }());
       await mapView.setFollowMeEnabled(true);
-      state = MapCameraFollowing(sessionId: sessionId);
+      state = MapCameraFollowing(sessionId: sessionId, hasFirstFix: true);
       return;
     }
 
     // Either the MapView isn't ready yet or we have no fix; transition
-    // to Centering and let the active-session listener drive the next
-    // state change.
-    state = MapCameraCentering(sessionId: sessionId);
+    // to the "waiting-on-first-fix" flavour of Following (previously the
+    // separate MapCameraCentering variant, folded in per row #36).
+    state = MapCameraFollowing(sessionId: sessionId, hasFirstFix: false);
   }
 
   /// Toggles follow-me. When enabling, re-centres on the last known fix
@@ -194,7 +206,10 @@ class MapCameraController extends _$MapCameraController {
       if (fix != null) {
         await _moveCameraTo(mapView, latitude: fix.latitude, longitude: fix.longitude, zoom: _currentZoom);
       }
-      state = MapCameraFollowing(sessionId: current.sessionId);
+      // Toggling back from FreePan implies a fix has already been seen
+      // (FreePan is only reachable after Following was entered), so
+      // hasFirstFix is guaranteed true.
+      state = MapCameraFollowing(sessionId: current.sessionId, hasFirstFix: true);
     }
   }
 
@@ -252,8 +267,10 @@ class MapCameraController extends _$MapCameraController {
   /// user even when they're free-panning.
   ///
   /// Camera behaviour:
-  /// - [MapCameraCentering] → initial centre + transition to Following.
-  /// - [MapCameraFollowing] → pan to the fix (preserves zoom).
+  /// - [MapCameraFollowing] with `hasFirstFix: false` → initial centre
+  ///   + re-emit with `hasFirstFix: true` + enable follow-me.
+  /// - [MapCameraFollowing] with `hasFirstFix: true` → pan to the fix
+  ///   (preserves zoom).
   /// - [MapCameraFreePan] / [MapCameraIdle] → observe + update the puck
   ///   only.
   Future<void> _onFix(Fix? fix) async {
@@ -272,13 +289,17 @@ class MapCameraController extends _$MapCameraController {
       }
     }());
     final current = state;
-    if (current is MapCameraCentering) {
-      await _moveCameraTo(mapView, latitude: fix.latitude, longitude: fix.longitude, zoom: kInitialSessionMapZoom.toDouble());
-      await mapView.setFollowMeEnabled(true);
-      state = MapCameraFollowing(sessionId: current.sessionId);
-      return;
-    }
     if (current is MapCameraFollowing) {
+      if (!current.hasFirstFix) {
+        // First fix of the session: centre at the initial session zoom
+        // + re-emit with hasFirstFix flipped. Subsequent fixes take
+        // the branch below and pan at the current (possibly
+        // user-adjusted) zoom.
+        await _moveCameraTo(mapView, latitude: fix.latitude, longitude: fix.longitude, zoom: kInitialSessionMapZoom.toDouble());
+        await mapView.setFollowMeEnabled(true);
+        state = MapCameraFollowing(sessionId: current.sessionId, hasFirstFix: true);
+        return;
+      }
       await _moveCameraTo(mapView, latitude: fix.latitude, longitude: fix.longitude, zoom: _currentZoom);
       return;
     }
@@ -310,7 +331,11 @@ class MapCameraController extends _$MapCameraController {
       return;
     }
     final current = state;
-    if (current is MapCameraFollowing) {
+    // Only a Following state with a first fix can transition to
+    // FreePan — a viewport update while still "centering" would be an
+    // echo of the initial-fix pan handled above, not a genuine user
+    // gesture.
+    if (current is MapCameraFollowing && current.hasFirstFix) {
       final MapView? mapView = _mapView;
       if (mapView != null) {
         await mapView.setFollowMeEnabled(false);

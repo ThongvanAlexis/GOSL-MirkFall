@@ -150,7 +150,7 @@ final class MapCameraControllerProvider
 }
 
 String _$mapCameraControllerHash() =>
-    r'50849f0bd5cef90c5efe4b66babe83072362cd4c';
+    r'e67e8516bad34b1a9d1172f7659a97d571697831';
 
 /// Orchestrates the map camera on the /map screen:
 /// - Opens a session view with Z=[kInitialSessionMapZoom] zoom centred on

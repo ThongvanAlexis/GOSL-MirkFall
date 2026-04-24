@@ -146,8 +146,13 @@ void main() {
       container.read(mapCameraControllerProvider);
       await container.read(mapCameraControllerProvider.notifier).openForSession(sid);
 
-      // No fix yet — state is Centering + camera has not moved.
-      expect(container.read(mapCameraControllerProvider), isA<MapCameraCentering>());
+      // No fix yet — state is the waiting-on-first-fix flavour of
+      // Following (previously MapCameraCentering — row #36); camera
+      // has not moved.
+      final MapCameraState centeringState = container.read(mapCameraControllerProvider);
+      expect(centeringState, isA<MapCameraFollowing>());
+      expect((centeringState as MapCameraFollowing).hasFirstFix, isFalse);
+      expect(centeringState.isCentering, isTrue);
       expect(fakeMapView.cameraMovesObserved, isEmpty);
 
       // Push a fix; listener fires.
