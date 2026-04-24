@@ -19,7 +19,7 @@ import 'package:mirkfall/domain/ids/session_id.dart';
 /// (Plan 05-04) — compiler catches any missed variant when a new state
 /// is added.
 ///
-/// ## Error channel (row #37 cleanup)
+/// ## Error channel (row #37 cleanup + Phase 08.1 Blocker #1 closure)
 ///
 /// Prior to 2026-04-23 the hierarchy carried an `ErrorState(GpsError)`
 /// variant to surface recoverable GPS errors. Consumers had to
@@ -27,11 +27,18 @@ import 'package:mirkfall/domain/ids/session_id.dart';
 /// like `ConcurrentActivationException`) and `AsyncData(ErrorState)`
 /// — duplicate error channels for what is, semantically, the same
 /// signal: "the controller hit a problem, surface it". All exceptions
-/// (including `GpsError`) now propagate via Riverpod's `AsyncError`;
-/// UI consumers read `asyncState.error` and pattern-match on the
-/// runtime type (`e is GpsError` → recovery screen; otherwise → the
-/// existing generic error UI). Row #37 in 08-REVIEW.md §3
-/// (smell:over-state-machine).
+/// (including `GpsError`) now propagate via Riverpod's `AsyncError`.
+///
+/// The UI contract that consumes this channel lives in
+/// `SessionDetailScreen._handleStart` + `_handleGpsError`
+/// (`lib/presentation/screens/session_detail_screen.dart`): the
+/// `on GpsError catch` branch pattern-matches over the sealed
+/// `GpsError` hierarchy and routes each variant to its recovery UX
+/// (`/permissions/denied` for permission denials, inline messaging
+/// for service-disabled + background-kill). Non-GpsError exceptions
+/// fall through to the generic `_inlineError` path. Row #37 in
+/// 08-REVIEW.md §3 (smell:over-state-machine) + Phase 08.1-REVIEW.md
+/// §3 row #1 (Blocker — UI contract vaporware closure).
 sealed class ActiveSessionState {
   const ActiveSessionState();
 }

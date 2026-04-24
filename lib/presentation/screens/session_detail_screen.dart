@@ -14,6 +14,7 @@ import 'package:mirkfall/application/providers/session_store_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/errors/concurrent_errors.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
+import 'package:mirkfall/domain/gps/gps_errors.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
@@ -253,10 +254,48 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
         await ref.read(activeSessionControllerProvider.notifier).stop();
         if (!mounted) return;
         await ref.read(activeSessionControllerProvider.notifier).start(session.id);
+      } on GpsError catch (err) {
+        // Phase 08.1 Blocker #1 (Row #37 UI contract) — AsyncError now
+        // carries the GpsError subtype verbatim (Phase 08 Row #37
+        // over-state-machine collapse); this catch restores the recovery
+        // routing the old `ErrorState(GpsError)` branch used to own.
+        // Exhaustive over the sealed `GpsError` hierarchy so any future
+        // variant surfaces as a compile-time miss rather than a silent
+        // stringified generic error.
+        if (!mounted) return;
+        await _handleGpsError(err);
       }
     } catch (err) {
       if (!mounted) return;
       setState(() => _inlineError = 'Erreur au démarrage : $err');
+    }
+  }
+
+  /// Routes a [GpsError] surfaced by
+  /// [`ActiveSessionController.start`] to the appropriate recovery UX.
+  ///
+  /// - [LocationPermissionDeniedException] → push `/permissions/denied`
+  ///   so the user can grant (or deep-link to system settings when
+  ///   `permanent == true`).
+  /// - [LocationServiceDisabledException] → inline message telling the
+  ///   user to enable device location services (no dedicated screen —
+  ///   the fix is an OS-level toggle the user reaches via the
+  ///   notification shade on both platforms).
+  /// - [TrackingBackgroundKilledException] → inline message explaining
+  ///   the background kill; Plan 05-06's resume notification is the
+  ///   primary recovery path, this branch is the fallback when the
+  ///   user hits Start again after a kill instead of tapping the
+  ///   resume notification.
+  Future<void> _handleGpsError(GpsError err) async {
+    switch (err) {
+      case LocationPermissionDeniedException():
+        await GoRouter.of(context).push<bool>('/permissions/denied');
+        if (!mounted) return;
+        setState(() => _inlineError = null);
+      case LocationServiceDisabledException():
+        setState(() => _inlineError = 'Active les services de localisation de ton appareil pour démarrer la session.');
+      case TrackingBackgroundKilledException():
+        setState(() => _inlineError = "Le suivi en arrière-plan a été arrêté par le système. Redémarre la session.");
     }
   }
 }

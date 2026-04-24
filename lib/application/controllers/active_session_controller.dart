@@ -44,12 +44,16 @@ final Logger _log = Logger('application.controllers.active_session');
 /// Error channel: all exceptions (including `GpsError` subclasses
 /// surfacing permission-denied / service-disabled /
 /// background-killed) propagate via Riverpod's `AsyncError` rather
-/// than a dedicated `ActiveSessionState.ErrorState` variant. UI layers
-/// read `asyncValue.error` and pattern-match on the runtime type to
-/// branch between GpsError recovery screens and the generic error
-/// surface. See 08-REVIEW.md §3 row #37 for the consolidation
-/// rationale (smell:over-state-machine — dedicated ErrorState
-/// duplicated what AsyncError already carries).
+/// than a dedicated `ActiveSessionState.ErrorState` variant. The UI
+/// consumer (`SessionDetailScreen._handleStart` + `_handleGpsError`)
+/// pattern-matches over the sealed `GpsError` hierarchy and routes
+/// each variant to its recovery UX (`/permissions/denied` for
+/// permission denials, inline messaging for service-disabled +
+/// background-kill). Non-GpsError exceptions fall through to the
+/// generic `_inlineError` path. See 08-REVIEW.md §3 row #37 for the
+/// consolidation rationale (smell:over-state-machine — dedicated
+/// ErrorState duplicated what AsyncError already carries) and
+/// 08.1-REVIEW.md §3 row #1 (Blocker closure — UI routing restored).
 @Riverpod(keepAlive: true)
 class ActiveSessionController extends _$ActiveSessionController {
   StreamSubscription<Fix>? _sub;
