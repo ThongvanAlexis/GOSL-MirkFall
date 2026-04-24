@@ -235,8 +235,52 @@ class PmtilesDownloadController {
   }
 
   /// Cancel the active download and discard its staging directory.
+  ///
+  /// Two shapes depending on the current state:
+  ///
+  /// 1. **Processing loop is running** — set [_cancelRequested] and
+  ///    await the loop's completion. The loop itself checks the flag
+  ///    at each chunk boundary, cleans staging, emits
+  ///    [DownloadCancelled], and removes the job from the queue head.
+  ///
+  /// 2. **State is [DownloadPaused]** — the loop has already exited
+  ///    (see [_processQueue]'s `break` on `_pauseRequested`). Awaiting
+  ///    [_processingDone] returns immediately without the cleanup +
+  ///    emit side-effects the running-loop path provides. Phase 08.1
+  ///    Should #2 (Row #2 / A1#1): handle this inline — nuke staging,
+  ///    emit [DownloadCancelled], pop the queue head, reset the pause
+  ///    flag — so a cancel while paused ends up in the same terminal
+  ///    state as a cancel while running instead of stranding the UI on
+  ///    [DownloadPaused] indefinitely.
   Future<void> cancelActive() async {
     _cancelRequested = true;
+
+    final DownloadState currentState = _state;
+    if (currentState is DownloadPaused) {
+      final DownloadJob active = currentState.active;
+      final Directory stagingDir = Directory(p.join(_appSupportDir, kStagingDir, active.alpha3.value));
+      await _cleanupStaging(stagingDir);
+      _emit(DownloadCancelled(active: active));
+      if (_queue.isNotEmpty && _queue.first.alpha3 == active.alpha3) {
+        _queue.removeAt(0);
+        await _persistQueue();
+      }
+      // Reset flags so a subsequent enqueue flows through the normal
+      // processing loop rather than being short-circuited by the pause
+      // state still lingering in memory.
+      _pauseRequested = false;
+      _cancelRequested = false;
+      // Drain any remaining queue entries — cancellation of the paused
+      // head should not block subsequent jobs from being processed.
+      if (_queue.isNotEmpty) {
+        _emit(DownloadQueued(queue: List<DownloadJob>.unmodifiable(_queue)));
+        _startProcessingIfIdle();
+      } else {
+        _emit(const DownloadIdle());
+      }
+      return;
+    }
+
     // Wait for the current processing loop to wind down before
     // emitting a Cancelled state; the loop itself handles cleanup.
     await _processingDone?.future;

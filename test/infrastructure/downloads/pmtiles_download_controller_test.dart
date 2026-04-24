@@ -649,6 +649,68 @@ void main() {
     });
   });
 
+  group('PmtilesDownloadController — cancel while paused (08.1 row #2 Should regression)', () {
+    test('cancelActive() on a paused job nukes staging, emits DownloadCancelled, and pops the queue head', () async {
+      // Phase 08.1-REVIEW §3 row #2 (A1#1). Pre-fix behaviour: once
+      // [_processQueue] broke out on _pauseRequested, the Completer
+      // [_processingDone] was signalled. A subsequent cancelActive()
+      // set _cancelRequested, awaited the already-completed future,
+      // returned silently: no DownloadCancelled emit, staging kept,
+      // queue head untouched. The UI stayed pinned on DownloadPaused
+      // forever. This regression asserts the paused-cancel path now
+      // emits DownloadCancelled, cleans staging, and resets flags so
+      // a subsequent enqueue flows through normally.
+      await _withRealHttpClient(() async {
+        final Uint8List payload = Uint8List.fromList(List<int>.filled(1024, 0x33));
+        final FakeHttpServer server = await FakeHttpServer.bind(initialBytes: payload);
+        addTearDown(server.close);
+
+        final HttpChunkDownloader httpDownloader = HttpChunkDownloader();
+        final _Harness result = await makeController(httpDownloader: httpDownloader);
+        final PmtilesDownloadController controller = result.controller;
+
+        final CountryEntry entry = _entryFor(
+          alpha3Raw: 'esp',
+          chunkPayloads: <Uint8List>[payload],
+          chunkUrls: <String>[server.base.resolve('/esp').toString()],
+        );
+
+        // Prime a paused state by saving the job and pausing before
+        // rehydrate (mirrors the pause-before-start regression).
+        final DownloadQueueStore store = DownloadQueueStore(appSupportDir: tempDir.path);
+        await store.save(<DownloadJob>[DownloadJob(alpha3: entry.alpha3, entry: entry, enqueuedAtUtc: DateTime.utc(2026, 4, 24))]);
+        await controller.pause();
+        await controller.rehydrate();
+        await controller.stateStream.firstWhere((DownloadState s) => s is DownloadPaused);
+
+        // Assert the pre-cancel state: we really ARE in DownloadPaused
+        // (inertness guard — if pause never landed, a vacuous cancel
+        // from Idle would falsely pass the test below).
+        expect(controller.state, isA<DownloadPaused>(), reason: 'regression guard: controller must be paused before cancel to exercise row #2');
+
+        // Staging directory for the (size-correct) pre-seeded local
+        // bytes — emulate a partial download having started before the
+        // pause. cancelActive must nuke this.
+        final Directory stagingDir = Directory(p.join(tempDir.path, kStagingDir, 'esp'));
+        stagingDir.createSync(recursive: true);
+        final File stagingPart = File(p.join(stagingDir.path, 'part00'));
+        stagingPart.writeAsBytesSync(<int>[1, 2, 3]);
+        expect(stagingPart.existsSync(), isTrue, reason: 'guard: staging file must exist pre-cancel so nuke is observable');
+
+        // Cancel + wait for emission.
+        final Future<DownloadState> cancelledFuture = controller.stateStream.firstWhere((DownloadState s) => s is DownloadCancelled);
+        await controller.cancelActive();
+        final DownloadCancelled cancelled = await cancelledFuture as DownloadCancelled;
+
+        expect(cancelled.active.alpha3, entry.alpha3);
+        expect(stagingPart.existsSync(), isFalse, reason: 'staging must be nuked on cancel-while-paused');
+        expect(controller.queuedJobs, isEmpty, reason: 'queue head must be popped on cancel-while-paused');
+        // Subsequent state settles to Idle since queue is empty.
+        expect(controller.state, anyOf(isA<DownloadCancelled>(), isA<DownloadIdle>()));
+      });
+    });
+  });
+
   group('PmtilesDownloadController — preflight', () {
     test('insufficient disk space emits DownloadError(DiskSpaceInsufficient)', () async {
       // Preflight runs before any HTTP call, so this test does not
