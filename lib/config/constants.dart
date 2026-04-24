@@ -277,6 +277,19 @@ const int kDownloadCompletedSnackbarSeconds = 3;
 /// the cause before retrying.
 const int kDownloadErrorSnackbarSeconds = 5;
 
+/// Snackbar visible duration (seconds) for the immediate
+/// "added to the download queue" confirmation toast shown right after
+/// the user taps Download on the confirm dialog. Short — the AppBar
+/// chip takes over once the controller transitions to
+/// DownloadInProgress, so the snackbar is a brief hand-off marker.
+const int kDownloadEnqueueConfirmSnackbarSeconds = 2;
+
+/// Snackbar visible duration (seconds) for the error toast surfaced
+/// when `enqueue` itself throws (queue store write failure, repository
+/// error, etc.). Same length as the download-error toast because the
+/// user will want to read the cause before retrying.
+const int kDownloadEnqueueErrorSnackbarSeconds = 5;
+
 /// Style-source ID for the GeoJSON source carrying the user-location
 /// puck's current position. Namespaced with `mirkfall_` so a downstream
 /// style tweak cannot accidentally collide. Hoisted here (rather than

@@ -359,12 +359,19 @@ class _CountryTile extends ConsumerWidget {
     // noisier snackbar.
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('${entry.name} ajouté à la file de téléchargement'), duration: const Duration(seconds: 2)));
+    ).showSnackBar(
+      SnackBar(
+        content: Text('${entry.name} ajouté à la file de téléchargement'),
+        duration: const Duration(seconds: kDownloadEnqueueConfirmSnackbarSeconds),
+      ),
+    );
     try {
       await ref.read(downloadQueueControllerProvider.notifier).enqueue(entry);
     } on Object catch (err) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur à la mise en file : $err'), duration: const Duration(seconds: 5)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur à la mise en file : $err'), duration: const Duration(seconds: kDownloadEnqueueErrorSnackbarSeconds)));
     }
   }
 }
