@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Plan 08.1-03 (audit sub-agent wave — §2 pre-class 7 items + smell hot-spots re-check 6 rows + 4 parallel sub-agents on Phase 08 delta)
-status: Phase 08.1 open; next plan Plan 08.1-03 audit wave (§1b baseline in place, sub-agents ready to brief)
-stopped_at: Completed 08.1-02-PLAN.md (§1b runtime-evidence baseline filled on main 997183d via Phase 07 walk artifact reuse — user-approved review-phase deviation; Task 1 blocking gate SKIPPED; 7 screenshot refs; walk-finding-driven regression test candidates = None → Plan 08.1-04 gate-verification-only; Plan 08.1-03 unblocked)
-last_updated: "2026-04-24T15:10:41.578Z"
+current_plan: Plan 08.1-04 (adversarial verification — default-skip per 08.1-RESEARCH §Pattern 3; gate-verification-only wave; N=0 new permanent tests)
+status: Phase 08.1 open; next plan Plan 08.1-04 adversarial verification (15 fixes queued for Plan 08.1-05)
+stopped_at: Completed 08.1-03-PLAN.md (4-parallel-agent audit synthesised into §2 on c1c43d7; §3 triage recorded 15 fix + 40 accepted-as-is on 2bc641d; .fixes-expected=15; user decision "fix the could and should"; Plan 08.1-04 unblocked)
+last_updated: "2026-04-24T15:40:00.000Z"
 last_activity: 2026-04-24
 progress:
   total_phases: 17
   completed_phases: 8
   total_plans: 47
-  completed_plans: 44
-  percent: 94
+  completed_plans: 45
+  percent: 96
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 08.1 Re-Review — Post-Walk Audit OPEN (2026-04-24). Plan 08.1-02 complete (2/5) — §1b runtime-evidence baseline filled on main (997183d) via Phase 07 walk artifact reuse per user-approved review-phase deviation: Phase 08.1 is a code-review phase (per CLAUDE.md §Code Review Phases), review phases introduce no new runtime behavior, so no dedicated `docs/phase-08.1-walk.md` was captured — §1b reuses the same Phase 07 walks (Android 2026-04-21 Pixel 4a PASS + iOS 2026-04-22/23 iPhone 17 Pro PASS-with-caveat post-fix on commit fbcbde6a) that Phase 08 §1b validated against, with each `<details>` block wrapped in a Phase 08.1 delta lens paragraph mapping the 49-fix refactor commits onto the walked code paths. 7 inline screenshot refs to `docs/phase-07-smoke-screenshots/` (5 Android + 2 iOS). Task 1 blocking gate SKIPPED per user clarification; `docs/phase-08.1-walk.md` intentionally not created. Walk-finding-driven regression test candidates for Plan 08.1-04 = None → Plan 08.1-04 confirmed as gate-verification-only wave (N=0 new permanent tests). Plan 08.1-03 audit sub-agent wave unblocked.
+**Current focus:** Phase 08.1 Re-Review — Post-Walk Audit OPEN (2026-04-24). Plan 08.1-03 complete (3/5) — 4-parallel-agent audit synthesised into §2 on `c1c43d7`; §3 triage recorded on `2bc641d`: 15 fix (1 Blocker + 5 Should + 9 Could) + 40 accepted-as-is per user decision "fix the could and should". Blocker = Row #37 UI contract vaporware (dropping ActiveSessionState.ErrorState lost GpsError recovery UX at the UI seam). Shoulds = pause-then-cancel state stranding (fix-on-fix), MapCamera echo-window multi-echo mis-classification (fix-on-fix), MapCamera toggleFollowMe race, CountryResolver first-listen race, _rebuildResolver cold-start catalog race. Coulds = 9 cross-cutting polish including `_alpha3IsActiveOrQueued` polymorphic fold, heal+purge double-write, `_bestEffort` log level, `MapCameraFollowing.isCentering` getter, _tearDown accumulation, row #43 duration-hoist completion, MapScreen rotation null-gap guard, pubspec.yaml 8-layer docstring, ROADMAP 08.1 plan checkboxes. .fixes-expected=15. Plan 08.1-04 (adversarial verification) unblocked and expected to pass through as gate-verification-only (no new permanent tests — walk candidates=None).
 
 ## Current Position
 
-Phase: 08.1 of 16.x (Re-Review — Post-Walk Audit) — OPEN 2026-04-24 — 2 / 5 plans done
-Current Plan: Plan 08.1-03 (audit sub-agent wave — §2 pre-class 7 items + smell hot-spots re-check 6 rows + 4 parallel sub-agents on Phase 08 delta)
-Total Plans in Phase 08.1: 2 / 5 done
-Status: Phase 08.1 open; next plan Plan 08.1-03 audit wave (§1b baseline in place, sub-agents ready to brief)
+Phase: 08.1 of 16.x (Re-Review — Post-Walk Audit) — OPEN 2026-04-24 — 3 / 5 plans done
+Current Plan: Plan 08.1-04 (adversarial verification — default-skip per 08.1-RESEARCH §Pattern 3; gate-verification-only wave)
+Total Plans in Phase 08.1: 3 / 5 done
+Status: Phase 08.1 open; next plan Plan 08.1-04 adversarial verification (15 fixes queued for Plan 08.1-05)
 Last Activity: 2026-04-24
 
-Progress: [█████████░] 94% — 44 / 47 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 open at 2/5).
+Progress: [█████████░] 96% — 45 / 47 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 open at 3/5).
 
 ## Performance Metrics
 
