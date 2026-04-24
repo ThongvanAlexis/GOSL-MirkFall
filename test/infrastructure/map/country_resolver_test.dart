@@ -71,6 +71,54 @@ void main() {
       expect(second?.value, first?.value);
     });
 
+    test('Strasbourg (48.5734, 7.7521) at zoom 13 → FRA/DEU frontier, first match wins (row #24)', () {
+      // Strasbourg sits on the Rhine, inside BOTH the FRA bbox
+      // (lon -5.0..9.0, lat 41.0..51.0) AND the DEU bbox
+      // (lon 5.9..15.0, lat 47.3..55.1). Frontier test — fixture load
+      // order is fra/deu/..., so the resolver MUST return FRA
+      // deterministically. Covers the FRA/DEU tie-break path that the
+      // Barcelona test covers for FRA/ESP.
+      final CountryResolver r = CountryResolver(installedPolygons: fixtures);
+      final CountryCode? first = r.resolve(latitude: 48.5734, longitude: 7.7521, zoom: 13);
+      expect(first?.value, equals('fra'));
+      // Determinism across calls.
+      final CountryCode? second = r.resolve(latitude: 48.5734, longitude: 7.7521, zoom: 13);
+      expect(second?.value, equals('fra'));
+    });
+
+    test('Andorra la Vella (42.5063, 1.5218) at zoom 13 → FRA/ESP frontier (row #24)', () {
+      // Andorra la Vella is inside BOTH the FRA bbox (lon -5..9,
+      // lat 41..51) AND the ESP bbox (lon -9.3..3.3, lat 36..43.8).
+      // Fixture load order fra/deu/esp/gbr/usa ⇒ FRA wins first-match.
+      // Second FRA/ESP frontier anchor (complements Barcelona which is
+      // deeper inside ESP but still overlaps FRA's bbox).
+      final CountryResolver r = CountryResolver(installedPolygons: fixtures);
+      final CountryCode? first = r.resolve(latitude: 42.5063, longitude: 1.5218, zoom: 13);
+      expect(first?.value, equals('fra'));
+    });
+
+    test('Corsica (42.0, 9.2) at zoom 13 → null (polygon-simplification lossy, row #24)', () {
+      // Corsica (Ajaccio ≈ 41.9N 8.7E, Bastia ≈ 42.7N 9.45E) is
+      // administratively FRA but sits OUTSIDE the coarse FRA bbox
+      // (max lon 9.0). This test documents the known lossy edge of the
+      // Phase 07 Wave 0 simplifier — axis-aligned bounding boxes
+      // cannot represent disjoint territory. Phase 09+ may swap in
+      // true multi-polygon fixtures and flip this expectation.
+      final CountryResolver r = CountryResolver(installedPolygons: fixtures);
+      final CountryCode? code = r.resolve(latitude: 42.0, longitude: 9.2, zoom: 13);
+      expect(code, isNull, reason: 'Corsica falls outside the coarse FRA bbox — documents simplification lossy edge');
+    });
+
+    test('Canary Islands (28.3, -15.4) at zoom 13 → null (polygon-simplification lossy, row #24)', () {
+      // Las Palmas ≈ 28.1N 15.4W. Administratively ESP but well south
+      // of the ESP bbox (min lat 36.0). Same simplification-lossy
+      // contract as Corsica — exclave territory is not represented by
+      // the coarse axis-aligned bbox.
+      final CountryResolver r = CountryResolver(installedPolygons: fixtures);
+      final CountryCode? code = r.resolve(latitude: 28.3, longitude: -15.4, zoom: 13);
+      expect(code, isNull, reason: 'Canary Islands fall outside the coarse ESP bbox — documents simplification lossy edge');
+    });
+
     test('London (51.5074, -0.1278) at zoom 13 → GBR', () {
       final CountryResolver r = CountryResolver(installedPolygons: fixtures);
       expect(r.resolve(latitude: 51.5074, longitude: -0.1278, zoom: 13)?.value, 'gbr');
