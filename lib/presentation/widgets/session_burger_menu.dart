@@ -171,17 +171,14 @@ class _DistanceRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Phase 07: distance is derived from the chrono-level lastFix vs
-    // startedAt; full trajectory haversine belongs to Phase 09 (fix
+    // Phase 07: full trajectory haversine belongs to Phase 09 (fix
     // trajectory rendering) when the fix stream is consumable from the
-    // UI layer. For Phase 07 the row shows 0 m when there is no fix
-    // and "< 1 m" when we have a fix but have not yet implemented the
-    // fix-stream subscription. Gives the user a non-empty surface
-    // without fabricating a number.
-    final String text = lastFix == null ? 'Distance : 0 m' : 'Distance : — m';
+    // UI layer. Until then we surface the row with an explicit "—"
+    // placeholder tagged (Phase 09) so the user sees the slot but isn't
+    // fed a fabricated zero. Addresses §3 row #41.
     return ListTile(
       leading: const Icon(Icons.straighten_outlined),
-      title: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+      title: Text('Distance : — (Phase 09)', style: Theme.of(context).textTheme.bodyMedium),
     );
   }
 }
