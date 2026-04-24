@@ -201,15 +201,27 @@ class MapCameraController extends _$MapCameraController {
     }
     if (current is MapCameraFreePan) {
       await mapView.setFollowMeEnabled(true);
+      // Phase 08.1-REVIEW §3 row #4 (Should). Flip to Following BEFORE
+      // the _moveCameraTo await. Pre-fix order (state assigned AFTER
+      // the await) meant a user pan landing during the await sat in
+      // MapCameraFreePan; _onViewportUpdate saw `current is
+      // MapCameraFollowing` false and suppressed the state transition.
+      // The user's pan was then silently swallowed as programmatic via
+      // the row #3 echo window once the state caught up. Setting
+      // Following first keeps the invariant "_onViewportUpdate's state
+      // check accurately reflects what the controller is trying to
+      // do" — a user pan during the await correctly transitions back
+      // to FreePan at the next viewport-idle event.
+      //
+      // Toggling back from FreePan implies a fix has already been seen
+      // (FreePan is only reachable after Following was entered), so
+      // hasFirstFix is guaranteed true.
+      state = MapCameraFollowing(sessionId: current.sessionId, hasFirstFix: true);
       // Re-centre on the last fix if available.
       final Fix? fix = _currentSessionLatestFix();
       if (fix != null) {
         await _moveCameraTo(mapView, latitude: fix.latitude, longitude: fix.longitude, zoom: _currentZoom);
       }
-      // Toggling back from FreePan implies a fix has already been seen
-      // (FreePan is only reachable after Following was entered), so
-      // hasFirstFix is guaranteed true.
-      state = MapCameraFollowing(sessionId: current.sessionId, hasFirstFix: true);
     }
   }
 
