@@ -320,14 +320,24 @@ class MapCameraController extends _$MapCameraController {
   /// is MapLibre's `onCameraIdle` echoing our own moveCameraTo back —
   /// ignore it. Otherwise the user manually panned: transition
   /// Following → FreePan + drop follow-me.
+  ///
+  /// Phase 08.1-REVIEW §3 row #3 (Should, smell:fix-on-fix). Previously
+  /// the first echo cleared `_lastProgrammaticMoveAt`, which broke
+  /// down when MapLibre Native emitted multiple `onCameraIdle` per
+  /// programmatic move (observed 2026-04-22 device smoke around
+  /// `_rebuildMapLibreStyle`). The timestamp now stays alive for the
+  /// full debounce window and expires naturally — every echo inside
+  /// the window is ignored as programmatic, and only updates beyond
+  /// the window count as user-intent pans.
   Future<void> _onViewportUpdate(({double latitude, double longitude, double zoom}) v) async {
     _currentZoom = v.zoom;
     final DateTime? last = _lastProgrammaticMoveAt;
     if (last != null && DateTime.now().difference(last) < kMapCameraPendingMoveDebounce) {
-      // Echo of our own moveCameraTo — clear the timestamp so any
-      // subsequent update within the same window is classified as a
-      // legitimate user pan (the user-intent signal).
-      _lastProgrammaticMoveAt = null;
+      // Within the echo window — MapLibre may emit multiple onCameraIdle
+      // per programmatic move (multi-echo observed during style rebuild).
+      // Keep the timestamp alive so every echo inside the window is
+      // absorbed; the window expires naturally via the wall-clock
+      // comparison above.
       return;
     }
     final current = state;
