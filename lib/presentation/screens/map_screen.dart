@@ -67,46 +67,58 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   void deactivate() {
-    // Clear the published MapView adapter so long-lived controllers
-    // (MapCameraController, CountryResolverController — both
-    // keepAlive:true) stop calling methods on the dying native
-    // MapLibre surface. Without this hook the controllers kept a
-    // stale reference to a disposed adapter; any subsequent fix /
-    // session transition invoked setUserLocation on the dead
-    // platform view, cascading into iOS native crashes on the
-    // 2026-04-21 device smoke.
-    //
-    // Riverpod 3.x forbids provider mutations DURING widget-tree
-    // build / deactivate / dispose — doing so triggers
-    // `_debugCanModifyProviders` and Flutter renders a red screen
-    // (Android debug build, 2026-04-22). The workaround is to
-    // capture the notifier ref here (still valid during deactivate)
-    // and schedule the `set(null)` on a microtask so it fires AFTER
-    // the current build/deactivate phase closes. The notifier is a
-    // long-lived provider-owned object; it survives the widget
-    // disposal that immediately follows.
-    //
-    // `dispose` was also considered but Riverpod 3.x rejects
-    // `ref.read` there ("Using ref when a widget is about to or has
-    // been unmounted is unsafe"). The microtask pattern here is the
-    // only clean middle ground.
-    //
-    // Timing guarantee: the microtask fires before the next frame's
-    // build scope opens, so `mapViewProvider` listeners (the
-    // keepAlive controllers) see `null` before any new Widget can
-    // `ref.watch` the map screen's children again.
+    _nullifyMapViewProviderAfterDeactivate();
+    super.deactivate();
+  }
+
+  /// Publishes `null` into [`mapViewProvider`] once the current
+  /// deactivate/dispose phase has closed, so long-lived controllers
+  /// ([`MapCameraController`], [`CountryResolverController`] — both
+  /// `keepAlive: true`) release their stale reference to the dying
+  /// native MapLibre surface. Without this signal the controllers
+  /// kept calling `setUserLocation` / `moveCameraTo` on a disposed
+  /// adapter, cascading into iOS native crashes on the 2026-04-21
+  /// device smoke (post-row-#39 the adapter's `_aliveOrLog` guard
+  /// silently no-ops on disposed state, so a missed nullification
+  /// leaks work but does not crash — still worth clearing).
+  ///
+  /// ### Why microtask, not direct call
+  ///
+  /// Riverpod 3.x forbids provider mutations during the widget-tree
+  /// build / deactivate / dispose phase —
+  /// `_debugCanModifyProviders` triggers a red-screen assertion
+  /// (Android debug build, 2026-04-22). Scheduling the `set(null)`
+  /// on [`Future.microtask`] defers it until AFTER the current phase
+  /// closes; the notifier captured here is provider-owned and
+  /// outlives the widget. Between the microtask and the next frame's
+  /// build, no widget can observe a stale adapter.
+  ///
+  /// `dispose()` was evaluated as an alternative but Riverpod 3.x
+  /// rejects `ref.read` there with "Using ref when a widget is about
+  /// to or has been unmounted is unsafe". `deactivate` + microtask
+  /// is the narrowest legal window.
+  ///
+  /// ### Why the try/catch (row #39 scope-down)
+  ///
+  /// In test / hot-reload scenarios the parent `ProviderScope` can
+  /// dispose before the scheduled microtask fires; `notifier.set`
+  /// on a disposed container throws. That catch is NOT a defence
+  /// against a "state that shouldn't exist" (the smell-tag
+  /// triggered by §3 row #39) — it's the real behaviour of
+  /// Riverpod 3.x in `ProviderScope` teardown ordering. A tighter
+  /// design would subscribe through a [`ProviderSubscription`] with
+  /// its own `close` contract; that rewrite is deferred to Phase 10
+  /// when Riverpod 4.x lands on pub.dev and the lifecycle APIs are
+  /// re-shaped. See 08-REVIEW.md §3 row #39.
+  void _nullifyMapViewProviderAfterDeactivate() {
     final MapViewHolder notifier = ref.read(mapViewProvider.notifier);
     Future<void>.microtask(() {
       try {
         notifier.set(null);
       } on Object catch (_) {
-        // Provider container already disposed (test teardown, hot
-        // reload, or parent ProviderScope unmounted before the
-        // microtask fired). Nothing to clean up — consumers that
-        // would have cared about mapView=null are also dead.
+        // Container teardown ordering — see method docstring.
       }
     });
-    super.deactivate();
   }
 
   @override
