@@ -210,13 +210,14 @@ class PmtilesDownloadController {
   }
 
   bool _alpha3IsActiveOrQueued(CountryCode alpha3) {
-    final CountryCode? active = switch (_state) {
-      DownloadInProgress(:final active) => active.alpha3,
-      DownloadPaused(:final active) => active.alpha3,
-      DownloadRetrying(:final active) => active.alpha3,
-      _ => null,
-    };
-    if (active == alpha3) return true;
+    // Phase 08.1-REVIEW §3 row #7 (Could, smell:over-state-machine).
+    // Fold the inline `switch (_state)` into the single-source-of-truth
+    // `activeJob` polymorphic getter from `DownloadStateActive`
+    // (introduced row #20). The previous duplicate dispatch was the
+    // last clinging pattern-match of the pre-collapse shape; row #20's
+    // docstring promised "UI code stays flat" and this call site
+    // finally honors it.
+    if (_state.activeJob?.alpha3 == alpha3) return true;
     return _queue.any((DownloadJob j) => j.alpha3 == alpha3);
   }
 
