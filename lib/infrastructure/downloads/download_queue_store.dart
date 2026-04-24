@@ -54,7 +54,24 @@ class DownloadQueueStore {
         _log.warning('load: expected top-level JSON list, got ${decoded.runtimeType} — returning empty queue');
         return <DownloadJob>[];
       }
-      return decoded.whereType<Map<String, Object?>>().map(DownloadJob.fromJson).toList(growable: false);
+      // Process entries one-by-one so a single malformed job doesn't
+      // erase the rest of the queue. Each drop is logged with its index
+      // and reason — row #34 (§3) flagged the previous silent-filter
+      // behaviour as a diagnostic dead zone.
+      final List<DownloadJob> jobs = <DownloadJob>[];
+      for (int i = 0; i < decoded.length; i++) {
+        final Object? raw = decoded[i];
+        if (raw is! Map<String, Object?>) {
+          _log.warning('load: queue entry #$i is not a JSON object (got ${raw.runtimeType}) — dropping entry');
+          continue;
+        }
+        try {
+          jobs.add(DownloadJob.fromJson(raw));
+        } on Object catch (e) {
+          _log.warning('load: queue entry #$i failed DownloadJob.fromJson ($e) — dropping entry');
+        }
+      }
+      return List<DownloadJob>.unmodifiable(jobs);
     } on Object catch (e) {
       _log.warning('load: JSON decode failed for $_filename: $e — returning empty queue');
       return <DownloadJob>[];

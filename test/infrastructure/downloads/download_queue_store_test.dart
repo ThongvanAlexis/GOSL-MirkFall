@@ -2,9 +2,12 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
 import 'package:mirkfall/domain/downloads/download_job.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
@@ -117,6 +120,40 @@ void main() {
       await f.writeAsString('');
 
       expect(await store.load(), isEmpty);
+    });
+
+    test('row #34: partial corruption — valid entries preserved, invalid dropped + logged', () async {
+      // Build a queue JSON where 1 entry is a valid job, 1 is a
+      // non-object (string), and 1 is a malformed object that fails
+      // DownloadJob.fromJson. Previous behaviour silently filtered the
+      // invalid entries via whereType<Map> — row #34 asked for diagnostic
+      // logs so the operator can spot degradation after a rare crash.
+      final List<Object?> mixed = <Object?>[
+        makeJob('fra').toJson(), // valid
+        'not-an-object', // wrong shape
+        <String, Object?>{'alpha3': 'deu'}, // object but missing required fields
+        makeJob('esp').toJson(), // valid
+      ];
+      final DownloadQueueStore store = DownloadQueueStore(appSupportDir: tempDir.path);
+      final File f = File(store.filename);
+      await f.parent.create(recursive: true);
+      await f.writeAsString(jsonEncode(mixed));
+
+      final List<LogRecord> records = <LogRecord>[];
+      final Logger testLogger = Logger.detached('row34_partial_corruption');
+      final StreamSubscription<LogRecord> sub = testLogger.onRecord.listen(records.add);
+      addTearDown(sub.cancel);
+
+      final DownloadQueueStore storeWithLogger = DownloadQueueStore(appSupportDir: tempDir.path, logger: testLogger);
+      final List<DownloadJob> loaded = await storeWithLogger.load();
+
+      expect(loaded.map((DownloadJob j) => j.alpha3.value).toList(), <String>['fra', 'esp'], reason: 'valid entries must survive partial corruption');
+      final List<String> warningMessages = records.where((LogRecord r) => r.level == Level.WARNING).map((LogRecord r) => r.message).toList();
+      expect(warningMessages.length, equals(2), reason: 'should have logged one warning per dropped entry');
+      expect(warningMessages[0], contains('#1'), reason: 'first warning identifies index of non-object entry');
+      expect(warningMessages[1], contains('#2'), reason: 'second warning identifies index of malformed object');
+      // Keep store alive to satisfy unused-var analyzer warnings.
+      expect(store.filename, storeWithLogger.filename);
     });
   });
 }
