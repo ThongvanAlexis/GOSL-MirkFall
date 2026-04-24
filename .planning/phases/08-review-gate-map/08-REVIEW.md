@@ -1,8 +1,8 @@
 # Phase 08: Review Gate — Map Review
 
 **Opened:** 2026-04-23
-**Status:** open
-**Closed:** (pending)
+**Status:** closed
+**Closed:** 2026-04-24
 
 ## 1. User-observed findings (IDE review)
 
@@ -679,11 +679,11 @@ Secondary smells: `DownloadCompleted/Cancelled` drop full DownloadJob (finding #
 
 *Filled by Plan 08-05 Task 3 after all Blocker + non-waived Should fixes are applied and CI is green.*
 
-- **Final commit on main:** (pending)
-- **CI run URL:** (pending)
-- **Status:** (pending — all 3 jobs gates+android+ios green, optionally integration-tests)
-- **Date:** (pending)
+- **Final commit on main:** `254b5d2` — `docs(08-rev): mark §3 rows #16 #35 #36 #37 #38 #39 #44 as fixed`
+- **CI run URL:** https://github.com/ThongvanAlexis/GOSL-MirkFall/actions/runs/24870106138
+- **Status:** All 3 jobs green (gates / android / ios)
+- **Date:** 2026-04-24
 
 ---
-_Phase 08 closed: (pending)_
+_Phase 08 closed: 2026-04-24_
 _Phase 09 unblocked._
