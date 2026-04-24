@@ -432,7 +432,11 @@ void main() {
       expect(iosWatchdog.stopCount, 1);
     });
 
-    test('streamErrorTransitionsToErrorState', () async {
+    test('streamErrorSurfacesViaAsyncError', () async {
+      // Row #37 cleanup (2026-04-23): stream-level GpsError no longer
+      // folds into `AsyncData(ErrorState)` — it surfaces through the
+      // same `AsyncError` channel as every other exception. UI
+      // consumers pattern-match on `asyncValue.error`'s runtime type.
       SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
       const sessionId = SessionId('sess_01HR0000000000000000000A');
       final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
@@ -454,19 +458,18 @@ void main() {
       locationStream.emitError(const LocationServiceDisabledException());
       await Future<void>.delayed(Duration.zero);
 
-      final state = container.read(activeSessionControllerProvider).value;
-      expect(state, isA<ErrorState>());
-      final errorState = state! as ErrorState;
-      expect(errorState.error, isA<LocationServiceDisabledException>());
+      final asyncValue = container.read(activeSessionControllerProvider);
+      expect(asyncValue.hasError, isTrue, reason: 'GpsError on the stream must surface via AsyncError (row #37)');
+      expect(asyncValue.error, isA<LocationServiceDisabledException>());
     });
 
-    test('startGpsErrorTransitionsToErrorStateAndDeactivates', () async {
-      // Phase 06 Blocker #2 regression guard: the sealed state contract
-      // says GpsError during start() lands the controller on
-      // AsyncData(ErrorState), not AsyncError. Phase 06 Blocker #1
-      // regression guard: a failure AFTER activate() must roll the DB
-      // row back to stopped so a retry is not blocked by the
-      // partial-unique-index on active sessions.
+    test('startGpsErrorSurfacesViaAsyncErrorAndDeactivates', () async {
+      // Phase 06 Blocker #1 regression guard: a failure AFTER
+      // activate() must roll the DB row back to stopped so a retry is
+      // not blocked by the partial-unique-index on active sessions.
+      // Row #37 (2026-04-23): GpsError now propagates via AsyncError
+      // rather than a dedicated ErrorState variant — consolidates on
+      // the same error channel as non-GpsError exceptions.
       SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
       const sessionId = SessionId('sess_01HR0000000000000000000A');
       final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
@@ -486,7 +489,8 @@ void main() {
       await expectLater(container.read(activeSessionControllerProvider.notifier).start(sessionId), throwsA(isA<LocationServiceDisabledException>()));
 
       final asyncValue = container.read(activeSessionControllerProvider);
-      expect(asyncValue.value, isA<ErrorState>(), reason: 'GpsError during start must transition to ErrorState per sealed contract');
+      expect(asyncValue.hasError, isTrue, reason: 'GpsError during start must surface via AsyncError (row #37)');
+      expect(asyncValue.error, isA<LocationServiceDisabledException>());
       expect(sessionStore.activatedIds, <SessionId>[sessionId], reason: 'activate must have been called');
       expect(sessionStore.deactivatedIds, <SessionId>[sessionId], reason: 'rollback must deactivate on partial-activation failure');
     });

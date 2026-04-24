@@ -26,11 +26,16 @@ part of 'active_session_controller.dart';
 /// - `Idle` (initial, post-stop)
 /// - `Starting(sessionId)` — activating + wiring subscription
 /// - `Tracking(...)` — subscription live, fixes flowing
-/// - `ErrorState(GpsError)` — recoverable domain error (permission,
-///   service, background-killed). Non-`GpsError` exceptions (e.g.
-///   [`ConcurrentActivationException`](../../domain/errors/concurrent_errors.dart))
-///   propagate untyped via Riverpod's `AsyncError` so the UI layer can
-///   pattern-match and apply its "stop current first" policy.
+///
+/// Error channel: all exceptions (including `GpsError` subclasses
+/// surfacing permission-denied / service-disabled /
+/// background-killed) propagate via Riverpod's `AsyncError` rather
+/// than a dedicated `ActiveSessionState.ErrorState` variant. UI layers
+/// read `asyncValue.error` and pattern-match on the runtime type to
+/// branch between GpsError recovery screens and the generic error
+/// surface. See 08-REVIEW.md §3 row #37 for the consolidation
+/// rationale (smell:over-state-machine — dedicated ErrorState
+/// duplicated what AsyncError already carries).
 
 @ProviderFor(ActiveSessionController)
 final activeSessionControllerProvider = ActiveSessionControllerProvider._();
@@ -53,11 +58,16 @@ final activeSessionControllerProvider = ActiveSessionControllerProvider._();
 /// - `Idle` (initial, post-stop)
 /// - `Starting(sessionId)` — activating + wiring subscription
 /// - `Tracking(...)` — subscription live, fixes flowing
-/// - `ErrorState(GpsError)` — recoverable domain error (permission,
-///   service, background-killed). Non-`GpsError` exceptions (e.g.
-///   [`ConcurrentActivationException`](../../domain/errors/concurrent_errors.dart))
-///   propagate untyped via Riverpod's `AsyncError` so the UI layer can
-///   pattern-match and apply its "stop current first" policy.
+///
+/// Error channel: all exceptions (including `GpsError` subclasses
+/// surfacing permission-denied / service-disabled /
+/// background-killed) propagate via Riverpod's `AsyncError` rather
+/// than a dedicated `ActiveSessionState.ErrorState` variant. UI layers
+/// read `asyncValue.error` and pattern-match on the runtime type to
+/// branch between GpsError recovery screens and the generic error
+/// surface. See 08-REVIEW.md §3 row #37 for the consolidation
+/// rationale (smell:over-state-machine — dedicated ErrorState
+/// duplicated what AsyncError already carries).
 final class ActiveSessionControllerProvider extends $AsyncNotifierProvider<ActiveSessionController, ActiveSessionState> {
   /// Orchestrator for a session's GPS tracking lifecycle.
   ///
@@ -77,11 +87,16 @@ final class ActiveSessionControllerProvider extends $AsyncNotifierProvider<Activ
   /// - `Idle` (initial, post-stop)
   /// - `Starting(sessionId)` — activating + wiring subscription
   /// - `Tracking(...)` — subscription live, fixes flowing
-  /// - `ErrorState(GpsError)` — recoverable domain error (permission,
-  ///   service, background-killed). Non-`GpsError` exceptions (e.g.
-  ///   [`ConcurrentActivationException`](../../domain/errors/concurrent_errors.dart))
-  ///   propagate untyped via Riverpod's `AsyncError` so the UI layer can
-  ///   pattern-match and apply its "stop current first" policy.
+  ///
+  /// Error channel: all exceptions (including `GpsError` subclasses
+  /// surfacing permission-denied / service-disabled /
+  /// background-killed) propagate via Riverpod's `AsyncError` rather
+  /// than a dedicated `ActiveSessionState.ErrorState` variant. UI layers
+  /// read `asyncValue.error` and pattern-match on the runtime type to
+  /// branch between GpsError recovery screens and the generic error
+  /// surface. See 08-REVIEW.md §3 row #37 for the consolidation
+  /// rationale (smell:over-state-machine — dedicated ErrorState
+  /// duplicated what AsyncError already carries).
   ActiveSessionControllerProvider._()
     : super(
         from: null,
@@ -101,7 +116,7 @@ final class ActiveSessionControllerProvider extends $AsyncNotifierProvider<Activ
   ActiveSessionController create() => ActiveSessionController();
 }
 
-String _$activeSessionControllerHash() => r'c9941aa8a011d47c8603c8510823258526c794f9';
+String _$activeSessionControllerHash() => r'4d1c80589fcf4dcf6de14875fdad947b5ad42235';
 
 /// Orchestrator for a session's GPS tracking lifecycle.
 ///
@@ -121,11 +136,16 @@ String _$activeSessionControllerHash() => r'c9941aa8a011d47c8603c8510823258526c7
 /// - `Idle` (initial, post-stop)
 /// - `Starting(sessionId)` — activating + wiring subscription
 /// - `Tracking(...)` — subscription live, fixes flowing
-/// - `ErrorState(GpsError)` — recoverable domain error (permission,
-///   service, background-killed). Non-`GpsError` exceptions (e.g.
-///   [`ConcurrentActivationException`](../../domain/errors/concurrent_errors.dart))
-///   propagate untyped via Riverpod's `AsyncError` so the UI layer can
-///   pattern-match and apply its "stop current first" policy.
+///
+/// Error channel: all exceptions (including `GpsError` subclasses
+/// surfacing permission-denied / service-disabled /
+/// background-killed) propagate via Riverpod's `AsyncError` rather
+/// than a dedicated `ActiveSessionState.ErrorState` variant. UI layers
+/// read `asyncValue.error` and pattern-match on the runtime type to
+/// branch between GpsError recovery screens and the generic error
+/// surface. See 08-REVIEW.md §3 row #37 for the consolidation
+/// rationale (smell:over-state-machine — dedicated ErrorState
+/// duplicated what AsyncError already carries).
 
 abstract class _$ActiveSessionController extends $AsyncNotifier<ActiveSessionState> {
   FutureOr<ActiveSessionState> build();

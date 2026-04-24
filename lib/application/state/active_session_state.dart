@@ -3,7 +3,6 @@
 // See LICENSE file for details
 
 import 'package:mirkfall/domain/fixes/fix.dart';
-import 'package:mirkfall/domain/gps/gps_errors.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 
 /// Sealed state machine for `ActiveSessionController`.
@@ -11,12 +10,28 @@ import 'package:mirkfall/domain/ids/session_id.dart';
 /// Transitions enforced by the controller:
 /// - `Idle` -> `Starting` when [`ActiveSessionController.start`] begins.
 /// - `Starting` -> `Tracking` when the location subscription is live.
-/// - `Starting` / `Tracking` -> `ErrorState` when a [GpsError] fires.
+/// - `Starting` / `Tracking` -> `AsyncError` when ANY exception fires
+///   (GpsError or otherwise). See note below on why the state machine
+///   does NOT carry its own ErrorState variant.
 /// - `Tracking` -> `Idle` when [`ActiveSessionController.stop`] completes.
 ///
 /// Sealed hierarchy enables exhaustive `switch` in the UI layer
 /// (Plan 05-04) — compiler catches any missed variant when a new state
 /// is added.
+///
+/// ## Error channel (row #37 cleanup)
+///
+/// Prior to 2026-04-23 the hierarchy carried an `ErrorState(GpsError)`
+/// variant to surface recoverable GPS errors. Consumers had to
+/// pattern-match on BOTH `AsyncError` (for non-GpsError exceptions
+/// like `ConcurrentActivationException`) and `AsyncData(ErrorState)`
+/// — duplicate error channels for what is, semantically, the same
+/// signal: "the controller hit a problem, surface it". All exceptions
+/// (including `GpsError`) now propagate via Riverpod's `AsyncError`;
+/// UI consumers read `asyncState.error` and pattern-match on the
+/// runtime type (`e is GpsError` → recovery screen; otherwise → the
+/// existing generic error UI). Row #37 in 08-REVIEW.md §3
+/// (smell:over-state-machine).
 sealed class ActiveSessionState {
   const ActiveSessionState();
 }
@@ -61,14 +76,4 @@ final class Tracking extends ActiveSessionState {
     lastFix: lastFix ?? this.lastFix,
     distanceFilterMeters: distanceFilterMeters,
   );
-}
-
-/// A [GpsError] fired during `start()` or on the live subscription.
-/// UI pattern-matches over the [GpsError] variant to render the
-/// appropriate recovery screen (permission-denied, service-disabled,
-/// background-killed).
-final class ErrorState extends ActiveSessionState {
-  const ErrorState(this.error);
-
-  final GpsError error;
 }

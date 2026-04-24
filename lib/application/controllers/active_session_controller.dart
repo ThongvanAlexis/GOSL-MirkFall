@@ -14,7 +14,6 @@ import 'package:mirkfall/application/providers/session_store_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/fixes/fix_store.dart';
-import 'package:mirkfall/domain/gps/gps_errors.dart';
 import 'package:mirkfall/domain/gps/location_stream.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -41,11 +40,16 @@ final Logger _log = Logger('application.controllers.active_session');
 /// - `Idle` (initial, post-stop)
 /// - `Starting(sessionId)` — activating + wiring subscription
 /// - `Tracking(...)` — subscription live, fixes flowing
-/// - `ErrorState(GpsError)` — recoverable domain error (permission,
-///   service, background-killed). Non-`GpsError` exceptions (e.g.
-///   [`ConcurrentActivationException`](../../domain/errors/concurrent_errors.dart))
-///   propagate untyped via Riverpod's `AsyncError` so the UI layer can
-///   pattern-match and apply its "stop current first" policy.
+///
+/// Error channel: all exceptions (including `GpsError` subclasses
+/// surfacing permission-denied / service-disabled /
+/// background-killed) propagate via Riverpod's `AsyncError` rather
+/// than a dedicated `ActiveSessionState.ErrorState` variant. UI layers
+/// read `asyncValue.error` and pattern-match on the runtime type to
+/// branch between GpsError recovery screens and the generic error
+/// surface. See 08-REVIEW.md §3 row #37 for the consolidation
+/// rationale (smell:over-state-machine — dedicated ErrorState
+/// duplicated what AsyncError already carries).
 @Riverpod(keepAlive: true)
 class ActiveSessionController extends _$ActiveSessionController {
   StreamSubscription<Fix>? _sub;
@@ -75,13 +79,13 @@ class ActiveSessionController extends _$ActiveSessionController {
   /// session before retrying — the controller itself stays a pure
   /// state machine and does not embed that policy.
   ///
-  /// On a [GpsError] (permission denied, service disabled), the
-  /// controller transitions to `AsyncData(ErrorState(e))` per the
-  /// sealed state contract and rethrows so the caller can surface a
-  /// Snackbar / toast; the state remains available for the UI to
-  /// render a recovery screen. Other exceptions (including
-  /// `ConcurrentActivationException`) propagate untyped via
-  /// `AsyncError` for the UI layer to pattern-match on runtime type.
+  /// On ANY exception — `GpsError` subclasses (permission denied,
+  /// service disabled, background-killed) or other runtime errors —
+  /// the controller surfaces it as `AsyncError` and rethrows so the
+  /// caller can display a Snackbar / toast. UI layers pattern-match
+  /// on `asyncValue.error`'s runtime type to branch between GpsError
+  /// recovery screens and generic error handling (row #37 cleanup —
+  /// see class docstring).
   ///
   /// If ANY step between `activate` and the listen() call fails, the
   /// controller best-effort deactivates the DB row it just flipped to
@@ -126,9 +130,9 @@ class ActiveSessionController extends _$ActiveSessionController {
             onError: _onStreamError,
             // cancelOnError: false -> a single dropped fix (parse blip)
             // must not kill the subscription. Recoverable domain
-            // errors flip the state to ErrorState but leave the stream
-            // alive so the UI can surface + recover without a full
-            // stop/start cycle.
+            // errors surface via AsyncError but leave the stream alive
+            // so the UI can surface + recover without a full stop/start
+            // cycle.
             cancelOnError: false,
           );
 
@@ -138,19 +142,14 @@ class ActiveSessionController extends _$ActiveSessionController {
       // monitoring so iOS can wake us after a post-kill significant move.
       // No-op on Android/desktop (watchdog itself branches on platform).
       await ref.read(iosSignificantChangeWatchdogProvider).startMonitoring();
-    } on GpsError catch (e) {
-      // Honours the sealed state contract: Starting -> ErrorState when
-      // a GpsError fires. UI pattern-matches on `state.value` for the
-      // recovery screen rather than scraping AsyncError. See
-      // active_session_state.dart docstring.
-      await _rollbackPartialActivation(activated: activated, id: id);
-      state = AsyncData(ErrorState(e));
-      rethrow;
     } catch (e, st) {
-      // Non-GpsError exceptions (ConcurrentActivationException,
-      // SessionNotFoundException, infrastructure bugs) propagate untyped.
-      // Riverpod's AsyncError carries them; the UI pattern-matches on
-      // the runtime type to apply its recovery policy.
+      // Every exception — GpsError subclasses (permission denied,
+      // service disabled, background-killed) OR other runtime failures
+      // (ConcurrentActivationException, SessionNotFoundException, …)
+      // — surfaces through the SAME AsyncError channel. The UI layer
+      // reads `asyncValue.error` and pattern-matches on runtime type
+      // for recovery policy. Row #37 — ErrorState was removed because
+      // it duplicated this channel. See class docstring.
       await _rollbackPartialActivation(activated: activated, id: id);
       state = AsyncError(e, st);
       rethrow;
@@ -268,14 +267,12 @@ class ActiveSessionController extends _$ActiveSessionController {
   }
 
   void _onStreamError(Object error, StackTrace st) {
-    if (error is GpsError) {
-      state = AsyncData(ErrorState(error));
-      return;
-    }
-    // Unexpected error on the stream — the GPS pipeline is suspect.
-    // Surface via AsyncError so the UI can render a recovery path; the
-    // zone handler will still see the original exception via its
-    // propagation from the underlying subscription.
+    // All errors (GpsError and otherwise) route through AsyncError —
+    // see class docstring / row #37. UI consumers read
+    // `asyncValue.error` and pattern-match on runtime type to render
+    // the appropriate recovery screen. The zone handler still sees
+    // the original exception via propagation from the underlying
+    // subscription.
     state = AsyncError(error, st);
   }
 }
