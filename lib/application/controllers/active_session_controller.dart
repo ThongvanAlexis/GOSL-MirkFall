@@ -159,8 +159,9 @@ class ActiveSessionController extends _$ActiveSessionController {
   /// Best-effort rollback: if we flipped the DB row to `active` before
   /// failing somewhere in the initialize/listen chain, flip it back to
   /// `stopped` so the session can be re-started without tripping the
-  /// partial-unique-index. Swallows own failures — the catch path is
-  /// already propagating a primary exception to the caller.
+  /// partial-unique-index. Inner failures are logged-and-swallowed via
+  /// [_bestEffort] — the catch path is already propagating a primary
+  /// exception to the caller.
   Future<void> _rollbackPartialActivation({required bool activated, required SessionId id}) async {
     await _sub?.cancel();
     _sub = null;
@@ -168,23 +169,39 @@ class ActiveSessionController extends _$ActiveSessionController {
     _stream = null;
 
     if (activated) {
-      try {
+      await _bestEffort('start.rollback_deactivate', () async {
         final sessionStore = await ref.read(sessionStoreProvider.future);
         await sessionStore.deactivate(id);
-      } catch (e, st) {
-        // Rollback is best-effort; the primary exception is already on
-        // its way up. Log so forensic analysis can correlate a leaked
-        // active row with the original failure.
-        _log.fine('start.rollback_deactivate_failed', e, st);
-      }
-      try {
+      });
+      await _bestEffort('start.rollback_dismiss', () async {
         final notificationService = ref.read(sessionNotificationServiceProvider);
         await notificationService.dismiss();
-      } catch (e, st) {
-        _log.fine('start.rollback_dismiss_failed', e, st);
-      }
+      });
     }
     _currentSessionId = null;
+  }
+
+  /// Runs [op] and swallows any exception with a `_log.fine` marker
+  /// tagged by [context]. Used on the best-effort housekeeping paths
+  /// (rollback + stop) where a secondary failure must NOT mask the
+  /// primary signal — whether the primary is a propagating exception
+  /// (rollback from `start`) or the user's explicit stop intent
+  /// (`stop` settling state to Idle regardless of DB / notification
+  /// outcomes).
+  ///
+  /// Row #38 scope-down — this helper replaces five near-identical
+  /// inline `try { ... } catch (e, st) { _log.fine(...) }` blocks that
+  /// Agent #3 flagged as the "try/catch inside try/catch" aggregate
+  /// smell. The individual swallowing is still load-bearing per
+  /// Phase 06 Blocker #1 + CLAUDE.md §Error handling level 3; the
+  /// helper makes the pattern a one-liner at each call site so
+  /// reviewers see FIVE best-effort calls instead of five staircases.
+  Future<void> _bestEffort(String context, Future<void> Function() op) async {
+    try {
+      await op();
+    } on Object catch (e, st) {
+      _log.fine(context, e, st);
+    }
   }
 
   /// Cancels the subscription, dismisses the resume notification,
@@ -215,26 +232,23 @@ class ActiveSessionController extends _$ActiveSessionController {
       // swallows platform errors best-effort.
       await ref.read(iosSignificantChangeWatchdogProvider).stopMonitoring();
 
-      try {
+      // Dismiss notification is best-effort; never block stop() on it.
+      // A stale notification surfaces via _log.fine rather than going
+      // unnoticed (CLAUDE.md §Error handling level 3).
+      await _bestEffort('stop.dismiss', () async {
         final notificationService = ref.read(sessionNotificationServiceProvider);
         await notificationService.dismiss();
-      } catch (e, st) {
-        // Dismiss is best-effort; never block stop() on it. Log so a
-        // stale notification surfaces in forensic log rather than going
-        // unnoticed (CLAUDE.md §Error handling level 3).
-        _log.fine('stop.dismiss_failed', e, st);
-      }
+      });
 
       final current = _currentSessionId;
       if (current != null) {
-        try {
+        // DB deactivate is best-effort — a race with another caller
+        // (session already deactivated, or not found) must not prevent
+        // the UI from settling to Idle.
+        await _bestEffort('stop.deactivate', () async {
           final sessionStore = await ref.read(sessionStoreProvider.future);
           await sessionStore.deactivate(current);
-        } catch (e, st) {
-          // Session already deactivated (race with another caller) or
-          // not found; log + swallow so the UI settles to Idle.
-          _log.fine('stop.deactivate_failed', e, st);
-        }
+        });
         _currentSessionId = null;
       }
 
