@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Plan 08.1-04 (adversarial verification — default-skip per 08.1-RESEARCH §Pattern 3; gate-verification-only wave; N=0 new permanent tests)
-status: Phase 08.1 open; next plan Plan 08.1-04 adversarial verification (15 fixes queued for Plan 08.1-05)
-stopped_at: Completed 08.1-03-PLAN.md (4-parallel-agent audit synthesised into §2 on c1c43d7; §3 triage recorded 15 fix + 40 accepted-as-is on 2bc641d; .fixes-expected=15; user decision "fix the could and should"; Plan 08.1-04 unblocked)
-last_updated: "2026-04-24T15:40:00.000Z"
+current_plan: Plan 08.1-05 (fix-loop + closure; 15 fixes queued from Plan 08.1-03 §3 triage)
+status: Phase 08.1 open; next plan Plan 08.1-05 fix-loop + closure
+stopped_at: Completed 08.1-04-PLAN.md (§4 Adversarial evidence populated on main 997f5df; gate-verification-only wave; 8 CI gates green on 0b0b781; adversarial branches clean; N=0 walk-finding-driven regression tests per §1b snapshot; 730/730 tests green; Plan 08.1-05 unblocked)
+last_updated: "2026-04-24T16:22:00.000Z"
 last_activity: 2026-04-24
 progress:
   total_phases: 17
   completed_phases: 8
   total_plans: 47
-  completed_plans: 45
-  percent: 96
+  completed_plans: 46
+  percent: 98
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 08.1 Re-Review — Post-Walk Audit OPEN (2026-04-24). Plan 08.1-03 complete (3/5) — 4-parallel-agent audit synthesised into §2 on `c1c43d7`; §3 triage recorded on `2bc641d`: 15 fix (1 Blocker + 5 Should + 9 Could) + 40 accepted-as-is per user decision "fix the could and should". Blocker = Row #37 UI contract vaporware (dropping ActiveSessionState.ErrorState lost GpsError recovery UX at the UI seam). Shoulds = pause-then-cancel state stranding (fix-on-fix), MapCamera echo-window multi-echo mis-classification (fix-on-fix), MapCamera toggleFollowMe race, CountryResolver first-listen race, _rebuildResolver cold-start catalog race. Coulds = 9 cross-cutting polish including `_alpha3IsActiveOrQueued` polymorphic fold, heal+purge double-write, `_bestEffort` log level, `MapCameraFollowing.isCentering` getter, _tearDown accumulation, row #43 duration-hoist completion, MapScreen rotation null-gap guard, pubspec.yaml 8-layer docstring, ROADMAP 08.1 plan checkboxes. .fixes-expected=15. Plan 08.1-04 (adversarial verification) unblocked and expected to pass through as gate-verification-only (no new permanent tests — walk candidates=None).
+**Current focus:** Phase 08.1 Re-Review — Post-Walk Audit OPEN (2026-04-24). Plan 08.1-04 complete (4/5) — gate-verification-only wave on main `997f5df`: 8 existing CI gates verified green on `0b0b781` (check_headers 300 files / check_licenses 189 packages / check_dependencies_md 189 packages / check_domain_purity 57 files / check_platform_manifests / check_avoid_maplibre_leak 149 files / check_avoid_remote_pmtiles 536 files / check_style_no_external_url) + `adversarial/08-style-external-url` confirmed deleted remote + no `adversarial/08.1-*` branches (1-branch-per-gate-script convention held 5th cycle) + N=0 walk-finding-driven permanent regression tests per §1b snapshot (review phase introduces no new runtime behavior per CLAUDE.md §Code Review Phases; reused Phase 07 walks already cover all walk-surfaceable bugs). §4 populated with 3 sub-blocks (A gate table / B branch hygiene table / C N=0 walk rationale). Plan 08.1-05 unblocked: 15 fixes queued (1 Blocker Row #37 UI-contract-vaporware + 5 Shoulds + 9 Coulds, per Plan 08.1-03 §3 triage decision "fix the could and should").
 
 ## Current Position
 
-Phase: 08.1 of 16.x (Re-Review — Post-Walk Audit) — OPEN 2026-04-24 — 3 / 5 plans done
-Current Plan: Plan 08.1-04 (adversarial verification — default-skip per 08.1-RESEARCH §Pattern 3; gate-verification-only wave)
-Total Plans in Phase 08.1: 3 / 5 done
-Status: Phase 08.1 open; next plan Plan 08.1-04 adversarial verification (15 fixes queued for Plan 08.1-05)
+Phase: 08.1 of 16.x (Re-Review — Post-Walk Audit) — OPEN 2026-04-24 — 4 / 5 plans done
+Current Plan: Plan 08.1-05 (fix-loop + closure; 15 fixes queued from Plan 08.1-03 §3 triage)
+Total Plans in Phase 08.1: 4 / 5 done
+Status: Phase 08.1 open; next plan Plan 08.1-05 fix-loop + closure
 Last Activity: 2026-04-24
 
-Progress: [█████████░] 96% — 45 / 47 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 open at 3/5).
+Progress: [█████████▉] 98% — 46 / 47 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 open at 4/5).
 
 ## Performance Metrics
 
@@ -92,6 +92,7 @@ Progress: [█████████░] 96% — 45 / 47 plans executed (Phase
 | Phase 08-review-gate-map P04 | ~2h 45m (incl. 3 CI wait cycles) | 9 tasks | 14 files (7 created + 7 modified) across 8 atomic commits on main + 2 throwaway-branch-only commits (deleted post-archive) |
 | Phase 08.1-rereview-post-walk P01 | ~1min (continuation) | 3 tasks | 2 files |
 | Phase 08.1-rereview-post-walk P02 | ~3min | 1 tasks | 2 files |
+| Phase 08.1-rereview-post-walk P04 | ~12 min | 4 tasks (2 verification-only + 1 decision-flow N=0 + 1 §4 populate) | 1 file (08.1-REVIEW.md §4) + SUMMARY.md |
 
 ## Accumulated Context
 
@@ -313,6 +314,8 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 08.1-rereview-post-walk]: Phase 08.1 opened: user IDE review returned 'rien vu' — §1 captured explicit 'Aucune observation utilisateur' marker per Phase 04+06+08 precedent; user-first protocol gate (4th cycle) honored before any walk artifact read or agent spawn
 - [Phase 08.1-rereview-post-walk]: §1b reuses Phase 07 walks (Android 2026-04-21 + iOS 2026-04-22/23 post-fix) as Phase 08.1 runtime baseline — NO new walk captured. User-approved deviation from original plan's mandatory gate: review phases introduce no new runtime behavior per CLAUDE.md §Code Review Phases. No docs/phase-08.1-walk.md created. Identical approach to Phase 08 §1b.
 - [Phase 08.1-rereview-post-walk]: Walk-finding-driven regression test candidates for Plan 08.1-04 = None. Plan 08.1-04 confirmed as gate-verification-only wave (N=0 new permanent tests). Next fresh walk lands naturally in Phase 09 (next feature phase).
+- [Phase 08.1-rereview-post-walk]: Plan 08.1-04 gate-verification-only wave complete on main `997f5df` (5th cycle of review-phase no-new-gate-no-new-branch default-skip, locked Phases 02+04+06+08+08.1). All 8 existing CI gates green on `0b0b781` (check_headers 300 files / check_licenses 189 packages / check_dependencies_md 189 packages / check_domain_purity 57 files / check_platform_manifests Android+iOS / check_avoid_maplibre_leak 149 files / check_avoid_remote_pmtiles 536 files / check_style_no_external_url style.json). Empirical proof that Phase 08 49-fix loop (commits `254b5d2 → ae6a4b6`) introduced zero regression in any gate's scan surface. `adversarial/08-style-external-url` confirmed deleted remote + no `adversarial/08.1-*` branches (1-branch-per-gate-script convention). §4 populated in ONE atomic commit (collapsed Task 3 N=0 + Task 4 §4 populate per Phase 06 Plan 06-04 precedent). Test suite 730/730 green on retry (one-off -1 on first run cleared; historical flakiness per Phase 08 relay 5 drop_then_retry). Plan 08.1-05 unblocked.
+- [Phase 08.1-rereview-post-walk]: Plan 08.1-04 pattern-locked for Phase 10/12/14/16 review gates: gate-verification-only §4 format = 3 sub-blocks (A N-gate table with Exit+Scan scope+Status columns / B branch hygiene table with Branch+Phase+Expected+Actual+Check command columns / C N=0 walk-finding-driven tests with rationale paragraph quoting §1b snapshot verbatim + cumulative test-surface count from preceding phases). Tasks 1+2 verification-only without per-task commits (observations don't need mutation commits). Task 3+4 collapse into single atomic commit when N=0.
 
 ### Roadmap Evolution
 
@@ -343,6 +346,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-24T15:10:41.573Z
-Stopped at: Completed 08.1-02-PLAN.md (§1b runtime-evidence baseline filled on main 997183d via Phase 07 walk artifact reuse — user-approved review-phase deviation; Task 1 blocking gate SKIPPED; 7 screenshot refs; walk-finding-driven regression test candidates = None → Plan 08.1-04 gate-verification-only; Plan 08.1-03 unblocked)
+Last session: 2026-04-24T16:22:00.000Z
+Stopped at: Completed 08.1-04-PLAN.md (§4 Adversarial evidence populated on main 997f5df; gate-verification-only wave; 8 CI gates verified green on 0b0b781; adversarial/08-style-external-url still deleted remote + no adversarial/08.1-* branches; N=0 walk-finding-driven permanent regression tests per §1b snapshot; test suite 730/730 green; Plan 08.1-05 fix-loop + closure unblocked)
 Resume file: None
