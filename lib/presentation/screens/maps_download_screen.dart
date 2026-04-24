@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mirkfall/application/controllers/download_queue_controller.dart';
 import 'package:mirkfall/application/controllers/installed_maps_controller.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/downloads/download_state.dart';
 import 'package:mirkfall/domain/installed_maps/installed_country.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
@@ -83,11 +84,17 @@ class _MapsDownloadScreenState extends ConsumerState<MapsDownloadScreen> {
       final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
       if (next is DownloadError && previous is! DownloadError) {
         messenger.showSnackBar(
-          SnackBar(content: Text('Échec du téléchargement de ${next.active.entry.name} — ${next.cause.toString()}'), duration: const Duration(seconds: 5)),
+          SnackBar(
+            content: Text('Échec du téléchargement de ${next.active.entry.name} — ${next.cause.toString()}'),
+            duration: const Duration(seconds: kDownloadErrorSnackbarSeconds),
+          ),
         );
       } else if (next is DownloadCompleted && previous is! DownloadCompleted) {
         messenger.showSnackBar(
-          SnackBar(content: Text('${_displayNameFor(next.alpha3, catalogAsync.value)} téléchargé ✓'), duration: const Duration(seconds: 3)),
+          SnackBar(
+            content: Text('${_displayNameFor(next.alpha3, catalogAsync.value)} téléchargé ✓'),
+            duration: const Duration(seconds: kDownloadCompletedSnackbarSeconds),
+          ),
         );
       }
     });

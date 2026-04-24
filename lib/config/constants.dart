@@ -264,3 +264,15 @@ const int kDownloadRetryBaseDelayMs = 1000;
 /// is possible but not measurably better — human eyes don't notice
 /// faster than that.
 const int kDownloadProgressEmitThrottleMs = 250;
+
+/// Snackbar visible duration (seconds) for a download-completed success
+/// toast on the maps download screen. Kept short — the success is
+/// already mirrored in the list row turning green; the snackbar is a
+/// courtesy marker, not a primary status channel.
+const int kDownloadCompletedSnackbarSeconds = 3;
+
+/// Snackbar visible duration (seconds) for a download-error toast on
+/// the maps download screen. Longer than the success variant because
+/// the error message itself is longer and the user may want to read
+/// the cause before retrying.
+const int kDownloadErrorSnackbarSeconds = 5;
