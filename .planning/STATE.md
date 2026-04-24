@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: Phase 08.1 Re-Review — Post-Walk Audit opened; Plan 08.1-02 walk-evidence capture is next
-status: in_progress
-stopped_at: "Completed 08.1-01-PLAN.md (Phase 08.1 opened: 08.1-REVIEW.md scaffolded on main f239de1 + §1 user-first capture 74c8957 + ROADMAP Progress row 3c60361; user response 'rien vu' captured as explicit 'Aucune observation utilisateur' marker; Plan 08.1-02 walk-capture unblocked)"
-last_updated: "2026-04-24T14:57:54.451Z"
+current_plan: Plan 08.1-03 (audit sub-agent wave — §2 pre-class 7 items + smell hot-spots re-check 6 rows + 4 parallel sub-agents on Phase 08 delta)
+status: Phase 08.1 open; next plan Plan 08.1-03 audit wave (§1b baseline in place, sub-agents ready to brief)
+stopped_at: Completed 08.1-02-PLAN.md (§1b runtime-evidence baseline filled on main 997183d via Phase 07 walk artifact reuse — user-approved review-phase deviation; Task 1 blocking gate SKIPPED; 7 screenshot refs; walk-finding-driven regression test candidates = None → Plan 08.1-04 gate-verification-only; Plan 08.1-03 unblocked)
+last_updated: "2026-04-24T15:10:41.578Z"
 last_activity: 2026-04-24
 progress:
   total_phases: 17
   completed_phases: 8
   total_plans: 47
-  completed_plans: 43
-  percent: 98
+  completed_plans: 44
+  percent: 94
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 08.1 Re-Review — Post-Walk Audit OPEN (2026-04-24). Plan 08.1-01 complete (1/5) — 08.1-REVIEW.md 5-section skeleton scaffolded on main (f239de1), §1 user-first capture committed as "Aucune observation utilisateur" marker per user response "rien vu" (74c8957), ROADMAP Progress row opened `| 08.1 Re-Review — Post-Walk Audit (INSERTED) | 0/5 | In Progress | - |` inserted between Phase 08 and Phase 09 (3c60361). User-first protocol gate (4th cycle locked Phases 02/04/06/08) honored BEFORE any walk artifact read or audit sub-agent spawn. Plan 08.1-02 walk-evidence capture unblocked — awaits user Android + iOS walks + `docs/phase-08.1-walk.md` + `docs/phase-08.1-walk-screenshots/` commits. Phase 08 closure artifacts (49-fix delta 254b5d2, 6 over-state-machine + 3 fix-on-fix smell refactors) are the substrate this re-review audits.
+**Current focus:** Phase 08.1 Re-Review — Post-Walk Audit OPEN (2026-04-24). Plan 08.1-02 complete (2/5) — §1b runtime-evidence baseline filled on main (997183d) via Phase 07 walk artifact reuse per user-approved review-phase deviation: Phase 08.1 is a code-review phase (per CLAUDE.md §Code Review Phases), review phases introduce no new runtime behavior, so no dedicated `docs/phase-08.1-walk.md` was captured — §1b reuses the same Phase 07 walks (Android 2026-04-21 Pixel 4a PASS + iOS 2026-04-22/23 iPhone 17 Pro PASS-with-caveat post-fix on commit fbcbde6a) that Phase 08 §1b validated against, with each `<details>` block wrapped in a Phase 08.1 delta lens paragraph mapping the 49-fix refactor commits onto the walked code paths. 7 inline screenshot refs to `docs/phase-07-smoke-screenshots/` (5 Android + 2 iOS). Task 1 blocking gate SKIPPED per user clarification; `docs/phase-08.1-walk.md` intentionally not created. Walk-finding-driven regression test candidates for Plan 08.1-04 = None → Plan 08.1-04 confirmed as gate-verification-only wave (N=0 new permanent tests). Plan 08.1-03 audit sub-agent wave unblocked.
 
 ## Current Position
 
-Phase: 08.1 of 16.x (Re-Review — Post-Walk Audit) — OPEN 2026-04-24 — 1 / 5 plans done
-Current Plan: Plan 08.1-02 (walk-evidence capture — blocking checkpoint on user-committed `docs/phase-08.1-walk.md` + screenshots)
-Total Plans in Phase 08.1: 1 / 5 done
-Status: Phase 08.1 open; next plan Plan 08.1-02 walk-evidence capture (blocking checkpoint)
+Phase: 08.1 of 16.x (Re-Review — Post-Walk Audit) — OPEN 2026-04-24 — 2 / 5 plans done
+Current Plan: Plan 08.1-03 (audit sub-agent wave — §2 pre-class 7 items + smell hot-spots re-check 6 rows + 4 parallel sub-agents on Phase 08 delta)
+Total Plans in Phase 08.1: 2 / 5 done
+Status: Phase 08.1 open; next plan Plan 08.1-03 audit wave (§1b baseline in place, sub-agents ready to brief)
 Last Activity: 2026-04-24
 
-Progress: [█████████░] 91% — 43 / 47 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 open at 1/5).
+Progress: [█████████░] 94% — 44 / 47 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 open at 2/5).
 
 ## Performance Metrics
 
@@ -91,6 +91,7 @@ Progress: [█████████░] 91% — 43 / 47 plans executed (Phase
 | Phase 08-review-gate-map PP03 | 37 min | 4 tasks | 2 files |
 | Phase 08-review-gate-map P04 | ~2h 45m (incl. 3 CI wait cycles) | 9 tasks | 14 files (7 created + 7 modified) across 8 atomic commits on main + 2 throwaway-branch-only commits (deleted post-archive) |
 | Phase 08.1-rereview-post-walk P01 | ~1min (continuation) | 3 tasks | 2 files |
+| Phase 08.1-rereview-post-walk P02 | ~3min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -310,6 +311,8 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 08-review-gate-map]: Plan 08-03: 1 SURPRISE Blocker surfaced (not in CONTEXT pre-class) — Agent #2 #1: pause busy-spin in _processQueue — _processJob returns (not breaks) on pause so outer while re-enters → re-emits DownloadPaused → loops forever until resume(). Smell-heuristics lens caught it (primary over-state-machine hot-spot). Local fix (Row 1: return → break); no Rule 4 architectural decision required. Plus surprise UNPINNED placeholder in prepare_style.dart:78 + missing glyphs/sprites real assets (Row 18, blocks Phase 09 real rendering).
 - [Phase 08-review-gate-map]: review-gate closed 2026-04-24 — Fix strategy: Strategy A per-finding atomic commits (user directive 2026-04-23, finest bisectability). 5 session relays (orchestrator-managed): Relays 1-5 each landed ~10 rows with CI-green gating between pushes. `.fixes-expected=49` consumed exactly (40 fix + 9 refactor — 0 deferred, 0 waived across Blocker+Should+Could; 10 Noted defer-to-v2 + 16 Noted accepted-as-is stay untouched per Plan 08-03 triage). Smell-heuristics findings (first review-gate encoding of CLAUDE.md 2026-04-23 delta): 6 refactor(smell:over-state-machine) commits [rows #11, #20, #29, #35, #36, #37] + 3 refactor(smell:fix-on-fix) commits [rows #12, #38, #39]. Scope-down decisions per relay 5 guidance: Row #38 (ActiveSessionController reconcile-pattern) kept at helper-extract scope per Agent #3 "bigger than Phase 08" narrative; Row #39 (MapScreen deactivate microtask) kept at named-helper-extract scope because the microtask+try/catch IS canonical Riverpod 3.x accommodation, not fix-on-fix defence. CI-red recoveries: relay 1 `f95c55c` dart-format follow-up on row #7; relay 5 `9ff0286` g.dart format alignment (local 3.41.7 vs CI 3.41.5 divergence on build_runner output) after rows #35+#36; relay 5 row #39 CI failed on flaky `drop_then_retry` soak test (row #33 origin) — rerun via `gh run rerun --failed` confirmed green (test not touched by my commits). Row merges-by-concern from Plan 08-03 preserved: #2+#15 merged as one commit 5dd35fa (same "8→7 layer" concern); #28 folded into row #1 busy-spin commit (acd6820). Deviations: #16 partial landed across 3 commits (c14b55b generate_world_sha256 + 979b210 simplify_polygons + 90afc52 generate_tiny_pmtiles + prepare_style paired). Phase 07 formally closed (MAP-05/06/07/08/10 → Complete; Plan 07-07 scope-reduced). Final commit 254b5d2 CI green (run 24870106138) on all 3 jobs (gates/android/ios). 1 CI gate `tool/check_style_no_external_url.dart` live + 4 permanent integration tests (absorbed from Plan 07-07) + 3 permanent unit tests + 8 soak scenarios (6 existing + 2 new edge cases) in place. Phase 09 Fog Rendering unblocked — next `/gsd:plan-phase 09`.
 - [Phase 08.1-rereview-post-walk]: Phase 08.1 opened: user IDE review returned 'rien vu' — §1 captured explicit 'Aucune observation utilisateur' marker per Phase 04+06+08 precedent; user-first protocol gate (4th cycle) honored before any walk artifact read or agent spawn
+- [Phase 08.1-rereview-post-walk]: §1b reuses Phase 07 walks (Android 2026-04-21 + iOS 2026-04-22/23 post-fix) as Phase 08.1 runtime baseline — NO new walk captured. User-approved deviation from original plan's mandatory gate: review phases introduce no new runtime behavior per CLAUDE.md §Code Review Phases. No docs/phase-08.1-walk.md created. Identical approach to Phase 08 §1b.
+- [Phase 08.1-rereview-post-walk]: Walk-finding-driven regression test candidates for Plan 08.1-04 = None. Plan 08.1-04 confirmed as gate-verification-only wave (N=0 new permanent tests). Next fresh walk lands naturally in Phase 09 (next feature phase).
 
 ### Roadmap Evolution
 
@@ -340,6 +343,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-24T14:57:54.446Z
-Stopped at: Completed 08.1-01-PLAN.md (Phase 08.1 opened: 08.1-REVIEW.md scaffolded on main f239de1 + §1 user-first capture 74c8957 + ROADMAP Progress row 3c60361; user response 'rien vu' captured as explicit 'Aucune observation utilisateur' marker; Plan 08.1-02 walk-capture unblocked)
+Last session: 2026-04-24T15:10:41.573Z
+Stopped at: Completed 08.1-02-PLAN.md (§1b runtime-evidence baseline filled on main 997183d via Phase 07 walk artifact reuse — user-approved review-phase deviation; Task 1 blocking gate SKIPPED; 7 screenshot refs; walk-finding-driven regression test candidates = None → Plan 08.1-04 gate-verification-only; Plan 08.1-03 unblocked)
 Resume file: None
