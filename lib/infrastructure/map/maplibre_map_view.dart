@@ -13,7 +13,6 @@ import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_theme.dart';
 import 'package:mirkfall/domain/map/map_view.dart';
 
-import 'pmtiles_source.dart';
 import 'style_rewriter.dart';
 
 /// Style-source ID for the GeoJSON source carrying the user-location
@@ -76,19 +75,17 @@ class MapLibreMapViewWidget extends StatefulWidget {
   const MapLibreMapViewWidget({
     super.key,
     required this.styleRewriter,
-    required this.pmtilesSource,
     required this.onReady,
     this.initialCountry,
     this.initialCamera = const CameraLatLngZoom(latitude: 0, longitude: 0, zoom: 2),
   });
 
   /// Style-rewriter used to swap the PMTiles URI into the bundled style
-  /// at initial load and on every subsequent `showMap` call.
+  /// at initial load and on every subsequent `showMap` call. The
+  /// rewriter owns the PMTiles URI resolution internally — the widget
+  /// does not need a separate `PmtilesSource` injection (dead wiring
+  /// removed 2026-04-23 as part of row #26).
   final StyleRewriter styleRewriter;
-
-  /// Pmtiles-URI resolver — supplies the URI for [initialCountry] during
-  /// widget `initState` and is re-queried by [showMap].
-  final PmtilesSource pmtilesSource;
 
   /// Fires once after the first `onStyleLoaded` callback with a
   /// fully-initialised [MapView] adapter. Callers (Plan 07-05
@@ -170,11 +167,7 @@ class _MapLibreMapViewWidgetState extends State<MapLibreMapViewWidget> {
         onStyleLoadedCallback: () {
           final MapLibreMapController? c = _controller;
           if (c == null) return;
-          final _MapLibreMapViewAdapter adapter = _adapter ??= _MapLibreMapViewAdapter(
-            controller: c,
-            styleRewriter: widget.styleRewriter,
-            pmtilesSource: widget.pmtilesSource,
-          );
+          final _MapLibreMapViewAdapter adapter = _adapter ??= _MapLibreMapViewAdapter(controller: c, styleRewriter: widget.styleRewriter);
           widget.onReady(adapter);
         },
       ),
@@ -245,10 +238,9 @@ class _UserLocationPuckState {
 }
 
 class _MapLibreMapViewAdapter implements MapView {
-  _MapLibreMapViewAdapter({required MapLibreMapController controller, required StyleRewriter styleRewriter, required PmtilesSource pmtilesSource})
+  _MapLibreMapViewAdapter({required MapLibreMapController controller, required StyleRewriter styleRewriter})
     : _controller = controller,
-      _styleRewriter = styleRewriter,
-      _pmtilesSource = pmtilesSource {
+      _styleRewriter = styleRewriter {
     // Subscribe to the controller's ChangeNotifier — every camera idle
     // bumps `cameraPosition`, which we re-emit on our broadcast stream.
     _cameraListener = () {
@@ -264,8 +256,6 @@ class _MapLibreMapViewAdapter implements MapView {
 
   final MapLibreMapController _controller;
   final StyleRewriter _styleRewriter;
-  // ignore: unused_field — Phase 07 fallbacks to setStyle via the rewriter; kept for Phase 09 where source-swap becomes viable.
-  final PmtilesSource _pmtilesSource;
   final StreamController<({double latitude, double longitude, double zoom})> _viewportCtrl =
       StreamController<({double latitude, double longitude, double zoom})>.broadcast();
 

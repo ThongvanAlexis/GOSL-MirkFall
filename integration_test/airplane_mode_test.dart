@@ -46,7 +46,6 @@ import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_view.dart';
-import 'package:mirkfall/infrastructure/map/pmtiles_source.dart';
 import 'package:mirkfall/infrastructure/map/style_rewriter.dart';
 import 'package:mirkfall/presentation/screens/map_screen.dart';
 
@@ -217,7 +216,7 @@ void main() {
       ],
       child: MaterialApp(
         home: MapScreen(
-          mapViewBuilderForTest: ({required StyleRewriter styleRewriter, required PmtilesSource pmtilesSource, required ValueChanged<MapView> onReady}) {
+          mapViewBuilderForTest: ({required StyleRewriter styleRewriter, required ValueChanged<MapView> onReady}) {
             return _FakeMapWidget(onReady: onReady, fakeMapView: fakeMapView);
           },
         ),

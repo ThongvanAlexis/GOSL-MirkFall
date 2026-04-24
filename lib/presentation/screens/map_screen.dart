@@ -26,8 +26,7 @@ import '../widgets/session_burger_menu.dart';
 /// Builder signature used for injecting a fake map widget in widget tests
 /// without dragging MapLibre into the test runner. Production code always
 /// goes through the default [MapLibreMapViewWidget] constructor.
-typedef MapViewWidgetBuilder =
-    Widget Function({required StyleRewriter styleRewriter, required PmtilesSource pmtilesSource, required ValueChanged<MapView> onReady});
+typedef MapViewWidgetBuilder = Widget Function({required StyleRewriter styleRewriter, required ValueChanged<MapView> onReady});
 
 /// Full-screen map route (`/map`).
 ///
@@ -112,6 +111,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final AsyncValue<StyleRewriter> rewriterAsync = ref.watch(styleRewriterProvider);
+    // Still watch pmtilesSource: it warms the on-disk cache + catalog
+    // prerequisites that the style rewriter depends on transitively.
+    // We don't USE the value directly here (the rewriter owns PMTiles
+    // URI rewriting), but awaiting the future keeps MapLibre from
+    // constructing against a half-wired context.
     final AsyncValue<PmtilesSource> sourceAsync = ref.watch(pmtilesSourceProvider);
 
     // Infrastructure prerequisites (style rewriter + pmtiles source) are
@@ -128,7 +132,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         data: (rewriter) => sourceAsync.when(
           loading: _buildLoading,
           error: (err, st) => _buildError('Préparation de la carte : $err'),
-          data: (source) => _buildMapStack(context, rewriter, source),
+          data: (_) => _buildMapStack(context, rewriter),
         ),
       ),
     );
@@ -143,7 +147,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ),
   );
 
-  Widget _buildMapStack(BuildContext context, StyleRewriter rewriter, PmtilesSource source) {
+  Widget _buildMapStack(BuildContext context, StyleRewriter rewriter) {
     // Compute the initial camera at BUILD time from the active session's
     // last known fix. Passing this as `initialCameraPosition` to
     // MapLibreMap lets the map LOAD with the camera already at the
@@ -187,14 +191,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           .resolveForPoint(latitude: tracking!.lastFix!.latitude, longitude: tracking.lastFix!.longitude, zoom: kInitialSessionMapZoom.toDouble());
     }
     final Widget mapWidget = widget.mapViewBuilderForTest != null
-        ? widget.mapViewBuilderForTest!(styleRewriter: rewriter, pmtilesSource: source, onReady: _onMapReady)
-        : MapLibreMapViewWidget(
-            styleRewriter: rewriter,
-            pmtilesSource: source,
-            onReady: _onMapReady,
-            initialCamera: initialCamera,
-            initialCountry: initialCountry,
-          );
+        ? widget.mapViewBuilderForTest!(styleRewriter: rewriter, onReady: _onMapReady)
+        : MapLibreMapViewWidget(styleRewriter: rewriter, onReady: _onMapReady, initialCamera: initialCamera, initialCountry: initialCountry);
     return Stack(
       children: <Widget>[
         Positioned.fill(child: mapWidget),
