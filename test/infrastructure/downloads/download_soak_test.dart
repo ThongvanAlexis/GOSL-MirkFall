@@ -5,6 +5,7 @@
 @Tags(<String>['soak'])
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -550,6 +551,70 @@ void main() {
         // Main assert 3: staging was cleaned.
         final Directory staging = Directory(p.join(tempDir.path, kStagingDir, 'vnm'));
         expect(staging.existsSync(), isFalse, reason: 'staging/vnm not cleaned post-completion');
+      });
+    }, timeout: const Timeout(Duration(seconds: 60)));
+  });
+
+  group('soak: drop_then_retry (row #33)', () {
+    test('connection-drop mid-chunk on first attempt → retry succeeds → atomic commit', () async {
+      // Addresses §3 row #33: the soak suite previously had
+      // ServeDropConnectionAfterBytes unit coverage but no end-to-end
+      // recovery scenario. This exercises the full
+      // drop → DownloadInterruptedException → retry with backoff → 200-OK
+      // → concat → atomic commit path.
+      await _withRealHttpClient(() async {
+        final Uint8List payload = _patternBytes(0x44, 96 * 1024);
+        final FakeHttpServer server = await FakeHttpServer.bind(initialBytes: payload);
+        addTearDown(server.close);
+        // First request drops after 16 KB; retry attempts see a healthy
+        // server. The controller's retry loop (kDownloadRetryAttempts)
+        // must recover transparently.
+        server.behaviour = const ServeDropConnectionAfterBytes(bytesBeforeDrop: 16 * 1024);
+
+        final _SoakHarness h = await makeController();
+        final CountryEntry entry = _entryFor(
+          alpha3Raw: 'nzl',
+          chunkPayloads: <Uint8List>[payload],
+          chunkUrls: <String>[server.base.resolve('/nzl/part01').toString()],
+        );
+
+        // Flip to ServeHappy after the first request lands on the wire
+        // — we need a little latency between the record and the flip so
+        // the first retry sees the new behaviour. A lightweight
+        // microtask polling loop keeps the test deterministic.
+        final Completer<void> flippedCompleter = Completer<void>();
+        Future<void>.microtask(() async {
+          while (!flippedCompleter.isCompleted) {
+            if (server.recordedRequests.isNotEmpty) {
+              server.behaviour = const ServeHappy();
+              flippedCompleter.complete();
+              return;
+            }
+            await Future<void>.delayed(const Duration(milliseconds: 20));
+          }
+        });
+
+        final Future<DownloadState> done = h.controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
+        await h.controller.enqueueCountry(entry);
+        await done;
+        if (!flippedCompleter.isCompleted) {
+          flippedCompleter.complete();
+        }
+
+        // At least two server hits: the dropped one + the retry.
+        expect(server.recordedRequests.length, greaterThanOrEqualTo(2), reason: 'retry path must have produced a second request after the mid-stream drop');
+
+        // Final bytes and sha256 match — no corruption from the partial
+        // first write (controller must have discarded / resumed past the
+        // 16 KB partial correctly).
+        final File final_ = File(p.join(tempDir.path, kCountriesDir, 'nzl.pmtiles'));
+        expect(final_.existsSync(), isTrue);
+        expect(sha256.convert(await final_.readAsBytes()).toString(), entry.reassembled.sha256);
+
+        // Manifest and staging in the expected post-commit state.
+        final InstalledManifest mf = await h.manifestRepo.read();
+        expect(mf.installed.containsKey('nzl'), isTrue);
+        expect(Directory(p.join(tempDir.path, kStagingDir, 'nzl')).existsSync(), isFalse);
       });
     }, timeout: const Timeout(Duration(seconds: 60)));
   });
