@@ -14,7 +14,7 @@ void main() {
     test('construction records initial theme and empty observables', () {
       final FakeMapView fake = FakeMapView();
       expect(fake.currentTheme, isA<MapThemeStandard>());
-      expect(fake.followMeEnabled, isFalse);
+      expect(fake.isFollowMeEnabled, isFalse);
       expect(fake.disposedFlag, isFalse);
       expect(fake.methodLog, isEmpty);
       expect(fake.showMapInvocations, isEmpty);

@@ -61,9 +61,6 @@ class FakeMapView implements MapView {
   /// read back via this getter after [setTheme] calls.
   MapTheme get currentTheme => _currentTheme;
 
-  /// True when follow-me-camera is active.
-  bool get followMeEnabled => _followMe;
-
   /// Pushes a viewport update event onto [viewportUpdates] so subscribers
   /// observe a camera-idle event. Also updates the value that
   /// [queryViewport] will return (matches real MapLibre semantics — the

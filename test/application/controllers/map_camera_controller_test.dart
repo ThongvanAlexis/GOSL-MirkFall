@@ -124,7 +124,7 @@ void main() {
         // for (puck primed, follow-me on, state=Following) without
         // asserting a camera move.
         expect(fakeMapView.cameraMovesObserved, isEmpty);
-        expect(fakeMapView.followMeEnabled, isTrue);
+        expect(fakeMapView.isFollowMeEnabled, isTrue);
         expect(container.read(mapCameraControllerProvider), isA<MapCameraFollowing>());
         // Wait a microtask for the fire-and-forget setUserLocation to
         // drain. Regression guard for the 2026-04-21 device-smoke bug:
@@ -159,7 +159,7 @@ void main() {
 
       expect(container.read(mapCameraControllerProvider), isA<MapCameraFollowing>());
       expect(fakeMapView.cameraMovesObserved, hasLength(1));
-      expect(fakeMapView.followMeEnabled, isTrue);
+      expect(fakeMapView.isFollowMeEnabled, isTrue);
     });
   });
 
@@ -211,7 +211,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(container.read(mapCameraControllerProvider), isA<MapCameraFreePan>());
-      expect(fakeMapView.followMeEnabled, isFalse);
+      expect(fakeMapView.isFollowMeEnabled, isFalse);
     });
 
     test('viewport update IMMEDIATELY after a controller moveCameraTo is treated as an echo, state stays Following', () async {
@@ -242,7 +242,7 @@ void main() {
 
       // Still Following — the pending flag filtered the echo.
       expect(container.read(mapCameraControllerProvider), isA<MapCameraFollowing>());
-      expect(fakeMapView.followMeEnabled, isTrue);
+      expect(fakeMapView.isFollowMeEnabled, isTrue);
     });
 
     test('toggleFollowMe Following → FreePan disables follow-me; FreePan → Following re-centres + re-enables', () async {
@@ -258,13 +258,13 @@ void main() {
 
       await container.read(mapCameraControllerProvider.notifier).toggleFollowMe();
       expect(container.read(mapCameraControllerProvider), isA<MapCameraFreePan>());
-      expect(fakeMapView.followMeEnabled, isFalse);
+      expect(fakeMapView.isFollowMeEnabled, isFalse);
 
       // Toggle back → re-centres at last fix + re-enables follow-me.
       final int movesBefore = fakeMapView.cameraMovesObserved.length;
       await container.read(mapCameraControllerProvider.notifier).toggleFollowMe();
       expect(container.read(mapCameraControllerProvider), isA<MapCameraFollowing>());
-      expect(fakeMapView.followMeEnabled, isTrue);
+      expect(fakeMapView.isFollowMeEnabled, isTrue);
       expect(fakeMapView.cameraMovesObserved.length, equals(movesBefore + 1));
     });
   });

@@ -228,7 +228,7 @@ void main() {
     // supplied via the `mapViewBuilderForTest` typedef which doesn't
     // pass initial camera). So we only assert the state transition +
     // follow-me side-effects that openForSession still owns.
-    expect(fakeMapView.followMeEnabled, isTrue);
+    expect(fakeMapView.isFollowMeEnabled, isTrue);
     expect(fakeMapView.cameraMovesObserved, isEmpty);
   });
 }
