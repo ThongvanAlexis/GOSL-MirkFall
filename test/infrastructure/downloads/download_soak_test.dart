@@ -219,6 +219,9 @@ void main() {
         final File stagedPart = File(p.join(tempDir.path, kStagingDir, 'gbr', 'part00'));
         await stagedPart.parent.create(recursive: true);
         await stagedPart.writeAsBytes(garbage);
+        // Sanity: garbage is on disk BEFORE the controller runs, so the
+        // path really exercises resume-then-restart (not fresh download).
+        expect(await stagedPart.readAsBytes(), garbage, reason: 'test precondition: staging must contain the garbage bytes');
 
         final _SoakHarness h = await makeController();
         final CountryEntry entry = _entryFor(
@@ -230,10 +233,36 @@ void main() {
         await h.controller.enqueueCountry(entry);
         await done;
 
+        // The controller must have actually sent the Range header — otherwise
+        // the test degenerates into a plain fresh-download soak and the
+        // "restart from 200" code path is never exercised. Addresses §3 row
+        // #32 (soak test couldn't distinguish pass-through from corrupted
+        // restart state).
+        expect(
+          server.recordedRequests.any((RecordedRequest r) => r.rangeHeader != null && r.rangeHeader!.startsWith('bytes=32768')),
+          isTrue,
+          reason: 'controller must have attempted resume (sent Range: bytes=32768-) before the server forced the 200-OK restart',
+        );
+        // The server must also have seen at least one 200-OK response path.
+        // ServeIgnoringRange responds 200 for every request, so the fact we
+        // recorded ANY request + reached completion confirms the fallback
+        // was exercised end-to-end.
+        expect(server.recordedRequests.length, greaterThanOrEqualTo(1), reason: 'fallback path must have made at least one successful 200-OK request');
+
         final File final_ = File(p.join(tempDir.path, kCountriesDir, 'gbr.pmtiles'));
         // Despite the restart-from-200 fallback, the final bytes match
-        // the real payload — the downloader truncated the garbage.
-        expect(await final_.readAsBytes(), payload);
+        // the real payload — the downloader truncated the garbage, then
+        // rewrote from byte 0. Without this assertion, a stale "garbage
+        // pass-through" regression would not fail the soak.
+        expect(
+          await final_.readAsBytes(),
+          payload,
+          reason: 'reassembled pmtiles bytes must equal the real payload (no garbage leak from the pre-seeded staging)',
+        );
+        // Staging directory should be cleaned up post-commit — if garbage
+        // lingered, this would fail.
+        final Directory staging = Directory(p.join(tempDir.path, kStagingDir, 'gbr'));
+        expect(staging.existsSync(), isFalse, reason: 'staging directory for gbr must be removed after successful commit');
       });
     }, timeout: const Timeout(Duration(seconds: 60)));
   });
