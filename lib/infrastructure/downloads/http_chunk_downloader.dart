@@ -11,6 +11,16 @@ import 'package:mirkfall/domain/downloads/download_errors.dart';
 
 /// Result of a single [HttpChunkDownloader.downloadWithResume] call.
 ///
+/// Callers only branch on [restartedFrom200] — that's the one value that
+/// carries a semantic obligation (re-baseline the accumulated-bytes
+/// counter because the onProgress callback reported the full part.size
+/// instead of the delta; see §3 row #7 regression evidence).
+///
+/// The other two values ([resumedWith206], [downloadedFresh]) exist to
+/// make the happy-path observable in tests and logs — they do not drive
+/// caller behavior. Consumers should use [DownloadChunkResultX.isUnexpectedRestart]
+/// instead of pattern-matching on all three variants.
+///
 /// - [resumedWith206] — the server honoured the Range header and appended
 ///   to the existing destination (Partial Content).
 /// - [restartedFrom200] — the server ignored the Range header; the
@@ -19,6 +29,18 @@ import 'package:mirkfall/domain/downloads/download_errors.dart';
 ///   so no Range header was sent; the full response was written from
 ///   scratch.
 enum DownloadChunkResult { resumedWith206, restartedFrom200, downloadedFresh }
+
+/// Semantic predicates over [DownloadChunkResult]. Extension rather than
+/// plain methods so the enum can stay a canonical const list — callers
+/// should reach for [isUnexpectedRestart] instead of comparing against
+/// [DownloadChunkResult.restartedFrom200] by hand (addresses §3 row #31).
+extension DownloadChunkResultX on DownloadChunkResult {
+  /// `true` when the server ignored the Range request and rewrote the
+  /// destination from byte 0. Resume-path callers must use this to
+  /// un-pre-add any bytes they credited to the progress counter before
+  /// issuing the Range request.
+  bool get isUnexpectedRestart => this == DownloadChunkResult.restartedFrom200;
+}
 
 /// HTTP chunk downloader with Range resume + graceful 200-OK fallback.
 ///

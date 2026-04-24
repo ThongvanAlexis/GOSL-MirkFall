@@ -521,7 +521,7 @@ class PmtilesDownloadController {
     // avoid double-counting (else _accumulatedBytes ends up at
     // localSize + reassembled.size and subsequent chunks/UI emits report
     // bogus totals masked only by the clamp at emit-time).
-    if (result == DownloadChunkResult.restartedFrom200) {
+    if (result != null && result.isUnexpectedRestart) {
       _log.fine('chunk ${job.alpha3.value}.part$partIndex: 200-OK restart detected — reverting pre-added localSize=$localSize');
       _accumulatedBytes -= localSize;
     }
