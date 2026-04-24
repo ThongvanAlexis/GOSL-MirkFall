@@ -357,9 +357,7 @@ class _CountryTile extends ConsumerWidget {
     // transitions to DownloadInProgress; DownloadError transitions fire
     // the listener on MapsDownloadScreen.build which surfaces a second,
     // noisier snackbar.
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${entry.name} ajouté à la file de téléchargement'),
         duration: const Duration(seconds: kDownloadEnqueueConfirmSnackbarSeconds),
@@ -369,9 +367,12 @@ class _CountryTile extends ConsumerWidget {
       await ref.read(downloadQueueControllerProvider.notifier).enqueue(entry);
     } on Object catch (err) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur à la mise en file : $err'), duration: const Duration(seconds: kDownloadEnqueueErrorSnackbarSeconds)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur à la mise en file : $err'),
+          duration: const Duration(seconds: kDownloadEnqueueErrorSnackbarSeconds),
+        ),
+      );
     }
   }
 }
