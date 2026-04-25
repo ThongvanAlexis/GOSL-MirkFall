@@ -55,33 +55,27 @@ void main() {
       },
     );
 
-    test(
-      'NE corner (lat=north, lon=east) maps to (size.width, 0)',
-      () {
-        final off = MirkProjection.latLonToScreen(
-          lat: 44.0,
-          lon: 6.0,
-          viewport: bbox,
-          size: size,
-        );
-        expect(off.dx, closeTo(400.0, 1e-9));
-        expect(off.dy, closeTo(0.0, 1e-9));
-      },
-    );
+    test('NE corner (lat=north, lon=east) maps to (size.width, 0)', () {
+      final off = MirkProjection.latLonToScreen(
+        lat: 44.0,
+        lon: 6.0,
+        viewport: bbox,
+        size: size,
+      );
+      expect(off.dx, closeTo(400.0, 1e-9));
+      expect(off.dy, closeTo(0.0, 1e-9));
+    });
 
-    test(
-      'SW corner (lat=south, lon=west) maps to (0, size.height)',
-      () {
-        final off = MirkProjection.latLonToScreen(
-          lat: 43.0,
-          lon: 5.0,
-          viewport: bbox,
-          size: size,
-        );
-        expect(off.dx, closeTo(0.0, 1e-9));
-        expect(off.dy, closeTo(800.0, 1e-9));
-      },
-    );
+    test('SW corner (lat=south, lon=west) maps to (0, size.height)', () {
+      final off = MirkProjection.latLonToScreen(
+        lat: 43.0,
+        lon: 5.0,
+        viewport: bbox,
+        size: size,
+      );
+      expect(off.dx, closeTo(0.0, 1e-9));
+      expect(off.dy, closeTo(800.0, 1e-9));
+    });
 
     test('centre (lat=43.5, lon=5.5) maps to (width/2, height/2)', () {
       final off = MirkProjection.latLonToScreen(
@@ -94,61 +88,52 @@ void main() {
       expect(off.dy, closeTo(400.0, 1e-9));
     });
 
-    test(
-      'outside-viewport coordinates return finite Offset (no clamping)',
-      () {
-        // lat=42 is one full bbox-height SOUTH of bbox.south=43, so y must
-        // map to height + 1*height = 1600. lon=4 is one full bbox-width
-        // WEST of bbox.west=5, so x must map to -width = -400.
-        final off = MirkProjection.latLonToScreen(
-          lat: 42.0,
-          lon: 4.0,
-          viewport: bbox,
-          size: size,
-        );
-        expect(off.dx, closeTo(-400.0, 1e-9));
-        expect(off.dy, closeTo(1600.0, 1e-9));
-        expect(off.dx.isFinite, isTrue);
-        expect(off.dy.isFinite, isTrue);
-      },
-    );
+    test('outside-viewport coordinates return finite Offset (no clamping)', () {
+      // lat=42 is one full bbox-height SOUTH of bbox.south=43, so y must
+      // map to height + 1*height = 1600. lon=4 is one full bbox-width
+      // WEST of bbox.west=5, so x must map to -width = -400.
+      final off = MirkProjection.latLonToScreen(
+        lat: 42.0,
+        lon: 4.0,
+        viewport: bbox,
+        size: size,
+      );
+      expect(off.dx, closeTo(-400.0, 1e-9));
+      expect(off.dy, closeTo(1600.0, 1e-9));
+      expect(off.dx.isFinite, isTrue);
+      expect(off.dy.isFinite, isTrue);
+    });
 
-    test(
-      'zero-span bbox (north == south) returns Offset.zero (defensive)',
-      () {
-        final zeroLatSpan = MirkViewportBbox(
-          south: 44.0,
-          west: 5.0,
-          north: 44.0,
-          east: 6.0,
-        );
-        final off = MirkProjection.latLonToScreen(
-          lat: 44.0,
-          lon: 5.5,
-          viewport: zeroLatSpan,
-          size: size,
-        );
-        expect(off, equals(Offset.zero));
-      },
-    );
+    test('zero-span bbox (north == south) returns Offset.zero (defensive)', () {
+      final zeroLatSpan = MirkViewportBbox(
+        south: 44.0,
+        west: 5.0,
+        north: 44.0,
+        east: 6.0,
+      );
+      final off = MirkProjection.latLonToScreen(
+        lat: 44.0,
+        lon: 5.5,
+        viewport: zeroLatSpan,
+        size: size,
+      );
+      expect(off, equals(Offset.zero));
+    });
 
-    test(
-      'zero-span bbox (east == west) returns Offset.zero (defensive)',
-      () {
-        final zeroLonSpan = MirkViewportBbox(
-          south: 43.0,
-          west: 5.0,
-          north: 44.0,
-          east: 5.0,
-        );
-        final off = MirkProjection.latLonToScreen(
-          lat: 43.5,
-          lon: 5.0,
-          viewport: zeroLonSpan,
-          size: size,
-        );
-        expect(off, equals(Offset.zero));
-      },
-    );
+    test('zero-span bbox (east == west) returns Offset.zero (defensive)', () {
+      final zeroLonSpan = MirkViewportBbox(
+        south: 43.0,
+        west: 5.0,
+        north: 44.0,
+        east: 5.0,
+      );
+      final off = MirkProjection.latLonToScreen(
+        lat: 43.5,
+        lon: 5.0,
+        viewport: zeroLonSpan,
+        size: size,
+      );
+      expect(off, equals(Offset.zero));
+    });
   });
 }
