@@ -83,46 +83,60 @@ void main() {
         'rendererType': 'unknown-future-renderer-v999',
         'someParam': 42,
       });
-      expect(config, isA<UnknownConfig>(),
-          reason: 'precondition: fromJson must route the unknown discriminator '
-              'to the UnknownConfig fallback variant');
+      expect(
+        config,
+        isA<UnknownConfig>(),
+        reason:
+            'precondition: fromJson must route the unknown discriminator '
+            'to the UnknownConfig fallback variant',
+      );
 
       final renderer = factory.create(config);
-      expect(renderer, isA<AtmosphericMirkRenderer>(),
-          reason: 'unknown variants must degrade to the default atmospheric '
-              'renderer rather than crashing or returning a Noop');
+      expect(
+        renderer,
+        isA<AtmosphericMirkRenderer>(),
+        reason:
+            'unknown variants must degrade to the default atmospheric '
+            'renderer rather than crashing or returning a Noop',
+      );
       // Atmospheric default config: baseColorArgb = 0xFF000000.
-      expect((renderer as AtmosphericMirkRenderer).config.baseColorArgb, 0xFF000000);
+      expect(
+        (renderer as AtmosphericMirkRenderer).config.baseColorArgb,
+        0xFF000000,
+      );
     });
   });
 
   group('09-05 — kBuiltinMirkStyles registry (MIRK-06)', () {
     test('exposes exactly 4 descriptors in canonical order', () {
       expect(kBuiltinMirkStyles, hasLength(4));
-      expect(
-        kBuiltinMirkStyles.map((d) => d.id).toList(),
-        <String>[
-          'style_builtin_atmospheric',
-          'style_builtin_solid',
-          'style_builtin_candlelight',
-          'style_builtin_heavenly_clouds',
-        ],
-      );
+      expect(kBuiltinMirkStyles.map((d) => d.id).toList(), <String>[
+        'style_builtin_atmospheric',
+        'style_builtin_solid',
+        'style_builtin_candlelight',
+        'style_builtin_heavenly_clouds',
+      ]);
     });
 
     test('every descriptor carries a non-empty French display name', () {
       for (final descriptor in kBuiltinMirkStyles) {
-        expect(descriptor.displayName.trim(), isNotEmpty,
-            reason: '${descriptor.id} must carry a display name');
+        expect(
+          descriptor.displayName.trim(),
+          isNotEmpty,
+          reason: '${descriptor.id} must carry a display name',
+        );
       }
     });
 
-    test('atmospheric descriptor defaultConfig() returns AtmosphericConfig', () {
-      final descriptor = kBuiltinMirkStyles.firstWhere(
-        (d) => d.id == 'style_builtin_atmospheric',
-      );
-      expect(descriptor.defaultConfig(), isA<AtmosphericConfig>());
-    });
+    test(
+      'atmospheric descriptor defaultConfig() returns AtmosphericConfig',
+      () {
+        final descriptor = kBuiltinMirkStyles.firstWhere(
+          (d) => d.id == 'style_builtin_atmospheric',
+        );
+        expect(descriptor.defaultConfig(), isA<AtmosphericConfig>());
+      },
+    );
 
     test('solid descriptor defaultConfig() returns SolidConfig', () {
       final descriptor = kBuiltinMirkStyles.firstWhere(
@@ -131,12 +145,15 @@ void main() {
       expect(descriptor.defaultConfig(), isA<SolidConfig>());
     });
 
-    test('candlelight descriptor defaultConfig() returns CandlelightConfig', () {
-      final descriptor = kBuiltinMirkStyles.firstWhere(
-        (d) => d.id == 'style_builtin_candlelight',
-      );
-      expect(descriptor.defaultConfig(), isA<CandlelightConfig>());
-    });
+    test(
+      'candlelight descriptor defaultConfig() returns CandlelightConfig',
+      () {
+        final descriptor = kBuiltinMirkStyles.firstWhere(
+          (d) => d.id == 'style_builtin_candlelight',
+        );
+        expect(descriptor.defaultConfig(), isA<CandlelightConfig>());
+      },
+    );
 
     test('heavenly_clouds descriptor defaultConfig() returns '
         'HeavenlyCloudsConfig', () {
@@ -155,8 +172,11 @@ void main() {
       // (in case Phase 13 extends with runtime params). We verify by
       // checking value-equality holds (Freezed generates ==).
       final descriptor = kBuiltinMirkStyles.first;
-      expect(descriptor.defaultConfig(), descriptor.defaultConfig(),
-          reason: 'two consecutive defaultConfig() calls must compare equal');
+      expect(
+        descriptor.defaultConfig(),
+        descriptor.defaultConfig(),
+        reason: 'two consecutive defaultConfig() calls must compare equal',
+      );
     });
 
     test('factory dispatches every kBuiltinMirkStyles defaultConfig() '
