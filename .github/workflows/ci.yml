@@ -140,6 +140,25 @@ jobs:
       - name: Check style no external URL
         run: dart run tool/check_style_no_external_url.dart
 
+      # Phase 09 plan 09-01c — two new fog-rendering seam gates.
+      # `check_mirk_variant_file_count` enforces MIRK-05/06 "1 file per
+      # variant": exactly 6 `*_mirk_renderer.dart` files under
+      # `lib/infrastructure/mirk/` (4 builtins + noop + shader). Drift
+      # surfaces as exit 1 with a missing/extra diff. Without this gate,
+      # two variants could accidentally share a file (smell) or one could
+      # vanish silently after a refactor.
+      # `check_mirk_fixture_fresh` is a Wave 0 inert scaffold (exit 0)
+      # that plan 09-08 fills with a real `tool/fixtures/build_50k_tiles.dart`
+      # output diff against the committed `fifty_k_tiles_seed.sql`. Wired
+      # in CI now so plan 09-08 only fills the body, not the workflow.
+      # Both follow the Phase 01 exit 0/1/2 contract; paired tool tests
+      # under tool/test/ (picked up by `Tool scripts unit tests` above).
+      - name: Check mirk variant file count
+        run: dart run tool/check_mirk_variant_file_count.dart
+
+      - name: Check mirk fixture fresh
+        run: dart run tool/check_mirk_fixture_fresh.dart
+
       - name: Flutter unit + widget tests
         run: flutter test
 
