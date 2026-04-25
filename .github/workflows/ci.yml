@@ -293,7 +293,7 @@ jobs:
           echo "PUB_CACHE=$PUB_CACHE"
 
       - name: Build APK (debug)
-        run: flutter build apk --debug
+        run: flutter build apk --debug --dart-define=GIT_COMMIT_SHA=${{ github.sha }}
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -405,7 +405,7 @@ jobs:
         run: pod install
 
       - name: Build iOS (no-codesign)
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --dart-define=GIT_COMMIT_SHA=${{ github.sha }}
 
       # Package the unsigned Runner.app bundle into an unsigned `.ipa` so
       # it can be downloaded as a CI artifact and sideloaded onto an
