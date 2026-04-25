@@ -52,10 +52,16 @@ class SolidFillMirkRenderer implements MirkRenderer {
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
     if (_disposed) return;
     if (context.visibleTiles.isEmpty) return;
+    // Solid renderer adopts the same `buildFogClipPath` helper as the 3
+    // animated renderers — BUG-003 (2026-04-25) consolidated all 4 on
+    // the "tile-rect minus revealed cells" strategy for consistency.
+    // Solid never showed the damier (no MaskFilter) but unifying the
+    // path strategy avoids future seam discrepancies between variants.
     for (final tile in context.visibleTiles) {
-      final path = buildUnrevealedCellsPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
-      // Skip drawing entirely when the path is empty (every cell of the
-      // tile was already revealed — nothing to fog).
+      final path = buildFogClipPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
+      // Skip drawing entirely when the path is empty (the tile lies
+      // outside the viewport — projection collapses it to a degenerate
+      // rect).
       if (path.getBounds().isEmpty) continue;
       canvas.drawPath(path, _paint);
     }

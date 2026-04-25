@@ -92,10 +92,18 @@ class AtmosphericMirkRenderer implements MirkRenderer {
         ..style = PaintingStyle.fill
         ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
 
-      final path = buildUnrevealedCellsPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
-      // Skip drawing entirely when the path is empty (every cell of the
-      // tile was already revealed — nothing to fog). Avoids cost of an
-      // empty drawPath command in the picture record.
+      // BUG-003 fix (2026-04-25): use the "tile-rect minus revealed cells"
+      // strategy. The previous "union of unrevealed cell rects" path
+      // confused BlurStyle.inner into eroding alpha along every internal
+      // cell-cell edge, producing the macro-damier visible at parent-tile
+      // boundaries. The new helper returns a single path with only the
+      // tile outer edge + revealed-cell holes — feather lands only on
+      // intentional boundaries.
+      final path = buildFogClipPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
+      // Skip drawing entirely when the path is empty (the tile lies
+      // outside the viewport — projection collapses it to a degenerate
+      // rect). Avoids the cost of an empty drawPath command in the
+      // picture record.
       if (path.getBounds().isEmpty) continue;
       canvas.drawPath(path, paint);
     }

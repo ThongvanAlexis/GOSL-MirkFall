@@ -89,8 +89,12 @@ class CandlelightMirkRenderer implements MirkRenderer {
       ..style = PaintingStyle.fill
       ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
 
+    // BUG-003 fix (2026-04-25): see AtmosphericMirkRenderer for the
+    // "tile-rect minus revealed cells" rationale. Same root cause —
+    // BlurStyle.inner over a cell-union path was eroding alpha at every
+    // internal cell-cell edge.
     for (final tile in context.visibleTiles) {
-      final path = buildUnrevealedCellsPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
+      final path = buildFogClipPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
       if (path.getBounds().isEmpty) continue;
       canvas.drawPath(path, paint);
     }

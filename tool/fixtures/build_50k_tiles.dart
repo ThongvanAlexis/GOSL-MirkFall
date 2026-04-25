@@ -53,7 +53,7 @@ const int kFiftyKParentZoom = 14;
 /// Bitmap density — fraction of the 4096-bit bitmap set per row.
 ///
 /// Lower than the 09-RESEARCH suggestion (25 %) for git-friendliness:
-/// the iteration cost in [`buildUnrevealedCellsPath`] is per-cell
+/// the iteration cost in [`buildFogClipPath`] is per-cell
 /// (4096 cells iterated unconditionally regardless of bit value), so
 /// the perf measurement is insensitive to density. 1 % keeps most
 /// bitmap bytes at 0x00, which gzip crunches from ~60 MB raw down to
