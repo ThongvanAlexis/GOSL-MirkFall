@@ -32,6 +32,8 @@ import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
+import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 
 /// Compile-time witness that [MirkRenderer] has exactly 3 abstract
 /// methods: `paint`, `update`, `dispose`. The analyzer enforces the
@@ -62,15 +64,18 @@ class _MinimalWitness implements MirkRenderer {
 
 void main() {
   group('MirkRenderer public surface', () {
-    test('_MinimalWitness compiles — interface has exactly 3 abstract methods', () {
-      // The compile-time guarantee is the analyzer refusing
-      // `missing_concrete_implementation` if a 4th abstract method lands.
-      // The runtime assertion below is a sanity check that the witness
-      // instance is constructable — if the witness were missing an
-      // override it would fail at compile time, not here.
-      final _MinimalWitness w = _MinimalWitness();
-      expect(w, isA<MirkRenderer>());
-    });
+    test(
+      '_MinimalWitness compiles — interface has exactly 3 abstract methods',
+      () {
+        // The compile-time guarantee is the analyzer refusing
+        // `missing_concrete_implementation` if a 4th abstract method lands.
+        // The runtime assertion below is a sanity check that the witness
+        // instance is constructable — if the witness were missing an
+        // override it would fail at compile time, not here.
+        final _MinimalWitness w = _MinimalWitness();
+        expect(w, isA<MirkRenderer>());
+      },
+    );
 
     test('paint / update / dispose are the only methods exercised', () async {
       final _MinimalWitness w = _MinimalWitness();
@@ -81,7 +86,25 @@ void main() {
       // Flutter widget tree.
       final PictureRecorder recorder = PictureRecorder();
       final Canvas canvas = Canvas(recorder);
-      w.paint(canvas, const Size(100, 100), MirkPaintContext(zoomLevel: 5.0, pixelRatio: 2.0, sessionElapsed: const Duration(seconds: 1)));
+      w.paint(
+        canvas,
+        const Size(100, 100),
+        MirkPaintContext(
+          zoomLevel: 5.0,
+          pixelRatio: 2.0,
+          sessionElapsed: const Duration(seconds: 1),
+          // Phase 09 plan 09-02: extended fields. Test-only minimal bbox + empty visible-tile list
+          // exercise the SAME 3-method renderer surface — semantic stays "is there exactly 1 paint
+          // call?", new fields just satisfy the now-required Freezed parameters.
+          viewportBbox: MirkViewportBbox(
+            south: 0.0,
+            west: 0.0,
+            north: 1.0,
+            east: 1.0,
+          ),
+          visibleTiles: const <VisibleMirkTile>[],
+        ),
+      );
       w.update(const Duration(milliseconds: 16));
       await w.dispose();
 
@@ -103,11 +126,39 @@ void main() {
 
   group('MirkPaintContext @Assert invariants', () {
     test('rejects negative zoomLevel', () {
-      expect(() => MirkPaintContext(zoomLevel: -0.1, pixelRatio: 1.0, sessionElapsed: Duration.zero), throwsA(isA<AssertionError>()));
+      expect(
+        () => MirkPaintContext(
+          zoomLevel: -0.1,
+          pixelRatio: 1.0,
+          sessionElapsed: Duration.zero,
+          viewportBbox: MirkViewportBbox(
+            south: 0.0,
+            west: 0.0,
+            north: 1.0,
+            east: 1.0,
+          ),
+          visibleTiles: const <VisibleMirkTile>[],
+        ),
+        throwsA(isA<AssertionError>()),
+      );
     });
 
     test('rejects zero pixelRatio', () {
-      expect(() => MirkPaintContext(zoomLevel: 0.0, pixelRatio: 0.0, sessionElapsed: Duration.zero), throwsA(isA<AssertionError>()));
+      expect(
+        () => MirkPaintContext(
+          zoomLevel: 0.0,
+          pixelRatio: 0.0,
+          sessionElapsed: Duration.zero,
+          viewportBbox: MirkViewportBbox(
+            south: 0.0,
+            west: 0.0,
+            north: 1.0,
+            east: 1.0,
+          ),
+          visibleTiles: const <VisibleMirkTile>[],
+        ),
+        throwsA(isA<AssertionError>()),
+      );
     });
   });
 }

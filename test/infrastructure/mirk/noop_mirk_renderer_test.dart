@@ -10,6 +10,8 @@ import 'dart:ui' show Canvas, PictureRecorder, Size;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
+import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 import 'package:mirkfall/infrastructure/mirk/noop_mirk_renderer.dart';
 
 void main() {
@@ -23,7 +25,20 @@ void main() {
   group('NoopMirkRenderer — trivial operation', () {
     test('100 iterations of paint/update do not throw', () {
       const NoopMirkRenderer r = NoopMirkRenderer();
-      final MirkPaintContext ctx = MirkPaintContext(zoomLevel: 13.0, pixelRatio: 2.0, sessionElapsed: const Duration(minutes: 5));
+      final MirkPaintContext ctx = MirkPaintContext(
+        zoomLevel: 13.0,
+        pixelRatio: 2.0,
+        sessionElapsed: const Duration(minutes: 5),
+        // Phase 09 plan 09-02: extended fields. Noop renderer ignores all of them; supplying the
+        // narrowest valid values keeps this test focused on "100 paint/update iterations don't throw".
+        viewportBbox: MirkViewportBbox(
+          south: 0.0,
+          west: 0.0,
+          north: 1.0,
+          east: 1.0,
+        ),
+        visibleTiles: const <VisibleMirkTile>[],
+      );
       final PictureRecorder rec = PictureRecorder();
       final Canvas canvas = Canvas(rec);
 

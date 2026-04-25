@@ -26,7 +26,12 @@ import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 void main() {
   group('09-02 — MirkViewportBbox', () {
     test('constructs with valid Marseille-area bbox', () {
-      final bbox = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+      final bbox = MirkViewportBbox(
+        south: 43.0,
+        west: 5.0,
+        north: 44.0,
+        east: 6.0,
+      );
       expect(bbox.south, 43.0);
       expect(bbox.west, 5.0);
       expect(bbox.north, 44.0);
@@ -41,7 +46,12 @@ void main() {
     });
 
     test('allows antimeridian wrap (west > 0 && east < 0)', () {
-      final bbox = MirkViewportBbox(south: 60.0, west: 170.0, north: 65.0, east: -170.0);
+      final bbox = MirkViewportBbox(
+        south: 60.0,
+        west: 170.0,
+        north: 65.0,
+        east: -170.0,
+      );
       expect(bbox.east, -170.0);
       expect(bbox.west, 170.0);
     });
@@ -54,8 +64,18 @@ void main() {
     });
 
     test('Freezed equality: identical bboxes compare equal', () {
-      final a = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
-      final b = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+      final a = MirkViewportBbox(
+        south: 43.0,
+        west: 5.0,
+        north: 44.0,
+        east: 6.0,
+      );
+      final b = MirkViewportBbox(
+        south: 43.0,
+        west: 5.0,
+        north: 44.0,
+        east: 6.0,
+      );
       expect(a, b);
       expect(a.hashCode, b.hashCode);
     });
@@ -111,22 +131,31 @@ void main() {
   });
 
   group('09-02 — MirkPaintContext (extended to 6 fields)', () {
-    test('constructs with all 6 fields (currentFix null, visibleTiles const [])', () {
-      final ctx = MirkPaintContext(
-        zoomLevel: 14.0,
-        pixelRatio: 3.0,
-        sessionElapsed: const Duration(seconds: 5),
-        viewportBbox: MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0),
-        visibleTiles: const <VisibleMirkTile>[],
-        currentFix: null,
-      );
-      expect(ctx.currentFix, isNull);
-      expect(ctx.visibleTiles, isEmpty);
-      expect(ctx.viewportBbox.south, 43.0);
-      expect(ctx.zoomLevel, 14.0);
-      expect(ctx.pixelRatio, 3.0);
-      expect(ctx.sessionElapsed, const Duration(seconds: 5));
-    });
+    test(
+      'constructs with all 6 fields (currentFix null, visibleTiles const [])',
+      () {
+        final ctx = MirkPaintContext(
+          zoomLevel: 14.0,
+          pixelRatio: 3.0,
+          sessionElapsed: const Duration(seconds: 5),
+          viewportBbox: MirkViewportBbox(
+            south: 43.0,
+            west: 5.0,
+            north: 44.0,
+            east: 6.0,
+          ),
+          visibleTiles: const <VisibleMirkTile>[],
+          // currentFix omitted on purpose — the field is nullable and defaults to null;
+          // this test documents that the omitted form is the canonical "no fix yet" shape.
+        );
+        expect(ctx.currentFix, isNull);
+        expect(ctx.visibleTiles, isEmpty);
+        expect(ctx.viewportBbox.south, 43.0);
+        expect(ctx.zoomLevel, 14.0);
+        expect(ctx.pixelRatio, 3.0);
+        expect(ctx.sessionElapsed, const Duration(seconds: 5));
+      },
+    );
 
     test('visibleTiles non-empty round-trips with the tile preserved', () {
       final tile = VisibleMirkTile(
@@ -142,7 +171,12 @@ void main() {
         zoomLevel: 14.0,
         pixelRatio: 3.0,
         sessionElapsed: Duration.zero,
-        viewportBbox: MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0),
+        viewportBbox: MirkViewportBbox(
+          south: 43.0,
+          west: 5.0,
+          north: 44.0,
+          east: 6.0,
+        ),
         visibleTiles: [tile],
       );
       expect(ctx.visibleTiles.length, 1);
@@ -153,7 +187,7 @@ void main() {
       final fix = Fix(
         id: const FixId('fix_01HXYZ0000000000000000000'),
         sessionId: const SessionId('sess_01HXYZ0000000000000000000'),
-        recordedAtUtc: DateTime.utc(2026, 4, 25, 12, 0, 0),
+        recordedAtUtc: DateTime.utc(2026, 4, 25, 12),
         recordedAtOffsetMinutes: 120,
         latitude: 43.5,
         longitude: 5.5,
@@ -163,7 +197,12 @@ void main() {
         zoomLevel: 14.0,
         pixelRatio: 3.0,
         sessionElapsed: const Duration(seconds: 1),
-        viewportBbox: MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0),
+        viewportBbox: MirkViewportBbox(
+          south: 43.0,
+          west: 5.0,
+          north: 44.0,
+          east: 6.0,
+        ),
         visibleTiles: const <VisibleMirkTile>[],
         currentFix: fix,
       );
@@ -171,34 +210,55 @@ void main() {
       expect(ctx.currentFix!.latitude, 43.5);
     });
 
-    test('zoomLevel assertion fires on negative input (Phase 07 invariant retained)', () {
-      expect(
-        () => MirkPaintContext(
-          zoomLevel: -1.0,
-          pixelRatio: 3.0,
-          sessionElapsed: Duration.zero,
-          viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
-          visibleTiles: const <VisibleMirkTile>[],
-        ),
-        throwsA(isA<AssertionError>()),
-      );
-    });
+    test(
+      'zoomLevel assertion fires on negative input (Phase 07 invariant retained)',
+      () {
+        expect(
+          () => MirkPaintContext(
+            zoomLevel: -1.0,
+            pixelRatio: 3.0,
+            sessionElapsed: Duration.zero,
+            viewportBbox: MirkViewportBbox(
+              south: 0.0,
+              west: 0.0,
+              north: 1.0,
+              east: 1.0,
+            ),
+            visibleTiles: const <VisibleMirkTile>[],
+          ),
+          throwsA(isA<AssertionError>()),
+        );
+      },
+    );
 
-    test('pixelRatio assertion fires on zero input (Phase 07 invariant retained)', () {
-      expect(
-        () => MirkPaintContext(
-          zoomLevel: 0.0,
-          pixelRatio: 0.0,
-          sessionElapsed: Duration.zero,
-          viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
-          visibleTiles: const <VisibleMirkTile>[],
-        ),
-        throwsA(isA<AssertionError>()),
-      );
-    });
+    test(
+      'pixelRatio assertion fires on zero input (Phase 07 invariant retained)',
+      () {
+        expect(
+          () => MirkPaintContext(
+            zoomLevel: 0.0,
+            pixelRatio: 0.0,
+            sessionElapsed: Duration.zero,
+            viewportBbox: MirkViewportBbox(
+              south: 0.0,
+              west: 0.0,
+              north: 1.0,
+              east: 1.0,
+            ),
+            visibleTiles: const <VisibleMirkTile>[],
+          ),
+          throwsA(isA<AssertionError>()),
+        );
+      },
+    );
 
     test('Freezed equality: two identical contexts compare equal', () {
-      final bbox = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+      final bbox = MirkViewportBbox(
+        south: 43.0,
+        west: 5.0,
+        north: 44.0,
+        east: 6.0,
+      );
       final a = MirkPaintContext(
         zoomLevel: 14.0,
         pixelRatio: 3.0,
