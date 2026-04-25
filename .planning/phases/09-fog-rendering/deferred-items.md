@@ -43,3 +43,30 @@ docstring updated, regression test green) are met.
 
 **Owner suggestion:** Plan 09-02 (`AtmosphericMirkRenderer` impl) — natural
 integration point to align test signatures with the real renderer API.
+
+---
+
+### Plan 09-03 close (2026-04-25) — pre-existing format drift in `lib/domain/revealed/`
+
+**Status at Plan 09-03 verification:** `dart format --set-exit-if-changed lib/domain/revealed test/domain/revealed` reports 3 files changed (none authored by Plan 09-03):
+
+- `lib/domain/revealed/revealed_tile.dart`
+- `lib/domain/revealed/revealed_tile_store.dart`
+- `lib/domain/revealed/tile_math.dart`
+
+**Why deferred:** Plan 09-03's `<files_modified>` is strictly
+`lib/domain/revealed/reveal_calculator.dart`,
+`test/domain/revealed/reveal_calculator_test.dart`,
+`test/domain/revealed/reveal_calculator_parent_boundary_test.dart` (plus the
+out-of-band Phase 03 placeholder-test retirement in
+`test/domain/reveal_calculator_test.dart`). The 3 files surfaced by `dart format`
+are pre-existing drift on commits prior to Plan 09-03. Per the GSD SCOPE BOUNDARY
+rule, fixing them here would breach scope and risk colliding with the
+concurrent Plan 09-02 wave that is also touching `lib/domain/`.
+
+**Plan 09-03-only verification (in scope):**
+`dart format --set-exit-if-changed lib/domain/revealed/reveal_calculator.dart test/domain/revealed/`
+→ 3 files (0 changed), exit 0.
+
+**Owner suggestion:** Phase 10 review gate or a follow-up `chore(format)` commit
+once Wave 2 of Phase 09 is complete and the working tree is quiescent.
