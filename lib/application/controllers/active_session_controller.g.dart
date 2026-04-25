@@ -30,12 +30,16 @@ part of 'active_session_controller.dart';
 /// Error channel: all exceptions (including `GpsError` subclasses
 /// surfacing permission-denied / service-disabled /
 /// background-killed) propagate via Riverpod's `AsyncError` rather
-/// than a dedicated `ActiveSessionState.ErrorState` variant. UI layers
-/// read `asyncValue.error` and pattern-match on the runtime type to
-/// branch between GpsError recovery screens and the generic error
-/// surface. See 08-REVIEW.md §3 row #37 for the consolidation
-/// rationale (smell:over-state-machine — dedicated ErrorState
-/// duplicated what AsyncError already carries).
+/// than a dedicated `ActiveSessionState.ErrorState` variant. The UI
+/// consumer (`SessionDetailScreen._handleStart` + `_handleGpsError`)
+/// pattern-matches over the sealed `GpsError` hierarchy and routes
+/// each variant to its recovery UX (`/permissions/denied` for
+/// permission denials, inline messaging for service-disabled +
+/// background-kill). Non-GpsError exceptions fall through to the
+/// generic `_inlineError` path. See 08-REVIEW.md §3 row #37 for the
+/// consolidation rationale (smell:over-state-machine — dedicated
+/// ErrorState duplicated what AsyncError already carries) and
+/// 08.1-REVIEW.md §3 row #1 (Blocker closure — UI routing restored).
 
 @ProviderFor(ActiveSessionController)
 final activeSessionControllerProvider = ActiveSessionControllerProvider._();
@@ -62,13 +66,19 @@ final activeSessionControllerProvider = ActiveSessionControllerProvider._();
 /// Error channel: all exceptions (including `GpsError` subclasses
 /// surfacing permission-denied / service-disabled /
 /// background-killed) propagate via Riverpod's `AsyncError` rather
-/// than a dedicated `ActiveSessionState.ErrorState` variant. UI layers
-/// read `asyncValue.error` and pattern-match on the runtime type to
-/// branch between GpsError recovery screens and the generic error
-/// surface. See 08-REVIEW.md §3 row #37 for the consolidation
-/// rationale (smell:over-state-machine — dedicated ErrorState
-/// duplicated what AsyncError already carries).
-final class ActiveSessionControllerProvider extends $AsyncNotifierProvider<ActiveSessionController, ActiveSessionState> {
+/// than a dedicated `ActiveSessionState.ErrorState` variant. The UI
+/// consumer (`SessionDetailScreen._handleStart` + `_handleGpsError`)
+/// pattern-matches over the sealed `GpsError` hierarchy and routes
+/// each variant to its recovery UX (`/permissions/denied` for
+/// permission denials, inline messaging for service-disabled +
+/// background-kill). Non-GpsError exceptions fall through to the
+/// generic `_inlineError` path. See 08-REVIEW.md §3 row #37 for the
+/// consolidation rationale (smell:over-state-machine — dedicated
+/// ErrorState duplicated what AsyncError already carries) and
+/// 08.1-REVIEW.md §3 row #1 (Blocker closure — UI routing restored).
+final class ActiveSessionControllerProvider
+    extends
+        $AsyncNotifierProvider<ActiveSessionController, ActiveSessionState> {
   /// Orchestrator for a session's GPS tracking lifecycle.
   ///
   /// Owns the single [StreamSubscription] over [LocationStream.positions];
@@ -91,12 +101,16 @@ final class ActiveSessionControllerProvider extends $AsyncNotifierProvider<Activ
   /// Error channel: all exceptions (including `GpsError` subclasses
   /// surfacing permission-denied / service-disabled /
   /// background-killed) propagate via Riverpod's `AsyncError` rather
-  /// than a dedicated `ActiveSessionState.ErrorState` variant. UI layers
-  /// read `asyncValue.error` and pattern-match on the runtime type to
-  /// branch between GpsError recovery screens and the generic error
-  /// surface. See 08-REVIEW.md §3 row #37 for the consolidation
-  /// rationale (smell:over-state-machine — dedicated ErrorState
-  /// duplicated what AsyncError already carries).
+  /// than a dedicated `ActiveSessionState.ErrorState` variant. The UI
+  /// consumer (`SessionDetailScreen._handleStart` + `_handleGpsError`)
+  /// pattern-matches over the sealed `GpsError` hierarchy and routes
+  /// each variant to its recovery UX (`/permissions/denied` for
+  /// permission denials, inline messaging for service-disabled +
+  /// background-kill). Non-GpsError exceptions fall through to the
+  /// generic `_inlineError` path. See 08-REVIEW.md §3 row #37 for the
+  /// consolidation rationale (smell:over-state-machine — dedicated
+  /// ErrorState duplicated what AsyncError already carries) and
+  /// 08.1-REVIEW.md §3 row #1 (Blocker closure — UI routing restored).
   ActiveSessionControllerProvider._()
     : super(
         from: null,
@@ -116,7 +130,8 @@ final class ActiveSessionControllerProvider extends $AsyncNotifierProvider<Activ
   ActiveSessionController create() => ActiveSessionController();
 }
 
-String _$activeSessionControllerHash() => r'4d1c80589fcf4dcf6de14875fdad947b5ad42235';
+String _$activeSessionControllerHash() =>
+    r'0bce3fe3b26c2cea29384ff8c9d5ec5471d47222';
 
 /// Orchestrator for a session's GPS tracking lifecycle.
 ///
@@ -140,21 +155,33 @@ String _$activeSessionControllerHash() => r'4d1c80589fcf4dcf6de14875fdad947b5ad4
 /// Error channel: all exceptions (including `GpsError` subclasses
 /// surfacing permission-denied / service-disabled /
 /// background-killed) propagate via Riverpod's `AsyncError` rather
-/// than a dedicated `ActiveSessionState.ErrorState` variant. UI layers
-/// read `asyncValue.error` and pattern-match on the runtime type to
-/// branch between GpsError recovery screens and the generic error
-/// surface. See 08-REVIEW.md §3 row #37 for the consolidation
-/// rationale (smell:over-state-machine — dedicated ErrorState
-/// duplicated what AsyncError already carries).
+/// than a dedicated `ActiveSessionState.ErrorState` variant. The UI
+/// consumer (`SessionDetailScreen._handleStart` + `_handleGpsError`)
+/// pattern-matches over the sealed `GpsError` hierarchy and routes
+/// each variant to its recovery UX (`/permissions/denied` for
+/// permission denials, inline messaging for service-disabled +
+/// background-kill). Non-GpsError exceptions fall through to the
+/// generic `_inlineError` path. See 08-REVIEW.md §3 row #37 for the
+/// consolidation rationale (smell:over-state-machine — dedicated
+/// ErrorState duplicated what AsyncError already carries) and
+/// 08.1-REVIEW.md §3 row #1 (Blocker closure — UI routing restored).
 
-abstract class _$ActiveSessionController extends $AsyncNotifier<ActiveSessionState> {
+abstract class _$ActiveSessionController
+    extends $AsyncNotifier<ActiveSessionState> {
   FutureOr<ActiveSessionState> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<ActiveSessionState>, ActiveSessionState>;
+    final ref =
+        this.ref as $Ref<AsyncValue<ActiveSessionState>, ActiveSessionState>;
     final element =
-        ref.element as $ClassProviderElement<AnyNotifier<AsyncValue<ActiveSessionState>, ActiveSessionState>, AsyncValue<ActiveSessionState>, Object?, Object?>;
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<ActiveSessionState>, ActiveSessionState>,
+              AsyncValue<ActiveSessionState>,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }

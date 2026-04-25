@@ -5,9 +5,11 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
+import 'package:mirkfall/application/controllers/reveal_streaming_controller.dart';
 import 'package:mirkfall/application/providers/boot_watchdog_provider.dart';
 import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/location_stream_provider.dart';
+import 'package:mirkfall/application/providers/reveal_streaming_controller_provider.dart';
 import 'package:mirkfall/application/providers/session_notification_service_provider.dart';
 import 'package:mirkfall/application/providers/session_settings_provider.dart';
 import 'package:mirkfall/application/providers/session_store_provider.dart';
@@ -60,6 +62,13 @@ class ActiveSessionController extends _$ActiveSessionController {
   LocationStream? _stream;
   SessionId? _currentSessionId;
   bool _isStopping = false;
+
+  // Phase 09 plan 09-06 — true once the initial 20 m reveal has been
+  // written for the current Tracking session (either via the cached
+  // `LocationStream.lastKnownFix` fast path or via the first incoming
+  // fix). Reset to false in stop() so the next start() re-fires the
+  // initial reveal for a fresh session.
+  bool _initialRevealDone = false;
 
   @override
   FutureOr<ActiveSessionState> build() {
@@ -128,7 +137,11 @@ class ActiveSessionController extends _$ActiveSessionController {
       _stream = locationStream;
 
       _sub = locationStream
-          .positions(sessionId: id, sessionDisplayName: activatedSession.displayName, distanceFilterMeters: settings.distanceFilterMeters)
+          .positions(
+            sessionId: id,
+            sessionDisplayName: activatedSession.displayName,
+            distanceFilterMeters: settings.distanceFilterMeters,
+          )
           .listen(
             (fix) => _onFix(fix, fixStore),
             onError: _onStreamError,
@@ -140,7 +153,25 @@ class ActiveSessionController extends _$ActiveSessionController {
             cancelOnError: false,
           );
 
-      state = AsyncData(Tracking(sessionId: id, startedAtUtc: activatedSession.startedAtUtc, fixCount: 0, distanceFilterMeters: settings.distanceFilterMeters));
+      state = AsyncData(
+        Tracking(
+          sessionId: id,
+          startedAtUtc: activatedSession.startedAtUtc,
+          fixCount: 0,
+          distanceFilterMeters: settings.distanceFilterMeters,
+        ),
+      );
+
+      // Phase 09 plan 09-06 — initial 20 m reveal fast path. If the
+      // location stream already has a cached fix from a prior
+      // subscription (short-reconnect / app warm start), seed the
+      // disc immediately. Otherwise, the slow path in [_onFix] fires
+      // `revealInitial` on the first incoming fix.
+      _initialRevealDone = false;
+      final cachedFix = locationStream.lastKnownFix;
+      if (cachedFix != null) {
+        await _writeInitialRevealIfReady(cachedFix, sessionId: id);
+      }
 
       // Plan 05-05 auto-resume (iOS half) — enable significant-change
       // monitoring so iOS can wake us after a post-kill significant move.
@@ -166,7 +197,10 @@ class ActiveSessionController extends _$ActiveSessionController {
   /// partial-unique-index. Inner failures are logged-and-swallowed via
   /// [_bestEffort] — the catch path is already propagating a primary
   /// exception to the caller.
-  Future<void> _rollbackPartialActivation({required bool activated, required SessionId id}) async {
+  Future<void> _rollbackPartialActivation({
+    required bool activated,
+    required SessionId id,
+  }) async {
     await _sub?.cancel();
     _sub = null;
     await _stream?.dispose();
@@ -178,7 +212,9 @@ class ActiveSessionController extends _$ActiveSessionController {
         await sessionStore.deactivate(id);
       });
       await _bestEffort('start.rollback_dismiss', () async {
-        final notificationService = ref.read(sessionNotificationServiceProvider);
+        final notificationService = ref.read(
+          sessionNotificationServiceProvider,
+        );
         await notificationService.dismiss();
       });
     }
@@ -239,6 +275,26 @@ class ActiveSessionController extends _$ActiveSessionController {
       await _stream?.dispose();
       _stream = null;
 
+      // Phase 09 plan 09-06 — flush any pending buffered fixes before
+      // tearing down the reveal pipeline. The provider's onDispose
+      // would also call dispose() (which itself flushes), but doing it
+      // here ahead of the state transition guarantees the flush runs
+      // BEFORE the next start() can race with a brand-new controller.
+      final stoppingId = _currentSessionId;
+      if (stoppingId != null) {
+        await _bestEffort('stop.revealFlush', () async {
+          final reveal = ref.read(
+            revealStreamingControllerProvider(stoppingId),
+          );
+          await reveal?.flush();
+          // Invalidate the family slot so the controller's onDispose
+          // (which itself flushes any remaining fixes + cancels the
+          // timer) fires now rather than racing with the next start().
+          ref.invalidate(revealStreamingControllerProvider(stoppingId));
+        });
+      }
+      _initialRevealDone = false;
+
       // Plan 05-05 auto-resume (iOS half) — release the CLLocationManager
       // significant-change subscription. Watchdog no-ops on non-iOS, and
       // swallows platform errors best-effort.
@@ -248,7 +304,9 @@ class ActiveSessionController extends _$ActiveSessionController {
       // A stale notification surfaces via _log.fine rather than going
       // unnoticed (CLAUDE.md §Error handling level 3).
       await _bestEffort('stop.dismiss', () async {
-        final notificationService = ref.read(sessionNotificationServiceProvider);
+        final notificationService = ref.read(
+          sessionNotificationServiceProvider,
+        );
         await notificationService.dismiss();
       });
 
@@ -288,7 +346,52 @@ class ActiveSessionController extends _$ActiveSessionController {
     // Riverpod-2 `valueOrNull` getter that no longer exists.
     final current = state.value;
     if (current is Tracking) {
-      state = AsyncData(current.copyWith(fixCount: current.fixCount + 1, lastFix: fix));
+      state = AsyncData(
+        current.copyWith(fixCount: current.fixCount + 1, lastFix: fix),
+      );
+    }
+
+    // Phase 09 plan 09-06 — initial-reveal slow path: first fix on a
+    // session that didn't have a cached lastKnownFix triggers the
+    // 20 m disc seed. Subsequent fixes are forwarded to onFix() for
+    // batched 25 m reveal writes.
+    final activeId = _currentSessionId;
+    if (activeId == null) return;
+    final reveal = ref.read(revealStreamingControllerProvider(activeId));
+    if (reveal == null) return;
+    if (!_initialRevealDone) {
+      await _writeInitialRevealIfReady(
+        fix,
+        sessionId: activeId,
+        reveal: reveal,
+      );
+    }
+    await reveal.onFix(fix);
+  }
+
+  /// Writes the initial 20 m reveal once per Tracking session. Idempotent
+  /// against re-entry — guarded by `_initialRevealDone`.
+  ///
+  /// [reveal] is optional; when omitted, a fresh read of the provider
+  /// is performed (used by the start() fast path where the controller
+  /// reference has not been threaded through).
+  Future<void> _writeInitialRevealIfReady(
+    Fix fix, {
+    required SessionId sessionId,
+    RevealStreamingController? reveal,
+  }) async {
+    if (_initialRevealDone) return;
+    final controller =
+        reveal ?? ref.read(revealStreamingControllerProvider(sessionId));
+    if (controller == null) return;
+    _initialRevealDone = true;
+    try {
+      await controller.revealInitial(fix);
+    } on Object catch (e, st) {
+      // Failed initial reveal is best-effort — the per-fix flush
+      // pipeline will paint subsequent reveals; a missing seed disc
+      // is recoverable noise (CLAUDE.md §Error handling level 3).
+      _log.warning('start.initialReveal', e, st);
     }
   }
 

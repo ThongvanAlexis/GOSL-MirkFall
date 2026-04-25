@@ -97,3 +97,37 @@ concurrent Plan 09-02 wave that is also touching `lib/domain/`.
 
 **Owner suggestion:** Phase 10 review gate or a follow-up `chore(format)` commit
 once Wave 2 of Phase 09 is complete and the working tree is quiescent.
+
+---
+
+### Plan 09-06 close (2026-04-25) — `backup_test.dart::rotate keeps the 3 newest` + `download_soak_test.dart::soak: rename_target_already_exists` flaky under full-suite parallel execution
+
+**Status at Plan 09-06 verification:** `flutter test` (full suite) shows 2 failures:
+- `test/infrastructure/db/backup_test.dart::rotate keeps the 3 newest by filename-embedded ISO timestamp when 4 exist`
+- `test/infrastructure/downloads/download_soak_test.dart::soak: rename_target_already_exists (Plan 08-04 Task 8) retry on already-installed pays overwrites cleanly + manifest holds one entry per alpha3 + zero leak`
+
+**Why deferred:** Plan 09-06 touches NONE of the backup, download, or filesystem
+infrastructure. Both files run cleanly in isolation:
+- `flutter test test/infrastructure/db/backup_test.dart` → 7/7 green.
+- `flutter test test/infrastructure/downloads/download_soak_test.dart` → 9/9 green.
+
+The failures only materialise under the full-suite parallel runner — same
+classic concurrent-tempfile / concurrent-DB-file flake pattern as the
+`atomic_renamer_test.dart` issue logged at Plan 09-05 close above. Per GSD
+SCOPE BOUNDARY, these are pre-existing issues independent of Plan 09-06's
+diff (no plan task touches backup rotation or download retry logic).
+
+**Plan 09-06-only verification (in scope):**
+- `flutter analyze --fatal-warnings --fatal-infos` zero issues across the
+  whole project.
+- `flutter test test/application/controllers/` (all controller tests
+  including the new RevealStreamingController, MirkStyleSessionController,
+  and ActiveSessionController initial-reveal suites): all green.
+- `flutter test test/infrastructure/stores/` (SessionStore extension):
+  all green.
+- `flutter test test/infrastructure/gps/` (LocationStream port extension):
+  all green.
+
+**Owner suggestion:** Phase 10 review gate. Both flaky tests likely need
+unique-temp-dir per test case to survive parallel execution — same
+pattern as the atomic_renamer_test fix that was already noted.
