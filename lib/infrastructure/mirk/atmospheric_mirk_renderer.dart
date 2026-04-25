@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
 import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Rect, Size;
 
+import 'package:logging/logging.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
@@ -21,6 +22,8 @@ import 'shader/fog_shader_service.dart';
 import 'shader/fog_shader_uniforms.dart';
 import 'tile_cell_iteration.dart';
 import 'wisp/wisp_particle_system.dart';
+
+final Logger _log = Logger('infrastructure.mirk.atmospheric');
 
 /// Atmospheric volumetric fog — TIER 2 shader-driven (BUG-009 fix).
 ///
@@ -117,6 +120,14 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// wisp system's advance step.
   double _lastTSec = 0.0;
 
+  /// Last path tag we INFO-logged ('shader' / 'fallback' / null at start).
+  /// We only log on transitions to avoid 60 Hz spam. Diagnostic-only
+  /// (BUG-009 follow-up — added 2026-04-25 to debug "all-grey solid fog").
+  String? _lastLoggedPath;
+
+  /// Frame counter for the FINE heartbeat log (every 60 frames ≈ 1 Hz).
+  int _paintCallCount = 0;
+
   /// Future that resolves to a `ui.FragmentProgram` (or null on load
   /// failure). Awaited by tests via [shaderReady].
   late final Future<ui.FragmentProgram?> _shaderLoadFuture;
@@ -176,6 +187,20 @@ class AtmosphericMirkRenderer implements MirkRenderer {
 
     final shader = _shader;
     final sdf = _sdfImage;
+    final pathThisFrame = (shader != null && sdf != null) ? 'shader' : 'fallback';
+    if (pathThisFrame != _lastLoggedPath) {
+      _log.info(
+        'paint(): path transition ${_lastLoggedPath ?? "(initial)"} → $pathThisFrame · shader=${shader != null} sdf=${sdf != null} sdfBuildInFlight=$_sdfBuildInFlight visibleTiles=${context.visibleTiles.length}',
+      );
+      _lastLoggedPath = pathThisFrame;
+    } else if (_paintCallCount % 60 == 0) {
+      // Heartbeat at ~1 Hz when in steady state — confirms paint() is
+      // still being called, useful when investigating "no fog visible".
+      _log.fine(
+        'paint(): heartbeat path=$pathThisFrame · frame=$_paintCallCount visibleTiles=${context.visibleTiles.length} sessionElapsed=${context.sessionElapsed.inMilliseconds}ms',
+      );
+    }
+    _paintCallCount++;
     if (shader != null && sdf != null) {
       _paintShaderPath(canvas, size, context, path, shader, sdf);
     } else {
@@ -364,6 +389,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     if (hash == _lastSdfHash && _sdfImage != null) return;
     _sdfBuildInFlight = true;
     _lastSdfHash = hash;
+    _log.fine('_refreshSdfIfNeeded: scheduling rebuild (hash=$hash visibleTiles=${context.visibleTiles.length})');
     _sdfBuilder
         .build(visibleTiles: context.visibleTiles, viewport: context.viewportBbox)
         .then((image) {
@@ -373,9 +399,10 @@ class AtmosphericMirkRenderer implements MirkRenderer {
           }
           _sdfImage?.dispose();
           _sdfImage = image;
+          _log.fine('_refreshSdfIfNeeded: rebuild complete — _sdfImage now set (${image.width}x${image.height})');
         })
-        .catchError((Object _) {
-          // Swallow — fallback path covers the missing-SDF case.
+        .catchError((Object e, StackTrace st) {
+          _log.severe('_refreshSdfIfNeeded: build FAILED — fallback path will activate', e, st);
         })
         .whenComplete(() {
           _sdfBuildInFlight = false;

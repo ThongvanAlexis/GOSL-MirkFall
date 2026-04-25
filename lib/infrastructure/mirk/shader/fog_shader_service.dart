@@ -4,6 +4,10 @@
 
 import 'dart:ui' as ui;
 
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('infrastructure.mirk.shader');
+
 /// Loader / cache for the volumetric fog `ui.FragmentProgram`.
 ///
 /// Phase 09 BUG-009 (TIER 2). The actual `.frag` body grows over the
@@ -61,12 +65,17 @@ class FogShaderService {
   /// it returns `null` — production never crashes on a missing shader.
   Future<ui.FragmentProgram?> load() {
     final cached = _programFuture;
-    if (cached != null) return cached;
+    if (cached != null) {
+      _log.fine('load(): returning cached future for $assetPath');
+      return cached;
+    }
+    _log.fine('load(): first call, kicking off _loadInternal for $assetPath');
     // Chain a side-effect capture so [obtainShaderSync] has a
     // synchronous handle on the program once the load resolves. The
     // captured value is null on load failure (matches the contract).
     final future = _loadInternal().then((program) {
       _resolvedProgram = program;
+      _log.fine('load(): _resolvedProgram set (${program == null ? "NULL — fallback path will activate" : "ok — shader path will activate"})');
       return program;
     });
     _programFuture = future;
@@ -79,12 +88,17 @@ class FogShaderService {
   /// platform-specific compilation errors. We don't care about the
   /// type — we only need a bool "did this succeed".
   Future<ui.FragmentProgram?> _loadInternal() async {
+    _log.info('FragmentProgram.fromAsset: loading $assetPath');
     try {
-      return await ui.FragmentProgram.fromAsset(assetPath);
-    } catch (_) {
-      // Swallow — caller falls back to Paint-only path. The exact
-      // failure mode is irrelevant to the renderer; a Paint-fallback
-      // is already a graceful degradation.
+      final program = await ui.FragmentProgram.fromAsset(assetPath);
+      _log.info('FragmentProgram.fromAsset: load OK ($assetPath)');
+      return program;
+    } on Object catch (e, st) {
+      // BUG-009 diagnostic: surface the exact failure mode. The previous
+      // silent swallow made it impossible to tell why the shader path
+      // wasn't activating in production (user's UAT walk on build a6dbf35
+      // showed all-grey solid fog = fallback Paint active).
+      _log.severe('FragmentProgram.fromAsset: FAILED for $assetPath', e, st);
       return null;
     }
   }
@@ -119,7 +133,11 @@ class FogShaderService {
   /// `await load()` first to guarantee a non-null return.
   ui.FragmentShader? obtainShaderSync() {
     final program = _resolvedProgram;
-    return program?.fragmentShader();
+    if (program == null) {
+      _log.fine('obtainShaderSync(): program not resolved yet (loading or failed) → null');
+      return null;
+    }
+    return program.fragmentShader();
   }
 
   /// Resolved program value — written by the [.then] callback chained

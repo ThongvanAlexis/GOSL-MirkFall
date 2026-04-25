@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
 import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Rect, Size;
 
+import 'package:logging/logging.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
@@ -21,6 +22,8 @@ import 'shader/fog_shader_service.dart';
 import 'shader/fog_shader_uniforms.dart';
 import 'tile_cell_iteration.dart';
 import 'wisp/wisp_particle_system.dart';
+
+final Logger _log = Logger('infrastructure.mirk.heavenly_clouds');
 
 /// Heavenly clouds — TIER 2 shader-driven (BUG-009 fix).
 ///
@@ -73,6 +76,12 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   final Map<int, Uint8List> _lastBitmapByTileKey = <int, Uint8List>{};
   double _lastTSec = 0.0;
 
+  /// BUG-009 follow-up diagnostic: last path tag we INFO-logged
+  /// ('shader' / 'fallback' / null at start). We only log on transitions
+  /// to avoid 60 Hz spam.
+  String? _lastLoggedPath;
+  int _paintCallCount = 0;
+
   late final Future<ui.FragmentProgram?> _shaderLoadFuture;
   ui.FragmentShader? _shader;
   ui.Image? _sdfImage;
@@ -103,6 +112,18 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
 
     final shader = _shader;
     final sdf = _sdfImage;
+    final pathThisFrame = (shader != null && sdf != null) ? 'shader' : 'fallback';
+    if (pathThisFrame != _lastLoggedPath) {
+      _log.info(
+        'paint(): path transition ${_lastLoggedPath ?? "(initial)"} → $pathThisFrame · shader=${shader != null} sdf=${sdf != null} sdfBuildInFlight=$_sdfBuildInFlight visibleTiles=${context.visibleTiles.length}',
+      );
+      _lastLoggedPath = pathThisFrame;
+    } else if (_paintCallCount % 60 == 0) {
+      _log.fine(
+        'paint(): heartbeat path=$pathThisFrame · frame=$_paintCallCount visibleTiles=${context.visibleTiles.length} sessionElapsed=${context.sessionElapsed.inMilliseconds}ms',
+      );
+    }
+    _paintCallCount++;
     if (shader != null && sdf != null) {
       _paintShaderPath(canvas, size, context, path, shader, sdf);
     } else {
@@ -246,6 +267,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     if (hash == _lastSdfHash && _sdfImage != null) return;
     _sdfBuildInFlight = true;
     _lastSdfHash = hash;
+    _log.fine('_refreshSdfIfNeeded: scheduling rebuild (hash=$hash visibleTiles=${context.visibleTiles.length})');
     _sdfBuilder
         .build(visibleTiles: context.visibleTiles, viewport: context.viewportBbox)
         .then((image) {
@@ -255,8 +277,11 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
           }
           _sdfImage?.dispose();
           _sdfImage = image;
+          _log.fine('_refreshSdfIfNeeded: rebuild complete — _sdfImage now set (${image.width}x${image.height})');
         })
-        .catchError((Object _) {})
+        .catchError((Object e, StackTrace st) {
+          _log.severe('_refreshSdfIfNeeded: build FAILED — fallback path will activate', e, st);
+        })
         .whenComplete(() {
           _sdfBuildInFlight = false;
         });

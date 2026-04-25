@@ -6,9 +6,12 @@ import 'dart:async' show Completer;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:logging/logging.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
+
+final Logger _log = Logger('infrastructure.mirk.sdf');
 
 /// Builds a CPU-side signed distance field (SDF) of the revealed area
 /// for a given viewport, encoded as a `ui.Image` ready to be passed to
@@ -96,6 +99,11 @@ class RevealedSdfBuilder {
   /// midpoint-128 convention; G/B/A are filled with the same byte
   /// (cheap, matches the noise-texture format, helps debug viewers).
   Future<ui.Image> build({required Iterable<VisibleMirkTile> visibleTiles, required MirkViewportBbox viewport}) async {
+    final tileList = visibleTiles.toList(growable: false);
+    final stopwatch = Stopwatch()..start();
+    _log.fine(
+      'build(): start — ${tileList.length} visible tiles · viewport=[${viewport.south.toStringAsFixed(4)}, ${viewport.west.toStringAsFixed(4)} → ${viewport.north.toStringAsFixed(4)}, ${viewport.east.toStringAsFixed(4)}]',
+    );
     final n = resolution;
     // Step 1: build an in/out seed grid. `seed[idx] = 1` if the
     // corresponding output pixel falls inside a revealed cell, `0`
@@ -110,12 +118,18 @@ class RevealedSdfBuilder {
     final dLon = viewport.east - viewport.west;
     if (dLat == 0 || dLon == 0) {
       // Degenerate viewport — return all-fog SDF.
+      _log.warning('build(): degenerate viewport (dLat=$dLat dLon=$dLon) → returning all-fog SDF');
       return _emptySdfImage();
     }
 
-    for (final tile in visibleTiles) {
+    for (final tile in tileList) {
       _markTileInSeed(seed, tile: tile, viewport: viewport, dLat: dLat, dLon: dLon, n: n);
     }
+    var seedSetCount = 0;
+    for (var i = 0; i < seed.length; i++) {
+      if (seed[i] != 0) seedSetCount++;
+    }
+    _log.fine('build(): seed grid filled — $seedSetCount / ${seed.length} pixels marked revealed (${(100.0 * seedSetCount / seed.length).toStringAsFixed(1)}%)');
 
     // Step 2: chamfer two-pass distance transform. Output `dist[i]` =
     // signed distance (in pixels) from cell i to the nearest opposite
@@ -140,7 +154,9 @@ class RevealedSdfBuilder {
 
     final completer = Completer<ui.Image>();
     ui.decodeImageFromPixels(pixels, n, n, ui.PixelFormat.rgba8888, completer.complete);
-    return completer.future;
+    final image = await completer.future;
+    _log.fine('build(): done in ${stopwatch.elapsedMilliseconds}ms — ui.Image ${image.width}x${image.height}');
+    return image;
   }
 
   /// Returns an all-fog SDF (every byte = 255). Used for empty inputs
