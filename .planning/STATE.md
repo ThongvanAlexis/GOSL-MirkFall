@@ -6,7 +6,7 @@ current_plan: 09-08 (closed); Phase 10 Review Gate — Fog now unblocked
 status: completed
 stopped_at: Completed quick-1-01-PLAN.md
 last_updated: "2026-04-25T12:01:52.077Z"
-last_activity: 2026-04-25
+last_activity: 2026-04-25 - Completed quick task 1: CI stores git commit SHA in app and logger prints it at startup
 progress:
   total_phases: 17
   completed_phases: 10
@@ -408,6 +408,12 @@ None yet.
 **Phase 04 blockers — ALL RESOLVED in Plan 04-05 (2026-04-19):**
 - ~~Zone mismatch crash (P4)~~ — fixed in commit e45339f (option b: both binding init + runApp inside runZonedGuarded). Re-walk confirmed clean by user.
 - ~~Pre-existing dart format drift (61 files)~~ — fixed in commit 35152e5 (chore(format) align with CI).
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | CI stores git commit SHA in app and logger prints it at startup | 2026-04-25 | e8a0c31 | [1-ci-stores-git-commit-sha-in-app-and-logg](./quick/1-ci-stores-git-commit-sha-in-app-and-logg/) |
 
 ## Session Continuity
 
