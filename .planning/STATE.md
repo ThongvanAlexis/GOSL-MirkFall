@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 09-02 (closed) — Phase 09 Wave 2 plans 09-02 + 09-03 both closed; Wave 3 unblocked
-status: Phase 09 Fog Rendering Wave 2 complete — 09-02 + 09-03 closed; Wave 3 unblocked (plan 09-04 + 09-05 + 09-06 + 09-07 + 09-08)
-stopped_at: Completed 09-02-PLAN.md (Wave 2 sibling — domain wiring: Freezed MirkPaintContext extension + 6-variant sealed union + simplex noise body)
-last_updated: "2026-04-25T04:27:18Z"
+current_plan: "09-04 (closed); Wave 3 in progress (4 plans remaining: 09-05 factory, 09-06 streaming controller, 09-07 overlay, 09-08 perf probe)"
+status: completed
+stopped_at: Completed 09-04-PLAN.md
+last_updated: "2026-04-25T04:48:50.228Z"
 last_activity: 2026-04-25
 progress:
   total_phases: 17
   completed_phases: 9
   total_plans: 57
-  completed_plans: 52
-  percent: 91
+  completed_plans: 53
+  percent: 93
 ---
 
 # Project State
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 5 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 ; 09-02 + 09-03 — Wave 2)
-Current Plan: 09-02 (closed); Wave 2 complete; Wave 3 unblocked
-Total Plans in Phase 09: 5 / 10 done (Wave 1: 09-01 + 09-01b + 09-01c ; Wave 2: 09-02 + 09-03)
-Status: Phase 09 Wave 2 complete — Freezed MirkPaintContext extension (3 → 6 fields) + 6-variant MirkStyleConfig sealed union + Ken Perlin 2001 simplex noise body all landed; renderer plans (09-04+) unblocked
+Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 6 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 ; 09-02 + 09-03 — Wave 2 ; 09-04 — Wave 3 plan-1-of-5)
+Current Plan: 09-04 (closed); Wave 3 in progress (4 plans remaining: 09-05 factory, 09-06 streaming controller, 09-07 overlay, 09-08 perf probe)
+Total Plans in Phase 09: 6 / 10 done
+Status: Phase 09 Wave 3 plan 09-04 complete — 4 concrete MirkRenderer implementations (atmospheric / solid / candlelight / heavenly_clouds) using Flutter CustomPainter primitives. Shared MirkProjection.latLonToScreen + buildUnrevealedCellsPath helpers. C(4,2)=6 pairwise visual-distinct outputs proving MIRK-06. ShaderMirkRenderer remains UnimplementedError stub (Phase 13).
 Last Activity: 2026-04-25
 
-Progress: [█████████░] 91% — 52 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 5/10 — 09-01 + 09-01b + 09-01c + 09-02 + 09-03).
+Progress: [█████████░] 93% — 53 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 6/10 — 09-01 + 09-01b + 09-01c + 09-02 + 09-03 + 09-04).
 
 ## Performance Metrics
 
@@ -98,6 +98,7 @@ Progress: [█████████░] 91% — 52 / 57 plans executed (Phase
 | Phase 09-fog-rendering P01c | 17 min | 3 tasks + 1 chore | 31 created (5 tool / 20 test scaffolds / 3 JSON fixtures / 3 fakes) + 3 modified (CI workflow + 2 test files) |
 | Phase 09-fog-rendering P03 | 6 min | 2 tasks | 4 files |
 | Phase 09-fog-rendering P02 | 28 min | 3 tasks (TDD: 3 RED + 3 GREEN commits) | 13 files (4 created + 9 modified, includes 4 generated .freezed.dart / .g.dart) |
+| Phase 09-fog-rendering P04 | 12 min | 4 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -350,6 +351,11 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09-fog-rendering]: Phase 09 plan 09-03: Retired Phase 03 'throws UnimplementedError' placeholder test in test/domain/reveal_calculator_test.dart — that contract is retired by 09-03 GREEN. Replaced with a forwarding comment to the new test/domain/revealed/ suite + a 'Phase 03 contract regression' test that asserts the canonical Uint8List(512) shape
 - [Phase 09-fog-rendering]: Phase 09 plan 09-03: Polar safety hardening — cos(centerLat) is clamped via TileMath.maxLatMercator before computing lonDegPerMeter. Without the clamp, a caller at lat=±90 degrees would zero-divide. The latLonToTile upstream clamp only protects the *tile* projection, not direct-to-kernel callers
 - [Phase 09-fog-rendering]: Phase 09 plan 09-03: Skipped Task 3 REFACTOR per the plan's optional clause — the Task 2 body is ~80 lines split into 3 well-commented logical sections (defensive prelude / bbox prune / cell loop). Extracting _clipCellRange and _circleBboxIntersectsParent would replace inline arithmetic with record-typed function calls (visual indirection without clarity gain)
+- [Phase 09-fog-rendering]: Plan 09-04: 4 concrete MirkRenderer implementations using Flutter CustomPainter primitives (Canvas + Path + Paint + MaskFilter.blur + Gradient.radial). Single SimplexNoise2D instance per renderer with optional seed parameter. Animation phase via context.sessionElapsed (no frameElapsed sibling - research-consolidated single time source per plan 09-02 SUMMARY).
+- [Phase 09-fog-rendering]: Plan 09-04: empty-Path skip optimisation (path.getBounds().isEmpty -> continue) before canvas.drawPath in all 4 renderers. Required for the all-revealed-tile picture-byte-count assertion to differ from all-unrevealed; also saves a small amount of GPU command bytes on fully-revealed tiles in production.
+- [Phase 09-fog-rendering]: Plan 09-04: CandlelightMirkRenderer falls back to viewport centre when context.currentFix == null. Keeps the warm radial-gradient glow visible before the first fix lands or after a signal loss; avoids 'gradient disappears' UX cliff.
+- [Phase 09-fog-rendering]: Plan 09-04: Per-renderer default seed varies (Atmospheric=42, Candlelight=17, HeavenlyClouds=91). Different seeds across animated variants minimise noise-pattern correlation. Constructor-overridable for tests + future per-style customisation.
+- [Phase 09-fog-rendering]: Plan 09-04: MirkPaintContext / VisibleMirkTile Freezed types NOT touched - plan 09-04 CONSUMES context.viewportBbox / context.visibleTiles / context.currentFix through the constructor. Plan 09-02 remains the single Phase 09 MirkPaintContext extension event (revision B3 discipline preserved).
 
 ### Roadmap Evolution
 
@@ -380,6 +386,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-25T04:07:14.748Z
-Stopped at: Completed 09-03-PLAN.md (Wave 2 plan-of-2 — computeRevealMask body landed; Phase 09 4/10 plans done)
+Last session: 2026-04-25T04:48:50.223Z
+Stopped at: Completed 09-04-PLAN.md
 Resume file: None
