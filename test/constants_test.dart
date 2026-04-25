@@ -32,8 +32,13 @@ void main() {
   // UAT-walk log truncation (records < threshold sat in buffer until
   // OS suspended the process). See lib/config/constants.dart docstrings
   // for the rationale.
-  test('kFileLoggerFlushEveryNRecords is 5 (lowered from 20 — UAT-walk reliability fix)', () {
-    expect(kFileLoggerFlushEveryNRecords, equals(5));
+  //
+  // Lowered again 2026-04-25 from 5 → 1 (flush on every record) after a
+  // second UAT walk on 935b9de still lost mirk-stack records mid-session.
+  // TEMPORARY DIAGNOSTIC VALUE — the eventual fix is a ring-buffer +
+  // flusher isolate; until then we accept the per-record fsync cost.
+  test('kFileLoggerFlushEveryNRecords is 1 (DIAGNOSTIC — flush every record, BUG-009 follow-up)', () {
+    expect(kFileLoggerFlushEveryNRecords, equals(1));
     expect(kFileLoggerFlushEveryNRecords, isA<int>());
   });
 

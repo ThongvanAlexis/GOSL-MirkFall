@@ -39,20 +39,27 @@ const int kShareCallTimeoutMilliseconds = 30000;
 /// observer in `main.dart`. Balances the per-record fsync cost against
 /// acceptable data-loss window on abrupt process termination.
 ///
-/// Lowered 2026-04-25 from 20 to 5 after a UAT walk produced a log file
-/// that ended mid-session because the post-install activity emitted
-/// fewer than 20 INFO records and no SHOUT, so the buffer never flushed
-/// before the user grabbed the file. 5 quadruples the worst-case fsync
-/// frequency in exchange for a tighter loss window — acceptable on a
-/// single-user, single-window personal app where reliable debug logs
-/// outrank ~µs of extra disk syncs per record.
+/// TEMPORARY DIAGNOSTIC VALUE (2026-04-25, BUG-009 follow-up): lowered to
+/// 1 (flush on every single record) after a second UAT walk on commit
+/// 935b9de still produced log files that ended mid-session — both at
+/// pmtiles-install boundary and at first GPS fix — with ZERO mirk-stack
+/// records persisted despite the user observing the fog visual on screen.
+/// The previous 5-record threshold was still racing iOS process suspension
+/// and abrupt foreground-service kills: even one record between two events
+/// could be lost if the OS didn't grant a flush window before suspending.
 ///
-/// FOLLOW-UP: this cadence-based bound is a pragmatic patch. The proper
-/// fix is the periodic timed flush controlled by
-/// [kFileLoggerFlushPeriodSeconds] (already in place); a future cleanup
-/// can drop the cadence-based bound entirely and rely on
-/// timer + lifecycle + shout, removing the per-record counter.
-const int kFileLoggerFlushEveryNRecords = 5;
+/// Cost: every Logger call triggers a userspace fsync on the IOSink. On
+/// modern mobile flash this is sub-millisecond per call, but it does
+/// serialise the writer. Acceptable on a single-user single-window
+/// personal app during diagnostic iteration.
+///
+/// PROPER FIX (post BUG-009 close-out): the eventual right architecture is
+/// a non-blocking ring buffer drained by a dedicated flusher isolate so
+/// the producer never pays the I/O cost on the call site. Once BUG-009 is
+/// fully resolved this constant can be raised again (5–20 range) or, if
+/// the ring-buffer-isolate lands, the per-record counter dropped entirely
+/// in favour of timer + lifecycle + shout.
+const int kFileLoggerFlushEveryNRecords = 1;
 
 /// Periodic backstop flush interval (seconds) for the FileLogger sink.
 /// Guarantees a maximum data-loss window of this many seconds regardless
