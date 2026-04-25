@@ -681,3 +681,29 @@ const double kMirkFogWispDeathRadiusPx = 22.0;
 /// of wisps doesn't bleach the fog underneath. 0.35 is a comfortable
 /// non-overwhelming peak.
 const double kMirkFogWispPeakAlpha = 0.35;
+
+/// DIAGNOSTIC TOGGLE (BUG-009 follow-up, 2026-04-25). When true, the
+/// atmospheric fog shader replaces its final colour mix with a raw
+/// density visualisation: `fragColor = vec4(dN, dN, dN, 1.0)` where dN
+/// is the normalised post-FBM density driving the highlight↔shadow lerp.
+///
+/// Why this exists: the previous BUG-009 round bumped the curl/light/hue
+/// constants but the user reports the fog body still looks uniformly
+/// indigo with no volumetric variation. Two possible root causes:
+///   (a) noise IS varying spatially but the colour-mix math collapses it
+///   (b) noise ISN'T varying — uTime stuck, uniforms not propagating, or
+///       the FBM sum is degenerate
+/// Flipping this toggle to true and rebuilding gives the answer on
+/// device: if dN reads as a clear noise pattern → (a) — colour math is
+/// the bottleneck. If dN reads uniform → (b) — fix the noise pipeline.
+///
+/// IMPORTANT: this Dart constant is the source of truth for the project,
+/// but GLSL cannot read Dart constants. The shader carries a paired
+/// `#define MIRK_FOG_DEBUG_OUTPUT_DENSITY` block that must be flipped
+/// in lockstep — see `assets/shaders/atmospheric_fog.frag` near the top
+/// of `main()`. A future cleanup could route this through a uniform
+/// (1 float, 0/1) but that costs an extra branch per fragment for a
+/// dev-only toggle, so the inline `#define` is the right tool today.
+///
+/// Default: false (production output).
+const bool kMirkFogDebugOutputDensity = false;

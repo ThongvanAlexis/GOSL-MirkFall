@@ -338,5 +338,16 @@ void main() {
       expect(kMirkFogWispPeakAlpha, equals(0.35));
       expect(kMirkFogWispPeakAlpha, lessThan(1.0));
     });
+
+    // Diagnostic toggle for raw density visualisation in the fog shader.
+    // Default false = production colour output. The matching GLSL
+    // `#define MIRK_FOG_DEBUG_OUTPUT_DENSITY` lives in
+    // `assets/shaders/atmospheric_fog.frag` and must be flipped in
+    // lockstep — the Dart constant is documentation + test surface, the
+    // GLSL `#define` is what actually changes shader output.
+    test('kMirkFogDebugOutputDensity defaults to false (production output)', () {
+      expect(kMirkFogDebugOutputDensity, isFalse);
+      expect(kMirkFogDebugOutputDensity, isA<bool>());
+    });
   });
 }

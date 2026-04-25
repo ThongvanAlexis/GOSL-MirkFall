@@ -36,6 +36,21 @@
 
 precision mediump float;
 
+// ---------- Diagnostic toggle (BUG-009 follow-up, 2026-04-25) ----------
+//
+// When MIRK_FOG_DEBUG_OUTPUT_DENSITY is defined, the shader bypasses
+// the colour-mix / boundary-alpha pipeline and outputs the raw post-FBM
+// density `dN` as opaque grey. Lets the user verify on-device whether
+// the noise itself is varying spatially or whether the colour-mix math
+// is collapsing the contrast.
+//
+// MUST be kept in lockstep with `kMirkFogDebugOutputDensity` in
+// `lib/config/constants.dart`. To activate: uncomment the #define below
+// AND set the Dart constant to true, then rebuild the app.
+//
+// Default: commented out (production output).
+//#define MIRK_FOG_DEBUG_OUTPUT_DENSITY
+
 // ---------- Uniforms (vec2/vec3/vec4/float only — no int/bool/mat3/mat4) ----------
 
 // Viewport size in screen pixels. Slot 0..1.
@@ -283,5 +298,14 @@ void main() {
     float densityAlpha = mix(0.55, 1.0, dN);
     float finalAlpha = uBase.a * densityAlpha * boundaryAlpha;
 
-    fragColor = vec4(fogColor, finalAlpha);
+    #ifdef MIRK_FOG_DEBUG_OUTPUT_DENSITY
+        // DIAGNOSTIC: visualise raw density spatially. Should show a clear
+        // noise pattern if the FBM stack is healthy. A uniform grey here
+        // means the noise itself is degenerate (uTime stuck, uOffset
+        // suspect, FBM sum collapsing). See lib/config/constants.dart
+        // §kMirkFogDebugOutputDensity for the toggle protocol.
+        fragColor = vec4(dN, dN, dN, 1.0);
+    #else
+        fragColor = vec4(fogColor, finalAlpha);
+    #endif
 }
