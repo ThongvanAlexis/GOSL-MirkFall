@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 09-01b (closed) — Phase 09 Wave 1 still has 09-01c outstanding
-status: Phase 09 Fog Rendering Wave 1 in progress — 09-01 + 09-01b closed; 09-01c may be running in parallel
-stopped_at: Completed 09-01b-PLAN.md (Wave 0 scaffold Part 2/3 — 21 lib/ source scaffolds across domain / infrastructure / application / presentation)
-last_updated: "2026-04-25T05:55:00.000Z"
+current_plan: 09-01c (closed) — Phase 09 Wave 1 complete; Wave 2 unblocked (plans 09-02 + 09-03)
+status: Phase 09 Fog Rendering Wave 1 complete — 09-01 + 09-01b + 09-01c closed; Wave 2 unblocked
+stopped_at: Completed 09-01c-PLAN.md (Wave 0 scaffold Part 3/3 — 22 test scaffolds + 3 JSON fixtures + 3 fakes + 5 tool files + 2 CI gates)
+last_updated: "2026-04-25T03:53:06.000Z"
 last_activity: 2026-04-25
 progress:
   total_phases: 17
   completed_phases: 9
   total_plans: 57
-  completed_plans: 50
-  percent: 88
+  completed_plans: 51
+  percent: 89
 ---
 
 # Project State
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 2 / 10 plans closed (09-01 + 09-01b)
-Current Plan: 09-01b (closed); 09-01c may be running concurrently in Wave 1
-Total Plans in Phase 09: 2 / 10 done (Wave 1 has 3 parallel plans: 09-01 closed, 09-01b closed, 09-01c TBD)
-Status: Phase 09 Wave 1 in progress; 09-01b lib/ scaffold layer landed
+Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 3 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 complete)
+Current Plan: 09-01c (closed); Wave 2 unblocked (plans 09-02 + 09-03 ready)
+Total Plans in Phase 09: 3 / 10 done (Wave 1 fully closed: 09-01 + 09-01b + 09-01c)
+Status: Phase 09 Wave 1 complete — scaffolds landed across constants/lib/test layers; Wave 2 unblocked
 Last Activity: 2026-04-25
 
-Progress: [█████████░] 88% — 50 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 2/10 — 09-01 + 09-01b).
+Progress: [█████████░] 89% — 51 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 3/10 — 09-01 + 09-01b + 09-01c).
 
 ## Performance Metrics
 
@@ -95,6 +95,7 @@ Progress: [█████████░] 88% — 50 / 57 plans executed (Phase
 | Phase 08.1-rereview-post-walk P04 | ~12 min | 4 tasks (2 verification-only + 1 decision-flow N=0 + 1 §4 populate) | 1 file (08.1-REVIEW.md §4) + SUMMARY.md |
 | Phase 09 P01 | 6 min | 3 tasks | 4 files |
 | Phase 09-fog-rendering P01b | ~12 min | 3 tasks | 21 files (lib/ scaffolds: 2 domain + 8 infrastructure + 8 application + 3 presentation) |
+| Phase 09-fog-rendering P01c | 17 min | 3 tasks + 1 chore | 31 created (5 tool / 20 test scaffolds / 3 JSON fixtures / 3 fakes) + 3 modified (CI workflow + 2 test files) |
 
 ## Accumulated Context
 
@@ -328,6 +329,12 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09-fog-rendering Plan 09-01b]: AtmosphericMirkRenderer accepts `AtmosphericConfig` in constructor (Phase 03 type already exists), but SolidFillMirkRenderer / CandlelightMirkRenderer / HeavenlyCloudsMirkRenderer take no config arg — their `*Config` sealed variants don't exist until Wave 2 plan 09-02 extends MirkStyleConfig. ShaderMirkRenderer also takes no config (Phase 13 supplies signature change). TODO markers in each renderer call out the Wave 2/4 promotion.
 - [Phase 09-fog-rendering Plan 09-01b]: VisibleMirkTile uses `Uint8List` (dart:typed_data, Dart stdlib) — `check_domain_purity` allows it (gate forbids only `package:flutter/*` and `package:drift/*`), no fallback to `List<int>` needed. Pre-emptive fallback was speculatively allowed in plan but not triggered.
 - [Phase 09-fog-rendering Plan 09-01b]: Wave 1 cross-plan independence proven empirically — 09-01b's `flutter analyze lib` is green even while 09-01c's untracked test scaffolds carry their own pre-existing analyzer error (testWidgets `skip:` parameter type mismatch). 09-01 and 09-01b independently logged the same observation in `.planning/phases/09-fog-rendering/deferred-items.md`. Confirms the three Wave 1 plans (09-01, 09-01b, 09-01c) consume nothing from each other and can run in parallel.
+- [Phase 09-fog-rendering Plan 09-01c]: testWidgets skip parameter is `bool?` not `String?` (flutter_test/widget_tester.dart:151) — load-bearing 'Wave N — plan 09-NN' marker moved to body comment immediately above the `}, skip: true);` close. Preserves grep target for downstream wave executors. Reusable convention for any Phase 09+ scaffold using flutter_test.
+- [Phase 09-fog-rendering Plan 09-01c]: check_mirk_variant_file_count.dart implements REAL logic in Wave 0 (1 file per variant gate, 6 expected basenames Set, intersection diff, exit 0/1/2 per Phase 01 contract) — WHILE check_mirk_fixture_fresh.dart stays inert (exit 0) until Wave 7. Variant-count gate is structural enforcement consumed by 09-01b's 6 renderer scaffolds (active gate the moment Wave 1 closes). Fixture-fresh has no fixture to diff against until plan 09-08 — wiring CI now is the lockable workflow edit, not the body.
+- [Phase 09-fog-rendering Plan 09-01c]: --root=<path> argv override pattern locked for paired tool tests — same shape as Phase 07's `tool/check_avoid_maplibre_leak.dart`'s `runCheck({String? rootPath})`. Lets paired test fixtures drive the scanner against synthetic temp trees built with `Directory.systemTemp.createTemp`. Reusable for every Phase 09+ structural CI gate.
+- [Phase 09-fog-rendering Plan 09-01c]: Wave 0 scaffold doc-comments referencing yet-unimplemented symbols (e.g. `computeRevealMask`) handled by extending the existing `compute_reveal_mask_no_callers_test.dart` allow-list rather than purging the symbol from doc-comments. Preserves scaffold documentation value AND matches the existing `allowedTestSite` precedent (test/domain/reveal_calculator_test.dart). Pattern reusable for future Wave 0 gates wherever `*_no_callers_test.dart` guards exist.
+- [Phase 09-fog-rendering Plan 09-01c]: Fakes deliberately do NOT `implements <real surface>` in Wave 0 unless the surface is already frozen (FakeMirkRenderer DOES implement MirkRenderer because Phase 07 froze it; FakeRevealStreamingController + FakeMirkStyleSessionController stay standalone until Wave 5/6 lands the real surface). Records-of-named-fields pattern (`({double lat, double lon, double accuracyMeters, DateTime timestampUtc})`) lets fakes record argument fidelity without dragging Wave 2+ Freezed types into Wave 0.
+- [Phase 09-fog-rendering Plan 09-01c]: Pre-existing `dart format` drift on `test/constants_test.dart` (sibling 09-01 commit fd158f3 + Phase 07 commit 6311cf2) surfaced during 09-01c closing verification — fixed via separate `chore(09-01c)` atomic commit per Phase 04-04's "Pre-existing 61-file format drift" precedent. CLAUDE.md scope-boundary rule respected: documented as out-of-scope but unblocking the closing CI dart-format check.
 
 ### Roadmap Evolution
 
@@ -358,6 +365,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-25T03:42:54.306Z
-Stopped at: Completed 09-01-PLAN.md (Wave 0 scaffold Part 1/3 — Phase 09 fog-rendering constants + dart_test mirk-perf tag + style_layer_order docstring + constants_test Phase 09 regression group)
+Last session: 2026-04-25T03:53:06.000Z
+Stopped at: Completed 09-01c-PLAN.md (Wave 0 scaffold Part 3/3 — 22 test scaffolds + 3 JSON fixtures + 3 fakes + 5 tool files + 2 CI gates wired)
 Resume file: None
