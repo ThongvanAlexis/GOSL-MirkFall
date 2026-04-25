@@ -3,19 +3,24 @@
 // See LICENSE file for details
 
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
-import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Paint, PaintingStyle, Rect, Size;
+import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Rect, Size;
 
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
+import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 
+import 'mirk_projection.dart';
 import 'noise/simplex_noise_2d.dart';
 import 'sdf/revealed_sdf_builder.dart';
 import 'shader/fog_shader_service.dart';
 import 'shader/fog_shader_uniforms.dart';
 import 'tile_cell_iteration.dart';
+import 'wisp/wisp_particle_system.dart';
 
 /// Heavenly clouds — TIER 2 shader-driven (BUG-009 fix).
 ///
@@ -34,11 +39,17 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config], an optional [seed] for
   /// per-instance shader perturbation, an injected [shaderService],
   /// and an injected [sdfBuilder].
-  HeavenlyCloudsMirkRenderer(this.config, {int seed = 91, FogShaderService? shaderService, RevealedSdfBuilder sdfBuilder = const RevealedSdfBuilder()})
-    : _seed = seed,
-      _noise = SimplexNoise2D(seed: seed),
-      _shaderService = shaderService ?? FogShaderService(),
-      _sdfBuilder = sdfBuilder {
+  HeavenlyCloudsMirkRenderer(
+    this.config, {
+    int seed = 91,
+    FogShaderService? shaderService,
+    RevealedSdfBuilder sdfBuilder = const RevealedSdfBuilder(),
+    WispParticleSystem? wispSystem,
+  }) : _seed = seed,
+       _noise = SimplexNoise2D(seed: seed),
+       _shaderService = shaderService ?? FogShaderService(),
+       _sdfBuilder = sdfBuilder,
+       _wispSystem = wispSystem ?? WispParticleSystem(rngSeed: seed) {
     _shaderLoadFuture = _shaderService.load();
   }
 
@@ -56,6 +67,11 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
 
   final FogShaderService _shaderService;
   final RevealedSdfBuilder _sdfBuilder;
+  final WispParticleSystem _wispSystem;
+
+  /// Last-paint snapshot of revealed-cell bitmaps per parent tile.
+  final Map<int, Uint8List> _lastBitmapByTileKey = <int, Uint8List>{};
+  double _lastTSec = 0.0;
 
   late final Future<ui.FragmentProgram?> _shaderLoadFuture;
   ui.FragmentShader? _shader;
@@ -77,13 +93,79 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     if (path.getBounds().isEmpty) return;
     _shader ??= _shaderService.obtainShaderSync();
     _refreshSdfIfNeeded(context: context, canvasSize: size);
+
+    // Spawn wisps for newly revealed cells + advance the system.
+    _spawnWispsForNewlyRevealed(context: context, canvasSize: size);
+    final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
+    final dt = (tSec - _lastTSec).clamp(0.0, 0.1);
+    _wispSystem.advance(dt);
+    _lastTSec = tSec;
+
     final shader = _shader;
     final sdf = _sdfImage;
     if (shader != null && sdf != null) {
       _paintShaderPath(canvas, size, context, path, shader, sdf);
+    } else {
+      _paintFallbackPath(canvas, size, context, path);
+    }
+
+    // Wisps render last — additive over the fog body. Heavenly uses a
+    // warmer wisp tint to read as "sunlit cloud puff".
+    canvas.save();
+    canvas.clipPath(path);
+    _wispSystem.render(canvas, const Color(0xFFF8F0E2));
+    canvas.restore();
+  }
+
+  /// Same logic as the atmospheric renderer — diff bitmap to find
+  /// newly-revealed cells and spawn wisps. Duplicated here because
+  /// each renderer owns its own [WispParticleSystem] and bitmap
+  /// snapshots; pulling into a shared helper would impose a state-
+  /// management coupling that doesn't simplify the call sites.
+  void _spawnWispsForNewlyRevealed({required MirkPaintContext context, required Size canvasSize}) {
+    for (final tile in context.visibleTiles) {
+      final key = (tile.parentX << 16) ^ tile.parentY;
+      final last = _lastBitmapByTileKey[key];
+      if (last == null) {
+        _lastBitmapByTileKey[key] = Uint8List.fromList(tile.bitmap);
+        continue;
+      }
+      for (var byteIdx = 0; byteIdx < tile.bitmap.length; byteIdx++) {
+        final newByte = tile.bitmap[byteIdx];
+        final oldByte = last[byteIdx];
+        if (newByte == oldByte) continue;
+        final flipped = newByte & ~oldByte;
+        if (flipped == 0) continue;
+        for (var bit = 0; bit < 8; bit++) {
+          if ((flipped & (1 << bit)) == 0) continue;
+          final bitIndex = byteIdx * 8 + bit;
+          final j = bitIndex ~/ kRevealedTileSubgridSize;
+          final i = bitIndex % kRevealedTileSubgridSize;
+          _spawnWispForCell(tile: tile, cellI: i, cellJ: j, viewport: context.viewportBbox, canvasSize: canvasSize);
+        }
+      }
+      _lastBitmapByTileKey[key] = Uint8List.fromList(tile.bitmap);
+    }
+  }
+
+  void _spawnWispForCell({
+    required VisibleMirkTile tile,
+    required int cellI,
+    required int cellJ,
+    required MirkViewportBbox viewport,
+    required Size canvasSize,
+  }) {
+    final cellLatSpan = (tile.tileNorthLat - tile.tileSouthLat) / kRevealedTileSubgridSize;
+    final cellLonSpan = (tile.tileEastLon - tile.tileWestLon) / kRevealedTileSubgridSize;
+    final cellCentreLat = tile.tileNorthLat - (cellJ + 0.5) * cellLatSpan;
+    final cellCentreLon = tile.tileWestLon + (cellI + 0.5) * cellLonSpan;
+    final centre = MirkProjection.latLonToScreen(lat: cellCentreLat, lon: cellCentreLon, viewport: viewport, size: canvasSize);
+    if (centre.dx < -50 || centre.dx > canvasSize.width + 50 || centre.dy < -50 || centre.dy > canvasSize.height + 50) {
       return;
     }
-    _paintFallbackPath(canvas, size, context, path);
+    final angle = (cellI * 13 + cellJ * 17) * 0.6283185;
+    final direction = Offset(math.cos(angle), math.sin(angle));
+    _wispSystem.spawnAtCellCenter(position: centre, direction: direction);
   }
 
   void _paintShaderPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path, ui.FragmentShader shader, ui.Image sdf) {
@@ -214,5 +296,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     _shader = null;
     _sdfImage?.dispose();
     _sdfImage = null;
+    _wispSystem.clear();
+    _lastBitmapByTileKey.clear();
   }
 }

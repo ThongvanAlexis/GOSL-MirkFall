@@ -3,19 +3,24 @@
 // See LICENSE file for details
 
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
-import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Paint, PaintingStyle, Rect, Size;
+import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Rect, Size;
 
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
+import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 
+import 'mirk_projection.dart';
 import 'noise/simplex_noise_2d.dart';
 import 'sdf/revealed_sdf_builder.dart';
 import 'shader/fog_shader_service.dart';
 import 'shader/fog_shader_uniforms.dart';
 import 'tile_cell_iteration.dart';
+import 'wisp/wisp_particle_system.dart';
 
 /// Atmospheric volumetric fog — TIER 2 shader-driven (BUG-009 fix).
 ///
@@ -68,11 +73,17 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config], an optional [seed] for
   /// deterministic noise / shader perturbation, an injected
   /// [shaderService] (for tests), and an injected [sdfBuilder].
-  AtmosphericMirkRenderer(this.config, {int seed = 42, FogShaderService? shaderService, RevealedSdfBuilder sdfBuilder = const RevealedSdfBuilder()})
-    : _seed = seed,
-      _noise = SimplexNoise2D(seed: seed),
-      _shaderService = shaderService ?? FogShaderService(),
-      _sdfBuilder = sdfBuilder {
+  AtmosphericMirkRenderer(
+    this.config, {
+    int seed = 42,
+    FogShaderService? shaderService,
+    RevealedSdfBuilder sdfBuilder = const RevealedSdfBuilder(),
+    WispParticleSystem? wispSystem,
+  }) : _seed = seed,
+       _noise = SimplexNoise2D(seed: seed),
+       _shaderService = shaderService ?? FogShaderService(),
+       _sdfBuilder = sdfBuilder,
+       _wispSystem = wispSystem ?? WispParticleSystem(rngSeed: seed) {
     // Kick off the shader load early — first frames may render the
     // fallback path while the future resolves.
     _shaderLoadFuture = _shaderService.load();
@@ -95,6 +106,16 @@ class AtmosphericMirkRenderer implements MirkRenderer {
 
   final FogShaderService _shaderService;
   final RevealedSdfBuilder _sdfBuilder;
+  final WispParticleSystem _wispSystem;
+
+  /// Last-paint snapshot of revealed-cell bitmaps per parent tile.
+  /// Used to compute the diff "newly revealed since last frame" for
+  /// wisp spawning.
+  final Map<int, Uint8List> _lastBitmapByTileKey = <int, Uint8List>{};
+
+  /// Last-paint sessionElapsed in seconds. Used to compute dt for the
+  /// wisp system's advance step.
+  double _lastTSec = 0.0;
 
   /// Future that resolves to a `ui.FragmentProgram` (or null on load
   /// failure). Awaited by tests via [shaderReady].
@@ -143,16 +164,102 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     // schedule an async rebuild whose result we'll see on the NEXT paint.
     _refreshSdfIfNeeded(context: context, canvasSize: size);
 
+    // Diff against last frame's bitmaps to find newly-revealed cells →
+    // spawn wisps along their SDF gradient.
+    _spawnWispsForNewlyRevealed(context: context, canvasSize: size);
+
+    // Advance wisps by the elapsed delta since last paint.
+    final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
+    final dt = (tSec - _lastTSec).clamp(0.0, 0.1); // Cap dt at 100 ms to absorb hangs / pauses.
+    _wispSystem.advance(dt);
+    _lastTSec = tSec;
+
     final shader = _shader;
     final sdf = _sdfImage;
     if (shader != null && sdf != null) {
       _paintShaderPath(canvas, size, context, path, shader, sdf);
-      return;
+    } else {
+      // Fallback: solid fog at base palette colour. No noise, no
+      // animation — the shader path is what produces texture in TIER 2.
+      _paintFallbackPath(canvas, size, context, path);
     }
 
-    // Fallback: solid fog at base palette colour. No noise, no
-    // animation — the shader path is what produces texture in TIER 2.
-    _paintFallbackPath(canvas, size, context, path);
+    // Wisps render LAST — additive on top of the fog body.
+    canvas.save();
+    canvas.clipPath(path);
+    _wispSystem.render(canvas, const Color(0xFFE0E6F0)); // Light cool tint.
+    canvas.restore();
+  }
+
+  /// Diff each visible tile's current bitmap against [_lastBitmapByTileKey];
+  /// for every cell that flipped 0→1 (newly revealed), spawn wisps at
+  /// the cell's screen-space centre with velocity along the cell's
+  /// SDF gradient (approximated by the cell's offset from the parent
+  /// tile centre — the gradient direction is "outward from revealed
+  /// area").
+  void _spawnWispsForNewlyRevealed({required MirkPaintContext context, required Size canvasSize}) {
+    for (final tile in context.visibleTiles) {
+      final key = (tile.parentX << 16) ^ tile.parentY;
+      final last = _lastBitmapByTileKey[key];
+      if (last == null) {
+        // First time we've seen this tile this session — record the
+        // bitmap as baseline. Existing revealed cells do NOT spawn
+        // wisps retroactively (they would on every fresh viewport
+        // intersection — way too many wisps).
+        _lastBitmapByTileKey[key] = Uint8List.fromList(tile.bitmap);
+        continue;
+      }
+      // Iterate bytes; a byte that changed indicates >= 1 cell flip.
+      for (var byteIdx = 0; byteIdx < tile.bitmap.length; byteIdx++) {
+        final newByte = tile.bitmap[byteIdx];
+        final oldByte = last[byteIdx];
+        if (newByte == oldByte) continue;
+        // Find cells that flipped 0→1.
+        final flipped = newByte & ~oldByte;
+        if (flipped == 0) continue;
+        for (var bit = 0; bit < 8; bit++) {
+          if ((flipped & (1 << bit)) == 0) continue;
+          final bitIndex = byteIdx * 8 + bit;
+          final j = bitIndex ~/ kRevealedTileSubgridSize;
+          final i = bitIndex % kRevealedTileSubgridSize;
+          _spawnWispForCell(tile: tile, cellI: i, cellJ: j, viewport: context.viewportBbox, canvasSize: canvasSize);
+        }
+      }
+      // Update baseline. Copy because the source Uint8List may be
+      // mutated by the next provider rebuild.
+      _lastBitmapByTileKey[key] = Uint8List.fromList(tile.bitmap);
+    }
+  }
+
+  /// Computes the screen-space centre of cell ([cellI], [cellJ]) of
+  /// [tile], then spawns wisps there with velocity along the SDF
+  /// gradient. Gradient direction is approximated as "from the cell
+  /// centre toward the parent tile centre, then negated" — wisps stream
+  /// OUT of the revealed area into the surrounding fog.
+  void _spawnWispForCell({
+    required VisibleMirkTile tile,
+    required int cellI,
+    required int cellJ,
+    required MirkViewportBbox viewport,
+    required Size canvasSize,
+  }) {
+    final cellLatSpan = (tile.tileNorthLat - tile.tileSouthLat) / kRevealedTileSubgridSize;
+    final cellLonSpan = (tile.tileEastLon - tile.tileWestLon) / kRevealedTileSubgridSize;
+    final cellCentreLat = tile.tileNorthLat - (cellJ + 0.5) * cellLatSpan;
+    final cellCentreLon = tile.tileWestLon + (cellI + 0.5) * cellLonSpan;
+    final centre = MirkProjection.latLonToScreen(lat: cellCentreLat, lon: cellCentreLon, viewport: viewport, size: canvasSize);
+    // Skip if cell centre is far off-screen (saves wisp budget for
+    // visible action).
+    if (centre.dx < -50 || centre.dx > canvasSize.width + 50 || centre.dy < -50 || centre.dy > canvasSize.height + 50) {
+      return;
+    }
+    // Direction: outward from the cell. Approximate by random unit
+    // vector — the SDF gradient at the cell is hard to compute on the
+    // hot path. Random-direction wisps give a "puff dispersing
+    // omnidirectionally" reading which is visually acceptable.
+    final angle = (cellI * 13 + cellJ * 17) * 0.6283185; // Cheap deterministic angle.
+    final direction = Offset(math.cos(angle), math.sin(angle));
+    _wispSystem.spawnAtCellCenter(position: centre, direction: direction);
   }
 
   /// Shader path — clip to fog path, draw a viewport-filling rect with
@@ -321,5 +428,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     _shader = null;
     _sdfImage?.dispose();
     _sdfImage = null;
+    _wispSystem.clear();
+    _lastBitmapByTileKey.clear();
   }
 }
