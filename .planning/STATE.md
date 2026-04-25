@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 09-01c (closed) — Phase 09 Wave 1 complete; Wave 2 unblocked (plans 09-02 + 09-03)
-status: Phase 09 Fog Rendering Wave 1 complete — 09-01 + 09-01b + 09-01c closed; Wave 2 unblocked
-stopped_at: Completed 09-01c-PLAN.md (Wave 0 scaffold Part 3/3 — 22 test scaffolds + 3 JSON fixtures + 3 fakes + 5 tool files + 2 CI gates)
-last_updated: "2026-04-25T03:53:06.000Z"
+current_plan: 09-03 (closed); Wave 2 partially complete (09-03 done, 09-02 may still be running concurrently)
+status: Phase 09 Fog Rendering Wave 2 in progress — 09-03 complete; 09-02 status to be reconciled at next checkpoint
+stopped_at: Completed 09-03-PLAN.md (Wave 2 — computeRevealMask body landed; Phase 09 4/10 plans done)
+last_updated: "2026-04-25T04:08:43.336Z"
 last_activity: 2026-04-25
 progress:
   total_phases: 17
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 3 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 complete)
-Current Plan: 09-01c (closed); Wave 2 unblocked (plans 09-02 + 09-03 ready)
-Total Plans in Phase 09: 3 / 10 done (Wave 1 fully closed: 09-01 + 09-01b + 09-01c)
-Status: Phase 09 Wave 1 complete — scaffolds landed across constants/lib/test layers; Wave 2 unblocked
+Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 4 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 ; 09-03 — Wave 2)
+Current Plan: 09-03 (closed); Wave 2 partially complete (09-03 done; 09-02 may still be running concurrently)
+Total Plans in Phase 09: 4 / 10 done (Wave 1: 09-01 + 09-01b + 09-01c ; Wave 2: 09-03)
+Status: Phase 09 Wave 2 in progress — computeRevealMask body landed via bbox-first prune + Haversine clamp (~0.6 µs/call at r=25 m, ~80× under the 50 µs perf budget)
 Last Activity: 2026-04-25
 
-Progress: [█████████░] 89% — 51 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 3/10 — 09-01 + 09-01b + 09-01c).
+Progress: [█████████░] 89% — 51 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 4/10 — 09-01 + 09-01b + 09-01c + 09-03).
 
 ## Performance Metrics
 
@@ -96,6 +96,7 @@ Progress: [█████████░] 89% — 51 / 57 plans executed (Phase
 | Phase 09 P01 | 6 min | 3 tasks | 4 files |
 | Phase 09-fog-rendering P01b | ~12 min | 3 tasks | 21 files (lib/ scaffolds: 2 domain + 8 infrastructure + 8 application + 3 presentation) |
 | Phase 09-fog-rendering P01c | 17 min | 3 tasks + 1 chore | 31 created (5 tool / 20 test scaffolds / 3 JSON fixtures / 3 fakes) + 3 modified (CI workflow + 2 test files) |
+| Phase 09-fog-rendering P03 | 6 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -335,6 +336,12 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09-fog-rendering Plan 09-01c]: Wave 0 scaffold doc-comments referencing yet-unimplemented symbols (e.g. `computeRevealMask`) handled by extending the existing `compute_reveal_mask_no_callers_test.dart` allow-list rather than purging the symbol from doc-comments. Preserves scaffold documentation value AND matches the existing `allowedTestSite` precedent (test/domain/reveal_calculator_test.dart). Pattern reusable for future Wave 0 gates wherever `*_no_callers_test.dart` guards exist.
 - [Phase 09-fog-rendering Plan 09-01c]: Fakes deliberately do NOT `implements <real surface>` in Wave 0 unless the surface is already frozen (FakeMirkRenderer DOES implement MirkRenderer because Phase 07 froze it; FakeRevealStreamingController + FakeMirkStyleSessionController stay standalone until Wave 5/6 lands the real surface). Records-of-named-fields pattern (`({double lat, double lon, double accuracyMeters, DateTime timestampUtc})`) lets fakes record argument fidelity without dragging Wave 2+ Freezed types into Wave 0.
 - [Phase 09-fog-rendering Plan 09-01c]: Pre-existing `dart format` drift on `test/constants_test.dart` (sibling 09-01 commit fd158f3 + Phase 07 commit 6311cf2) surfaced during 09-01c closing verification — fixed via separate `chore(09-01c)` atomic commit per Phase 04-04's "Pre-existing 61-file format drift" precedent. CLAUDE.md scope-boundary rule respected: documented as out-of-scope but unblocking the closing CI dart-format check.
+- [Phase 09-fog-rendering]: Phase 09 plan 09-03: computeRevealMask body landed via bbox-first prune + per-cell Haversine clamp; benchmark 0.61 us/call at r=25m and 4.77 us/call at r=120m on commodity Windows hardware (debug VM) — both ~80x under the 50us perf budget
+- [Phase 09-fog-rendering]: Phase 09 plan 09-03: observed popcount = 4 set bits at (lat 45 deg, r=25m, fix at parent tile centre). The 09-RESEARCH 20-25 estimate assumed 10m cells; actual cells at z=14 lat 45 are ~24m x 27m, so pi*r^2/cellArea ~ 3 cells of pure area + edge-clip = 4. Test bound widened from [10,40] to [3,12] in Task 2 per the plan's escape-hatch clause
+- [Phase 09-fog-rendering]: Phase 09 plan 09-03: Used existing project constant kRevealedTileSubgridSize (=64) instead of plan-spec'd kRevealedTileBitmapCellsPerSide (does not exist in lib/config/constants.dart). Avoids adding a duplicate alias — Rule 3 blocking auto-fix
+- [Phase 09-fog-rendering]: Phase 09 plan 09-03: Retired Phase 03 'throws UnimplementedError' placeholder test in test/domain/reveal_calculator_test.dart — that contract is retired by 09-03 GREEN. Replaced with a forwarding comment to the new test/domain/revealed/ suite + a 'Phase 03 contract regression' test that asserts the canonical Uint8List(512) shape
+- [Phase 09-fog-rendering]: Phase 09 plan 09-03: Polar safety hardening — cos(centerLat) is clamped via TileMath.maxLatMercator before computing lonDegPerMeter. Without the clamp, a caller at lat=±90 degrees would zero-divide. The latLonToTile upstream clamp only protects the *tile* projection, not direct-to-kernel callers
+- [Phase 09-fog-rendering]: Phase 09 plan 09-03: Skipped Task 3 REFACTOR per the plan's optional clause — the Task 2 body is ~80 lines split into 3 well-commented logical sections (defensive prelude / bbox prune / cell loop). Extracting _clipCellRange and _circleBboxIntersectsParent would replace inline arithmetic with record-typed function calls (visual indirection without clarity gain)
 
 ### Roadmap Evolution
 
@@ -365,6 +372,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-25T03:53:06.000Z
-Stopped at: Completed 09-01c-PLAN.md (Wave 0 scaffold Part 3/3 — 22 test scaffolds + 3 JSON fixtures + 3 fakes + 5 tool files + 2 CI gates wired)
+Last session: 2026-04-25T04:07:14.748Z
+Stopped at: Completed 09-03-PLAN.md (Wave 2 plan-of-2 — computeRevealMask body landed; Phase 09 4/10 plans done)
 Resume file: None
