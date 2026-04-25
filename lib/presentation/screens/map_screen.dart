@@ -22,12 +22,18 @@ import 'package:mirkfall/infrastructure/map/style_rewriter.dart';
 import '../widgets/map_attribution_icon.dart';
 import '../widgets/map_country_banner.dart';
 import '../widgets/map_follow_me_fab.dart';
+import '../widgets/mirk_initial_reveal_fade.dart';
+import '../widgets/mirk_overlay.dart';
 import '../widgets/session_burger_menu.dart';
 
 /// Builder signature used for injecting a fake map widget in widget tests
 /// without dragging MapLibre into the test runner. Production code always
 /// goes through the default [MapLibreMapViewWidget] constructor.
-typedef MapViewWidgetBuilder = Widget Function({required StyleRewriter styleRewriter, required ValueChanged<MapView> onReady});
+typedef MapViewWidgetBuilder =
+    Widget Function({
+      required StyleRewriter styleRewriter,
+      required ValueChanged<MapView> onReady,
+    });
 
 /// Full-screen map route (`/map`).
 ///
@@ -151,13 +157,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final AsyncValue<StyleRewriter> rewriterAsync = ref.watch(styleRewriterProvider);
+    final AsyncValue<StyleRewriter> rewriterAsync = ref.watch(
+      styleRewriterProvider,
+    );
     // Still watch pmtilesSource: it warms the on-disk cache + catalog
     // prerequisites that the style rewriter depends on transitively.
     // We don't USE the value directly here (the rewriter owns PMTiles
     // URI rewriting), but awaiting the future keeps MapLibre from
     // constructing against a half-wired context.
-    final AsyncValue<PmtilesSource> sourceAsync = ref.watch(pmtilesSourceProvider);
+    final AsyncValue<PmtilesSource> sourceAsync = ref.watch(
+      pmtilesSourceProvider,
+    );
 
     // Infrastructure prerequisites (style rewriter + pmtiles source) are
     // FutureProvider-backed; surface a loading / error shell until they
@@ -179,7 +189,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
-  Widget _buildLoading() => const Center(child: CircularProgressIndicator.adaptive());
+  Widget _buildLoading() =>
+      const Center(child: CircularProgressIndicator.adaptive());
 
   Widget _buildError(String message) => Center(
     child: Padding(
@@ -203,10 +214,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // `docs/phase-07-ios-animate-camera-crash.md`. Supplying the
     // camera through the widget constructor avoids that code path
     // entirely for the initial positioning.
-    final ActiveSessionState? sessionState = ref.watch(activeSessionControllerProvider).value;
+    final ActiveSessionState? sessionState = ref
+        .watch(activeSessionControllerProvider)
+        .value;
     final Tracking? tracking = sessionState is Tracking ? sessionState : null;
     final CameraLatLngZoom initialCamera = tracking?.lastFix != null
-        ? CameraLatLngZoom(latitude: tracking!.lastFix!.latitude, longitude: tracking.lastFix!.longitude, zoom: kInitialSessionMapZoom.toDouble())
+        ? CameraLatLngZoom(
+            latitude: tracking!.lastFix!.latitude,
+            longitude: tracking.lastFix!.longitude,
+            zoom: kInitialSessionMapZoom.toDouble(),
+          )
         : const CameraLatLngZoom(latitude: 0, longitude: 0, zoom: 2);
     // Seed the initial style with the country containing the active
     // session's lastFix. Done via a stateless point-in-polygon lookup
@@ -229,14 +246,40 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (tracking?.lastFix != null) {
       initialCountry = ref
           .read(countryResolverControllerProvider.notifier)
-          .resolveForPoint(latitude: tracking!.lastFix!.latitude, longitude: tracking.lastFix!.longitude, zoom: kInitialSessionMapZoom.toDouble());
+          .resolveForPoint(
+            latitude: tracking!.lastFix!.latitude,
+            longitude: tracking.lastFix!.longitude,
+            zoom: kInitialSessionMapZoom.toDouble(),
+          );
     }
     final Widget mapWidget = widget.mapViewBuilderForTest != null
-        ? widget.mapViewBuilderForTest!(styleRewriter: rewriter, onReady: _onMapReady)
-        : MapLibreMapViewWidget(styleRewriter: rewriter, onReady: _onMapReady, initialCamera: initialCamera, initialCountry: initialCountry);
+        ? widget.mapViewBuilderForTest!(
+            styleRewriter: rewriter,
+            onReady: _onMapReady,
+          )
+        : MapLibreMapViewWidget(
+            styleRewriter: rewriter,
+            onReady: _onMapReady,
+            initialCamera: initialCamera,
+            initialCountry: initialCountry,
+          );
     return Stack(
       children: <Widget>[
         Positioned.fill(child: mapWidget),
+        // Phase 09 mirk overlay — sibling of the MapLibre platform view
+        // (per 09-RESEARCH §Pitfall 2 — MapLibre is a platform view,
+        // opaque to Flutter's paint pipeline; the overlay must sit
+        // ABOVE it in the Stack, NOT inside it). Wrapped in
+        // MirkInitialRevealFade so the initial 20 m reveal fades from
+        // opacity 0 → 1 over 500 ms at session start.
+        // RepaintBoundary isolates the noise tick from the rest of the
+        // Stack — the map's display list is never invalidated by the
+        // mirk Ticker.
+        const Positioned.fill(
+          child: RepaintBoundary(
+            child: MirkInitialRevealFade(child: MirkOverlay()),
+          ),
+        ),
         // Top-left controls: back button (when poppable) + burger menu.
         // Back stays left-most so the iOS pattern "back = top-left" is
         // preserved. Android also gets the button — harmless next to the
@@ -248,7 +291,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              if (Navigator.of(context).canPop()) ...<Widget>[const _BackButton(), const SizedBox(width: 8.0)],
+              if (Navigator.of(context).canPop()) ...<Widget>[
+                const _BackButton(),
+                const SizedBox(width: 8.0),
+              ],
               _MenuButton(scaffoldKey: _scaffoldKey),
             ],
           ),
@@ -257,11 +303,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         Positioned(
           right: 16.0,
           bottom: MediaQuery.of(context).padding.bottom + 80.0,
-          child: const Column(mainAxisSize: MainAxisSize.min, children: <Widget>[MapFollowMeFab(), SizedBox(height: 12.0), MapAttributionIcon()]),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              MapFollowMeFab(),
+              SizedBox(height: 12.0),
+              MapAttributionIcon(),
+            ],
+          ),
         ),
         // Bottom-centre country banner (hidden by default — the widget
         // returns SizedBox.shrink() when the viewport IS installed).
-        const Positioned(left: 0.0, right: 0.0, bottom: 0.0, child: SafeArea(child: MapCountryBanner())),
+        const Positioned(
+          left: 0.0,
+          right: 0.0,
+          bottom: 0.0,
+          child: SafeArea(child: MapCountryBanner()),
+        ),
       ],
     );
   }
@@ -288,7 +346,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // previous Future.delayed(Duration.zero) for SchedulerBinding's
     // post-frame callback to make the "wait until the current frame
     // commits" intent explicit in the API used.
-    SchedulerBinding.instance.addPostFrameCallback((_) => _publishMapViewAfterFrame(adapter));
+    SchedulerBinding.instance.addPostFrameCallback(
+      (_) => _publishMapViewAfterFrame(adapter),
+    );
   }
 
   /// Publishes the [MapView] adapter to [mapViewProvider] and, when a
@@ -314,7 +374,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _publishMapViewAfterFrame(MapView adapter) {
     if (!mounted) return;
     ref.read(mapViewProvider.notifier).set(adapter);
-    final ActiveSessionState? sessionState = ref.read(activeSessionControllerProvider).value;
+    final ActiveSessionState? sessionState = ref
+        .read(activeSessionControllerProvider)
+        .value;
     if (sessionState is Tracking) {
       // Phase 07-07 probe B (2026-04-22) — re-enable openForSession
       // after confirming the crash disappears with `user_location`
@@ -325,7 +387,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       // Fire-and-forget: openForSession is async but the widget doesn't
       // need to block on it — the controller publishes state changes
       // through Riverpod which propagate back via the FAB's ref.watch.
-      unawaited(ref.read(mapCameraControllerProvider.notifier).openForSession(sessionState.sessionId));
+      unawaited(
+        ref
+            .read(mapCameraControllerProvider.notifier)
+            .openForSession(sessionState.sessionId),
+      );
     }
   }
 }

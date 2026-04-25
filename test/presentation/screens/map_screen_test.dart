@@ -51,7 +51,8 @@ class _FakeMapWidgetState extends State<_FakeMapWidget> {
   }
 
   @override
-  Widget build(BuildContext context) => const ColoredBox(color: Color(0xFFEFEFEF));
+  Widget build(BuildContext context) =>
+      const ColoredBox(color: Color(0xFFEFEFEF));
 }
 
 /// Fake resolver controller that seeds the country-resolver state.
@@ -73,20 +74,25 @@ class _FakeActiveSessionController extends ActiveSessionController {
   ActiveSessionState build() => seed;
 }
 
-Fix _fix({required SessionId sid, required double lat, required double lon}) => Fix(
-  id: FixId.parse('fix_01ARZ3NDEKTSV4RRFFQ69G5FAV'),
-  sessionId: sid,
-  recordedAtUtc: DateTime.utc(2026, 4, 21, 10, 30),
-  recordedAtOffsetMinutes: 120,
-  latitude: lat,
-  longitude: lon,
-  accuracyMeters: 10.0,
-  speedMps: 1.0,
-  headingDegrees: 0.0,
-);
+Fix _fix({required SessionId sid, required double lat, required double lon}) =>
+    Fix(
+      id: FixId.parse('fix_01ARZ3NDEKTSV4RRFFQ69G5FAV'),
+      sessionId: sid,
+      recordedAtUtc: DateTime.utc(2026, 4, 21, 10, 30),
+      recordedAtOffsetMinutes: 120,
+      latitude: lat,
+      longitude: lon,
+      accuracyMeters: 10.0,
+      speedMps: 1.0,
+      headingDegrees: 0.0,
+    );
 
 CountryCatalog _oneCountryCatalog() {
-  final ChunkPart part = ChunkPart(sha256: 'a' * 64, size: 1000, url: 'https://example.com/releases/download/v1/fra.part01');
+  final ChunkPart part = ChunkPart(
+    sha256: 'a' * 64,
+    size: 1000,
+    url: 'https://example.com/releases/download/v1/fra.part01',
+  );
   return CountryCatalog(
     countries: <CountryEntry>[
       CountryEntry(
@@ -117,57 +123,111 @@ void main() {
     }
   });
 
-  Widget wrapScreen({required FakeMapView fakeMapView, CountryResolverState? resolverSeed, ActiveSessionState? sessionSeed}) {
+  Widget wrapScreen({
+    required FakeMapView fakeMapView,
+    CountryResolverState? resolverSeed,
+    ActiveSessionState? sessionSeed,
+  }) {
     return ProviderScope(
       overrides: [
         appSupportDirProvider.overrideWith((ref) async => tmpDir.path),
-        installedManifestRepositoryProvider.overrideWith((ref) async => fakeRepo),
-        countryCatalogProvider.overrideWith((ref) async => _oneCountryCatalog()),
-        if (resolverSeed != null) countryResolverControllerProvider.overrideWith(() => _FakeResolverController(seed: resolverSeed)),
-        if (sessionSeed != null) activeSessionControllerProvider.overrideWith(() => _FakeActiveSessionController(seed: sessionSeed)),
+        installedManifestRepositoryProvider.overrideWith(
+          (ref) async => fakeRepo,
+        ),
+        countryCatalogProvider.overrideWith(
+          (ref) async => _oneCountryCatalog(),
+        ),
+        if (resolverSeed != null)
+          countryResolverControllerProvider.overrideWith(
+            () => _FakeResolverController(seed: resolverSeed),
+          ),
+        if (sessionSeed != null)
+          activeSessionControllerProvider.overrideWith(
+            () => _FakeActiveSessionController(seed: sessionSeed),
+          ),
       ],
       child: MaterialApp(
         home: MapScreen(
-          mapViewBuilderForTest: ({required StyleRewriter styleRewriter, required ValueChanged<MapView> onReady}) {
-            return _FakeMapWidget(onReady: onReady, fakeMapView: fakeMapView);
-          },
+          mapViewBuilderForTest:
+              ({
+                required StyleRewriter styleRewriter,
+                required ValueChanged<MapView> onReady,
+              }) {
+                return _FakeMapWidget(
+                  onReady: onReady,
+                  fakeMapView: fakeMapView,
+                );
+              },
         ),
       ),
     );
   }
 
-  testWidgets('renders map stack: burger button + follow-me FAB + attribution icon', (tester) async {
-    final fakeMapView = FakeMapView();
-    await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'renders map stack: burger button + follow-me FAB + attribution icon',
+    (tester) async {
+      final fakeMapView = FakeMapView();
+      await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView));
+      // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
+      // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+      // here: the route bootstrap + post-frame callbacks land in 2-3
+      // frames and we don't need the test to wait for animations.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
 
-    // Burger menu trigger.
-    expect(find.byIcon(Icons.menu), findsOneWidget);
-    // Follow-me FAB is present (any MapFollowMeFab instance).
-    expect(find.byType(MapFollowMeFab), findsOneWidget);
-    // Attribution icon is present.
-    expect(find.byType(MapAttributionIcon), findsOneWidget);
-  });
+      // Burger menu trigger.
+      expect(find.byIcon(Icons.menu), findsOneWidget);
+      // Follow-me FAB is present (any MapFollowMeFab instance).
+      expect(find.byType(MapFollowMeFab), findsOneWidget);
+      // Attribution icon is present.
+      expect(find.byType(MapAttributionIcon), findsOneWidget);
+    },
+  );
 
-  testWidgets('country banner surfaces when viewport NOT in installed', (tester) async {
+  testWidgets('country banner surfaces when viewport NOT in installed', (
+    tester,
+  ) async {
     final fakeMapView = FakeMapView();
-    final CountryResolverState seed = CountryResolverState(viewportCountry: CountryCode.parse('deu'));
-    await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed));
-    await tester.pumpAndSettle();
+    final CountryResolverState seed = CountryResolverState(
+      viewportCountry: CountryCode.parse('deu'),
+    );
+    await tester.pumpWidget(
+      wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed),
+    );
+    // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
+    // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+    // here: the route bootstrap + post-frame callbacks land in 2-3
+    // frames and we don't need the test to wait for animations.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.byType(MapCountryBanner), findsOneWidget);
-    expect(find.text('Carte détaillée de Allemagne disponible dans Paramètres › Télécharger une carte'), findsOneWidget);
+    expect(
+      find.text(
+        'Carte détaillée de Allemagne disponible dans Paramètres › Télécharger une carte',
+      ),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('country banner absent when viewport IS installed', (tester) async {
+  testWidgets('country banner absent when viewport IS installed', (
+    tester,
+  ) async {
     final fakeMapView = FakeMapView();
     final CountryResolverState seed = CountryResolverState(
       activeCountry: CountryCode.parse('deu'),
       viewportCountry: CountryCode.parse('deu'),
       viewportInInstalled: true,
     );
-    await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed));
-    await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed),
+    );
+    // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
+    // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+    // here: the route bootstrap + post-frame callbacks land in 2-3
+    // frames and we don't need the test to wait for animations.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
     // The MapCountryBanner widget is mounted but renders SizedBox.shrink
     // — so no text with "Carte détaillée" appears.
@@ -177,57 +237,81 @@ void main() {
   testWidgets('tap on menu icon opens the drawer', (tester) async {
     final fakeMapView = FakeMapView();
     await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView));
-    await tester.pumpAndSettle();
+    // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
+    // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+    // here: the route bootstrap + post-frame callbacks land in 2-3
+    // frames and we don't need the test to wait for animations.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
     await tester.tap(find.byIcon(Icons.menu));
-    await tester.pumpAndSettle();
+    // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
+    // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+    // here: the route bootstrap + post-frame callbacks land in 2-3
+    // frames and we don't need the test to wait for animations.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
     // Drawer open — "MirkFall" header is present.
     expect(find.text('MirkFall'), findsOneWidget);
     expect(find.text('Aucune session active'), findsOneWidget);
   });
 
-  testWidgets('reaching /map with an active Tracking session auto-opens the camera controller (FAB transitions out of Idle)', (tester) async {
-    // Regression guard: previously, MapScreen published the MapView
-    // adapter but never called MapCameraController.openForSession(). If
-    // a user started a session then navigated to /map via the SessionList
-    // "Ouvrir la carte" entry, the controller stayed in MapCameraIdle
-    // and the follow-me FAB misleadingly asked them to start a session
-    // that was already running.
-    final SessionId sid = SessionId.parse('sess_01ARZ3NDEKTSV4RRFFQ69G5FAV');
-    final Tracking tracking = Tracking(
-      sessionId: sid,
-      startedAtUtc: DateTime.now().toUtc().subtract(const Duration(seconds: 30)),
-      fixCount: 1,
-      distanceFilterMeters: kDefaultDistanceFilterMeters,
-      lastFix: _fix(sid: sid, lat: 48.8566, lon: 2.3522),
-    );
+  testWidgets(
+    'reaching /map with an active Tracking session auto-opens the camera controller (FAB transitions out of Idle)',
+    (tester) async {
+      // Regression guard: previously, MapScreen published the MapView
+      // adapter but never called MapCameraController.openForSession(). If
+      // a user started a session then navigated to /map via the SessionList
+      // "Ouvrir la carte" entry, the controller stayed in MapCameraIdle
+      // and the follow-me FAB misleadingly asked them to start a session
+      // that was already running.
+      final SessionId sid = SessionId.parse('sess_01ARZ3NDEKTSV4RRFFQ69G5FAV');
+      final Tracking tracking = Tracking(
+        sessionId: sid,
+        startedAtUtc: DateTime.now().toUtc().subtract(
+          const Duration(seconds: 30),
+        ),
+        fixCount: 1,
+        distanceFilterMeters: kDefaultDistanceFilterMeters,
+        lastFix: _fix(sid: sid, lat: 48.8566, lon: 2.3522),
+      );
 
-    final fakeMapView = FakeMapView();
-    await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, sessionSeed: tracking));
-    await tester.pumpAndSettle();
+      final fakeMapView = FakeMapView();
+      await tester.pumpWidget(
+        wrapScreen(fakeMapView: fakeMapView, sessionSeed: tracking),
+      );
+      // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
+      // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+      // here: the route bootstrap + post-frame callbacks land in 2-3
+      // frames and we don't need the test to wait for animations.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
 
-    // Read the camera controller state through a fresh ProviderContainer
-    // scoped at the same ProviderScope — pump + settle already exercised
-    // the PostFrameCallback that fires onReady → openForSession.
-    final BuildContext context = tester.element(find.byType(MapFollowMeFab));
-    final ProviderContainer container = ProviderScope.containerOf(context);
-    final MapCameraState cameraState = container.read(mapCameraControllerProvider);
+      // Read the camera controller state through a fresh ProviderContainer
+      // scoped at the same ProviderScope — pump + settle already exercised
+      // the PostFrameCallback that fires onReady → openForSession.
+      final BuildContext context = tester.element(find.byType(MapFollowMeFab));
+      final ProviderContainer container = ProviderScope.containerOf(context);
+      final MapCameraState cameraState = container.read(
+        mapCameraControllerProvider,
+      );
 
-    // State is Following (lastFix present → openForSession goes straight
-    // to Following, skipping Centering).
-    expect(cameraState, isA<MapCameraFollowing>());
-    expect((cameraState as MapCameraFollowing).sessionId, equals(sid));
+      // State is Following (lastFix present → openForSession goes straight
+      // to Following, skipping Centering).
+      expect(cameraState, isA<MapCameraFollowing>());
+      expect((cameraState as MapCameraFollowing).sessionId, equals(sid));
 
-    // Phase 07-07 (2026-04-22): openForSession no longer issues a
-    // camera-moving method-channel call. The initial camera
-    // positioning flows through MapLibreMap's `initialCameraPosition`
-    // at widget-build time (see `_buildMapStack` in map_screen.dart).
-    // The FakeMapView used in this test ignores that prop (it's
-    // supplied via the `mapViewBuilderForTest` typedef which doesn't
-    // pass initial camera). So we only assert the state transition +
-    // follow-me side-effects that openForSession still owns.
-    expect(fakeMapView.isFollowMeEnabled, isTrue);
-    expect(fakeMapView.cameraMovesObserved, isEmpty);
-  });
+      // Phase 07-07 (2026-04-22): openForSession no longer issues a
+      // camera-moving method-channel call. The initial camera
+      // positioning flows through MapLibreMap's `initialCameraPosition`
+      // at widget-build time (see `_buildMapStack` in map_screen.dart).
+      // The FakeMapView used in this test ignores that prop (it's
+      // supplied via the `mapViewBuilderForTest` typedef which doesn't
+      // pass initial camera). So we only assert the state transition +
+      // follow-me side-effects that openForSession still owns.
+      expect(fakeMapView.isFollowMeEnabled, isTrue);
+      expect(fakeMapView.cameraMovesObserved, isEmpty);
+    },
+  );
 }
