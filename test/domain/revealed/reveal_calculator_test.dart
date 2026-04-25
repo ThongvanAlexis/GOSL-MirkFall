@@ -63,18 +63,21 @@ void main() {
         kRevealedTileBitmapBytes,
         reason: 'mask must be 512 bytes (64×64 bits)',
       );
-      // At lat 45° / z=14 the parent tile is ~2444 m × 1727 m → cells ~38 m × 27 m.
-      // A 25 m disc at the centre touches ~10 to 40 cells (varies with grid alignment + MIRK-03 edge clip).
+      // At lat 45° / z=14 the parent tile is ~1727 m × 1535 m → cells ~27 m × 24 m.
+      // A 25 m disc area is π·25² ≈ 1963 m² ≈ 3 cells of pure area; with the
+      // MIRK-03 rectangle-intersection clip this lands around 3 to 12 cells
+      // (orientation/alignment-dependent). The bounds stay loose so future
+      // grid-rounding micro-changes do not break this case spuriously.
       final setBits = popcount(mask);
       expect(
         setBits,
-        greaterThanOrEqualTo(10),
-        reason: 'expected ≥ 10 cells revealed for a 25 m disc at lat 45°',
+        greaterThanOrEqualTo(3),
+        reason: 'expected ≥ 3 cells revealed for a 25 m disc at lat 45°',
       );
       expect(
         setBits,
-        lessThanOrEqualTo(40),
-        reason: 'expected ≤ 40 cells revealed for a 25 m disc at lat 45°',
+        lessThanOrEqualTo(12),
+        reason: 'expected ≤ 12 cells revealed for a 25 m disc at lat 45°',
       );
     });
 
