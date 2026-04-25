@@ -208,8 +208,8 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 - [x] 09-fog-rendering/09-02-PLAN.md — Wave 2: MirkPaintContext + VisibleMirkTile + MirkStyleConfig (6 variants) Freezed extensions + SimplexNoise2D body (Ken Perlin 2001) — single MirkPaintContext extension event (completed 2026-04-25)
 - [x] 09-fog-rendering/09-03-PLAN.md — Wave 2: computeRevealMask body (TDD with explicit RED / GREEN / REFACTOR tasks — bbox prune + Haversine per-cell intersect) (completed 2026-04-25)
 - [x] 09-fog-rendering/09-04-PLAN.md — Wave 3: 4 concrete MirkRenderer implementations (atmospheric/solid/candlelight/heavenly_clouds) + MirkProjection + tile_cell_iteration helpers (consume-only, no Freezed re-extension) (completed 2026-04-25)
-- [ ] 09-fog-rendering/09-05-PLAN.md — Wave 4: MirkRendererFactory + kBuiltinMirkStyles registry + 3 Riverpod providers with concrete ProviderContainer override snippets + lifecycle dispose
-- [ ] 09-fog-rendering/09-06-PLAN.md — Wave 5: RevealStreamingController (2s/20fix batch) + MirkStyleSessionController + ActiveSessionController initial-20m hook + LocationStream.lastKnownFix port extension
+- [x] 09-fog-rendering/09-05-PLAN.md — Wave 4: MirkRendererFactory + kBuiltinMirkStyles registry + 3 Riverpod providers with concrete ProviderContainer override snippets + lifecycle dispose (completed 2026-04-25)
+- [x] 09-fog-rendering/09-06-PLAN.md — Wave 5: RevealStreamingController (2s/20fix batch) + MirkStyleSessionController + ActiveSessionController initial-20m hook + LocationStream.lastKnownFix port extension (completed 2026-04-25)
 - [ ] 09-fog-rendering/09-07-PLAN.md — Wave 6: MirkOverlay + MirkInitialRevealFade (500ms fade) + mapViewportProvider + MirkStylePickerSheet + burger menu wire-up + MapScreen integration
 - [ ] 09-fog-rendering/09-08-PLAN.md — Wave 7: 50k fixture builder + perf test + RepaintBoundary isolation + viewport filtering tests + _harness.dart + fake_revealed_tile_store extensions + docs closure
 
@@ -313,7 +313,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 | 07. Map Integration | 7/7 | Complete    | 2026-04-23 |
 | 08. Review Gate — Map | 5/5 | Complete    | 2026-04-24 |
 | 08.1 Re-Review — Post-Walk Audit (INSERTED) | 5/5 | Complete    | 2026-04-24 |
-| 09. Fog Rendering | 7/10 | In Progress|  |
+| 09. Fog Rendering | 8/10 | In Progress|  |
 | 10. Review Gate — Fog | 0/TBD | Not started | - |
 | 11. Markers & Categories | 0/TBD | Not started | - |
 | 12. Review Gate — Markers | 0/TBD | Not started | - |

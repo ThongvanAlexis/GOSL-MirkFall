@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: "09-05 (closed); Wave 3 in progress (3 plans remaining: 09-06 streaming controller, 09-07 overlay, 09-08 perf probe)"
+current_plan: "09-06 (closed); Wave 3 in progress (2 plans remaining: 09-07 overlay, 09-08 perf probe)"
 status: completed
-stopped_at: Completed 09-05-PLAN.md
-last_updated: "2026-04-25T06:19:11Z"
+stopped_at: Completed 09-06-PLAN.md
+last_updated: "2026-04-25T07:01:10Z"
 last_activity: 2026-04-25
 progress:
   total_phases: 17
   completed_phases: 9
   total_plans: 57
-  completed_plans: 54
-  percent: 95
+  completed_plans: 55
+  percent: 96
 ---
 
 # Project State
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 7 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 ; 09-02 + 09-03 — Wave 2 ; 09-04 + 09-05 — Wave 3 plans-1-and-2-of-5)
-Current Plan: 09-05 (closed); Wave 3 in progress (3 plans remaining: 09-06 streaming controller, 09-07 overlay, 09-08 perf probe)
-Total Plans in Phase 09: 7 / 10 done
-Status: Phase 09 Wave 3 plan 09-05 complete — MirkRendererFactory (sealed-switch over 6 variants) + kBuiltinMirkStyles registry (4 entries in canonical order) + 3 Riverpod providers (mirkRendererFactoryProvider singleton, builtinMirkStylesProvider lazy-seed, activeMirkRendererProvider session-scoped with ref.onDispose lifecycle). USER-APPROVED scope expansion: shipped the long-deferred t_sessions.mirk_style_id schema v3→v4 migration + Session.mirkStyleId Freezed field + ON DELETE SET NULL FK semantics as Task 0 since activeMirkRendererProvider is the consumer that motivates the column.
+Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 8 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 ; 09-02 + 09-03 — Wave 2 ; 09-04 + 09-05 + 09-06 — Wave 3 plans-1-2-3-of-5)
+Current Plan: 09-06 (closed); Wave 3 in progress (2 plans remaining: 09-07 overlay, 09-08 perf probe)
+Total Plans in Phase 09: 8 / 10 done
+Status: Phase 09 Wave 3 plan 09-06 complete — RevealStreamingController (batched flush 2s/20fix to RevealedTileStore.mergeMask) + MirkStyleSessionController (per-session style-swap with renderer invalidate) + LocationStream.lastKnownFix port extension (resolves S1 conditional) + ActiveSessionController wired to reveal pipeline (initial 20m disc fast/slow path + onFix forwarding + stop flush). Family-style provider refactor avoids circular dependency; SessionStore.updateMirkStyle narrow-column write added. 4 atomic commits (3449bb9, d09679f, 94391c1, 47281b6). 32 controller tests + 4 GPS tests green; obsolete Phase 09 scope guard test deleted as Rule 3 auto-fix.
 Last Activity: 2026-04-25
 
-Progress: [█████████░] 95% — 54 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 7/10 — 09-01 + 09-01b + 09-01c + 09-02 + 09-03 + 09-04 + 09-05).
+Progress: [█████████░] 96% — 55 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 8/10 — 09-01 + 09-01b + 09-01c + 09-02 + 09-03 + 09-04 + 09-05 + 09-06).
 
 ## Performance Metrics
 
@@ -100,6 +100,7 @@ Progress: [█████████░] 95% — 54 / 57 plans executed (Phase
 | Phase 09-fog-rendering P02 | 28 min | 3 tasks (TDD: 3 RED + 3 GREEN commits) | 13 files (4 created + 9 modified, includes 4 generated .freezed.dart / .g.dart) |
 | Phase 09-fog-rendering P04 | 12 min | 4 tasks | 14 files |
 | Phase 09-fog-rendering P05 | 33 min | 4 tasks (Task 0 + Tasks 1/2/3 with TDD on Task 1) | 21 files (9 created + 12 modified) across 6 atomic commits |
+| Phase 09-fog-rendering P06 | ~34 min | 4 tasks (TDD on Task 1) | 23 files (3 created + 19 modified + 1 deleted) across 4 atomic commits |
 
 ## Accumulated Context
 
@@ -130,6 +131,14 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09-fog-rendering] Plan 09-05: activeMirkRendererProvider is NOT keepAlive — the renderer is session-scoped, so it should be GC'd when the session ends or the style changes. ref.onDispose calls renderer.dispose() exactly once on invalidation; tested via _SpyingFactory + FakeMirkRenderer.disposeCallCount.
 - [Phase 09-fog-rendering] Plan 09-05: Session.mirkStyleId optional Freezed field needs a bespoke nullable JSON converter pair (_mirkStyleIdFromJsonNullable / _mirkStyleIdToJsonNullable) — extension types collapse to Object at JsonConverter resolution and json_serializable cannot synthesize Object? converters. The non-null pair in id_json_converters.dart stays single-purpose.
 - [Phase 09-fog-rendering] Plan 09-05: _FakeActiveSessionController in tests returns the seed SYNCHRONOUSLY from build() (the controller declares FutureOr<ActiveSessionState> build() so a sync return is contract-compatible). Async returns trigger Riverpod's loading-state path which races against the dependent activeMirkRendererProvider's dispose chain in tests. Same pattern used by map_screen_test.dart.
+- [Phase 09-fog-rendering] Plan 09-06: revealStreamingControllerProvider is family-style on SessionId rather than session-watching. A `watch(activeSessionControllerProvider)` design would have created CircularDependencyError at runtime since ActiveSessionController._onFix and stop() now READ this provider. Caller resolves the active session id from controller state at the call site. Trade-off: callers must pass the id; benefit: no circular-detection runtime error.
+- [Phase 09-fog-rendering] Plan 09-06: SessionStore.updateMirkStyle is a narrow column write — bypasses _toInsertCompanion (which would require a full Session read first). Drift impl uses SessionsCompanion(mirkStyleId: Value(...)) directly. Throws SessionNotFoundException on 0 rows for symmetric semantics with activate/deactivate (Phase 03 Batch G finding #3).
+- [Phase 09-fog-rendering] Plan 09-06: MirkStyleSessionController takes invalidateRenderer as a constructor callback — keeps the controller a plain Dart class with constructor DI (CLAUDE.md §Dependency Injection). Tests inject a counter; production wires `() => ref.invalidate(activeMirkRendererProvider)`. The provider is the injection seam, not Ref.
+- [Phase 09-fog-rendering] Plan 09-06: _initialRevealDone bool tracked on the controller — guards against double-firing the 20 m disc seed when both fast path (cached lastKnownFix) and slow path (first incoming fix) could compete. Reset to false in stop() so the next start() seeds again.
+- [Phase 09-fog-rendering] Plan 09-06: stop() invalidates the family-provider slot AFTER manual flush — flush before invalidate guarantees the buffer drains BEFORE next start() can race with a fresh controller instance for the same sessionId. Provider's onDispose also calls dispose() which itself flushes; the manual flush is defense-in-depth for a clean ordering invariant.
+- [Phase 09-fog-rendering] Plan 09-06: Per-tile mergeMask failure is log-and-continue (CLAUDE.md §Error handling level 2) — losing one tile's data is strictly better than losing all subsequent tiles' data on the same fix's batch. The batched-flush model amplifies the cost of propagating a single failure.
+- [Phase 09-fog-rendering] Plan 09-06: LocationStream.lastKnownFix cache survives dispose() — port doc explicitly allows short-reconnect scenarios. Consumers MUST still null-check before use; the cache may be empty on first launch. Resolves revision S1 conditional (Phase 09 09-06 plan was conditional on whether the port already had this getter — it did NOT, so the port extension was unconditional).
+- [Phase 09-fog-rendering] Plan 09-06: Removed test/domain/compute_reveal_mask_no_callers_test.dart — Phase 04 scope guard whose docstring explicitly stated it should be deleted when Phase 09 lands. Plan 09-03 was supposed to remove it but didn't; plan 09-06's RevealStreamingController is the first real caller of computeRevealMask outside its definition site, so the guard now blocks the green build. Auto-fixed (Rule 3 - Blocking).
 - Project-wide: Riverpod comme unique state management + DI (D5)
 - [Phase 01-foundation]: Held analyzer stack at <9.0 for Phase 01 — No compatible custom_lint + riverpod_lint + analyzer trio exists yet; upgrading to analyzer ^9 would force dropping lint tools. Phase 03 will re-evaluate when ecosystem converges.
 - [Phase 01-foundation]: Defer custom_lint + riverpod_lint to Phase 03 — Phase 01 has no @riverpod providers; lint tools add no value until codegen starts.
