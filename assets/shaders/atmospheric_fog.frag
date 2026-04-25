@@ -259,26 +259,40 @@ void main() {
     float hueShift = (hueField - 0.5) * 2.0 * uHueStrength;
 
     // ---------- Colour mix ----------
-    // Density signal lives roughly in [-0.5, +0.5] after FBM stack — remap
-    // to [0, 1] so it can drive the highlight↔shadow lerp directly.
-    // BUG-009 follow-up (2026-04-25): the previous mix was averaging a
-    // highlight tint and a shadow tint together (mix(..., 0.5)) which
-    // collapsed the contrast and made the output look uniform. The new
-    // pattern lets density choose which palette stop dominates, then
-    // adds the faux-shading delta and hue shift on top so they actually
-    // produce visible variation.
-    float dN = clamp(density * 0.5 + 0.5, 0.0, 1.0);
+    // BUG-009 follow-up #2 (2026-04-25): three math fixes after the
+    // diagnostic toggle landed in 1b570d1.
+    //
+    // 1. Range fix. noise3 is built on hash3 which returns values in
+    //    [0, 1] (NOT [-1, 1]). The 3-octave FBM accumulates with weights
+    //    0.5 + 0.25 + 0.125 = 0.875, so `density` lives in [0, 0.875].
+    //    The previous remap `density * 0.5 + 0.5` was designed for a
+    //    [-1, 1] input and ended up clamping into [0.5, 0.94] — only
+    //    the dark half of the highlight↔shadow gradient ever fired.
+    //    Divide by 0.875 instead so dN spans the full [0, 1] range.
+    //
+    // 2. Hue strength was being applied twice — once when computing
+    //    `hueShift` and again as the mix weight. Drop the second mul.
+    //    Also: the previous `mix(fogColor, uBase.rgb, abs(hueShift))`
+    //    flattened toward uBase regardless of sign — that's collapse,
+    //    not tint. Use directional logic so hueShift > 0 pulls toward
+    //    uHighlight and hueShift < 0 pulls toward uShadow.
+    //
+    // 3. uLightStrength was being applied twice — once in shadeDelta
+    //    and again on the additive line. Drop the second mul.
+    float dN = clamp(density / 0.875, 0.0, 1.0);
     // Where the noise is dense → tilt toward shadow (dark valleys).
     // Where it is sparse → tilt toward highlight (lit ridges).
     vec3 fogColor = mix(uHighlight.rgb, uShadow.rgb, dN);
     // Faux directional shading: brighten the side facing the light by
     // adding the highlight↔shadow swing scaled by shadeDelta. Negative
-    // shadeDelta darkens — same swing applied with sign.
-    fogColor += (uHighlight.rgb - uShadow.rgb) * shadeDelta * uLightStrength;
-    // Hue variation: drag the colour toward the base palette tint by
-    // |hueShift|. Reads as material-complexity noise (Reference 5 NASA
-    // SVS multi-channel encoding) without rainbowing.
-    fogColor = mix(fogColor, uBase.rgb, abs(hueShift) * uHueStrength);
+    // shadeDelta darkens — same swing applied with sign. shadeDelta
+    // already contains uLightStrength.
+    fogColor += (uHighlight.rgb - uShadow.rgb) * shadeDelta;
+    // Hue variation: directional tint. Positive hueShift pulls toward
+    // highlight, negative toward shadow. hueShift already contains
+    // uHueStrength so the mix weights are pure |hueShift|.
+    fogColor = mix(fogColor, uHighlight.rgb, max(hueShift, 0.0));
+    fogColor = mix(fogColor, uShadow.rgb,    max(-hueShift, 0.0));
     fogColor = clamp(fogColor, 0.0, 1.0);
 
     // ---------- 6. Two-stop watercolour boundary ----------
