@@ -4,12 +4,15 @@
 
 import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Paint, PaintingStyle, Size;
 
+import 'package:logging/logging.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 
 import 'tile_cell_iteration.dart';
+
+final Logger _log = Logger('infrastructure.mirk.solid_fill');
 
 /// Sigma multiplier used to derive [SolidFillMirkRenderer]'s feather
 /// radius from the on-screen cell size. Matches the magnitude of the
@@ -56,6 +59,19 @@ class SolidFillMirkRenderer implements MirkRenderer {
 
   bool _disposed = false;
 
+  /// BUG-009 follow-up diagnostic (2026-04-26) — see the atmospheric
+  /// renderer. Tracks the last `paint()` early-return reason so silent
+  /// bailouts surface in the file logger.
+  String? _lastEarlyReturnReason;
+  bool _firstPaintLogged = false;
+  int _paintCallCount = 0;
+
+  void _logEarlyReturnTransition(String reason) {
+    if (reason == _lastEarlyReturnReason) return;
+    _log.info('paint(): early-return state ${_lastEarlyReturnReason ?? "(initial)"} → $reason · frame=$_paintCallCount');
+    _lastEarlyReturnReason = reason;
+  }
+
   /// Computes the final fog colour: extracts RGB from `config.colorArgb`
   /// and combines `colorArgb`'s alpha byte with `config.baselineAlpha`.
   static Color _computeColor(SolidConfig config) {
@@ -70,8 +86,23 @@ class SolidFillMirkRenderer implements MirkRenderer {
 
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
-    if (_disposed) return;
-    if (context.visibleTiles.isEmpty) return;
+    if (!_firstPaintLogged) {
+      _log.info(
+        'paint(): first invocation — disposed=$_disposed visibleTiles=${context.visibleTiles.length} canvasSize=${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)}',
+      );
+      _firstPaintLogged = true;
+    } else if (_paintCallCount % 60 == 0) {
+      _log.info('paint(): entry heartbeat frame=$_paintCallCount disposed=$_disposed visibleTiles=${context.visibleTiles.length}');
+    }
+    _paintCallCount++;
+    if (_disposed) {
+      _logEarlyReturnTransition('disposed');
+      return;
+    }
+    if (context.visibleTiles.isEmpty) {
+      _logEarlyReturnTransition('visibleTiles.isEmpty');
+      return;
+    }
     // Solid renderer adopts the same viewport-level path strategy as the
     // 3 animated renderers — BUG-003 (2026-04-25) consolidated all 4 on
     // [buildViewportFogClipPath] for consistency. Solid never showed the
@@ -90,7 +121,11 @@ class SolidFillMirkRenderer implements MirkRenderer {
       ..style = PaintingStyle.fill
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
     final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
-    if (path.getBounds().isEmpty) return;
+    if (path.getBounds().isEmpty) {
+      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible tile fully revealed?)');
+      return;
+    }
+    _logEarlyReturnTransition('none');
     canvas.drawPath(path, paint);
   }
 

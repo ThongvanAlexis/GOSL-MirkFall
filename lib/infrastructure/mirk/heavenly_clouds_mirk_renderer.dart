@@ -82,6 +82,14 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   String? _lastLoggedPath;
   int _paintCallCount = 0;
 
+  /// BUG-009 follow-up diagnostic (2026-04-26). Mirrors the atmospheric
+  /// renderer — tracks the last `paint()` early-return reason so we can
+  /// surface silent bailouts (every gate logs INFO on transition only).
+  /// See `AtmosphericMirkRenderer._logEarlyReturnTransition` for the
+  /// rationale.
+  String? _lastEarlyReturnReason;
+  bool _firstPaintLogged = false;
+
   late final Future<ui.FragmentProgram?> _shaderLoadFuture;
   ui.FragmentShader? _shader;
   ui.Image? _sdfImage;
@@ -96,10 +104,31 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
 
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
-    if (_disposed) return;
-    if (context.visibleTiles.isEmpty) return;
+    // BUG-009 follow-up diagnostic (2026-04-26) — mirror of the
+    // atmospheric renderer's instrumentation. See that file for the
+    // throttling rationale.
+    if (!_firstPaintLogged) {
+      _log.info(
+        'paint(): first invocation — disposed=$_disposed visibleTiles=${context.visibleTiles.length} canvasSize=${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)}',
+      );
+      _firstPaintLogged = true;
+    } else if (_paintCallCount % 60 == 0) {
+      _log.info('paint(): entry heartbeat frame=$_paintCallCount disposed=$_disposed visibleTiles=${context.visibleTiles.length}');
+    }
+    if (_disposed) {
+      _logEarlyReturnTransition('disposed');
+      return;
+    }
+    if (context.visibleTiles.isEmpty) {
+      _logEarlyReturnTransition('visibleTiles.isEmpty');
+      return;
+    }
     final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
-    if (path.getBounds().isEmpty) return;
+    if (path.getBounds().isEmpty) {
+      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible tile fully revealed?)');
+      return;
+    }
+    _logEarlyReturnTransition('none');
     _shader ??= _shaderService.obtainShaderSync();
     _refreshSdfIfNeeded(context: context, canvasSize: size);
 
@@ -119,8 +148,10 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
       );
       _lastLoggedPath = pathThisFrame;
     } else if (_paintCallCount % 60 == 0) {
-      _log.fine(
-        'paint(): heartbeat path=$pathThisFrame · frame=$_paintCallCount visibleTiles=${context.visibleTiles.length} sessionElapsed=${context.sessionElapsed.inMilliseconds}ms',
+      // BUG-009 follow-up (2026-04-26): bumped FINE → INFO so the user's
+      // file logger captures it without a root-level threshold change.
+      _log.info(
+        'paint(): post-paint heartbeat path=$pathThisFrame · frame=$_paintCallCount visibleTiles=${context.visibleTiles.length} sessionElapsed=${context.sessionElapsed.inMilliseconds}ms',
       );
     }
     _paintCallCount++;
@@ -136,6 +167,16 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     canvas.clipPath(path);
     _wispSystem.render(canvas, const Color(0xFFF8F0E2));
     canvas.restore();
+  }
+
+  /// BUG-009 follow-up diagnostic (2026-04-26) — see
+  /// `AtmosphericMirkRenderer._logEarlyReturnTransition`. Duplicated to
+  /// keep the parallel structure between the two builtins (each renderer
+  /// has its own logger and its own state field).
+  void _logEarlyReturnTransition(String reason) {
+    if (reason == _lastEarlyReturnReason) return;
+    _log.info('paint(): early-return state ${_lastEarlyReturnReason ?? "(initial)"} → $reason · frame=$_paintCallCount');
+    _lastEarlyReturnReason = reason;
   }
 
   /// Same logic as the atmospheric renderer — diff bitmap to find

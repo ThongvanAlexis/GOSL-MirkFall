@@ -128,6 +128,18 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// Frame counter for the FINE heartbeat log (every 60 frames ≈ 1 Hz).
   int _paintCallCount = 0;
 
+  /// BUG-009 follow-up diagnostic (2026-04-26). Tracks the last reason
+  /// `paint()` early-returned so we only log INFO on transitions
+  /// (`null` → `disposed`, `disposed` → `noTiles`, `noTiles` → `none`,
+  /// etc.). Without this, the file logger would never confirm whether
+  /// `paint()` is even being called — the user's UAT log on commit
+  /// `dcffede` showed zero renderer output past gps.stream start, which
+  /// is consistent with EITHER paint() never being invoked OR a silent
+  /// early-return firing every frame. INFO level so the records pass
+  /// regardless of root logger threshold.
+  String? _lastEarlyReturnReason;
+  bool _firstPaintLogged = false;
+
   /// Future that resolves to a `ui.FragmentProgram` (or null on load
   /// failure). Awaited by tests via [shaderReady].
   late final Future<ui.FragmentProgram?> _shaderLoadFuture;
@@ -157,14 +169,37 @@ class AtmosphericMirkRenderer implements MirkRenderer {
 
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
-    if (_disposed) return;
-    if (context.visibleTiles.isEmpty) return;
+    // BUG-009 follow-up diagnostic (2026-04-26). Log the first paint()
+    // invocation unconditionally + heartbeat every 60 frames AT INFO so
+    // we can prove paint() is firing irrespective of which path we end
+    // up on. Without this, a silent early-return below produced ZERO
+    // log output on the user's walk for build dcffede.
+    if (!_firstPaintLogged) {
+      _log.info(
+        'paint(): first invocation — disposed=$_disposed visibleTiles=${context.visibleTiles.length} canvasSize=${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)}',
+      );
+      _firstPaintLogged = true;
+    } else if (_paintCallCount % 60 == 0) {
+      _log.info('paint(): entry heartbeat frame=$_paintCallCount disposed=$_disposed visibleTiles=${context.visibleTiles.length}');
+    }
+    if (_disposed) {
+      _logEarlyReturnTransition('disposed');
+      return;
+    }
+    if (context.visibleTiles.isEmpty) {
+      _logEarlyReturnTransition('visibleTiles.isEmpty');
+      return;
+    }
 
     // Resolve the fog clip path FIRST — same rules as pre-BUG-009. This
     // also gives us a fast bail-out when every visible tile is fully
     // revealed.
     final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
-    if (path.getBounds().isEmpty) return;
+    if (path.getBounds().isEmpty) {
+      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible tile fully revealed?)');
+      return;
+    }
+    _logEarlyReturnTransition('none');
 
     // Try to materialise the shader. The first frames after construction
     // may see `_shader == null` while the program is loading; subsequent
@@ -196,8 +231,10 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     } else if (_paintCallCount % 60 == 0) {
       // Heartbeat at ~1 Hz when in steady state — confirms paint() is
       // still being called, useful when investigating "no fog visible".
-      _log.fine(
-        'paint(): heartbeat path=$pathThisFrame · frame=$_paintCallCount visibleTiles=${context.visibleTiles.length} sessionElapsed=${context.sessionElapsed.inMilliseconds}ms',
+      // BUG-009 follow-up (2026-04-26): bumped FINE → INFO so the user's
+      // file logger captures it without a root-level threshold change.
+      _log.info(
+        'paint(): post-paint heartbeat path=$pathThisFrame · frame=$_paintCallCount visibleTiles=${context.visibleTiles.length} sessionElapsed=${context.sessionElapsed.inMilliseconds}ms',
       );
     }
     _paintCallCount++;
@@ -214,6 +251,16 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     canvas.clipPath(path);
     _wispSystem.render(canvas, const Color(0xFFE0E6F0)); // Light cool tint.
     canvas.restore();
+  }
+
+  /// BUG-009 follow-up diagnostic (2026-04-26) — emits an INFO log only
+  /// when the early-return reason transitions (so we don't flood the
+  /// file logger at 60 Hz). [reason] is `'none'` when paint() proceeds
+  /// past every guard; otherwise the textual gate that fired.
+  void _logEarlyReturnTransition(String reason) {
+    if (reason == _lastEarlyReturnReason) return;
+    _log.info('paint(): early-return state ${_lastEarlyReturnReason ?? "(initial)"} → $reason · frame=$_paintCallCount');
+    _lastEarlyReturnReason = reason;
   }
 
   /// Diff each visible tile's current bitmap against [_lastBitmapByTileKey];

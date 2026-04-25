@@ -5,6 +5,7 @@
 import 'dart:math' as math;
 import 'dart:ui' show BlurStyle, Canvas, Color, Gradient, MaskFilter, Offset, Paint, PaintingStyle, Size;
 
+import 'package:logging/logging.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
@@ -13,6 +14,8 @@ import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'mirk_projection.dart';
 import 'noise/simplex_noise_2d.dart';
 import 'tile_cell_iteration.dart';
+
+final Logger _log = Logger('infrastructure.mirk.candlelight');
 
 /// Warm-glow candlelight fog renderer — radial gradient anchored on
 /// the current GPS fix (or viewport centre when no fix is yet available),
@@ -65,10 +68,40 @@ class CandlelightMirkRenderer implements MirkRenderer {
 
   bool _disposed = false;
 
+  /// BUG-009 follow-up diagnostic (2026-04-26) — see the atmospheric
+  /// renderer for the rationale. Mirrored here because the user MAY
+  /// have selected the candlelight builtin instead of atmospheric, and
+  /// in that case all four early-return paths below would otherwise
+  /// produce zero log output.
+  String? _lastEarlyReturnReason;
+  bool _firstPaintLogged = false;
+  int _paintCallCount = 0;
+
+  void _logEarlyReturnTransition(String reason) {
+    if (reason == _lastEarlyReturnReason) return;
+    _log.info('paint(): early-return state ${_lastEarlyReturnReason ?? "(initial)"} → $reason · frame=$_paintCallCount');
+    _lastEarlyReturnReason = reason;
+  }
+
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
-    if (_disposed) return;
-    if (context.visibleTiles.isEmpty) return;
+    if (!_firstPaintLogged) {
+      _log.info(
+        'paint(): first invocation — disposed=$_disposed visibleTiles=${context.visibleTiles.length} canvasSize=${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)}',
+      );
+      _firstPaintLogged = true;
+    } else if (_paintCallCount % 60 == 0) {
+      _log.info('paint(): entry heartbeat frame=$_paintCallCount disposed=$_disposed visibleTiles=${context.visibleTiles.length}');
+    }
+    _paintCallCount++;
+    if (_disposed) {
+      _logEarlyReturnTransition('disposed');
+      return;
+    }
+    if (context.visibleTiles.isEmpty) {
+      _logEarlyReturnTransition('visibleTiles.isEmpty');
+      return;
+    }
 
     final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
     // Flicker noise sampled along time only — gives the
@@ -108,7 +141,11 @@ class CandlelightMirkRenderer implements MirkRenderer {
     // BUG-003 fix (2026-04-25): single viewport-level path. See
     // [buildViewportFogClipPath] for the rationale.
     final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
-    if (path.getBounds().isEmpty) return;
+    if (path.getBounds().isEmpty) {
+      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible tile fully revealed?)');
+      return;
+    }
+    _logEarlyReturnTransition('none');
     canvas.drawPath(path, paint);
   }
 

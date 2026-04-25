@@ -170,6 +170,48 @@ La résolution ci-dessus (jusqu'à `a6dbf35` inclus, doc-update du TIER 2) a ét
 | 8 | `cbde5bf` | fix(logging): drop flush threshold à 1 pour le mode diag. Workaround brut-mais-fiable ; la bonne archi à terme = ring buffer non-bloquant + isolate flusher. | Logs maintenant complets jusqu'au crash / kill. |
 | 9 | `1b570d1` | diag: ajout d'un toggle de debug shader density. Constante `kMirkFogDebugOutputDensity` + define GLSL `MIRK_FOG_DEBUG_OUTPUT_DENSITY`. Quand activé, le shader sort `dN` brut en RGB, ce qui permet de vérifier si la noise génère vs si c'est le colour-blend qui collapse. | Outil de debug — produit l'analyse en clair-code qui a identifié les 3 bugs math du shader (ci-dessous). |
 | 10 | `76dfca4` | fix: corrige les 3 bugs math du shader colour-collapse. (1) `fbm3` range mismatch — `noise3` retourne `[0,1]`, l'accumulateur donne `density ∈ [0, 0.875]`, donc `dN = density*0.5+0.5` clampait dans `[0.5, 0.94]` ; fix = diviser par 0.875 pour spanner `[0,1]`. (2) `uHueStrength` double-appliqué — `hueShift` incluait déjà le scale, puis le mix `abs(hueShift)*uHueStrength` le ré-appliquait ; en plus le `mix(..., uBase.rgb, ...)` tirait toujours vers uBase indépendamment du signe → flatten au lieu de tint. Fix = directional mix vers uHighlight ou uShadow selon le signe. (3) `uLightStrength` double-appliqué pareil dans la ligne additive `(uHighlight - uShadow)*shadeDelta*uLightStrength` ; fix = drop la 2e multiplication. | À vérifier sur le prochain walk device. |
+| 11 | `dcffede` | (build sous lequel le walk 2026-04-26 a tourné — voir entrée chronologique ci-dessous pour le diagnostic.) | Sur device : fog reste une feuille grise plate, **et le file logger n'a capturé que 4 lignes** (main armed + Start button + ActiveSessionController.start + gps.stream). Aucun log du renderer ni de MirkOverlay → soit `paint()` n'est jamais appelé, soit il rentre dans une early-return silencieuse avant le moindre `_log.info`. |
+| 12 | (this) | diag(09-bug-009): instrument `paint()` early-return paths and map-page mount to surface silent bailouts. Ajoute en INFO (au lieu de FINE) sur les 4 renderers (atmospheric / heavenly_clouds / candlelight / solid_fill) : (a) un log « first invocation » au tout premier `paint()`, (b) un heartbeat « entry heartbeat » toutes les 60 frames AVANT les guards, (c) un log de transition pour chaque early-return (`disposed` / `visibleTiles.isEmpty` / `clipPath.bounds.isEmpty` / `none`), throttle pour ne logger qu'au changement d'état. Sur `MirkOverlay` : log INFO au premier `build` + log INFO à chaque transition de la cause de bail-out (`rendererAsync not hasValue` / `tilesAsync not hasValue` / `viewport==null` / `zoom==null` / `rendering`). Le heartbeat post-paint des deux renderers shader passe FINE → INFO. | À tester au prochain walk device. |
+
+### Diagnostic 2026-04-26 — silent paint bailout suspecté (commit `dcffede` walk)
+
+**Symptôme.** Walk iOS sideload sur build `dcffede` : kill app → cold launch → tap "Démarrer" → tap "Carte plein écran" → walk 100 m → stop. Le fog rendu reste une feuille grise plate, sans aucun pattern volumétrique visible. **Et plus critique** : le file logger n'a capturé que 4 lignes au total :
+
+```
+{"level":"INFO","logger":"main","msg":"MirkFall starting — logger armed — commit: dcffedeb6f46b8136c7e5f0d6596ef8e1f710137"}
+{"level":"INFO","logger":"presentation.session_detail","msg":"_handleStart: Start button pressed for session=...(state=Idle)"}
+{"level":"INFO","logger":"application.controllers.active_session","msg":"start(): called for session=..."}
+{"level":"FINE","logger":"gps.stream","msg":"stream start · session=... distanceFilter=5m accuracyCeiling=50.0m"}
+```
+
+**Signal positif.** Le 4ᵉ log est en niveau FINE → la sink + filtering FINE marchent. Le problème n'est PAS le logger.
+
+**Hypothèse racine.** Aucun log du renderer (`infrastructure.mirk.atmospheric` etc.), aucun log de `presentation.mirk_overlay`, aucun log de `presentation.map_screen` (`MapScreen.initState: mounted`). Donc soit :
+
+- (a) `MapScreen` n'a jamais été monté (l'utilisateur n'a pas atteint la `/map` route, ou la build de Scaffold s'arrête avant `_buildMapStack`),
+- (b) `MapScreen` est monté mais `MirkOverlay` ne l'est pas (le `MirkInitialRevealFade` ou la chaîne `Stack > Positioned.fill > IgnorePointer > RepaintBoundary > MirkInitialRevealFade > MirkOverlay` s'arrête avant),
+- (c) `MirkOverlay` est monté mais bail-out à chaque build avant l'INFO de `initState` (impossible — `initState` log était déjà INFO),
+- (d) `MirkOverlay.build()` retourne `SizedBox.shrink()` à chaque rebuild parce qu'un prerequisite reste null (`rendererAsync` / `tilesAsync` / `viewport` / `zoom`) — dans ce cas le `CustomPaint` n'est jamais wired, donc `_MirkPainter.paint()` n'est jamais appelé, donc aucun renderer n'a la moindre raison d'émettre un log.
+
+**Diagnostic landed (this commit).** Voir entrée #12 dans la table des commits. Instrumentation INFO sur 6 fichiers :
+
+- `lib/infrastructure/mirk/atmospheric_mirk_renderer.dart`
+- `lib/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart`
+- `lib/infrastructure/mirk/candlelight_mirk_renderer.dart`
+- `lib/infrastructure/mirk/solid_fill_mirk_renderer.dart`
+- `lib/presentation/widgets/mirk_overlay.dart`
+- (le `MapScreen.initState` log INFO existait déjà — non touché)
+
+Toutes les transitions sont throttled (log seulement au changement d'état) ou heartbeated (log toutes les 60 frames) pour éviter de saturer le file logger à 60 Hz.
+
+**Sortie attendue au prochain walk** — pattern de discrimination :
+
+1. **Si `MapScreen` n'est pas atteint** : pas de log `MapScreen.initState: mounted`. Hypothèse (a) confirmée — investiguer la GoRouter route `/map` ou le Scaffold `body` (rewriterAsync / sourceAsync resté loading ?).
+2. **Si `MapScreen` est monté mais `MirkOverlay` ne l'est pas** : on voit `MapScreen.initState: mounted` mais pas `MirkOverlay: initState — Ticker started`. Hypothèse (b) — investiguer `MirkInitialRevealFade` ou la branche `_buildMapStack`.
+3. **Si `MirkOverlay` est monté mais bail-out** : on voit `MirkOverlay: initState`, puis un `build: prerequisite state (initial) → <reason>` qui pointe la cause (`rendererAsync not hasValue (AsyncLoading<MirkRenderer>)`, `tilesAsync not hasValue`, `viewport==null`, `zoom==null`). Hypothèse (d) — investiguer le provider qui ne résout pas (`activeMirkRendererProvider` / `visibleMirkTilesProvider` / `mapViewportProvider` / `mapViewportZoomProvider`).
+4. **Si tout monte ET le renderer paint** : on voit en plus `paint(): first invocation — disposed=false visibleTiles=N canvasSize=WxH` du renderer actif (atmospheric / heavenly / candlelight / solid_fill selon le style sélectionné), suivi de `paint(): early-return state (initial) → <none|disposed|visibleTiles.isEmpty|clipPath.bounds.isEmpty>`. Si `→ none` : paint() exécute le path complet — dans ce cas on revient à un bug visuel pur (le shader `dcffede` post-`76dfca4` a un défaut non couvert par les 3 bugs math fix), et on attend un log `paint(): path transition (initial) → shader` ou `→ fallback` qui dit lequel des deux pipelines tourne. Si `→ visibleTiles.isEmpty` ou `→ clipPath.bounds.isEmpty` : la pipeline de tiles ne propage pas les bits jusqu'au renderer (régression cousine de `935b9de`).
+
+**Verdict possible après le walk** : un seul de ces 4 patterns devrait matcher, ce qui pinpointe le bug en une seule itération au lieu d'avancer à l'aveugle.
 
 ### Findings clés à garder en tête
 

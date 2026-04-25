@@ -53,6 +53,12 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
   /// ~3600/min to ~60/min, well below the FileLogger flush budget.
   int _buildCallCount = 0;
 
+  /// BUG-009 follow-up diagnostic (2026-04-26) — last bail-out reason we
+  /// INFO-logged ("rendererAsync", "tilesAsync", "viewport", "zoom", or
+  /// "rendering") so we can pinpoint WHICH prerequisite was gating the
+  /// overlay when the user observed "flat grey sheet" on commit dcffede.
+  String? _lastBailoutReason;
+
   @override
   void initState() {
     super.initState();
@@ -87,7 +93,14 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
     // heartbeats. Logged at FINE so it only shows when the debug
     // logger threshold is set to FINE; the renderer's existing
     // path-transition logs at INFO carry the user-relevant signal.
-    if (_buildCallCount % 60 == 0) {
+    if (_buildCallCount == 0) {
+      // BUG-009 follow-up (2026-04-26) — log the FIRST build at INFO
+      // so the user's file logger captures it without a root-level
+      // threshold change. Pairs with the renderer's first-paint log.
+      _log.info(
+        'build: first invocation — rendererAsync=${rendererAsync.runtimeType} tilesAsync=${tilesAsync.runtimeType} viewport=${viewport != null} zoom=$zoom',
+      );
+    } else if (_buildCallCount % 60 == 0) {
       _log.fine('build: rendererAsync=${rendererAsync.runtimeType} tilesAsync=${tilesAsync.runtimeType} viewport=${viewport != null} zoom=$zoom');
     }
     _buildCallCount++;
@@ -95,7 +108,25 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
     // Bail out cheaply when any prerequisite is not ready. The overlay
     // becomes invisible — the underlying RepaintBoundary keeps the
     // pipeline cold.
-    if (!rendererAsync.hasValue || !tilesAsync.hasValue || viewport == null || zoom == null) {
+    String bailoutReason;
+    if (!rendererAsync.hasValue) {
+      bailoutReason = 'rendererAsync not hasValue (${rendererAsync.runtimeType})';
+    } else if (!tilesAsync.hasValue) {
+      bailoutReason = 'tilesAsync not hasValue (${tilesAsync.runtimeType})';
+    } else if (viewport == null) {
+      bailoutReason = 'viewport==null';
+    } else if (zoom == null) {
+      bailoutReason = 'zoom==null';
+    } else {
+      bailoutReason = 'rendering';
+    }
+    if (bailoutReason != _lastBailoutReason) {
+      // BUG-009 follow-up (2026-04-26) — INFO transition so we capture
+      // the gate that's stuck without flooding at 60 Hz.
+      _log.info('build: prerequisite state ${_lastBailoutReason ?? "(initial)"} → $bailoutReason');
+      _lastBailoutReason = bailoutReason;
+    }
+    if (bailoutReason != 'rendering') {
       return const SizedBox.shrink();
     }
     final renderer = rendererAsync.value!;
@@ -108,7 +139,7 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
       painter: _MirkPainter(
         renderer: renderer,
         paintContext: MirkPaintContext(
-          zoomLevel: zoom,
+          zoomLevel: zoom!,
           pixelRatio: MediaQuery.of(context).devicePixelRatio,
           // Ticker.elapsed measures time since the overlay mounted, which
           // is operationally aligned with "time since session started"
@@ -117,7 +148,11 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
           // rather than a separate per-frame Ticker time — see plan
           // 09-02 SUMMARY for the rationale.
           sessionElapsed: _tickerElapsed,
-          viewportBbox: viewport,
+          // The bail-out branch above guarantees viewport / zoom are
+          // non-null when bailoutReason == 'rendering', but Dart's null
+          // promotion can't see across the local-string check. Asserted
+          // non-null with `!` — safe by construction.
+          viewportBbox: viewport!,
           visibleTiles: tiles,
           currentFix: currentFix,
         ),
