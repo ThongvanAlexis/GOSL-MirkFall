@@ -59,9 +59,15 @@ void main() {
     });
 
     test('exhaustive switch compiles on sealed union', () {
+      // Phase 09 plan 09-02 extended the sealed union from 3 → 6 variants.
+      // The exhaustive switch must now cover every variant; missing any one
+      // produces a `non_exhaustive_switch` analyzer error at the call site.
       const MirkStyleConfig cfg = AtmosphericConfig();
       final String label = switch (cfg) {
         AtmosphericConfig() => 'atmospheric',
+        SolidConfig() => 'solid',
+        CandlelightConfig() => 'candlelight',
+        HeavenlyCloudsConfig() => 'heavenly',
         ShaderConfig() => 'shader',
         UnknownConfig() => 'unknown',
       };

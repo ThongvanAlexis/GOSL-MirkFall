@@ -19,6 +19,18 @@ MirkStyleConfig _$MirkStyleConfigFromJson(
           return AtmosphericConfig.fromJson(
             json
           );
+                case 'solid':
+          return SolidConfig.fromJson(
+            json
+          );
+                case 'candlelight':
+          return CandlelightConfig.fromJson(
+            json
+          );
+                case 'heavenly':
+          return HeavenlyCloudsConfig.fromJson(
+            json
+          );
                 case 'shader':
           return ShaderConfig.fromJson(
             json
@@ -78,11 +90,14 @@ extension MirkStyleConfigPatterns on MirkStyleConfig {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AtmosphericConfig value)?  atmospheric,TResult Function( ShaderConfig value)?  shader,TResult Function( UnknownConfig value)?  unknown,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AtmosphericConfig value)?  atmospheric,TResult Function( SolidConfig value)?  solid,TResult Function( CandlelightConfig value)?  candlelight,TResult Function( HeavenlyCloudsConfig value)?  heavenly,TResult Function( ShaderConfig value)?  shader,TResult Function( UnknownConfig value)?  unknown,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case AtmosphericConfig() when atmospheric != null:
-return atmospheric(_that);case ShaderConfig() when shader != null:
+return atmospheric(_that);case SolidConfig() when solid != null:
+return solid(_that);case CandlelightConfig() when candlelight != null:
+return candlelight(_that);case HeavenlyCloudsConfig() when heavenly != null:
+return heavenly(_that);case ShaderConfig() when shader != null:
 return shader(_that);case UnknownConfig() when unknown != null:
 return unknown(_that);case _:
   return orElse();
@@ -102,11 +117,14 @@ return unknown(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AtmosphericConfig value)  atmospheric,required TResult Function( ShaderConfig value)  shader,required TResult Function( UnknownConfig value)  unknown,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AtmosphericConfig value)  atmospheric,required TResult Function( SolidConfig value)  solid,required TResult Function( CandlelightConfig value)  candlelight,required TResult Function( HeavenlyCloudsConfig value)  heavenly,required TResult Function( ShaderConfig value)  shader,required TResult Function( UnknownConfig value)  unknown,}){
 final _that = this;
 switch (_that) {
 case AtmosphericConfig():
-return atmospheric(_that);case ShaderConfig():
+return atmospheric(_that);case SolidConfig():
+return solid(_that);case CandlelightConfig():
+return candlelight(_that);case HeavenlyCloudsConfig():
+return heavenly(_that);case ShaderConfig():
 return shader(_that);case UnknownConfig():
 return unknown(_that);}
 }
@@ -122,11 +140,14 @@ return unknown(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AtmosphericConfig value)?  atmospheric,TResult? Function( ShaderConfig value)?  shader,TResult? Function( UnknownConfig value)?  unknown,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AtmosphericConfig value)?  atmospheric,TResult? Function( SolidConfig value)?  solid,TResult? Function( CandlelightConfig value)?  candlelight,TResult? Function( HeavenlyCloudsConfig value)?  heavenly,TResult? Function( ShaderConfig value)?  shader,TResult? Function( UnknownConfig value)?  unknown,}){
 final _that = this;
 switch (_that) {
 case AtmosphericConfig() when atmospheric != null:
-return atmospheric(_that);case ShaderConfig() when shader != null:
+return atmospheric(_that);case SolidConfig() when solid != null:
+return solid(_that);case CandlelightConfig() when candlelight != null:
+return candlelight(_that);case HeavenlyCloudsConfig() when heavenly != null:
+return heavenly(_that);case ShaderConfig() when shader != null:
 return shader(_that);case UnknownConfig() when unknown != null:
 return unknown(_that);case _:
   return null;
@@ -145,10 +166,13 @@ return unknown(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int baseColorArgb,  double noiseScale)?  atmospheric,TResult Function( String shaderAssetPath)?  shader,TResult Function(@JsonKey(fromJson: _unknownRawFromJson, toJson: _unknownRawToJson, disallowNullValue: true, readValue: _readWholeMap)  Map<String, Object?> raw)?  unknown,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int baseColorArgb,  int? secondaryColorArgb,  double noiseScale,  double noiseSpeed,  double driftDirectionDeg,  double densityBaselineAlpha,  double featherRadiusFraction,  double edgeSoftness)?  atmospheric,TResult Function( int colorArgb,  double baselineAlpha)?  solid,TResult Function( int centerColorArgb,  int peripheryColorArgb,  double noiseScale,  double noiseSpeed,  double baselineAlpha,  double featherRadiusFraction)?  candlelight,TResult Function( int colorArgb,  double noiseScale,  double noiseSpeed,  double driftDirectionDeg,  double baselineAlpha)?  heavenly,TResult Function( String shaderAssetPath)?  shader,TResult Function(@JsonKey(fromJson: _unknownRawFromJson, toJson: _unknownRawToJson, disallowNullValue: true, readValue: _readWholeMap)  Map<String, Object?> raw)?  unknown,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AtmosphericConfig() when atmospheric != null:
-return atmospheric(_that.baseColorArgb,_that.noiseScale);case ShaderConfig() when shader != null:
+return atmospheric(_that.baseColorArgb,_that.secondaryColorArgb,_that.noiseScale,_that.noiseSpeed,_that.driftDirectionDeg,_that.densityBaselineAlpha,_that.featherRadiusFraction,_that.edgeSoftness);case SolidConfig() when solid != null:
+return solid(_that.colorArgb,_that.baselineAlpha);case CandlelightConfig() when candlelight != null:
+return candlelight(_that.centerColorArgb,_that.peripheryColorArgb,_that.noiseScale,_that.noiseSpeed,_that.baselineAlpha,_that.featherRadiusFraction);case HeavenlyCloudsConfig() when heavenly != null:
+return heavenly(_that.colorArgb,_that.noiseScale,_that.noiseSpeed,_that.driftDirectionDeg,_that.baselineAlpha);case ShaderConfig() when shader != null:
 return shader(_that.shaderAssetPath);case UnknownConfig() when unknown != null:
 return unknown(_that.raw);case _:
   return orElse();
@@ -168,10 +192,13 @@ return unknown(_that.raw);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int baseColorArgb,  double noiseScale)  atmospheric,required TResult Function( String shaderAssetPath)  shader,required TResult Function(@JsonKey(fromJson: _unknownRawFromJson, toJson: _unknownRawToJson, disallowNullValue: true, readValue: _readWholeMap)  Map<String, Object?> raw)  unknown,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int baseColorArgb,  int? secondaryColorArgb,  double noiseScale,  double noiseSpeed,  double driftDirectionDeg,  double densityBaselineAlpha,  double featherRadiusFraction,  double edgeSoftness)  atmospheric,required TResult Function( int colorArgb,  double baselineAlpha)  solid,required TResult Function( int centerColorArgb,  int peripheryColorArgb,  double noiseScale,  double noiseSpeed,  double baselineAlpha,  double featherRadiusFraction)  candlelight,required TResult Function( int colorArgb,  double noiseScale,  double noiseSpeed,  double driftDirectionDeg,  double baselineAlpha)  heavenly,required TResult Function( String shaderAssetPath)  shader,required TResult Function(@JsonKey(fromJson: _unknownRawFromJson, toJson: _unknownRawToJson, disallowNullValue: true, readValue: _readWholeMap)  Map<String, Object?> raw)  unknown,}) {final _that = this;
 switch (_that) {
 case AtmosphericConfig():
-return atmospheric(_that.baseColorArgb,_that.noiseScale);case ShaderConfig():
+return atmospheric(_that.baseColorArgb,_that.secondaryColorArgb,_that.noiseScale,_that.noiseSpeed,_that.driftDirectionDeg,_that.densityBaselineAlpha,_that.featherRadiusFraction,_that.edgeSoftness);case SolidConfig():
+return solid(_that.colorArgb,_that.baselineAlpha);case CandlelightConfig():
+return candlelight(_that.centerColorArgb,_that.peripheryColorArgb,_that.noiseScale,_that.noiseSpeed,_that.baselineAlpha,_that.featherRadiusFraction);case HeavenlyCloudsConfig():
+return heavenly(_that.colorArgb,_that.noiseScale,_that.noiseSpeed,_that.driftDirectionDeg,_that.baselineAlpha);case ShaderConfig():
 return shader(_that.shaderAssetPath);case UnknownConfig():
 return unknown(_that.raw);}
 }
@@ -187,10 +214,13 @@ return unknown(_that.raw);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int baseColorArgb,  double noiseScale)?  atmospheric,TResult? Function( String shaderAssetPath)?  shader,TResult? Function(@JsonKey(fromJson: _unknownRawFromJson, toJson: _unknownRawToJson, disallowNullValue: true, readValue: _readWholeMap)  Map<String, Object?> raw)?  unknown,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int baseColorArgb,  int? secondaryColorArgb,  double noiseScale,  double noiseSpeed,  double driftDirectionDeg,  double densityBaselineAlpha,  double featherRadiusFraction,  double edgeSoftness)?  atmospheric,TResult? Function( int colorArgb,  double baselineAlpha)?  solid,TResult? Function( int centerColorArgb,  int peripheryColorArgb,  double noiseScale,  double noiseSpeed,  double baselineAlpha,  double featherRadiusFraction)?  candlelight,TResult? Function( int colorArgb,  double noiseScale,  double noiseSpeed,  double driftDirectionDeg,  double baselineAlpha)?  heavenly,TResult? Function( String shaderAssetPath)?  shader,TResult? Function(@JsonKey(fromJson: _unknownRawFromJson, toJson: _unknownRawToJson, disallowNullValue: true, readValue: _readWholeMap)  Map<String, Object?> raw)?  unknown,}) {final _that = this;
 switch (_that) {
 case AtmosphericConfig() when atmospheric != null:
-return atmospheric(_that.baseColorArgb,_that.noiseScale);case ShaderConfig() when shader != null:
+return atmospheric(_that.baseColorArgb,_that.secondaryColorArgb,_that.noiseScale,_that.noiseSpeed,_that.driftDirectionDeg,_that.densityBaselineAlpha,_that.featherRadiusFraction,_that.edgeSoftness);case SolidConfig() when solid != null:
+return solid(_that.colorArgb,_that.baselineAlpha);case CandlelightConfig() when candlelight != null:
+return candlelight(_that.centerColorArgb,_that.peripheryColorArgb,_that.noiseScale,_that.noiseSpeed,_that.baselineAlpha,_that.featherRadiusFraction);case HeavenlyCloudsConfig() when heavenly != null:
+return heavenly(_that.colorArgb,_that.noiseScale,_that.noiseSpeed,_that.driftDirectionDeg,_that.baselineAlpha);case ShaderConfig() when shader != null:
 return shader(_that.shaderAssetPath);case UnknownConfig() when unknown != null:
 return unknown(_that.raw);case _:
   return null;
@@ -204,11 +234,17 @@ return unknown(_that.raw);case _:
 @JsonSerializable()
 
 class AtmosphericConfig implements MirkStyleConfig {
-  const AtmosphericConfig({this.baseColorArgb = 0xFF000000, this.noiseScale = 0.5, final  String? $type}): $type = $type ?? 'atmospheric';
+  const AtmosphericConfig({this.baseColorArgb = 0xFF000000, this.secondaryColorArgb, this.noiseScale = 0.5, this.noiseSpeed = 0.05, this.driftDirectionDeg = 0.0, this.densityBaselineAlpha = 0.99, this.featherRadiusFraction = 0.1, this.edgeSoftness = 0.5, final  String? $type}): $type = $type ?? 'atmospheric';
   factory AtmosphericConfig.fromJson(Map<String, dynamic> json) => _$AtmosphericConfigFromJson(json);
 
 @JsonKey() final  int baseColorArgb;
+ final  int? secondaryColorArgb;
 @JsonKey() final  double noiseScale;
+@JsonKey() final  double noiseSpeed;
+@JsonKey() final  double driftDirectionDeg;
+@JsonKey() final  double densityBaselineAlpha;
+@JsonKey() final  double featherRadiusFraction;
+@JsonKey() final  double edgeSoftness;
 
 @JsonKey(name: 'rendererType')
 final String $type;
@@ -227,16 +263,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AtmosphericConfig&&(identical(other.baseColorArgb, baseColorArgb) || other.baseColorArgb == baseColorArgb)&&(identical(other.noiseScale, noiseScale) || other.noiseScale == noiseScale));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AtmosphericConfig&&(identical(other.baseColorArgb, baseColorArgb) || other.baseColorArgb == baseColorArgb)&&(identical(other.secondaryColorArgb, secondaryColorArgb) || other.secondaryColorArgb == secondaryColorArgb)&&(identical(other.noiseScale, noiseScale) || other.noiseScale == noiseScale)&&(identical(other.noiseSpeed, noiseSpeed) || other.noiseSpeed == noiseSpeed)&&(identical(other.driftDirectionDeg, driftDirectionDeg) || other.driftDirectionDeg == driftDirectionDeg)&&(identical(other.densityBaselineAlpha, densityBaselineAlpha) || other.densityBaselineAlpha == densityBaselineAlpha)&&(identical(other.featherRadiusFraction, featherRadiusFraction) || other.featherRadiusFraction == featherRadiusFraction)&&(identical(other.edgeSoftness, edgeSoftness) || other.edgeSoftness == edgeSoftness));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,baseColorArgb,noiseScale);
+int get hashCode => Object.hash(runtimeType,baseColorArgb,secondaryColorArgb,noiseScale,noiseSpeed,driftDirectionDeg,densityBaselineAlpha,featherRadiusFraction,edgeSoftness);
 
 @override
 String toString() {
-  return 'MirkStyleConfig.atmospheric(baseColorArgb: $baseColorArgb, noiseScale: $noiseScale)';
+  return 'MirkStyleConfig.atmospheric(baseColorArgb: $baseColorArgb, secondaryColorArgb: $secondaryColorArgb, noiseScale: $noiseScale, noiseSpeed: $noiseSpeed, driftDirectionDeg: $driftDirectionDeg, densityBaselineAlpha: $densityBaselineAlpha, featherRadiusFraction: $featherRadiusFraction, edgeSoftness: $edgeSoftness)';
 }
 
 
@@ -247,7 +283,7 @@ abstract mixin class $AtmosphericConfigCopyWith<$Res> implements $MirkStyleConfi
   factory $AtmosphericConfigCopyWith(AtmosphericConfig value, $Res Function(AtmosphericConfig) _then) = _$AtmosphericConfigCopyWithImpl;
 @useResult
 $Res call({
- int baseColorArgb, double noiseScale
+ int baseColorArgb, int? secondaryColorArgb, double noiseScale, double noiseSpeed, double driftDirectionDeg, double densityBaselineAlpha, double featherRadiusFraction, double edgeSoftness
 });
 
 
@@ -264,10 +300,255 @@ class _$AtmosphericConfigCopyWithImpl<$Res>
 
 /// Create a copy of MirkStyleConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? baseColorArgb = null,Object? noiseScale = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? baseColorArgb = null,Object? secondaryColorArgb = freezed,Object? noiseScale = null,Object? noiseSpeed = null,Object? driftDirectionDeg = null,Object? densityBaselineAlpha = null,Object? featherRadiusFraction = null,Object? edgeSoftness = null,}) {
   return _then(AtmosphericConfig(
 baseColorArgb: null == baseColorArgb ? _self.baseColorArgb : baseColorArgb // ignore: cast_nullable_to_non_nullable
+as int,secondaryColorArgb: freezed == secondaryColorArgb ? _self.secondaryColorArgb : secondaryColorArgb // ignore: cast_nullable_to_non_nullable
+as int?,noiseScale: null == noiseScale ? _self.noiseScale : noiseScale // ignore: cast_nullable_to_non_nullable
+as double,noiseSpeed: null == noiseSpeed ? _self.noiseSpeed : noiseSpeed // ignore: cast_nullable_to_non_nullable
+as double,driftDirectionDeg: null == driftDirectionDeg ? _self.driftDirectionDeg : driftDirectionDeg // ignore: cast_nullable_to_non_nullable
+as double,densityBaselineAlpha: null == densityBaselineAlpha ? _self.densityBaselineAlpha : densityBaselineAlpha // ignore: cast_nullable_to_non_nullable
+as double,featherRadiusFraction: null == featherRadiusFraction ? _self.featherRadiusFraction : featherRadiusFraction // ignore: cast_nullable_to_non_nullable
+as double,edgeSoftness: null == edgeSoftness ? _self.edgeSoftness : edgeSoftness // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class SolidConfig implements MirkStyleConfig {
+  const SolidConfig({this.colorArgb = 0xFF1A1A1A, this.baselineAlpha = 0.99, final  String? $type}): $type = $type ?? 'solid';
+  factory SolidConfig.fromJson(Map<String, dynamic> json) => _$SolidConfigFromJson(json);
+
+@JsonKey() final  int colorArgb;
+@JsonKey() final  double baselineAlpha;
+
+@JsonKey(name: 'rendererType')
+final String $type;
+
+
+/// Create a copy of MirkStyleConfig
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SolidConfigCopyWith<SolidConfig> get copyWith => _$SolidConfigCopyWithImpl<SolidConfig>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SolidConfigToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SolidConfig&&(identical(other.colorArgb, colorArgb) || other.colorArgb == colorArgb)&&(identical(other.baselineAlpha, baselineAlpha) || other.baselineAlpha == baselineAlpha));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,colorArgb,baselineAlpha);
+
+@override
+String toString() {
+  return 'MirkStyleConfig.solid(colorArgb: $colorArgb, baselineAlpha: $baselineAlpha)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SolidConfigCopyWith<$Res> implements $MirkStyleConfigCopyWith<$Res> {
+  factory $SolidConfigCopyWith(SolidConfig value, $Res Function(SolidConfig) _then) = _$SolidConfigCopyWithImpl;
+@useResult
+$Res call({
+ int colorArgb, double baselineAlpha
+});
+
+
+
+
+}
+/// @nodoc
+class _$SolidConfigCopyWithImpl<$Res>
+    implements $SolidConfigCopyWith<$Res> {
+  _$SolidConfigCopyWithImpl(this._self, this._then);
+
+  final SolidConfig _self;
+  final $Res Function(SolidConfig) _then;
+
+/// Create a copy of MirkStyleConfig
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? colorArgb = null,Object? baselineAlpha = null,}) {
+  return _then(SolidConfig(
+colorArgb: null == colorArgb ? _self.colorArgb : colorArgb // ignore: cast_nullable_to_non_nullable
+as int,baselineAlpha: null == baselineAlpha ? _self.baselineAlpha : baselineAlpha // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class CandlelightConfig implements MirkStyleConfig {
+  const CandlelightConfig({this.centerColorArgb = 0xFFFF8F6A, this.peripheryColorArgb = 0xFFC2542E, this.noiseScale = 0.8, this.noiseSpeed = 0.1, this.baselineAlpha = 0.85, this.featherRadiusFraction = 0.1, final  String? $type}): $type = $type ?? 'candlelight';
+  factory CandlelightConfig.fromJson(Map<String, dynamic> json) => _$CandlelightConfigFromJson(json);
+
+@JsonKey() final  int centerColorArgb;
+@JsonKey() final  int peripheryColorArgb;
+@JsonKey() final  double noiseScale;
+@JsonKey() final  double noiseSpeed;
+@JsonKey() final  double baselineAlpha;
+@JsonKey() final  double featherRadiusFraction;
+
+@JsonKey(name: 'rendererType')
+final String $type;
+
+
+/// Create a copy of MirkStyleConfig
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CandlelightConfigCopyWith<CandlelightConfig> get copyWith => _$CandlelightConfigCopyWithImpl<CandlelightConfig>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$CandlelightConfigToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CandlelightConfig&&(identical(other.centerColorArgb, centerColorArgb) || other.centerColorArgb == centerColorArgb)&&(identical(other.peripheryColorArgb, peripheryColorArgb) || other.peripheryColorArgb == peripheryColorArgb)&&(identical(other.noiseScale, noiseScale) || other.noiseScale == noiseScale)&&(identical(other.noiseSpeed, noiseSpeed) || other.noiseSpeed == noiseSpeed)&&(identical(other.baselineAlpha, baselineAlpha) || other.baselineAlpha == baselineAlpha)&&(identical(other.featherRadiusFraction, featherRadiusFraction) || other.featherRadiusFraction == featherRadiusFraction));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,centerColorArgb,peripheryColorArgb,noiseScale,noiseSpeed,baselineAlpha,featherRadiusFraction);
+
+@override
+String toString() {
+  return 'MirkStyleConfig.candlelight(centerColorArgb: $centerColorArgb, peripheryColorArgb: $peripheryColorArgb, noiseScale: $noiseScale, noiseSpeed: $noiseSpeed, baselineAlpha: $baselineAlpha, featherRadiusFraction: $featherRadiusFraction)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CandlelightConfigCopyWith<$Res> implements $MirkStyleConfigCopyWith<$Res> {
+  factory $CandlelightConfigCopyWith(CandlelightConfig value, $Res Function(CandlelightConfig) _then) = _$CandlelightConfigCopyWithImpl;
+@useResult
+$Res call({
+ int centerColorArgb, int peripheryColorArgb, double noiseScale, double noiseSpeed, double baselineAlpha, double featherRadiusFraction
+});
+
+
+
+
+}
+/// @nodoc
+class _$CandlelightConfigCopyWithImpl<$Res>
+    implements $CandlelightConfigCopyWith<$Res> {
+  _$CandlelightConfigCopyWithImpl(this._self, this._then);
+
+  final CandlelightConfig _self;
+  final $Res Function(CandlelightConfig) _then;
+
+/// Create a copy of MirkStyleConfig
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? centerColorArgb = null,Object? peripheryColorArgb = null,Object? noiseScale = null,Object? noiseSpeed = null,Object? baselineAlpha = null,Object? featherRadiusFraction = null,}) {
+  return _then(CandlelightConfig(
+centerColorArgb: null == centerColorArgb ? _self.centerColorArgb : centerColorArgb // ignore: cast_nullable_to_non_nullable
+as int,peripheryColorArgb: null == peripheryColorArgb ? _self.peripheryColorArgb : peripheryColorArgb // ignore: cast_nullable_to_non_nullable
 as int,noiseScale: null == noiseScale ? _self.noiseScale : noiseScale // ignore: cast_nullable_to_non_nullable
+as double,noiseSpeed: null == noiseSpeed ? _self.noiseSpeed : noiseSpeed // ignore: cast_nullable_to_non_nullable
+as double,baselineAlpha: null == baselineAlpha ? _self.baselineAlpha : baselineAlpha // ignore: cast_nullable_to_non_nullable
+as double,featherRadiusFraction: null == featherRadiusFraction ? _self.featherRadiusFraction : featherRadiusFraction // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class HeavenlyCloudsConfig implements MirkStyleConfig {
+  const HeavenlyCloudsConfig({this.colorArgb = 0xFFE8E8EE, this.noiseScale = 0.3, this.noiseSpeed = 0.08, this.driftDirectionDeg = 45.0, this.baselineAlpha = 0.80, final  String? $type}): $type = $type ?? 'heavenly';
+  factory HeavenlyCloudsConfig.fromJson(Map<String, dynamic> json) => _$HeavenlyCloudsConfigFromJson(json);
+
+@JsonKey() final  int colorArgb;
+@JsonKey() final  double noiseScale;
+@JsonKey() final  double noiseSpeed;
+@JsonKey() final  double driftDirectionDeg;
+@JsonKey() final  double baselineAlpha;
+
+@JsonKey(name: 'rendererType')
+final String $type;
+
+
+/// Create a copy of MirkStyleConfig
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$HeavenlyCloudsConfigCopyWith<HeavenlyCloudsConfig> get copyWith => _$HeavenlyCloudsConfigCopyWithImpl<HeavenlyCloudsConfig>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$HeavenlyCloudsConfigToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HeavenlyCloudsConfig&&(identical(other.colorArgb, colorArgb) || other.colorArgb == colorArgb)&&(identical(other.noiseScale, noiseScale) || other.noiseScale == noiseScale)&&(identical(other.noiseSpeed, noiseSpeed) || other.noiseSpeed == noiseSpeed)&&(identical(other.driftDirectionDeg, driftDirectionDeg) || other.driftDirectionDeg == driftDirectionDeg)&&(identical(other.baselineAlpha, baselineAlpha) || other.baselineAlpha == baselineAlpha));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,colorArgb,noiseScale,noiseSpeed,driftDirectionDeg,baselineAlpha);
+
+@override
+String toString() {
+  return 'MirkStyleConfig.heavenly(colorArgb: $colorArgb, noiseScale: $noiseScale, noiseSpeed: $noiseSpeed, driftDirectionDeg: $driftDirectionDeg, baselineAlpha: $baselineAlpha)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $HeavenlyCloudsConfigCopyWith<$Res> implements $MirkStyleConfigCopyWith<$Res> {
+  factory $HeavenlyCloudsConfigCopyWith(HeavenlyCloudsConfig value, $Res Function(HeavenlyCloudsConfig) _then) = _$HeavenlyCloudsConfigCopyWithImpl;
+@useResult
+$Res call({
+ int colorArgb, double noiseScale, double noiseSpeed, double driftDirectionDeg, double baselineAlpha
+});
+
+
+
+
+}
+/// @nodoc
+class _$HeavenlyCloudsConfigCopyWithImpl<$Res>
+    implements $HeavenlyCloudsConfigCopyWith<$Res> {
+  _$HeavenlyCloudsConfigCopyWithImpl(this._self, this._then);
+
+  final HeavenlyCloudsConfig _self;
+  final $Res Function(HeavenlyCloudsConfig) _then;
+
+/// Create a copy of MirkStyleConfig
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? colorArgb = null,Object? noiseScale = null,Object? noiseSpeed = null,Object? driftDirectionDeg = null,Object? baselineAlpha = null,}) {
+  return _then(HeavenlyCloudsConfig(
+colorArgb: null == colorArgb ? _self.colorArgb : colorArgb // ignore: cast_nullable_to_non_nullable
+as int,noiseScale: null == noiseScale ? _self.noiseScale : noiseScale // ignore: cast_nullable_to_non_nullable
+as double,noiseSpeed: null == noiseSpeed ? _self.noiseSpeed : noiseSpeed // ignore: cast_nullable_to_non_nullable
+as double,driftDirectionDeg: null == driftDirectionDeg ? _self.driftDirectionDeg : driftDirectionDeg // ignore: cast_nullable_to_non_nullable
+as double,baselineAlpha: null == baselineAlpha ? _self.baselineAlpha : baselineAlpha // ignore: cast_nullable_to_non_nullable
 as double,
   ));
 }

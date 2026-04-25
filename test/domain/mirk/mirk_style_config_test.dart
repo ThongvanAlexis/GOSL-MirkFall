@@ -22,11 +22,17 @@ import 'package:test/test.dart';
 
 void main() {
   group('09-02 — MirkStyleConfig.atmospheric (extended params)', () {
-    test('legacy 2-param call still constructs (Phase 03 caller compatibility)', () {
-      const cfg = AtmosphericConfig(baseColorArgb: 0xFF112233, noiseScale: 0.4);
-      expect(cfg.baseColorArgb, 0xFF112233);
-      expect(cfg.noiseScale, 0.4);
-    });
+    test(
+      'legacy 2-param call still constructs (Phase 03 caller compatibility)',
+      () {
+        const cfg = AtmosphericConfig(
+          baseColorArgb: 0xFF112233,
+          noiseScale: 0.4,
+        );
+        expect(cfg.baseColorArgb, 0xFF112233);
+        expect(cfg.noiseScale, 0.4);
+      },
+    );
 
     test('extended params have sensible defaults', () {
       const cfg = AtmosphericConfig();
@@ -41,7 +47,13 @@ void main() {
     });
 
     test('atmospheric round-trips fromJson(toJson())', () {
-      const original = AtmosphericConfig(baseColorArgb: 0xFF445566, noiseScale: 0.7, noiseSpeed: 0.12, driftDirectionDeg: 45.0, secondaryColorArgb: 0xFFAABBCC);
+      const original = AtmosphericConfig(
+        baseColorArgb: 0xFF445566,
+        noiseScale: 0.7,
+        noiseSpeed: 0.12,
+        driftDirectionDeg: 45.0,
+        secondaryColorArgb: 0xFFAABBCC,
+      );
       final json = original.toJson();
       final restored = MirkStyleConfig.fromJson(json);
       expect(restored, original);
@@ -82,7 +94,11 @@ void main() {
     });
 
     test('round-trips fromJson(toJson())', () {
-      const original = CandlelightConfig(centerColorArgb: 0xFFFF0000, peripheryColorArgb: 0xFF880000, noiseScale: 0.9);
+      const original = CandlelightConfig(
+        centerColorArgb: 0xFFFF0000,
+        peripheryColorArgb: 0xFF880000,
+        noiseScale: 0.9,
+      );
       final json = original.toJson();
       final restored = MirkStyleConfig.fromJson(json);
       expect(restored, isA<CandlelightConfig>());
@@ -107,7 +123,11 @@ void main() {
     });
 
     test('round-trips fromJson(toJson())', () {
-      const original = HeavenlyCloudsConfig(colorArgb: 0xFFAABBCC, noiseScale: 0.4, driftDirectionDeg: 90.0);
+      const original = HeavenlyCloudsConfig(
+        colorArgb: 0xFFAABBCC,
+        noiseScale: 0.4,
+        driftDirectionDeg: 90.0,
+      );
       final json = original.toJson();
       final restored = MirkStyleConfig.fromJson(json);
       expect(restored, isA<HeavenlyCloudsConfig>());
@@ -131,7 +151,10 @@ void main() {
     });
 
     test('unknown rendererType still falls back to UnknownConfig', () {
-      final cfg = MirkStyleConfig.fromJson(<String, Object?>{'rendererType': 'totally-made-up-future-renderer-v99', 'foo': 'bar'});
+      final cfg = MirkStyleConfig.fromJson(<String, Object?>{
+        'rendererType': 'totally-made-up-future-renderer-v99',
+        'foo': 'bar',
+      });
       expect(cfg, isA<UnknownConfig>());
       final raw = (cfg as UnknownConfig).raw;
       expect(raw['rendererType'], 'totally-made-up-future-renderer-v99');
@@ -154,13 +177,16 @@ void main() {
     });
 
     test('switch on each new variant yields its label', () {
-      const Map<MirkStyleConfig, String> casePairs = <MirkStyleConfig, String>{
-        SolidConfig(): 'solid',
-        CandlelightConfig(): 'candlelight',
-        HeavenlyCloudsConfig(): 'heavenly',
-      };
-      for (final MapEntry<MirkStyleConfig, String> entry in casePairs.entries) {
-        final String label = switch (entry.key) {
+      // List-of-records: Freezed equality is not "primitive" (Dart 3 const-key
+      // requirement) so we can't use a const Map<MirkStyleConfig, String>.
+      const List<(MirkStyleConfig, String)> cases = <(MirkStyleConfig, String)>[
+        (SolidConfig(), 'solid'),
+        (CandlelightConfig(), 'candlelight'),
+        (HeavenlyCloudsConfig(), 'heavenly'),
+        (ShaderConfig(shaderAssetPath: 'foo.frag'), 'shader'),
+      ];
+      for (final (cfg, expected) in cases) {
+        final String label = switch (cfg) {
           AtmosphericConfig() => 'atmospheric',
           SolidConfig() => 'solid',
           CandlelightConfig() => 'candlelight',
@@ -168,47 +194,81 @@ void main() {
           ShaderConfig() => 'shader',
           UnknownConfig() => 'unknown',
         };
-        expect(label, entry.value, reason: 'Variant ${entry.key.runtimeType} → expected ${entry.value}');
+        expect(
+          label,
+          expected,
+          reason: 'Variant ${cfg.runtimeType} → expected $expected',
+        );
       }
     });
   });
 
   group('09-02 — fixture-driven JSON parsing', () {
-    test('builtin_styles.json: all 4 entries parse to concrete (non-Unknown) variants', () {
-      final filename = p.join(Directory.current.path, 'test', 'fixtures', 'mirk', 'builtin_styles.json');
-      final raw = jsonDecode(File(filename).readAsStringSync()) as List<Object?>;
-      expect(raw.length, 4);
+    test(
+      'builtin_styles.json: all 4 entries parse to concrete (non-Unknown) variants',
+      () {
+        final filename = p.join(
+          Directory.current.path,
+          'test',
+          'fixtures',
+          'mirk',
+          'builtin_styles.json',
+        );
+        final raw =
+            jsonDecode(File(filename).readAsStringSync()) as List<Object?>;
+        expect(raw.length, 4);
 
-      final List<MirkStyleConfig> parsed = raw.map((entry) {
-        final entryMap = entry as Map<String, Object?>;
-        final config = entryMap['config'] as Map<String, Object?>;
-        return MirkStyleConfig.fromJson(config);
-      }).toList(growable: false);
+        final List<MirkStyleConfig> parsed = raw
+            .map((entry) {
+              final entryMap = entry as Map<String, Object?>;
+              final config = entryMap['config'] as Map<String, Object?>;
+              return MirkStyleConfig.fromJson(config);
+            })
+            .toList(growable: false);
 
-      // Every entry MUST be its concrete variant — no UnknownConfig fallbacks.
-      expect(parsed[0], isA<AtmosphericConfig>());
-      expect(parsed[1], isA<SolidConfig>());
-      expect(parsed[2], isA<CandlelightConfig>());
-      expect(parsed[3], isA<HeavenlyCloudsConfig>());
-    });
+        // Every entry MUST be its concrete variant — no UnknownConfig fallbacks.
+        expect(parsed[0], isA<AtmosphericConfig>());
+        expect(parsed[1], isA<SolidConfig>());
+        expect(parsed[2], isA<CandlelightConfig>());
+        expect(parsed[3], isA<HeavenlyCloudsConfig>());
+      },
+    );
 
     test('imported_style_valid.json parses to AtmosphericConfig', () {
-      final filename = p.join(Directory.current.path, 'test', 'fixtures', 'mirk', 'imported_style_valid.json');
-      final raw = jsonDecode(File(filename).readAsStringSync()) as Map<String, Object?>;
+      final filename = p.join(
+        Directory.current.path,
+        'test',
+        'fixtures',
+        'mirk',
+        'imported_style_valid.json',
+      );
+      final raw =
+          jsonDecode(File(filename).readAsStringSync()) as Map<String, Object?>;
       final config = raw['config'] as Map<String, Object?>;
       final parsed = MirkStyleConfig.fromJson(config);
       expect(parsed, isA<AtmosphericConfig>());
     });
 
-    test('imported_style_unknown_type.json parses to UnknownConfig with raw preserved', () {
-      final filename = p.join(Directory.current.path, 'test', 'fixtures', 'mirk', 'imported_style_unknown_type.json');
-      final raw = jsonDecode(File(filename).readAsStringSync()) as Map<String, Object?>;
-      final config = raw['config'] as Map<String, Object?>;
-      final parsed = MirkStyleConfig.fromJson(config);
-      expect(parsed, isA<UnknownConfig>());
-      final preserved = (parsed as UnknownConfig).raw;
-      expect(preserved['rendererType'], 'ray_marched_volumetric');
-      expect(preserved['fancyParam'], 42);
-    });
+    test(
+      'imported_style_unknown_type.json parses to UnknownConfig with raw preserved',
+      () {
+        final filename = p.join(
+          Directory.current.path,
+          'test',
+          'fixtures',
+          'mirk',
+          'imported_style_unknown_type.json',
+        );
+        final raw =
+            jsonDecode(File(filename).readAsStringSync())
+                as Map<String, Object?>;
+        final config = raw['config'] as Map<String, Object?>;
+        final parsed = MirkStyleConfig.fromJson(config);
+        expect(parsed, isA<UnknownConfig>());
+        final preserved = (parsed as UnknownConfig).raw;
+        expect(preserved['rendererType'], 'ray_marched_volumetric');
+        expect(preserved['fancyParam'], 42);
+      },
+    );
   });
 }
