@@ -3,6 +3,7 @@
 // See LICENSE file for details
 
 import '../fixes/fix.dart';
+import '../mirk/mirk_viewport_bbox.dart';
 import 'country_code.dart';
 import 'map_theme.dart';
 
@@ -47,7 +48,11 @@ abstract class MapView {
   /// animator is instantiated before the render loop has committed
   /// the freshly-loaded style. See Phase 07-07 device-smoke
   /// Runner-2026-04-22-122719.ips bisection.
-  Future<void> moveCameraTo({required double latitude, required double longitude, required double zoom});
+  Future<void> moveCameraTo({
+    required double latitude,
+    required double longitude,
+    required double zoom,
+  });
 
   /// Same as [moveCameraTo] but WITHOUT animation — the camera jumps
   /// to the target instantly. Safe to call right after an
@@ -58,7 +63,11 @@ abstract class MapView {
   /// (open-map with active session, deep-link landing, etc.) where
   /// the motion would be a single frame anyway and any animation is
   /// wasted effort.
-  Future<void> jumpCameraTo({required double latitude, required double longitude, required double zoom});
+  Future<void> jumpCameraTo({
+    required double latitude,
+    required double longitude,
+    required double zoom,
+  });
 
   /// Swaps the rendering theme (see [MapTheme]). Implementations keep the
   /// current camera + sources intact; only visual styles change.
@@ -74,11 +83,27 @@ abstract class MapView {
   /// viewport center.
   Future<({double latitude, double longitude, double zoom})> queryViewport();
 
+  /// Returns the current viewport bounds in lat/lon as a
+  /// [MirkViewportBbox] (Phase 09 plan 09-07 Task 1).
+  ///
+  /// Phase 09 consumers need the full bbox (not just the centre from
+  /// [queryViewport]) to compute which parent tiles intersect the
+  /// viewport. The implementation queries MapLibre-native
+  /// `LatLngBounds` and adapts to the MapLibre-free [MirkViewportBbox]
+  /// at the platform boundary (MAP-06 seam discipline).
+  ///
+  /// Implementations MAY throw or return an out-of-range value if the
+  /// adapter's MapLibre surface is not loaded yet. Callers that
+  /// subscribe before the first style-loaded callback are expected to
+  /// retry on the next [viewportUpdates] event.
+  Future<MirkViewportBbox> queryViewportBounds();
+
   /// Broadcast stream of viewport updates (camera idle events). Every
   /// camera-move gesture emits exactly one event once the camera settles.
   /// Implementations MAY debounce; subscribers should not assume
   /// per-frame resolution.
-  Stream<({double latitude, double longitude, double zoom})> get viewportUpdates;
+  Stream<({double latitude, double longitude, double zoom})>
+  get viewportUpdates;
 
   /// Marks [polygon] as visited — Phase 09+ fog-of-war integration point.
   /// Stubbed in Phase 07 so later renderers can plumb through without
@@ -88,7 +113,12 @@ abstract class MapView {
   /// Adds / updates a point of interest keyed by [id]. Idempotent: calling
   /// twice with the same [id] replaces the existing marker. Phase 11+
   /// marker integration point.
-  Future<void> addPointOfInterest({required String id, required double latitude, required double longitude, required String iconId});
+  Future<void> addPointOfInterest({
+    required String id,
+    required double latitude,
+    required double longitude,
+    required String iconId,
+  });
 
   /// Removes a point of interest by [id]. No-op when [id] is unknown.
   Future<void> removePointOfInterest(String id);
