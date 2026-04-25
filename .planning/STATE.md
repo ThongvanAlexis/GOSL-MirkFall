@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 09-03 (closed); Wave 2 partially complete (09-03 done, 09-02 may still be running concurrently)
-status: Phase 09 Fog Rendering Wave 2 in progress — 09-03 complete; 09-02 status to be reconciled at next checkpoint
-stopped_at: Completed 09-03-PLAN.md (Wave 2 — computeRevealMask body landed; Phase 09 4/10 plans done)
-last_updated: "2026-04-25T04:08:43.336Z"
+current_plan: 09-02 (closed) — Phase 09 Wave 2 plans 09-02 + 09-03 both closed; Wave 3 unblocked
+status: Phase 09 Fog Rendering Wave 2 complete — 09-02 + 09-03 closed; Wave 3 unblocked (plan 09-04 + 09-05 + 09-06 + 09-07 + 09-08)
+stopped_at: Completed 09-02-PLAN.md (Wave 2 sibling — domain wiring: Freezed MirkPaintContext extension + 6-variant sealed union + simplex noise body)
+last_updated: "2026-04-25T04:27:18Z"
 last_activity: 2026-04-25
 progress:
   total_phases: 17
   completed_phases: 9
   total_plans: 57
-  completed_plans: 51
-  percent: 89
+  completed_plans: 52
+  percent: 91
 ---
 
 # Project State
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 4 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 ; 09-03 — Wave 2)
-Current Plan: 09-03 (closed); Wave 2 partially complete (09-03 done; 09-02 may still be running concurrently)
-Total Plans in Phase 09: 4 / 10 done (Wave 1: 09-01 + 09-01b + 09-01c ; Wave 2: 09-03)
-Status: Phase 09 Wave 2 in progress — computeRevealMask body landed via bbox-first prune + Haversine clamp (~0.6 µs/call at r=25 m, ~80× under the 50 µs perf budget)
+Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 5 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 ; 09-02 + 09-03 — Wave 2)
+Current Plan: 09-02 (closed); Wave 2 complete; Wave 3 unblocked
+Total Plans in Phase 09: 5 / 10 done (Wave 1: 09-01 + 09-01b + 09-01c ; Wave 2: 09-02 + 09-03)
+Status: Phase 09 Wave 2 complete — Freezed MirkPaintContext extension (3 → 6 fields) + 6-variant MirkStyleConfig sealed union + Ken Perlin 2001 simplex noise body all landed; renderer plans (09-04+) unblocked
 Last Activity: 2026-04-25
 
-Progress: [█████████░] 89% — 51 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 4/10 — 09-01 + 09-01b + 09-01c + 09-03).
+Progress: [█████████░] 91% — 52 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 5/10 — 09-01 + 09-01b + 09-01c + 09-02 + 09-03).
 
 ## Performance Metrics
 
@@ -97,6 +97,7 @@ Progress: [█████████░] 89% — 51 / 57 plans executed (Phase
 | Phase 09-fog-rendering P01b | ~12 min | 3 tasks | 21 files (lib/ scaffolds: 2 domain + 8 infrastructure + 8 application + 3 presentation) |
 | Phase 09-fog-rendering P01c | 17 min | 3 tasks + 1 chore | 31 created (5 tool / 20 test scaffolds / 3 JSON fixtures / 3 fakes) + 3 modified (CI workflow + 2 test files) |
 | Phase 09-fog-rendering P03 | 6 min | 2 tasks | 4 files |
+| Phase 09-fog-rendering P02 | 28 min | 3 tasks (TDD: 3 RED + 3 GREEN commits) | 13 files (4 created + 9 modified, includes 4 generated .freezed.dart / .g.dart) |
 
 ## Accumulated Context
 
@@ -112,6 +113,13 @@ Recent decisions carried from research (2026-04-17) :
 - Phase 05: Exclusivité session enforced par partial unique index Drift, pas par discipline caller (D13)
 - Phase 07: `PmtilesSource` seam — V1.0 **100 % offline** : world map PMTiles bundlé dans l'APK + téléchargement par pays (ZIPs multi-parts via catalog JSON pointant vers GitHub Release du repo projet). Aucune impl remote n'existe (lint `avoid_remote_pmtiles`). Décision D7 refondue 2026-04-19 : l'ancien plan "V1.0 online OSM / V1.1 MBTiles offline en pur ajout" est écarté (coûts bucket + streaming + surface d'attaque) ; l'offline est désormais partie intégrante de la V1.0 et absorbe les anciens OFFL-01..04 v2.
 - Phase 09: `MirkRenderer` seam — expose uniquement `paint(Canvas, Size, MirkPaintContext)`, aucun détail d'implémentation (D6)
+- [Phase 09-fog-rendering] Plan 09-02: MirkPaintContext extended once in Wave 2 (single Phase 09 extension event, 3 → 6 fields: + viewportBbox + visibleTiles + nullable currentFix). Downstream plans 09-04 / 09-07 consume the extended shape via constructor without re-opening the Freezed.
+- [Phase 09-fog-rendering] Plan 09-02: sessionElapsed retained verbatim — NOT renamed to frameElapsed, no second time field added. Phase 07 NoopMirkRenderer + mirk_renderer_contract_test surface preserved. A future per-frame Ticker time becomes a Phase 10 review-gate decision, not Phase 09 work.
+- [Phase 09-fog-rendering] Plan 09-02: VisibleMirkTile lands in Wave 2 (this plan) rather than Wave 3 — single MirkPaintContext extension event, no Freezed re-open by 09-04 (revision B3 resolution).
+- [Phase 09-fog-rendering] Plan 09-02: 6-variant MirkStyleConfig sealed union (atmospheric extended + solid + candlelight + heavenly + shader unchanged + unknown unchanged). HeavenlyCloudsConfig wires to JSON discriminator 'heavenly' (NOT 'heavenly_clouds') per research §Registration Pattern Choice — class name keeps long form, wire shape matches user-facing UI label.
+- [Phase 09-fog-rendering] Plan 09-02: AtmosphericConfig promoted from 2 → 8 params, all new params @Default-guarded so legacy 2-arg callers (Phase 03 t_mirk_styles fromJson, Phase 03 fixtures) compile + deserialize unchanged.
+- [Phase 09-fog-rendering] Plan 09-02: Hand-rolled SimplexNoise2D body (~140 LOC pure Dart) over fast_noise / open_simplex_noise — Ken Perlin 2001 algorithm is patent-free + public-domain, port GOSL-licensed, fits in-repo without DEPENDENCIES.md churn. _outputScale = 70.0 (classic Perlin value) verified empirically by [-1.05, 1.05] envelope on 1000 random samples + mean ~0 over 10 000 samples.
+- [Phase 09-fog-rendering] Plan 09-02: Sealed-switch growth requires updating every existing exhaustive switch site — DriftMirkStyleStore._rendererTypeFor (lib) + mirk_style_config_fromjson_test.exhaustive-switch (test) both extended with the 3 new variants in the same commit as the union growth (Rule 3 - Blocking auto-fix; non-exhaustive switch is fatal under --fatal-warnings --fatal-infos).
 - Project-wide: Riverpod comme unique state management + DI (D5)
 - [Phase 01-foundation]: Held analyzer stack at <9.0 for Phase 01 — No compatible custom_lint + riverpod_lint + analyzer trio exists yet; upgrading to analyzer ^9 would force dropping lint tools. Phase 03 will re-evaluate when ecosystem converges.
 - [Phase 01-foundation]: Defer custom_lint + riverpod_lint to Phase 03 — Phase 01 has no @riverpod providers; lint tools add no value until codegen starts.

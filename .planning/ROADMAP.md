@@ -205,7 +205,7 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 - [x] 09-fog-rendering/09-01-PLAN.md — Wave 1: Scaffolding Part 1/3 — constants + dart_test.yaml mirk-perf tag + style_layer_order.dart docstring + test/constants_test.dart (revision B5 split) (completed 2026-04-25)
 - [x] 09-fog-rendering/09-01b-PLAN.md — Wave 1: Scaffolding Part 2/3 — lib/ source scaffolds (renderers, factory, registry, noise, controllers, providers, widgets incl. MirkInitialRevealFade) (completed 2026-04-25)
 - [x] 09-fog-rendering/09-01c-PLAN.md — Wave 1: Scaffolding Part 3/3 — test/ + tool/ scaffolds (22 test files + 3 fixtures + 3 fakes + 5 tool files + 2 CI gates wired) (completed 2026-04-25)
-- [ ] 09-fog-rendering/09-02-PLAN.md — Wave 2: MirkPaintContext + VisibleMirkTile + MirkStyleConfig (6 variants) Freezed extensions + SimplexNoise2D (single MirkPaintContext extension event)
+- [x] 09-fog-rendering/09-02-PLAN.md — Wave 2: MirkPaintContext + VisibleMirkTile + MirkStyleConfig (6 variants) Freezed extensions + SimplexNoise2D body (Ken Perlin 2001) — single MirkPaintContext extension event (completed 2026-04-25)
 - [ ] 09-fog-rendering/09-03-PLAN.md — Wave 2: computeRevealMask body (TDD with explicit RED / GREEN / REFACTOR tasks — bbox prune + Haversine per-cell intersect)
 - [ ] 09-fog-rendering/09-04-PLAN.md — Wave 3: 4 concrete MirkRenderer implementations (atmospheric/solid/candlelight/heavenly_clouds) + MirkProjection + tile_cell_iteration helpers (consume-only, no Freezed re-extension)
 - [ ] 09-fog-rendering/09-05-PLAN.md — Wave 4: MirkRendererFactory + kBuiltinMirkStyles registry + 3 Riverpod providers with concrete ProviderContainer override snippets + lifecycle dispose
@@ -313,7 +313,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 | 07. Map Integration | 7/7 | Complete    | 2026-04-23 |
 | 08. Review Gate — Map | 5/5 | Complete    | 2026-04-24 |
 | 08.1 Re-Review — Post-Walk Audit (INSERTED) | 5/5 | Complete    | 2026-04-24 |
-| 09. Fog Rendering | 4/10 | In Progress|  |
+| 09. Fog Rendering | 5/10 | In Progress|  |
 | 10. Review Gate — Fog | 0/TBD | Not started | - |
 | 11. Markers & Categories | 0/TBD | Not started | - |
 | 12. Review Gate — Markers | 0/TBD | Not started | - |
