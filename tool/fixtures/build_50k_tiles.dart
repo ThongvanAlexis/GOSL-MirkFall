@@ -115,7 +115,15 @@ Future<void> main(List<String> args) async {
     // Use a fixed gzip configuration so `dart run …` twice produces
     // byte-identical output. The default GZipCodec sets mtime=0 which
     // is what we need for deterministic builds.
-    final List<int> gz = gzip.encode(rawSql);
+    //
+    // Cross-platform fix: Dart's GZipCodec writes the gzip OS byte
+    // (header offset 9, RFC 1952 §2.3.1) based on the host platform —
+    // 0x0A on Windows, 0x03 on Linux, etc. That breaks the byte-identical
+    // contract that `check_mirk_fixture_fresh` enforces between dev
+    // machines and CI runners. We force OS=0xFF ("unknown") which is the
+    // canonical "platform-agnostic" value per the RFC.
+    final Uint8List gz = Uint8List.fromList(gzip.encode(rawSql));
+    gz[9] = 0xFF;
     outFile.writeAsBytesSync(gz, flush: true);
   } else {
     outFile.writeAsBytesSync(rawSql, flush: true);
