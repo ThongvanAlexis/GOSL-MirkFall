@@ -192,3 +192,10 @@ flutter:
     - assets/maps/glyphs/
     - assets/maps/sprites/
     - assets/maps/polygons/
+
+  # Phase 09 BUG-009 (TIER 2) — volumetric fog fragment shader. Loaded
+  # via `ui.FragmentProgram.fromAsset(...)` by FogShaderService. The
+  # `.frag` is compiled at build time by impellerc (GLSL → SPIR-V →
+  # MSL/Vulkan/SkSL) and bundled into the app — no runtime compile cost.
+  shaders:
+    - assets/shaders/atmospheric_fog.frag
