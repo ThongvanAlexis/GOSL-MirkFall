@@ -1,6 +1,6 @@
 # BUG-006 — Le reveal s'affiche en grille de carrés au lieu d'un cercle smooth
 
-**Status:** fixed (2026-04-25)
+**Status:** fixed (boundary smoothing seulement — les carrés à petit rayon persistent ; suivi sous BUG-010)
 **Reported:** 2026-04-25 (iOS UAT walk après build `0b96197`)
 **Platform:** iOS sideloaded
 **Phase context:** Comportement initial Phase 09 — exposé après le fix BUG-003 qui a retiré le `MaskFilter.blur` (parce qu'il causait le damier dans le mode per-tile). Sans feather, les arêtes des cells du subgrid sont visibles.
@@ -79,3 +79,15 @@ Sigma values were NOT changed — kept at the existing `featherRadiusFraction ×
 - `flutter analyze --fatal-warnings --fatal-infos` on the 5 changed files — clean.
 - `dart format --line-length 160 --set-exit-if-changed` on the 5 changed files — clean.
 - Full mirk renderer + overlay test suite (83 tests) — all green.
+
+## Followup post-walk 2026-04-25
+
+Les UAT walks de fin de journée (pendant l'itération BUG-009) confirment que le `BlurStyle.normal` lisse bien les coins arrondis du blob global, mais à un rayon de reveal de 25 m la zone clear reste **visiblement carrée** (en réalité un "+"). Le boundary smoothing ne suffit pas — c'est un défaut structurel de la couche de stockage, pas du rendu.
+
+**Diagnostic architectural :** la data layer stocke les reveals en grille 64×64 cellules par parent tile au zoom 14 → cellules de ~19 m. Un reveal de rayon 25 m ne couvre que ~1.5 cellule, ce qui produit intrinsèquement une forme blocky (un "plus" de 5 cells en croix) à toutes les couches de rendu en aval. SDF parfait + blur parfait ne peuvent rien y faire : 5 cellules alignées sur une grille lisent comme un carré aux yeux du user.
+
+**Conséquence :** le fix `BlurStyle.inner → BlurStyle.normal` reste pertinent (il smoothe les blobs plus larges, et reste utile pour le fallback path quand le shader TIER 2 n'est pas dispo) mais ne résout pas le symptôme à petit rayon.
+
+**Suivi :** voir **`BUG-010-cell-grid-resolution-blocky.md`**. Le fix retenu par l'utilisateur est une refonte de la data layer en géométrie continue (option B — liste de discs `(lat, lon, radius, timestamp)` + rendu via union-of-discs SDF). Doit lander avant Phase 10 (Review Gate Fog).
+
+Pas de changement de code sur ce ticket — le scope BUG-006 est officiellement fermé sur le périmètre boundary smoothing. Les carrés à petit rayon sont migrés vers BUG-010.
