@@ -389,6 +389,25 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     if (hash == _lastSdfHash && _sdfImage != null) return;
     _sdfBuildInFlight = true;
     _lastSdfHash = hash;
+    // BUG-009 follow-up diagnostic (2026-04-25): count the total set
+    // bits across every visible tile's bitmap BEFORE the SDF builder
+    // sees them. If totalSetBits is 0 here, the bits were lost upstream
+    // (RevealedTileStore / visibleMirkTilesProvider); if it's > 0 yet
+    // the SDF still reports 0% revealed, the loss is inside the
+    // builder's projection. Discriminator log for the next walk.
+    var totalSetBits = 0;
+    for (final tile in context.visibleTiles) {
+      for (final byte in tile.bitmap) {
+        // Brian Kernighan bit-count — fine for diagnostic; this only
+        // runs when a rebuild was already going to happen anyway.
+        var b = byte;
+        while (b != 0) {
+          b &= b - 1;
+          totalSetBits++;
+        }
+      }
+    }
+    _log.fine('_refreshSdfIfNeeded: visibleTiles=${context.visibleTiles.length} totalSetBits=$totalSetBits');
     _log.fine('_refreshSdfIfNeeded: scheduling rebuild (hash=$hash visibleTiles=${context.visibleTiles.length})');
     _sdfBuilder
         .build(visibleTiles: context.visibleTiles, viewport: context.viewportBbox)

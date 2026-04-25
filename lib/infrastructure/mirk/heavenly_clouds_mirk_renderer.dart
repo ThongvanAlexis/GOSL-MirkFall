@@ -267,6 +267,20 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     if (hash == _lastSdfHash && _sdfImage != null) return;
     _sdfBuildInFlight = true;
     _lastSdfHash = hash;
+    // BUG-009 follow-up diagnostic — see atmospheric renderer for the
+    // rationale. Discriminates "bits lost upstream" vs "lost inside
+    // the SDF projection" on the next iOS UAT walk.
+    var totalSetBits = 0;
+    for (final tile in context.visibleTiles) {
+      for (final byte in tile.bitmap) {
+        var b = byte;
+        while (b != 0) {
+          b &= b - 1;
+          totalSetBits++;
+        }
+      }
+    }
+    _log.fine('_refreshSdfIfNeeded: visibleTiles=${context.visibleTiles.length} totalSetBits=$totalSetBits');
     _log.fine('_refreshSdfIfNeeded: scheduling rebuild (hash=$hash visibleTiles=${context.visibleTiles.length})');
     _sdfBuilder
         .build(visibleTiles: context.visibleTiles, viewport: context.viewportBbox)

@@ -194,6 +194,15 @@ class RevealedSdfBuilder {
   }) {
     final cellLatSpan = (tile.tileNorthLat - tile.tileSouthLat) / kRevealedTileSubgridSize;
     final cellLonSpan = (tile.tileEastLon - tile.tileWestLon) / kRevealedTileSubgridSize;
+    // BUG-009 follow-up diagnostic counters (2026-04-25): track how
+    // many revealed cells of THIS tile actually projected within the
+    // seed grid (vs were clipped because their lat/lon fell outside
+    // the viewport bbox). Tells us whether the bits exist on the tile
+    // but the projection geometry rejects them — separate failure mode
+    // from "no bits exist".
+    var revealedCellCount = 0;
+    var markedCellCount = 0;
+    var skippedOffGridCount = 0;
     for (var j = 0; j < kRevealedTileSubgridSize; j++) {
       final cellNorthLat = tile.tileNorthLat - j * cellLatSpan;
       final cellSouthLat = cellNorthLat - cellLatSpan;
@@ -203,6 +212,7 @@ class RevealedSdfBuilder {
         final bitOffset = bitIndex & 7;
         final bit = (tile.bitmap[byteIndex] >> bitOffset) & 1;
         if (bit == 0) continue; // Cell is unrevealed → stays as fog (seed=0).
+        revealedCellCount++;
         final cellWestLon = tile.tileWestLon + i * cellLonSpan;
         final cellEastLon = cellWestLon + cellLonSpan;
         // Project cell rect to the seed grid. Anything outside the
@@ -217,6 +227,11 @@ class RevealedSdfBuilder {
         final yMax = py1.clamp(0, n);
         final xMin = px0.clamp(0, n);
         final xMax = px1.clamp(0, n);
+        if (xMin >= xMax || yMin >= yMax) {
+          skippedOffGridCount++;
+          continue;
+        }
+        markedCellCount++;
         for (var y = yMin; y < yMax; y++) {
           final rowOffset = y * n;
           for (var x = xMin; x < xMax; x++) {
@@ -224,6 +239,11 @@ class RevealedSdfBuilder {
           }
         }
       }
+    }
+    if (revealedCellCount > 0) {
+      _log.fine(
+        '_markTileInSeed: tile ${tile.parentX}/${tile.parentY} → revealedCells=$revealedCellCount marked=$markedCellCount skippedOffGrid=$skippedOffGridCount',
+      );
     }
   }
 
