@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: none (Phase 08.1 closed; next integer phase is Phase 09 Fog Rendering, unblocked)
-status: Phase 08.1 closed 2026-04-24; Phase 09 Fog Rendering unblocked
-stopped_at: Phase 09 context gathered
-last_updated: "2026-04-24T18:12:18.934Z"
-last_activity: 2026-04-24
+current_plan: 09-01b (closed) — Phase 09 Wave 1 still has 09-01c outstanding
+status: Phase 09 Fog Rendering Wave 1 in progress — 09-01 + 09-01b closed; 09-01c may be running in parallel
+stopped_at: Completed 09-01b-PLAN.md (Wave 0 scaffold Part 2/3 — 21 lib/ source scaffolds across domain / infrastructure / application / presentation)
+last_updated: "2026-04-25T05:55:00.000Z"
+last_activity: 2026-04-25
 progress:
   total_phases: 17
   completed_phases: 9
-  total_plans: 47
-  completed_plans: 47
-  percent: 100
+  total_plans: 57
+  completed_plans: 50
+  percent: 88
 ---
 
 # Project State
@@ -93,6 +93,7 @@ Progress: [██████████] 100% — 47 / 47 plans executed (Phas
 | Phase 08.1-rereview-post-walk P01 | ~1min (continuation) | 3 tasks | 2 files |
 | Phase 08.1-rereview-post-walk P02 | ~3min | 1 tasks | 2 files |
 | Phase 08.1-rereview-post-walk P04 | ~12 min | 4 tasks (2 verification-only + 1 decision-flow N=0 + 1 §4 populate) | 1 file (08.1-REVIEW.md §4) + SUMMARY.md |
+| Phase 09 P01 | 6 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -317,6 +318,9 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 08.1-rereview-post-walk]: Plan 08.1-04 gate-verification-only wave complete on main `997f5df` (5th cycle of review-phase no-new-gate-no-new-branch default-skip, locked Phases 02+04+06+08+08.1). All 8 existing CI gates green on `0b0b781` (check_headers 300 files / check_licenses 189 packages / check_dependencies_md 189 packages / check_domain_purity 57 files / check_platform_manifests Android+iOS / check_avoid_maplibre_leak 149 files / check_avoid_remote_pmtiles 536 files / check_style_no_external_url style.json). Empirical proof that Phase 08 49-fix loop (commits `254b5d2 → ae6a4b6`) introduced zero regression in any gate's scan surface. `adversarial/08-style-external-url` confirmed deleted remote + no `adversarial/08.1-*` branches (1-branch-per-gate-script convention). §4 populated in ONE atomic commit (collapsed Task 3 N=0 + Task 4 §4 populate per Phase 06 Plan 06-04 precedent). Test suite 730/730 green on retry (one-off -1 on first run cleared; historical flakiness per Phase 08 relay 5 drop_then_retry). Plan 08.1-05 unblocked.
 - [Phase 08.1-rereview-post-walk]: Plan 08.1-04 pattern-locked for Phase 10/12/14/16 review gates: gate-verification-only §4 format = 3 sub-blocks (A N-gate table with Exit+Scan scope+Status columns / B branch hygiene table with Branch+Phase+Expected+Actual+Check command columns / C N=0 walk-finding-driven tests with rationale paragraph quoting §1b snapshot verbatim + cumulative test-surface count from preceding phases). Tasks 1+2 verification-only without per-task commits (observations don't need mutation commits). Task 3+4 collapse into single atomic commit when N=0.
 - [Phase 08.1-rereview-post-walk]: re-review closed 2026-04-24 — 1 Blocker fixed (row #1 Row #37 UI-contract-vaporware GpsError recovery routing restored at SessionDetailScreen._handleGpsError) + 5 Shoulds fixed (rows #2 pause-then-cancel unstrand / #3 echo-window multi-echo / #4 toggleFollowMe race / #5+#6 CountryResolver async-boot races merged into one commit) + 9 Coulds fixed (rows #7 activeJob fold + #8 heal+purge single write + #9 _bestEffort log level + #10 drop isCentering getter + #11 _viewportSub doc + #12 Duration hoist + #13 mapView nullify gate + #14 pubspec text + #15 ROADMAP checkboxes) — total 14 atomic commits + 1 chore dart-format follow-up. Commit-prefix split: 8 × fix, 3 × refactor (smell-tagged #7 #8 #10), 3 × docs (#11 #14 #15), 1 × chore. Walk outcome: PASS Android (Pixel 4a 2026-04-21) + PASS-with-caveat iOS (iPhone 17 Pro 2026-04-22/23 post-fix, Xcode-container-inspection N/A) — reused Phase 07 walks as §1b runtime baseline, no fresh walk captured (review phase introduces no new runtime behavior per CLAUDE.md §Code Review Phases). Smell-refactor re-check result: 0 new smells introduced by Phase 08's 9 smell-refactors; 4 new smell-tagged findings surfaced from agents (rows #2 fix-on-fix / #3 fix-on-fix / #7 over-state-machine / #10 derived-boolean + #13 fix-on-fix) — all decided fix/refactor, none deferred or waived. Walk-finding-driven regression tests added: 0 permanent (one regression test added for row #2 cancel-while-paused as part of that fix commit, scoped as fix-test, not walk-regression). Adversarial default-skip convention held: 0 new CI gates, 0 new adversarial branches (5th cycle locked Phases 02+04+06+08+08.1). Fix strategy: Strategy A per-finding atomic commits (08.1-RESEARCH §Open Question 3 recommendation for N≤15; 15 fixes single session feasible, no relay handoff needed). Numbering: inserted via /gsd:insert-phase (ROADMAP §Phase Numbering decimal escape-hatch) — completed_phases counter unchanged at 8, completed_plans incremented 46 → 47 (Plan 08.1-05 closure). CLAUDE.md §Code Review Phases "pas de .5" directive is scoped to standard sequential phases, NOT /gsd:insert-phase insertions. Phase 08.1 is the SECOND review-gate encoding of CLAUDE.md 2026-04-23 smell-heuristics delta — validates template on narrower scope (15 findings vs Phase 08's 49). Precedent for Phases 10/12/14/16 REVIEW gates AND for future /gsd:insert-phase invocations (hypothetical 10.1, 12.1, etc.). Phase 09 Fog Rendering remains unblocked (Phase 08.1 is re-audit, not blocker; Phase 09 was unblocked by Phase 08 closure and eligibility is unchanged). Final commit 1c3400c CI green on run 24900922812 (all 3 jobs gates/android/ios success). 8 CI gates re-verified locally on final commit. Test suite 731/731 green.
+- [Phase 09-fog-rendering]: kRevealedTileParentZoom NOT duplicated for Phase 09 — symbol already declared in Phase 03 D3 block at lib/config/constants.dart:75; Phase 09 block contains a NOTE pointing readers to that single source of truth — single-source-of-truth invariant from Phase 03 D3 (zoom-14 parent tiles + 64x64 sub-grid) preserved; avoids dual-declaration shadowing risk
+- [Phase 09-fog-rendering]: kDefaultRevealRadiusMeters (25.0) co-exists with kInitialRevealRadiusMeters (20) — both intentional per 09-CONTEXT.md §Géométrie du reveal — 25 m default for in-session reveal (user choice 25 m over 25-50 m ROADMAP range); 20 m initial pop-in at startSession() for the 500ms fade-in lifecycle (09-RESEARCH §In-Session Style Swap Lifecycle)
+- [Phase 09-fog-rendering]: DB flush cadence 2s/20fixes (amended from ROADMAP 5s/50fixes) — first-of timer-or-count rule; Phase 11 markers append-only (NEVER reorder kStyleLayerOrder); 30%-alpha-under-mirk composite via MapLibre annotations (addCircle/addSymbol), not by interleaving a markers layer below mirk_fog — user decision in 09-CONTEXT.md tunable in dev; 09-RESEARCH §Rendering Strategy Decision rationale for compositing trick
 
 ### Roadmap Evolution
 
@@ -347,6 +351,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-24T18:12:18.928Z
-Stopped at: Phase 09 context gathered
-Resume file: .planning/phases/09-fog-rendering/09-CONTEXT.md
+Last session: 2026-04-25T03:42:54.306Z
+Stopped at: Completed 09-01-PLAN.md (Wave 0 scaffold Part 1/3 — Phase 09 fog-rendering constants + dart_test mirk-perf tag + style_layer_order docstring + constants_test Phase 09 regression group)
+Resume file: None

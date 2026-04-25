@@ -46,11 +46,11 @@ Requirements pour release initiale V1.0. Chaque REQ est mappé à exactement une
 ### Mirk (MIRK)
 
 - [ ] **MIRK-01**: Un rayon de révélation circulaire est effacé autour de la position actuelle au fil du déplacement
-- [ ] **MIRK-02**: Le rayon de révélation est configurable dans les options globales (défaut à fixer en Phase Fog, proposition 25-50 m)
+- [x] **MIRK-02**: Le rayon de révélation est configurable dans les options globales (défaut à fixer en Phase Fog, proposition 25-50 m)
 - [x] **MIRK-03**: Le mirk effacé reste effacé pour toute la durée de vie de la session (pas de re-brumage)
-- [ ] **MIRK-04**: Le mirk a un rendu vivant / atmosphérique (nuageux, mouvant, animé) — pas un simple aplat noir
-- [ ] **MIRK-05**: L'architecture de rendu expose une interface `MirkRenderer` abstraite : ajouter un style ne demande qu'un nouveau fichier, zéro modification du cœur
-- [ ] **MIRK-06**: L'app fournit **4 styles de mirk built-in** en Phase 09 : `atmospheric` (défaut), `solid`, `candlelight`, `heavenly_clouds`. Chacun est implémenté comme une classe renderer distincte dans `lib/infrastructure/mirk/`, prouvant le seam MIRK-05 trois fois (amendé 2026-04-24 Phase 09 CONTEXT)
+- [x] **MIRK-04**: Le mirk a un rendu vivant / atmosphérique (nuageux, mouvant, animé) — pas un simple aplat noir
+- [x] **MIRK-05**: L'architecture de rendu expose une interface `MirkRenderer` abstraite : ajouter un style ne demande qu'un nouveau fichier, zéro modification du cœur
+- [x] **MIRK-06**: L'app fournit **4 styles de mirk built-in** en Phase 09 : `atmospheric` (défaut), `solid`, `candlelight`, `heavenly_clouds`. Chacun est implémenté comme une classe renderer distincte dans `lib/infrastructure/mirk/`, prouvant le seam MIRK-05 trois fois (amendé 2026-04-24 Phase 09 CONTEXT)
 - [ ] **MIRK-07**: Un sélecteur dans le menu in-session (burger menu Phase 07) permet de choisir le style de mirk actif **pour la session courante** parmi les styles installés ; le changement s'applique immédiatement à la carte
 - [ ] **MIRK-08**: Utilisateur peut importer un style de mirk depuis un fichier JSON (format versionné)
 - [ ] **MIRK-09**: Utilisateur peut supprimer un style de mirk importé
@@ -207,11 +207,11 @@ Mapping requirement → phase. Chaque REQ v1 est mappé à exactement une phase 
 | GPS-07 | Phase 05 | Complete |
 | GPS-08 | Phase 05 | Complete |
 | MIRK-01 | Phase 09 | Pending |
-| MIRK-02 | Phase 09 | Pending |
+| MIRK-02 | Phase 09 | Complete |
 | MIRK-03 | Phase 03 | Complete |
-| MIRK-04 | Phase 09 | Pending |
-| MIRK-05 | Phase 09 | Pending |
-| MIRK-06 | Phase 09 | Pending |
+| MIRK-04 | Phase 09 | Complete |
+| MIRK-05 | Phase 09 | Complete |
+| MIRK-06 | Phase 09 | Complete |
 | MIRK-07 | Phase 09 | Pending |
 | MIRK-08 | Phase 13 | Pending |
 | MIRK-09 | Phase 13 | Pending |
