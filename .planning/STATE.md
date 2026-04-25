@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: "09-06 (closed); Wave 3 in progress (2 plans remaining: 09-07 overlay, 09-08 perf probe)"
+current_plan: "09-07 (closed); 1 plan remaining: 09-08 perf probe"
 status: completed
-stopped_at: Completed 09-06-PLAN.md
-last_updated: "2026-04-25T07:01:10Z"
+stopped_at: Completed 09-07-PLAN.md
+last_updated: "2026-04-25T08:00:13.687Z"
 last_activity: 2026-04-25
 progress:
   total_phases: 17
   completed_phases: 9
   total_plans: 57
-  completed_plans: 55
-  percent: 96
+  completed_plans: 56
+  percent: 98
 ---
 
 # Project State
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 8 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 ; 09-02 + 09-03 — Wave 2 ; 09-04 + 09-05 + 09-06 — Wave 3 plans-1-2-3-of-5)
-Current Plan: 09-06 (closed); Wave 3 in progress (2 plans remaining: 09-07 overlay, 09-08 perf probe)
-Total Plans in Phase 09: 8 / 10 done
-Status: Phase 09 Wave 3 plan 09-06 complete — RevealStreamingController (batched flush 2s/20fix to RevealedTileStore.mergeMask) + MirkStyleSessionController (per-session style-swap with renderer invalidate) + LocationStream.lastKnownFix port extension (resolves S1 conditional) + ActiveSessionController wired to reveal pipeline (initial 20m disc fast/slow path + onFix forwarding + stop flush). Family-style provider refactor avoids circular dependency; SessionStore.updateMirkStyle narrow-column write added. 4 atomic commits (3449bb9, d09679f, 94391c1, 47281b6). 32 controller tests + 4 GPS tests green; obsolete Phase 09 scope guard test deleted as Rule 3 auto-fix.
+Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 9 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 ; 09-02 + 09-03 — Wave 2 ; 09-04 + 09-05 + 09-06 + 09-07 — Wave 3..6)
+Current Plan: 09-07 (closed); 1 plan remaining: 09-08 perf probe
+Total Plans in Phase 09: 9 / 10 done
+Status: Phase 09 plan 09-07 complete — UI wiring landed end-to-end. mapViewportProvider (NEW, resolves S2) + MapView.queryViewportBounds() port + visibleMirkTilesProvider (viewport filtering SC#5 seam) + MirkOverlay widget (Ticker + CustomPainter + RepaintBoundary) + MirkStylePickerSheet bottom sheet (replaces Phase 13 stub) + MirkInitialRevealFade widget (resolves B4 — 500 ms dedicated AnimationController, decoupled from main Ticker) + MapScreen Stack integration (sibling of MapLibre, RepaintBoundary-wrapped). 6 atomic commits (479f3ac, 46cf14a, bfcfe2c, 57ebc1a, 7a7479f, 5c81c65). 26 new widget/provider tests + integration green. 923 tests pass on the full default suite, 14/14 on integration_test.
 Last Activity: 2026-04-25
 
-Progress: [█████████░] 96% — 55 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 8/10 — 09-01 + 09-01b + 09-01c + 09-02 + 09-03 + 09-04 + 09-05 + 09-06).
+Progress: [██████████] 98% — 56 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 9/10 — 09-01 + 09-01b + 09-01c + 09-02 + 09-03 + 09-04 + 09-05 + 09-06 + 09-07).
 
 ## Performance Metrics
 
@@ -101,6 +101,7 @@ Progress: [█████████░] 96% — 55 / 57 plans executed (Phase
 | Phase 09-fog-rendering P04 | 12 min | 4 tasks | 14 files |
 | Phase 09-fog-rendering P05 | 33 min | 4 tasks (Task 0 + Tasks 1/2/3 with TDD on Task 1) | 21 files (9 created + 12 modified) across 6 atomic commits |
 | Phase 09-fog-rendering P06 | ~34 min | 4 tasks (TDD on Task 1) | 23 files (3 created + 19 modified + 1 deleted) across 4 atomic commits |
+| Phase 09 P07 | 24 min | 5 tasks | 22 files |
 
 ## Accumulated Context
 
@@ -374,6 +375,8 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09-fog-rendering]: Plan 09-04: CandlelightMirkRenderer falls back to viewport centre when context.currentFix == null. Keeps the warm radial-gradient glow visible before the first fix lands or after a signal loss; avoids 'gradient disappears' UX cliff.
 - [Phase 09-fog-rendering]: Plan 09-04: Per-renderer default seed varies (Atmospheric=42, Candlelight=17, HeavenlyClouds=91). Different seeds across animated variants minimise noise-pattern correlation. Constructor-overridable for tests + future per-style customisation.
 - [Phase 09-fog-rendering]: Plan 09-04: MirkPaintContext / VisibleMirkTile Freezed types NOT touched - plan 09-04 CONSUMES context.viewportBbox / context.visibleTiles / context.currentFix through the constructor. Plan 09-02 remains the single Phase 09 MirkPaintContext extension event (revision B3 discipline preserved).
+- [Phase 09]: [Phase 09-fog-rendering] Plan 09-07: mapViewportProvider was CREATED as a new class-based @Riverpod(keepAlive: true) notifier (resolves revision S2). MirkViewportBbox stayed at 4 doubles — NO zoomLevel field added (resolves revision S4). MirkInitialRevealFade widget CREATED with dedicated AnimationController, decoupled from main MirkOverlay Ticker — 500 ms easeOut fade-in on Idle to Tracking transition (resolves revision B4). MapScreen Stack inserts RepaintBoundary(MirkInitialRevealFade(MirkOverlay)) as a sibling of MapLibre platform view per 09-RESEARCH Pitfall 2.
+- [Phase 09]: [Phase 09-fog-rendering] Plan 09-07: ALL test sites pumping a tree containing MirkOverlay must use tester.pump() + tester.pump(Duration) — Ticker is unconditionally on while overlay is mounted and pumpAndSettle deadlocks. Pattern documented in-tree at every swap site (mirk_overlay_*_test.dart, map_screen_test.dart, integration_test/airplane_mode_test.dart).
 
 ### Roadmap Evolution
 
@@ -404,6 +407,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-25T04:48:50.223Z
-Stopped at: Completed 09-04-PLAN.md
+Last session: 2026-04-25T08:00:00.759Z
+Stopped at: Completed 09-07-PLAN.md
 Resume file: None

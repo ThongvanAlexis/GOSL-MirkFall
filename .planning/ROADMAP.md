@@ -313,7 +313,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 | 07. Map Integration | 7/7 | Complete    | 2026-04-23 |
 | 08. Review Gate — Map | 5/5 | Complete    | 2026-04-24 |
 | 08.1 Re-Review — Post-Walk Audit (INSERTED) | 5/5 | Complete    | 2026-04-24 |
-| 09. Fog Rendering | 8/10 | In Progress|  |
+| 09. Fog Rendering | 9/10 | In Progress|  |
 | 10. Review Gate — Fog | 0/TBD | Not started | - |
 | 11. Markers & Categories | 0/TBD | Not started | - |
 | 12. Review Gate — Markers | 0/TBD | Not started | - |
