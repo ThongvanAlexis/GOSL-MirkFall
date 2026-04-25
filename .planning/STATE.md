@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: "09-04 (closed); Wave 3 in progress (4 plans remaining: 09-05 factory, 09-06 streaming controller, 09-07 overlay, 09-08 perf probe)"
+current_plan: "09-05 (closed); Wave 3 in progress (3 plans remaining: 09-06 streaming controller, 09-07 overlay, 09-08 perf probe)"
 status: completed
-stopped_at: Completed 09-04-PLAN.md
-last_updated: "2026-04-25T04:48:50.228Z"
+stopped_at: Completed 09-05-PLAN.md
+last_updated: "2026-04-25T06:19:11Z"
 last_activity: 2026-04-25
 progress:
   total_phases: 17
   completed_phases: 9
   total_plans: 57
-  completed_plans: 53
-  percent: 93
+  completed_plans: 54
+  percent: 95
 ---
 
 # Project State
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 6 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 ; 09-02 + 09-03 — Wave 2 ; 09-04 — Wave 3 plan-1-of-5)
-Current Plan: 09-04 (closed); Wave 3 in progress (4 plans remaining: 09-05 factory, 09-06 streaming controller, 09-07 overlay, 09-08 perf probe)
-Total Plans in Phase 09: 6 / 10 done
-Status: Phase 09 Wave 3 plan 09-04 complete — 4 concrete MirkRenderer implementations (atmospheric / solid / candlelight / heavenly_clouds) using Flutter CustomPainter primitives. Shared MirkProjection.latLonToScreen + buildUnrevealedCellsPath helpers. C(4,2)=6 pairwise visual-distinct outputs proving MIRK-06. ShaderMirkRenderer remains UnimplementedError stub (Phase 13).
+Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 7 / 10 plans closed (09-01 + 09-01b + 09-01c — Wave 1 ; 09-02 + 09-03 — Wave 2 ; 09-04 + 09-05 — Wave 3 plans-1-and-2-of-5)
+Current Plan: 09-05 (closed); Wave 3 in progress (3 plans remaining: 09-06 streaming controller, 09-07 overlay, 09-08 perf probe)
+Total Plans in Phase 09: 7 / 10 done
+Status: Phase 09 Wave 3 plan 09-05 complete — MirkRendererFactory (sealed-switch over 6 variants) + kBuiltinMirkStyles registry (4 entries in canonical order) + 3 Riverpod providers (mirkRendererFactoryProvider singleton, builtinMirkStylesProvider lazy-seed, activeMirkRendererProvider session-scoped with ref.onDispose lifecycle). USER-APPROVED scope expansion: shipped the long-deferred t_sessions.mirk_style_id schema v3→v4 migration + Session.mirkStyleId Freezed field + ON DELETE SET NULL FK semantics as Task 0 since activeMirkRendererProvider is the consumer that motivates the column.
 Last Activity: 2026-04-25
 
-Progress: [█████████░] 93% — 53 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 6/10 — 09-01 + 09-01b + 09-01c + 09-02 + 09-03 + 09-04).
+Progress: [█████████░] 95% — 54 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 7/10 — 09-01 + 09-01b + 09-01c + 09-02 + 09-03 + 09-04 + 09-05).
 
 ## Performance Metrics
 
@@ -99,6 +99,7 @@ Progress: [█████████░] 93% — 53 / 57 plans executed (Phase
 | Phase 09-fog-rendering P03 | 6 min | 2 tasks | 4 files |
 | Phase 09-fog-rendering P02 | 28 min | 3 tasks (TDD: 3 RED + 3 GREEN commits) | 13 files (4 created + 9 modified, includes 4 generated .freezed.dart / .g.dart) |
 | Phase 09-fog-rendering P04 | 12 min | 4 tasks | 14 files |
+| Phase 09-fog-rendering P05 | 33 min | 4 tasks (Task 0 + Tasks 1/2/3 with TDD on Task 1) | 21 files (9 created + 12 modified) across 6 atomic commits |
 
 ## Accumulated Context
 
@@ -121,6 +122,14 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09-fog-rendering] Plan 09-02: AtmosphericConfig promoted from 2 → 8 params, all new params @Default-guarded so legacy 2-arg callers (Phase 03 t_mirk_styles fromJson, Phase 03 fixtures) compile + deserialize unchanged.
 - [Phase 09-fog-rendering] Plan 09-02: Hand-rolled SimplexNoise2D body (~140 LOC pure Dart) over fast_noise / open_simplex_noise — Ken Perlin 2001 algorithm is patent-free + public-domain, port GOSL-licensed, fits in-repo without DEPENDENCIES.md churn. _outputScale = 70.0 (classic Perlin value) verified empirically by [-1.05, 1.05] envelope on 1000 random samples + mean ~0 over 10 000 samples.
 - [Phase 09-fog-rendering] Plan 09-02: Sealed-switch growth requires updating every existing exhaustive switch site — DriftMirkStyleStore._rendererTypeFor (lib) + mirk_style_config_fromjson_test.exhaustive-switch (test) both extended with the 3 new variants in the same commit as the union growth (Rule 3 - Blocking auto-fix; non-exhaustive switch is fatal under --fatal-warnings --fatal-infos).
+- [Phase 09-fog-rendering] Plan 09-05: USER-APPROVED scope expansion — landed the long-deferred t_sessions.mirk_style_id schema v3→v4 migration + Session.mirkStyleId Freezed field as Task 0 of plan 09-05 (documented as Phase 03 work in 09-CONTEXT.md:159 but never shipped). Rationale: activeMirkRendererProvider is the consumer that motivates the column, so landing it here keeps Tasks 1–3 unblocked without creating a fork-and-merge dance.
+- [Phase 09-fog-rendering] Plan 09-05: FK semantics for t_sessions.mirk_style_id = ON DELETE SET NULL (NOT cascade or RESTRICT) — deleting a user-imported style degrades the session to the renderer-side default rather than orphaning or cascade-deleting the session row. Built-in styles are protected from deletion at the application layer in Phase 13 (OPT-04).
+- [Phase 09-fog-rendering] Plan 09-05: UnknownConfig fallback at the factory level returns AtmosphericMirkRenderer with default config (NOT NoopMirkRenderer). Forward-compat payloads still render fog so users see something rather than a black/empty screen; the factory logs the degradation via Logger('infrastructure.mirk.factory'). ShaderConfig dispatches to ShaderMirkRenderer stub (Phase 13 body) — required for sealed-switch exhaustiveness even though no V1.0 user path reaches it.
+- [Phase 09-fog-rendering] Plan 09-05: Built-in mirk-style IDs are deterministic (style_builtin_atmospheric, style_builtin_solid, style_builtin_candlelight, style_builtin_heavenly_clouds) NOT ULIDs — the prefix doubles as a DB-layer marker of "built-in" for Phase 13's OPT-04 delete-if-not-builtin semantics. createdAtUtc = 2026-04-25 UTC midnight, offset 0 (schema-sentinel pattern matching cat_default's 2026-04-18).
+- [Phase 09-fog-rendering] Plan 09-05: builtinMirkStylesProvider seeds rows lazily inside .build() rather than from main.dart bootstrap. Trade-off: a consumer must read the provider to trigger the seed (plan 09-07's burger-menu picker is the natural first reader). Idempotent + self-healing on subsequent reads.
+- [Phase 09-fog-rendering] Plan 09-05: activeMirkRendererProvider is NOT keepAlive — the renderer is session-scoped, so it should be GC'd when the session ends or the style changes. ref.onDispose calls renderer.dispose() exactly once on invalidation; tested via _SpyingFactory + FakeMirkRenderer.disposeCallCount.
+- [Phase 09-fog-rendering] Plan 09-05: Session.mirkStyleId optional Freezed field needs a bespoke nullable JSON converter pair (_mirkStyleIdFromJsonNullable / _mirkStyleIdToJsonNullable) — extension types collapse to Object at JsonConverter resolution and json_serializable cannot synthesize Object? converters. The non-null pair in id_json_converters.dart stays single-purpose.
+- [Phase 09-fog-rendering] Plan 09-05: _FakeActiveSessionController in tests returns the seed SYNCHRONOUSLY from build() (the controller declares FutureOr<ActiveSessionState> build() so a sync return is contract-compatible). Async returns trigger Riverpod's loading-state path which races against the dependent activeMirkRendererProvider's dispose chain in tests. Same pattern used by map_screen_test.dart.
 - Project-wide: Riverpod comme unique state management + DI (D5)
 - [Phase 01-foundation]: Held analyzer stack at <9.0 for Phase 01 — No compatible custom_lint + riverpod_lint + analyzer trio exists yet; upgrading to analyzer ^9 would force dropping lint tools. Phase 03 will re-evaluate when ecosystem converges.
 - [Phase 01-foundation]: Defer custom_lint + riverpod_lint to Phase 03 — Phase 01 has no @riverpod providers; lint tools add no value until codegen starts.
