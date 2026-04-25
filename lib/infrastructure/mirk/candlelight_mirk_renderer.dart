@@ -37,6 +37,14 @@ import 'tile_cell_iteration.dart';
 /// (1D-style flicker — the y-axis carries time, the x-axis is static).
 /// The flicker amplitude is ±7% of `baselineAlpha`, fast enough to
 /// read as "flame" but not so fast it becomes strobing.
+///
+/// ## BUG-003 (2026-04-25): single viewport-level path
+///
+/// Like the atmospheric and heavenly_clouds variants, candlelight now
+/// composes a single viewport-wide fog path and emits ONE
+/// `canvas.drawPath` per frame. The radial gradient covers the whole
+/// canvas; the path carves out revealed cells. The mask filter applies
+/// to the global silhouette — no per-tile seam erosion.
 class CandlelightMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config] and an optional [seed] for
   /// the internal flicker-noise generator.
@@ -89,15 +97,11 @@ class CandlelightMirkRenderer implements MirkRenderer {
       ..style = PaintingStyle.fill
       ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
 
-    // BUG-003 fix (2026-04-25): see AtmosphericMirkRenderer for the
-    // "tile-rect minus revealed cells" rationale. Same root cause —
-    // BlurStyle.inner over a cell-union path was eroding alpha at every
-    // internal cell-cell edge.
-    for (final tile in context.visibleTiles) {
-      final path = buildFogClipPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
-      if (path.getBounds().isEmpty) continue;
-      canvas.drawPath(path, paint);
-    }
+    // BUG-003 fix (2026-04-25): single viewport-level path. See
+    // [buildViewportFogClipPath] for the rationale.
+    final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
+    if (path.getBounds().isEmpty) return;
+    canvas.drawPath(path, paint);
   }
 
   /// Multiplies the alpha byte of a packed ARGB integer by [factor]

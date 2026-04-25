@@ -22,22 +22,32 @@ import 'tile_cell_iteration.dart';
 ///
 /// ## Animation
 ///
-/// Per-tile alpha is modulated by simplex noise sampled at:
+/// The fog's overall alpha is modulated by simplex noise sampled at:
 /// ```
-/// (parentX * noiseScale + tSec * noiseSpeed * driftX,
-///  parentY * noiseScale + tSec * noiseSpeed * driftY)
+/// (tSec * noiseSpeed * driftX, tSec * noiseSpeed * driftY)
 /// ```
 /// where `tSec = context.sessionElapsed.inMilliseconds / 1000.0` and
 /// `(driftX, driftY) = (cos(driftDirectionDeg), -sin(driftDirectionDeg))`.
 /// The negative `sin` accounts for screen-Y growing south while
 /// nautical-style headings increment east-of-north.
 ///
-/// ## Feather edge
+/// Pre-BUG-003 the noise sample mixed in `(parentX, parentY)` for each
+/// visible tile, producing per-tile alpha variation. Post-BUG-003 the
+/// renderer paints ONE viewport-wide path with ONE alpha value per
+/// frame, so per-parent-tile spatial variation is gone — the fog
+/// pulsates uniformly over time. The drift direction still affects the
+/// noise sampling trajectory, so `noiseSpeed` and `driftDirectionDeg`
+/// remain meaningful animation parameters.
 ///
-/// `MaskFilter.blur(BlurStyle.inner, sigma)` is applied to the Paint so
-/// the unrevealed-cell rectangles fade from opaque centre to soft edge.
-/// Sigma scales with the tile cell size and the device pixel ratio so
-/// the feather looks identical across DPI tiers.
+/// ## Feather edge — single mask filter pass per frame
+///
+/// `MaskFilter.blur(BlurStyle.inner, sigma)` applies to ONE composite
+/// path covering the entire viewport's fogged area (see
+/// [buildViewportFogClipPath]). Pre-BUG-003 each visible tile drew with
+/// its own mask filter — the parent-tile seams accumulated TWO feather
+/// passes (one from each side), producing the bright-band damier the
+/// user reported on iOS sideload. The single-pass strategy puts the
+/// feather only on the global fog/clear boundary.
 class AtmosphericMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config] and an optional [seed] for
   /// the internal simplex noise generator. Different seeds produce
@@ -80,33 +90,25 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     final cellSize = size.height / kRevealedTileSubgridSize;
     final featherSigma = cellSize * config.featherRadiusFraction * context.pixelRatio;
 
-    for (final tile in context.visibleTiles) {
-      final noiseSample = _noise.noise2(
-        tile.parentX * config.noiseScale + tSec * config.noiseSpeed * driftX,
-        tile.parentY * config.noiseScale + tSec * config.noiseSpeed * driftY,
-      );
-      // Modulate alpha by ±3% around the configured baseline.
-      final alpha = (config.densityBaselineAlpha + noiseSample * 0.03).clamp(0.0, 1.0);
-      final paint = Paint()
-        ..color = Color.fromARGB((alpha * 255).round(), r, g, b)
-        ..style = PaintingStyle.fill
-        ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
+    // Sample noise once at the time-evolving "drift point" — the spatial
+    // origin (0, 0) plus the time-evolving drift offset. The viewport
+    // sees uniform-density fog whose density evolves over time.
+    final noiseSample = _noise.noise2(tSec * config.noiseSpeed * driftX, tSec * config.noiseSpeed * driftY);
+    // Modulate alpha by ±3% around the configured baseline.
+    final alpha = (config.densityBaselineAlpha + noiseSample * 0.03).clamp(0.0, 1.0);
+    final paint = Paint()
+      ..color = Color.fromARGB((alpha * 255).round(), r, g, b)
+      ..style = PaintingStyle.fill
+      ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
 
-      // BUG-003 fix (2026-04-25): use the "tile-rect minus revealed cells"
-      // strategy. The previous "union of unrevealed cell rects" path
-      // confused BlurStyle.inner into eroding alpha along every internal
-      // cell-cell edge, producing the macro-damier visible at parent-tile
-      // boundaries. The new helper returns a single path with only the
-      // tile outer edge + revealed-cell holes — feather lands only on
-      // intentional boundaries.
-      final path = buildFogClipPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
-      // Skip drawing entirely when the path is empty (the tile lies
-      // outside the viewport — projection collapses it to a degenerate
-      // rect). Avoids the cost of an empty drawPath command in the
-      // picture record.
-      if (path.getBounds().isEmpty) continue;
-      canvas.drawPath(path, paint);
-    }
+    // BUG-003 fix (2026-04-25): single viewport-level path. See
+    // [buildViewportFogClipPath] for the rationale (eliminates
+    // per-tile feather-cumulation at parent-tile seams).
+    final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
+    // Skip drawing entirely when every visible tile is fully revealed
+    // — the difference op carved out the entire viewport rect.
+    if (path.getBounds().isEmpty) return;
+    canvas.drawPath(path, paint);
   }
 
   @override

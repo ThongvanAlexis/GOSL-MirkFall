@@ -11,36 +11,13 @@ import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 import 'mirk_projection.dart';
 
 /// Builds the screen-space fog Path for a single [VisibleMirkTile] using
-/// "tile-rect MINUS revealed cells" semantics — the canonical strategy
-/// for all 4 builtin renderers since BUG-003 (2026-04-25).
+/// "tile-rect MINUS revealed cells" semantics.
 ///
-/// Reused by all 4 concrete renderers (`AtmosphericMirkRenderer`,
-/// `SolidFillMirkRenderer`, `CandlelightMirkRenderer`,
-/// `HeavenlyCloudsMirkRenderer`).
+/// **Per-tile**, used by tests and as the building block for
+/// [buildViewportFogClipPath]. Most renderer callers should reach for
+/// the viewport-level helper instead — see BUG-003 fix below.
 ///
-/// ## Why "rect minus revealed", not "union of unrevealed cells"
-///
-/// The pre-BUG-003 helper composed a path by adding 4096 individual
-/// `Rect.fromPoints(...)` per tile (one per unrevealed cell). When the 3
-/// noise-animated renderers applied `MaskFilter.blur(BlurStyle.inner,
-/// sigma)` to that path, Skia eroded alpha along EVERY edge of the path,
-/// including the 8000+ internal edges between adjacent unrevealed cells.
-/// At the macro scale this produced the visible "damier" pattern of
-/// bright bands at parent-tile boundaries (cumulative erosion from
-/// adjacent tiles each running their own feather pass on top of each
-/// other). See `docs/phase09-bug-tracking/BUG-003-mirk-tile-gaps-and-frozen-gestures.md`.
-///
-/// The current strategy returns a SINGLE path whose only edges are:
-///   (a) the tile's outer screen rect, and
-///   (b) holes for revealed cells (run-length-encoded per row to merge
-///       horizontally adjacent revealed cells into one rect — keeps the
-///       hole boundary count low when large quadrants are revealed).
-///
-/// `Path.combine(PathOperation.difference, ...)` produces exactly that.
-/// The `BlurStyle.inner` mask filter then erodes alpha only at those
-/// intentional boundaries — no internal cell-grid artifacts remain.
-///
-/// ## Bit-unpack semantics (unchanged from the pre-BUG-003 helper)
+/// ## Bit-unpack semantics
 ///
 /// `tile.bitmap` is 512 bytes = 4096 bits. Bit `(j * 64 + i)` represents
 /// cell `(i, j)` where `i` is the column index (0 = west, 63 = east)
@@ -48,47 +25,123 @@ import 'mirk_projection.dart';
 /// REVEALED (carve out — let the basemap show through). Bit value `0` =
 /// UN-revealed (keep covered by fog).
 ///
-/// ## Coordinate system
+/// ## RLE encoding of holes
 ///
-/// Lat/lon spans for cell `(i, j)` are computed by linear interpolation
-/// over the tile's lat/lon extents (`tile.tileNorthLat`,
-/// `tile.tileWestLon`, `tile.tileSouthLat`, `tile.tileEastLon`). Cell
-/// rectangles are then projected to screen space via
-/// [MirkProjection.latLonToScreen].
-///
-/// The outer tile rect is computed once from the four corners (NW, SE)
-/// rather than as the union of all 4096 cell rects — same geometry,
-/// fewer floating-point ops.
+/// Contiguous revealed cells in the same row collapse into a single
+/// rect. Reduces hole count from up to 4096 small rects to a handful
+/// of wider rects when large patches are revealed (the common case
+/// after a few session minutes of walking).
 Path buildFogClipPath({required VisibleMirkTile tile, required MirkViewportBbox viewport, required Size canvasSize}) {
   // Outer tile rect in screen space — the full fog area before holes.
   final tileNw = MirkProjection.latLonToScreen(lat: tile.tileNorthLat, lon: tile.tileWestLon, viewport: viewport, size: canvasSize);
   final tileSe = MirkProjection.latLonToScreen(lat: tile.tileSouthLat, lon: tile.tileEastLon, viewport: viewport, size: canvasSize);
   final tileRectPath = Path()..addRect(Rect.fromPoints(tileNw, tileSe));
 
-  // Build the revealed-cells "holes" path with row-wise run-length
-  // encoding: contiguous revealed cells in the same row collapse to a
-  // single rect. Reduces hole count from up to 4096 small rects to a
-  // handful of wider rects when large patches are revealed (the common
-  // case after a few session minutes of walking).
+  final holesPath = Path();
+  final hasHoles = _addTileRevealedHoles(holesPath, tile: tile, viewport: viewport, canvasSize: canvasSize);
+
+  if (!hasHoles) return tileRectPath;
+
+  return Path.combine(PathOperation.difference, tileRectPath, holesPath);
+}
+
+/// Builds a SINGLE composite fog Path covering the entire viewport bbox
+/// with every revealed cell across every visible tile subtracted —
+/// the canonical "fog-of-war" path strategy since BUG-003 (2026-04-25).
+///
+/// Renderers (atmospheric / candlelight / heavenly_clouds / solid)
+/// invoke this once per frame and emit a SINGLE `canvas.drawPath` per
+/// `paint()`. Two key consequences:
+///
+///  1. The `MaskFilter.blur(BlurStyle.inner, sigma)` feather is applied
+///     to ONE path, ONCE — alpha erodes only along the global fog/clear
+///     boundary (the outer viewport rect minus the revealed cells across
+///     the whole 2D union). Pre-BUG-003, each tile drew with its own
+///     mask filter, so the parent-tile seams accumulated TWO feather
+///     passes (one from each side), producing the visible bright bands.
+///  2. The cell-grid internal edges within a tile do not matter for the
+///     same reason adjacent rects in [Path.addRect] form one filled
+///     blob: Skia rasterises by fill rule, not by sub-path, and inner
+///     blur applies to the rasterised silhouette.
+///
+/// ## Inputs
+///
+/// * [visibleTiles] — every parent tile intersecting the viewport (the
+///   same list the renderer iterates pre-BUG-003). Tiles fully outside
+///   the [viewport] still contribute correct geometry; the resulting
+///   path simply has corresponding regions outside [canvasSize] which
+///   Skia clips at draw time.
+/// * [viewport] / [canvasSize] — passed through to projection.
+///
+/// ## Returns
+///
+/// A non-null [Path]. Empty visibleTiles → returns a fresh empty Path
+/// (caller should still check `path.getBounds().isEmpty` to skip the
+/// drawPath call cleanly).
+///
+/// ## Cost
+///
+/// Two boolean ops per frame: one Op.union to merge the per-tile
+/// revealed-cell hole paths, one Op.difference to subtract the union
+/// from the viewport rect. Hot-path budget remains generous — Phase 09
+/// plan 09-08 measured ~90 ms / frame on the 50k-tile fixture *with*
+/// the per-tile boolean strategy. Viewport-level merges scale better.
+Path buildViewportFogClipPath({required Iterable<VisibleMirkTile> visibleTiles, required MirkViewportBbox viewport, required Size canvasSize}) {
+  // Outer fog area = the union of every visible-tile rect. In production
+  // the `visibleMirkTilesProvider` synthesises a dense list (one entry
+  // per (x, y) tile slot in the viewport bbox, with all-zero bitmaps for
+  // unstored slots), so the union IS effectively the viewport rect. In
+  // tests / sparse fixtures the union is exactly what the renderer
+  // should fog — areas with no visible tile entry stay clear (matches
+  // the pre-BUG-003 per-tile-loop semantics that existing tests assert).
+  final tilesRect = Path();
+  for (final tile in visibleTiles) {
+    final nw = MirkProjection.latLonToScreen(lat: tile.tileNorthLat, lon: tile.tileWestLon, viewport: viewport, size: canvasSize);
+    final se = MirkProjection.latLonToScreen(lat: tile.tileSouthLat, lon: tile.tileEastLon, viewport: viewport, size: canvasSize);
+    tilesRect.addRect(Rect.fromPoints(nw, se));
+  }
+
+  // Aggregate ALL revealed-cell holes across ALL visible tiles into a
+  // single Path. addRect (cheaper than Path.combine union) is correct
+  // here because we don't need the holes union path to be a topology-
+  // simplified region — Path.combine(difference) at the end uses the
+  // even-odd / fill rule of the holes path, and overlapping rects are
+  // fine.
+  final allHoles = Path();
+  var hasAnyHole = false;
+  for (final tile in visibleTiles) {
+    if (_addTileRevealedHoles(allHoles, tile: tile, viewport: viewport, canvasSize: canvasSize)) {
+      hasAnyHole = true;
+    }
+  }
+
+  if (!hasAnyHole) return tilesRect;
+
+  return Path.combine(PathOperation.difference, tilesRect, allHoles);
+}
+
+/// Appends RLE-encoded "revealed cell" hole rects from [tile] into
+/// [holesPath]. Returns `true` if at least one rect was added.
+///
+/// Pulled out of [buildFogClipPath] / [buildViewportFogClipPath] so
+/// both share the same row-iteration logic without duplication.
+bool _addTileRevealedHoles(Path holesPath, {required VisibleMirkTile tile, required MirkViewportBbox viewport, required Size canvasSize}) {
   final cellLatSpan = (tile.tileNorthLat - tile.tileSouthLat) / kRevealedTileSubgridSize;
   final cellLonSpan = (tile.tileEastLon - tile.tileWestLon) / kRevealedTileSubgridSize;
-  final holesPath = Path();
-  var hasAnyHole = false;
+  var added = false;
   for (var j = 0; j < kRevealedTileSubgridSize; j++) {
     final rowNorthLat = tile.tileNorthLat - j * cellLatSpan;
     final rowSouthLat = tile.tileNorthLat - (j + 1) * cellLatSpan;
-    var runStart = -1; // -1 = no run currently open
+    var runStart = -1;
     for (var i = 0; i < kRevealedTileSubgridSize; i++) {
       final bitIndex = j * kRevealedTileSubgridSize + i;
       final byteIndex = bitIndex >> 3;
       final bitOffset = bitIndex & 7;
       final bit = (tile.bitmap[byteIndex] >> bitOffset) & 1;
       if (bit == 1) {
-        // Revealed cell — open a run if not already open.
         if (runStart < 0) runStart = i;
         continue;
       }
-      // Unrevealed cell — close any open run and emit one rect for it.
       if (runStart >= 0) {
         _addRowRunRect(
           holesPath,
@@ -101,11 +154,10 @@ Path buildFogClipPath({required VisibleMirkTile tile, required MirkViewportBbox 
           rowSouthLat: rowSouthLat,
           cellLonSpan: cellLonSpan,
         );
-        hasAnyHole = true;
+        added = true;
         runStart = -1;
       }
     }
-    // Row ended with an open run extending to the east edge.
     if (runStart >= 0) {
       _addRowRunRect(
         holesPath,
@@ -118,22 +170,14 @@ Path buildFogClipPath({required VisibleMirkTile tile, required MirkViewportBbox 
         rowSouthLat: rowSouthLat,
         cellLonSpan: cellLonSpan,
       );
-      hasAnyHole = true;
+      added = true;
     }
   }
-
-  // No revealed cells in this tile — the fog is the full tile rect, no
-  // need for the (more expensive) Path.combine difference op.
-  if (!hasAnyHole) return tileRectPath;
-
-  // Path.combine returns a fresh Path representing the boolean
-  // difference; the tile rect minus the revealed-cell holes.
-  return Path.combine(PathOperation.difference, tileRectPath, holesPath);
+  return added;
 }
 
 /// Projects one row-run (`[runStartCol, runEndColExclusive)`) to screen
-/// space and adds it as a single rect to [holesPath]. Pulled out of the
-/// double-loop body to keep [buildFogClipPath] readable.
+/// space and adds it as a single rect to [holesPath].
 void _addRowRunRect(
   Path holesPath, {
   required VisibleMirkTile tile,

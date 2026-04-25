@@ -29,11 +29,22 @@ import 'tile_cell_iteration.dart';
 /// driftX = cos(driftDirectionDeg)
 /// driftY = -sin(driftDirectionDeg)  // screen Y grows south
 /// ```
-/// Per-tile alpha is sampled at:
+/// The fog's overall alpha is sampled at:
 /// ```
-/// noise2(parentX * noiseScale + tSec * noiseSpeed * driftX,
-///        parentY * noiseScale + tSec * noiseSpeed * driftY)
+/// noise2(tSec * noiseSpeed * driftX, tSec * noiseSpeed * driftY)
 /// ```
+/// Pre-BUG-003 the noise sample was offset per-parent-tile by
+/// `(parentX * noiseScale, parentY * noiseScale)`. Post-BUG-003 the
+/// renderer paints ONE viewport-wide path, so per-tile spatial
+/// modulation is gone — the alpha pulses uniformly over time. Drift
+/// direction still matters for the noise sampling trajectory.
+///
+/// ## BUG-003 (2026-04-25): single viewport-level path
+///
+/// Same fix as atmospheric/candlelight: composes a single viewport-wide
+/// fog path so `MaskFilter.blur(BlurStyle.inner, sigma)` runs ONCE on
+/// the global silhouette. No more per-tile feather cumulation at parent
+/// tile seams.
 class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config] and an optional [seed] for
   /// the internal cloud-noise generator.
@@ -69,27 +80,22 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     final cellSize = size.height / kRevealedTileSubgridSize;
     final featherSigma = cellSize * 0.15 * context.pixelRatio;
 
-    for (final tile in context.visibleTiles) {
-      final noiseSample = _noise.noise2(
-        tile.parentX * config.noiseScale + tSec * config.noiseSpeed * driftX,
-        tile.parentY * config.noiseScale + tSec * config.noiseSpeed * driftY,
-      );
-      // Modulate alpha by ±10% around the configured baseline (wider
-      // swing than atmospheric 3% — clouds change density visibly).
-      final alpha = (config.baselineAlpha + noiseSample * 0.10).clamp(0.0, 1.0);
-      final paint = Paint()
-        ..color = Color.fromARGB((alpha * 255).round(), r, g, b)
-        ..style = PaintingStyle.fill
-        ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
+    // Sample noise once at the time-evolving "drift point" — uniform
+    // alpha across the viewport, evolving over time.
+    final noiseSample = _noise.noise2(tSec * config.noiseSpeed * driftX, tSec * config.noiseSpeed * driftY);
+    // Modulate alpha by ±10% around the configured baseline (wider
+    // swing than atmospheric 3% — clouds change density visibly).
+    final alpha = (config.baselineAlpha + noiseSample * 0.10).clamp(0.0, 1.0);
+    final paint = Paint()
+      ..color = Color.fromARGB((alpha * 255).round(), r, g, b)
+      ..style = PaintingStyle.fill
+      ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
 
-      // BUG-003 fix (2026-04-25): see AtmosphericMirkRenderer for the
-      // "tile-rect minus revealed cells" rationale. Same root cause —
-      // BlurStyle.inner over a cell-union path was eroding alpha at every
-      // internal cell-cell edge.
-      final path = buildFogClipPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
-      if (path.getBounds().isEmpty) continue;
-      canvas.drawPath(path, paint);
-    }
+    // BUG-003 fix (2026-04-25): single viewport-level path. See
+    // [buildViewportFogClipPath] for the rationale.
+    final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
+    if (path.getBounds().isEmpty) return;
+    canvas.drawPath(path, paint);
   }
 
   @override
