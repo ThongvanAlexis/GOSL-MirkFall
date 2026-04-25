@@ -11,6 +11,7 @@ import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/session_store_provider.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/fixes/fix_store.dart';
+import 'package:mirkfall/domain/ids/mirk_style_id.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
@@ -47,13 +48,15 @@ class FakeSessionStore implements SessionStore {
 
   void _emit() {
     if (_controller.isClosed) return;
-    final list = _byId.values.toList()..sort((a, b) => b.startedAtUtc.compareTo(a.startedAtUtc));
+    final list = _byId.values.toList()
+      ..sort((a, b) => b.startedAtUtc.compareTo(a.startedAtUtc));
     _controller.add(list);
   }
 
   @override
   Future<List<Session>> listAll() async {
-    final list = _byId.values.toList()..sort((a, b) => b.startedAtUtc.compareTo(a.startedAtUtc));
+    final list = _byId.values.toList()
+      ..sort((a, b) => b.startedAtUtc.compareTo(a.startedAtUtc));
     return list;
   }
 
@@ -117,6 +120,18 @@ class FakeSessionStore implements SessionStore {
   }
 
   @override
+  Future<void> updateMirkStyle({
+    required SessionId sessionId,
+    required MirkStyleId? mirkStyleId,
+  }) async {
+    final existing = _byId[sessionId];
+    if (existing != null) {
+      _byId[sessionId] = existing.copyWith(mirkStyleId: mirkStyleId);
+      _emit();
+    }
+  }
+
+  @override
   Stream<List<Session>> watchAll() => _controller.stream;
 
   Future<void> disposeController() async {
@@ -131,19 +146,30 @@ class FakeFixStore implements FixStore {
   Future<void> insert(Fix fix) async => fixes.add(fix);
 
   @override
-  Future<List<Fix>> listBySession(SessionId sessionId) async => fixes.where((f) => f.sessionId == sessionId).toList(growable: false);
+  Future<List<Fix>> listBySession(SessionId sessionId) async =>
+      fixes.where((f) => f.sessionId == sessionId).toList(growable: false);
 
   @override
-  Stream<List<Fix>> watchBySession(SessionId sessionId) => Stream<List<Fix>>.value(fixes.where((f) => f.sessionId == sessionId).toList(growable: false));
+  Stream<List<Fix>> watchBySession(SessionId sessionId) =>
+      Stream<List<Fix>>.value(
+        fixes.where((f) => f.sessionId == sessionId).toList(growable: false),
+      );
 
   @override
-  Future<int> countBySession(SessionId sessionId) async => fixes.where((f) => f.sessionId == sessionId).length;
+  Future<int> countBySession(SessionId sessionId) async =>
+      fixes.where((f) => f.sessionId == sessionId).length;
 
   @override
-  Future<void> deleteAllForSession(SessionId sessionId) async => fixes.removeWhere((f) => f.sessionId == sessionId);
+  Future<void> deleteAllForSession(SessionId sessionId) async =>
+      fixes.removeWhere((f) => f.sessionId == sessionId);
 }
 
-Session buildSession({required String id, String displayName = 'Test', DateTime? startedAtUtc, SessionStatus status = SessionStatus.stopped}) => Session(
+Session buildSession({
+  required String id,
+  String displayName = 'Test',
+  DateTime? startedAtUtc,
+  SessionStatus status = SessionStatus.stopped,
+}) => Session(
   id: SessionId(id),
   displayName: displayName,
   status: status,
@@ -170,7 +196,10 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          overrides: [
+            sessionStoreProvider.overrideWith((ref) async => sessionStore),
+            fixStoreProvider.overrideWith((ref) async => fixStore),
+          ],
           child: const MaterialApp(home: SessionListScreen()),
         ),
       );
@@ -183,16 +212,31 @@ void main() {
 
     testWidgets('rendersSessionsFromWatchAllInDescOrder', (tester) async {
       final sessionStore = FakeSessionStore(<Session>[
-        buildSession(id: 'sess_00000000000000000000000001', displayName: 'Oldest', startedAtUtc: DateTime.utc(2026, 4, 10)),
-        buildSession(id: 'sess_00000000000000000000000002', displayName: 'Middle', startedAtUtc: DateTime.utc(2026, 4, 15)),
-        buildSession(id: 'sess_00000000000000000000000003', displayName: 'Newest', startedAtUtc: DateTime.utc(2026, 4, 19)),
+        buildSession(
+          id: 'sess_00000000000000000000000001',
+          displayName: 'Oldest',
+          startedAtUtc: DateTime.utc(2026, 4, 10),
+        ),
+        buildSession(
+          id: 'sess_00000000000000000000000002',
+          displayName: 'Middle',
+          startedAtUtc: DateTime.utc(2026, 4, 15),
+        ),
+        buildSession(
+          id: 'sess_00000000000000000000000003',
+          displayName: 'Newest',
+          startedAtUtc: DateTime.utc(2026, 4, 19),
+        ),
       ]);
       addTearDown(sessionStore.disposeController);
       final fixStore = FakeFixStore();
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          overrides: [
+            sessionStoreProvider.overrideWith((ref) async => sessionStore),
+            fixStoreProvider.overrideWith((ref) async => fixStore),
+          ],
           child: const MaterialApp(home: SessionListScreen()),
         ),
       );
@@ -214,21 +258,30 @@ void main() {
 
     testWidgets('activeSessionRowShowsActiveBadge', (tester) async {
       final sessionStore = FakeSessionStore(<Session>[
-        buildSession(id: 'sess_00000000000000000000000099', displayName: 'Live one', status: SessionStatus.active),
+        buildSession(
+          id: 'sess_00000000000000000000000099',
+          displayName: 'Live one',
+          status: SessionStatus.active,
+        ),
       ]);
       addTearDown(sessionStore.disposeController);
       final fixStore = FakeFixStore();
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          overrides: [
+            sessionStoreProvider.overrideWith((ref) async => sessionStore),
+            fixStoreProvider.overrideWith((ref) async => fixStore),
+          ],
           child: const MaterialApp(home: SessionListScreen()),
         ),
       );
       await tester.pumpAndSettle();
 
       // Subtitle carries "• active" when the status is active.
-      final Finder activeText = find.byWidgetPredicate((w) => w is Text && (w.data ?? '').contains('• active'));
+      final Finder activeText = find.byWidgetPredicate(
+        (w) => w is Text && (w.data ?? '').contains('• active'),
+      );
       expect(activeText, findsOneWidget);
     });
 
@@ -239,7 +292,10 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          overrides: [
+            sessionStoreProvider.overrideWith((ref) async => sessionStore),
+            fixStoreProvider.overrideWith((ref) async => fixStore),
+          ],
           child: const MaterialApp(home: SessionListScreen()),
         ),
       );
@@ -263,7 +319,10 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          overrides: [
+            sessionStoreProvider.overrideWith((ref) async => sessionStore),
+            fixStoreProvider.overrideWith((ref) async => fixStore),
+          ],
           child: const MaterialApp(home: SessionListScreen()),
         ),
       );
@@ -274,13 +333,18 @@ void main() {
     });
 
     testWidgets('one session surfaces the /map AppBar button', (tester) async {
-      final sessionStore = FakeSessionStore(<Session>[buildSession(id: 'sess_00000000000000000000000001')]);
+      final sessionStore = FakeSessionStore(<Session>[
+        buildSession(id: 'sess_00000000000000000000000001'),
+      ]);
       addTearDown(sessionStore.disposeController);
       final fixStore = FakeFixStore();
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          overrides: [
+            sessionStoreProvider.overrideWith((ref) async => sessionStore),
+            fixStoreProvider.overrideWith((ref) async => fixStore),
+          ],
           child: const MaterialApp(home: SessionListScreen()),
         ),
       );
@@ -293,7 +357,11 @@ void main() {
       // SESS-09 stress: 100 sessions render via ListView.separated.
       final seeded = <Session>[
         for (int i = 0; i < 100; i++)
-          buildSession(id: 'sess_${i.toString().padLeft(26, '0')}', displayName: 'Session $i', startedAtUtc: DateTime.utc(2026, 4, 19, 0, i)),
+          buildSession(
+            id: 'sess_${i.toString().padLeft(26, '0')}',
+            displayName: 'Session $i',
+            startedAtUtc: DateTime.utc(2026, 4, 19, 0, i),
+          ),
       ];
       final sessionStore = FakeSessionStore(seeded);
       addTearDown(sessionStore.disposeController);
@@ -301,7 +369,10 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [sessionStoreProvider.overrideWith((ref) async => sessionStore), fixStoreProvider.overrideWith((ref) async => fixStore)],
+          overrides: [
+            sessionStoreProvider.overrideWith((ref) async => sessionStore),
+            fixStoreProvider.overrideWith((ref) async => fixStore),
+          ],
           child: const MaterialApp(home: SessionListScreen()),
         ),
       );

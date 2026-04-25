@@ -2,6 +2,7 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import '../ids/mirk_style_id.dart';
 import '../ids/session_id.dart';
 import 'session.dart';
 
@@ -51,6 +52,22 @@ abstract class SessionStore {
 
   /// Stops the session (transitions status `active` -> `stopped`).
   Future<void> deactivate(SessionId id);
+
+  /// Sets `t_sessions.mirk_style_id` to [mirkStyleId] for the row at
+  /// [sessionId]. `null` clears the column (degrades to renderer-side
+  /// default — see 09-05 SUMMARY §Decisions).
+  ///
+  /// Phase 09 plan 09-06: dedicated narrow write path used by
+  /// `MirkStyleSessionController.select()`. Distinct from [update] so
+  /// the rest of the row stays untouched (no need to read-modify-write
+  /// the full Session, no risk of clobbering a concurrent edit to
+  /// other columns).
+  ///
+  /// Throws `SessionNotFoundException` when the row is absent.
+  Future<void> updateMirkStyle({
+    required SessionId sessionId,
+    required MirkStyleId? mirkStyleId,
+  });
 
   /// Emits the current list of sessions on every row change in
   /// `t_sessions`. Ordering matches [listAll] — `startedAtUtc` DESC.

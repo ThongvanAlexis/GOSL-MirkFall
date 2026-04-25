@@ -4,6 +4,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/domain/errors/session_errors.dart';
+import 'package:mirkfall/domain/ids/mirk_style_id.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
@@ -22,7 +23,11 @@ void main() {
   group('BootCompletedWatchdog', () {
     test('schedulesNotifOnActiveSession', () async {
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final activeSession = _buildSession(sessionId, status: SessionStatus.active, displayName: 'Balade de test');
+      final activeSession = _buildSession(
+        sessionId,
+        status: SessionStatus.active,
+        displayName: 'Balade de test',
+      );
 
       final sessionStore = _FakeSessionStore(sessions: [activeSession]);
       final notificationService = _FakeNotificationService();
@@ -54,7 +59,10 @@ void main() {
       // notification even if the watchdog fires twice in a row — but the
       // service call count still increments per run.
       const sessionId = SessionId('sess_01HR0000000000000000000C');
-      final activeSession = _buildSession(sessionId, status: SessionStatus.active);
+      final activeSession = _buildSession(
+        sessionId,
+        status: SessionStatus.active,
+      );
 
       final sessionStore = _FakeSessionStore(sessions: [activeSession]);
       final notificationService = _FakeNotificationService();
@@ -83,14 +91,25 @@ void main() {
   });
 }
 
-Session _buildSession(SessionId id, {SessionStatus status = SessionStatus.stopped, String displayName = 'Test session'}) =>
-    Session(id: id, displayName: displayName, status: status, startedAtUtc: DateTime.utc(2026, 4, 19, 10), startedAtOffsetMinutes: 120);
+Session _buildSession(
+  SessionId id, {
+  SessionStatus status = SessionStatus.stopped,
+  String displayName = 'Test session',
+}) => Session(
+  id: id,
+  displayName: displayName,
+  status: status,
+  startedAtUtc: DateTime.utc(2026, 4, 19, 10),
+  startedAtOffsetMinutes: 120,
+);
 
 /// Minimal SessionStore fake — seeds a fixed list of sessions + optionally
 /// throws on `listAll()` to exercise the error-swallowing contract.
 class _FakeSessionStore implements SessionStore {
   _FakeSessionStore({this.sessions = const <Session>[]}) : _throwOnList = false;
-  _FakeSessionStore.throwing() : sessions = const <Session>[], _throwOnList = true;
+  _FakeSessionStore.throwing()
+    : sessions = const <Session>[],
+      _throwOnList = true;
 
   final List<Session> sessions;
   final bool _throwOnList;
@@ -144,6 +163,12 @@ class _FakeSessionStore implements SessionStore {
 
   @override
   Future<void> deactivate(SessionId id) async {}
+
+  @override
+  Future<void> updateMirkStyle({
+    required SessionId sessionId,
+    required MirkStyleId? mirkStyleId,
+  }) async {}
 }
 
 /// Minimal SessionNotificationService fake — counts `showResumeNotification`
@@ -160,7 +185,10 @@ class _FakeNotificationService implements SessionNotificationService {
   Future<void> dismiss() async {}
 
   @override
-  Future<void> showResumeNotification(SessionId sessionId, String sessionDisplayName) async {
+  Future<void> showResumeNotification(
+    SessionId sessionId,
+    String sessionDisplayName,
+  ) async {
     resumeCount += 1;
     lastSessionId = sessionId;
     lastDisplayName = sessionDisplayName;

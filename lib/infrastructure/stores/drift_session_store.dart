@@ -178,6 +178,25 @@ class DriftSessionStore implements SessionStore {
     }
   }
 
+  @override
+  Future<void> updateMirkStyle({
+    required SessionId sessionId,
+    required MirkStyleId? mirkStyleId,
+  }) async {
+    // Phase 09 plan 09-06 — narrow column write. Bypasses the full
+    // _toInsertCompanion path so no other column is touched. The
+    // `mirkStyleId.value` extension-type unwrap to String fits Drift's
+    // Value<String?> shape; null clears the column (FK is ON DELETE
+    // SET NULL so a NULL value is always valid).
+    final rowsAffected =
+        await (_db.update(_db.sessions)
+              ..where((t) => t.id.equals(sessionId.value)))
+            .write(SessionsCompanion(mirkStyleId: Value(mirkStyleId?.value)));
+    if (rowsAffected == 0) {
+      throw SessionNotFoundException(id: sessionId);
+    }
+  }
+
   // -- hydration ---------------------------------------------------------
 
   Session _hydrate(SessionRow row) => Session(

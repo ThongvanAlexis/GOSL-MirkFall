@@ -18,6 +18,7 @@ import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/fixes/fix_store.dart';
 import 'package:mirkfall/domain/gps/gps_errors.dart';
 import 'package:mirkfall/domain/ids/fix_id.dart';
+import 'package:mirkfall/domain/ids/mirk_style_id.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
@@ -80,19 +81,34 @@ class _FakeSessionStore implements SessionStore {
   }
 
   @override
-  Future<List<Session>> listAll() async => _sessionById.values.toList(growable: false);
+  Future<List<Session>> listAll() async =>
+      _sessionById.values.toList(growable: false);
 
   @override
-  Stream<List<Session>> watchAll() => Stream<List<Session>>.value(_sessionById.values.toList(growable: false));
+  Stream<List<Session>> watchAll() =>
+      Stream<List<Session>>.value(_sessionById.values.toList(growable: false));
 
   @override
-  Future<void> insert(Session session) async => _sessionById[session.id] = session;
+  Future<void> insert(Session session) async =>
+      _sessionById[session.id] = session;
 
   @override
-  Future<void> update(Session session) async => _sessionById[session.id] = session;
+  Future<void> update(Session session) async =>
+      _sessionById[session.id] = session;
 
   @override
   Future<void> delete(SessionId id) async => _sessionById.remove(id);
+
+  @override
+  Future<void> updateMirkStyle({
+    required SessionId sessionId,
+    required MirkStyleId? mirkStyleId,
+  }) async {
+    final existing = _sessionById[sessionId];
+    if (existing != null) {
+      _sessionById[sessionId] = existing.copyWith(mirkStyleId: mirkStyleId);
+    }
+  }
 }
 
 /// Records every [Fix] inserted and satisfies the reader methods with
@@ -113,16 +129,22 @@ class _FakeFixStore implements FixStore {
   }
 
   @override
-  Future<List<Fix>> listBySession(SessionId sessionId) async => inserts.where((f) => f.sessionId == sessionId).toList(growable: false);
+  Future<List<Fix>> listBySession(SessionId sessionId) async =>
+      inserts.where((f) => f.sessionId == sessionId).toList(growable: false);
 
   @override
-  Stream<List<Fix>> watchBySession(SessionId sessionId) => Stream<List<Fix>>.value(inserts.where((f) => f.sessionId == sessionId).toList(growable: false));
+  Stream<List<Fix>> watchBySession(SessionId sessionId) =>
+      Stream<List<Fix>>.value(
+        inserts.where((f) => f.sessionId == sessionId).toList(growable: false),
+      );
 
   @override
-  Future<int> countBySession(SessionId sessionId) async => inserts.where((f) => f.sessionId == sessionId).length;
+  Future<int> countBySession(SessionId sessionId) async =>
+      inserts.where((f) => f.sessionId == sessionId).length;
 
   @override
-  Future<void> deleteAllForSession(SessionId sessionId) async => inserts.removeWhere((f) => f.sessionId == sessionId);
+  Future<void> deleteAllForSession(SessionId sessionId) async =>
+      inserts.removeWhere((f) => f.sessionId == sessionId);
 }
 
 /// Port fake — counts initialize/dismiss/showResumeNotification calls
@@ -139,13 +161,17 @@ class _FakeNotificationService implements SessionNotificationService {
   Future<void> dismiss() async => dismissCount++;
 
   @override
-  Future<void> showResumeNotification(SessionId sessionId, String sessionDisplayName) async => showResumeCount++;
+  Future<void> showResumeNotification(
+    SessionId sessionId,
+    String sessionDisplayName,
+  ) async => showResumeCount++;
 }
 
 /// Fake iOS significant-change watchdog — records start/stop calls so tests
 /// can assert the controller invokes them at the right transitions without
 /// touching CLLocationManager.
-class _FakeIosSignificantChangeWatchdog implements IosSignificantChangeWatchdog {
+class _FakeIosSignificantChangeWatchdog
+    implements IosSignificantChangeWatchdog {
   int startCount = 0;
   int stopCount = 0;
 
@@ -156,10 +182,23 @@ class _FakeIosSignificantChangeWatchdog implements IosSignificantChangeWatchdog 
   Future<void> stopMonitoring() async => stopCount++;
 }
 
-Session _buildSession(SessionId id, {SessionStatus status = SessionStatus.stopped, String displayName = 'Test session'}) =>
-    Session(id: id, displayName: displayName, status: status, startedAtUtc: DateTime.utc(2026, 4, 19, 10), startedAtOffsetMinutes: 120);
+Session _buildSession(
+  SessionId id, {
+  SessionStatus status = SessionStatus.stopped,
+  String displayName = 'Test session',
+}) => Session(
+  id: id,
+  displayName: displayName,
+  status: status,
+  startedAtUtc: DateTime.utc(2026, 4, 19, 10),
+  startedAtOffsetMinutes: 120,
+);
 
-Fix _buildFix({required SessionId sessionId, String id = 'fix_01HR0000000000000000000A', int epochMs = 1745056800000}) => Fix(
+Fix _buildFix({
+  required SessionId sessionId,
+  String id = 'fix_01HR0000000000000000000A',
+  int epochMs = 1745056800000,
+}) => Fix(
   id: FixId(id),
   sessionId: sessionId,
   recordedAtUtc: DateTime.fromMillisecondsSinceEpoch(epochMs, isUtc: true),
@@ -181,8 +220,12 @@ ProviderContainer _buildContainer({
       sessionStoreProvider.overrideWith((ref) async => sessionStore),
       fixStoreProvider.overrideWith((ref) async => fixStore),
       locationStreamProvider.overrideWith((ref) => locationStream),
-      sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
-      iosSignificantChangeWatchdogProvider.overrideWith((ref) => iosWatchdog ?? _FakeIosSignificantChangeWatchdog()),
+      sessionNotificationServiceProvider.overrideWith(
+        (ref) => notificationService,
+      ),
+      iosSignificantChangeWatchdogProvider.overrideWith(
+        (ref) => iosWatchdog ?? _FakeIosSignificantChangeWatchdog(),
+      ),
     ],
   );
 }
@@ -201,7 +244,9 @@ void main() {
 
   group('ActiveSessionController', () {
     test('buildReturnsIdle', () async {
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       final sessionStore = _FakeSessionStore(<SessionId, Session>{});
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream();
@@ -215,14 +260,20 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final state = await container.read(activeSessionControllerProvider.future);
+      final state = await container.read(
+        activeSessionControllerProvider.future,
+      );
       expect(state, isA<Idle>());
     });
 
     test('startTransitionsToTracking', () async {
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId, displayName: 'Balade de test')});
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId, displayName: 'Balade de test'),
+      });
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream();
       final notificationService = _FakeNotificationService();
@@ -237,7 +288,9 @@ void main() {
 
       // Prime controller.
       await container.read(activeSessionControllerProvider.future);
-      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      await container
+          .read(activeSessionControllerProvider.notifier)
+          .start(sessionId);
 
       final state = container.read(activeSessionControllerProvider).value;
       expect(state, isA<Tracking>());
@@ -252,9 +305,13 @@ void main() {
     });
 
     test('startActivatesSessionInStore', () async {
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId),
+      });
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream();
       final notificationService = _FakeNotificationService();
@@ -268,15 +325,21 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(activeSessionControllerProvider.future);
-      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      await container
+          .read(activeSessionControllerProvider.notifier)
+          .start(sessionId);
 
       expect(sessionStore.activatedIds, <SessionId>[sessionId]);
     });
 
     test('startInitializesNotification', () async {
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId),
+      });
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream();
       final notificationService = _FakeNotificationService();
@@ -290,15 +353,21 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(activeSessionControllerProvider.future);
-      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      await container
+          .read(activeSessionControllerProvider.notifier)
+          .start(sessionId);
 
       expect(notificationService.initializeCount, 1);
     });
 
     test('startPropagatesConcurrentActivationAsAsyncError', () async {
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)})..throwConcurrentOnActivate = true;
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId),
+      })..throwConcurrentOnActivate = true;
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream();
       final notificationService = _FakeNotificationService();
@@ -316,7 +385,12 @@ void main() {
       // Controller rethrows so the caller (Plan 05-04 UI) can chain
       // stop()+start(); the state settles on AsyncError carrying the
       // ConcurrentActivationException.
-      await expectLater(container.read(activeSessionControllerProvider.notifier).start(sessionId), throwsA(isA<ConcurrentActivationException>()));
+      await expectLater(
+        container
+            .read(activeSessionControllerProvider.notifier)
+            .start(sessionId),
+        throwsA(isA<ConcurrentActivationException>()),
+      );
 
       final asyncValue = container.read(activeSessionControllerProvider);
       expect(asyncValue.hasError, isTrue);
@@ -324,9 +398,13 @@ void main() {
     });
 
     test('acceptedFixIsPersistedAndFixCountIncrements', () async {
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId),
+      });
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream();
       final notificationService = _FakeNotificationService();
@@ -340,7 +418,9 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(activeSessionControllerProvider.future);
-      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      await container
+          .read(activeSessionControllerProvider.notifier)
+          .start(sessionId);
 
       final fix = _buildFix(sessionId: sessionId);
       locationStream.emit(fix);
@@ -355,9 +435,13 @@ void main() {
     });
 
     test('stopCancelsSubscriptionAndDeactivates', () async {
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId),
+      });
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream();
       final notificationService = _FakeNotificationService();
@@ -371,7 +455,9 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(activeSessionControllerProvider.future);
-      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      await container
+          .read(activeSessionControllerProvider.notifier)
+          .start(sessionId);
       await container.read(activeSessionControllerProvider.notifier).stop();
 
       final state = container.read(activeSessionControllerProvider).value;
@@ -382,9 +468,13 @@ void main() {
     });
 
     test('startInvokesIosSignificantChangeWatchdog', () async {
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId),
+      });
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream();
       final notificationService = _FakeNotificationService();
@@ -400,16 +490,22 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(activeSessionControllerProvider.future);
-      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      await container
+          .read(activeSessionControllerProvider.notifier)
+          .start(sessionId);
 
       expect(iosWatchdog.startCount, 1);
       expect(iosWatchdog.stopCount, 0);
     });
 
     test('stopInvokesIosSignificantChangeWatchdogStopMonitoring', () async {
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId),
+      });
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream();
       final notificationService = _FakeNotificationService();
@@ -425,7 +521,9 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(activeSessionControllerProvider.future);
-      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      await container
+          .read(activeSessionControllerProvider.notifier)
+          .start(sessionId);
       await container.read(activeSessionControllerProvider.notifier).stop();
 
       expect(iosWatchdog.startCount, 1);
@@ -437,9 +535,13 @@ void main() {
       // folds into `AsyncData(ErrorState)` — it surfaces through the
       // same `AsyncError` channel as every other exception. UI
       // consumers pattern-match on `asyncValue.error`'s runtime type.
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId),
+      });
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream();
       final notificationService = _FakeNotificationService();
@@ -453,13 +555,19 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(activeSessionControllerProvider.future);
-      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      await container
+          .read(activeSessionControllerProvider.notifier)
+          .start(sessionId);
 
       locationStream.emitError(const LocationServiceDisabledException());
       await Future<void>.delayed(Duration.zero);
 
       final asyncValue = container.read(activeSessionControllerProvider);
-      expect(asyncValue.hasError, isTrue, reason: 'GpsError on the stream must surface via AsyncError (row #37)');
+      expect(
+        asyncValue.hasError,
+        isTrue,
+        reason: 'GpsError on the stream must surface via AsyncError (row #37)',
+      );
       expect(asyncValue.error, isA<LocationServiceDisabledException>());
     });
 
@@ -470,11 +578,16 @@ void main() {
       // Row #37 (2026-04-23): GpsError now propagates via AsyncError
       // rather than a dedicated ErrorState variant — consolidates on
       // the same error channel as non-GpsError exceptions.
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId),
+      });
       final fixStore = _FakeFixStore();
-      final locationStream = FakeLocationStream()..throwGpsOnPositions = const LocationServiceDisabledException();
+      final locationStream = FakeLocationStream()
+        ..throwGpsOnPositions = const LocationServiceDisabledException();
       final notificationService = _FakeNotificationService();
 
       final container = _buildContainer(
@@ -486,21 +599,40 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(activeSessionControllerProvider.future);
-      await expectLater(container.read(activeSessionControllerProvider.notifier).start(sessionId), throwsA(isA<LocationServiceDisabledException>()));
+      await expectLater(
+        container
+            .read(activeSessionControllerProvider.notifier)
+            .start(sessionId),
+        throwsA(isA<LocationServiceDisabledException>()),
+      );
 
       final asyncValue = container.read(activeSessionControllerProvider);
-      expect(asyncValue.hasError, isTrue, reason: 'GpsError during start must surface via AsyncError (row #37)');
+      expect(
+        asyncValue.hasError,
+        isTrue,
+        reason: 'GpsError during start must surface via AsyncError (row #37)',
+      );
       expect(asyncValue.error, isA<LocationServiceDisabledException>());
-      expect(sessionStore.activatedIds, <SessionId>[sessionId], reason: 'activate must have been called');
-      expect(sessionStore.deactivatedIds, <SessionId>[sessionId], reason: 'rollback must deactivate on partial-activation failure');
+      expect(sessionStore.activatedIds, <SessionId>[
+        sessionId,
+      ], reason: 'activate must have been called');
+      expect(
+        sessionStore.deactivatedIds,
+        <SessionId>[sessionId],
+        reason: 'rollback must deactivate on partial-activation failure',
+      );
     });
 
     test('stopIsReentrantSafe', () async {
       // Phase 06 Should #4 regression guard: two concurrent stop() calls
       // must not produce two deactivate() calls on the session store.
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId),
+      });
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream();
       final notificationService = _FakeNotificationService();
@@ -521,17 +653,28 @@ void main() {
       // rather than issue a second deactivate.
       await Future.wait<void>([notifier.stop(), notifier.stop()]);
 
-      expect(sessionStore.deactivatedIds, <SessionId>[sessionId], reason: 'overlapping stop() calls must coalesce to a single deactivate');
-      expect(container.read(activeSessionControllerProvider).value, isA<Idle>());
+      expect(
+        sessionStore.deactivatedIds,
+        <SessionId>[sessionId],
+        reason: 'overlapping stop() calls must coalesce to a single deactivate',
+      );
+      expect(
+        container.read(activeSessionControllerProvider).value,
+        isA<Idle>(),
+      );
     });
 
     test('onFixDbInsertFailureTransitionsToAsyncError', () async {
       // Phase 06 Should #7 regression guard: fixStore.insert() throwing
       // mid-Tracking must not escape into the zone handler; the
       // controller drains to the error path and AsyncError settles.
-      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      SharedPreferences.setMockInitialValues(const <String, Object>{
+        'distanceFilter_meters': 5,
+      });
       const sessionId = SessionId('sess_01HR0000000000000000000A');
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(sessionId),
+      });
       final fixStore = _FakeFixStore()..throwOnInsert = StateError('disk full');
       final locationStream = FakeLocationStream();
       final notificationService = _FakeNotificationService();
@@ -545,13 +688,19 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(activeSessionControllerProvider.future);
-      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      await container
+          .read(activeSessionControllerProvider.notifier)
+          .start(sessionId);
 
       locationStream.emit(_buildFix(sessionId: sessionId));
       await Future<void>.delayed(Duration.zero);
 
       final asyncValue = container.read(activeSessionControllerProvider);
-      expect(asyncValue.hasError, isTrue, reason: 'DB insert failure during Tracking must surface as AsyncError');
+      expect(
+        asyncValue.hasError,
+        isTrue,
+        reason: 'DB insert failure during Tracking must surface as AsyncError',
+      );
       expect(asyncValue.error, isA<StateError>());
     });
   });

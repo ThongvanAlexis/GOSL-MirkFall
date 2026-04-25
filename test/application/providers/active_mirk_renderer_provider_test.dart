@@ -109,6 +109,17 @@ class _FakeSessionStore implements SessionStore {
       _sessionById[id] = existing.copyWith(status: SessionStatus.stopped);
     }
   }
+
+  @override
+  Future<void> updateMirkStyle({
+    required SessionId sessionId,
+    required MirkStyleId? mirkStyleId,
+  }) async {
+    final existing = _sessionById[sessionId];
+    if (existing != null) {
+      _sessionById[sessionId] = existing.copyWith(mirkStyleId: mirkStyleId);
+    }
+  }
 }
 
 /// Test-double notifier exposing a pre-baked [ActiveSessionState] without
