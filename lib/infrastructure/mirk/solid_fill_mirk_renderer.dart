@@ -2,13 +2,23 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-import 'dart:ui' show Canvas, Color, Paint, PaintingStyle, Size;
+import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Paint, PaintingStyle, Size;
 
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 
 import 'tile_cell_iteration.dart';
+
+/// Sigma multiplier used to derive [SolidFillMirkRenderer]'s feather
+/// radius from the on-screen cell size. Matches the magnitude of the
+/// `featherRadiusFraction` defaults on the animated variants (0.1 ×
+/// cellSize) — keeps the rounded-reveal corners consistent across all
+/// 4 builtins (BUG-006 fix, 2026-04-25). Hard-coded because [SolidConfig]
+/// intentionally has no feather param (the variant is the debug /
+/// proof-of-seam minimalist).
+const double _kSolidFeatherCellFraction = 0.1;
 
 /// Flat solid-color fog renderer — no noise, no animation.
 ///
@@ -23,6 +33,14 @@ import 'tile_cell_iteration.dart';
 /// * `baselineAlpha` — additional alpha multiplier `[0, 1]` applied on
 ///   top of the colour's own alpha byte. Final alpha = `(colorArgb_A
 ///   * baselineAlpha) / 255`.
+///
+/// ## BUG-006 (2026-04-25): rounded reveal corners
+///
+/// Solid ships a `MaskFilter.blur(BlurStyle.normal, sigma)` matching the
+/// 3 animated variants so the cell-rectangle holes around the user's
+/// reveal radius read as a smooth circle, not a stair-step grid of 64
+/// little squares. Sigma is derived from the on-screen cell size at
+/// paint time (depends on canvas height), not pre-computed in `_paint`.
 class SolidFillMirkRenderer implements MirkRenderer {
   /// Constructs a renderer using [config] for colour + alpha.
   SolidFillMirkRenderer(this.config);
@@ -30,9 +48,11 @@ class SolidFillMirkRenderer implements MirkRenderer {
   /// Fog colour + baseline alpha.
   final SolidConfig config;
 
-  late final Paint _paint = Paint()
-    ..color = _computeColor(config)
-    ..style = PaintingStyle.fill;
+  /// Cached colour-only Paint base. Sigma depends on canvas height +
+  /// device pixel ratio (resolved per `paint()` call), so the MaskFilter
+  /// is applied on a fresh Paint each frame rather than baked into this
+  /// `late final`.
+  late final Color _color = _computeColor(config);
 
   bool _disposed = false;
 
@@ -58,9 +78,20 @@ class SolidFillMirkRenderer implements MirkRenderer {
     // damier (no MaskFilter) but unifying the path strategy avoids
     // future seam discrepancies between variants AND saves N-1 drawPath
     // calls per frame on a viewport with N visible tiles.
+    //
+    // BUG-006 (2026-04-25) — adds the same `BlurStyle.normal` feather as
+    // the animated variants so cell-rectangle reveal holes round into a
+    // circle. Sigma derived from canvas height because cells are
+    // pixel-sized at paint time, not bake-time.
+    final cellSize = size.height / kRevealedTileSubgridSize;
+    final featherSigma = cellSize * _kSolidFeatherCellFraction * context.pixelRatio;
+    final paint = Paint()
+      ..color = _color
+      ..style = PaintingStyle.fill
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
     final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
     if (path.getBounds().isEmpty) return;
-    canvas.drawPath(path, _paint);
+    canvas.drawPath(path, paint);
   }
 
   @override

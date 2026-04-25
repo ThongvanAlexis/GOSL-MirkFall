@@ -42,9 +42,16 @@ import 'tile_cell_iteration.dart';
 /// ## BUG-003 (2026-04-25): single viewport-level path
 ///
 /// Same fix as atmospheric/candlelight: composes a single viewport-wide
-/// fog path so `MaskFilter.blur(BlurStyle.inner, sigma)` runs ONCE on
+/// fog path so `MaskFilter.blur(BlurStyle.normal, sigma)` runs ONCE on
 /// the global silhouette. No more per-tile feather cumulation at parent
 /// tile seams.
+///
+/// ## BUG-006 (2026-04-25): rounded reveal corners
+///
+/// Switched `BlurStyle.inner` → `BlurStyle.normal` so the hole edges
+/// blur in BOTH directions, rounding cell-rectangle corners into circle
+/// approximations (classic fog-of-war visual). Inner-only blur left hole
+/// boundaries perfectly square. See atmospheric renderer docstring.
 class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config] and an optional [seed] for
   /// the internal cloud-noise generator.
@@ -89,7 +96,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     final paint = Paint()
       ..color = Color.fromARGB((alpha * 255).round(), r, g, b)
       ..style = PaintingStyle.fill
-      ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
 
     // BUG-003 fix (2026-04-25): single viewport-level path. See
     // [buildViewportFogClipPath] for the rationale.

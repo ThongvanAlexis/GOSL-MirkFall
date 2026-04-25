@@ -41,13 +41,23 @@ import 'tile_cell_iteration.dart';
 ///
 /// ## Feather edge — single mask filter pass per frame
 ///
-/// `MaskFilter.blur(BlurStyle.inner, sigma)` applies to ONE composite
+/// `MaskFilter.blur(BlurStyle.normal, sigma)` applies to ONE composite
 /// path covering the entire viewport's fogged area (see
 /// [buildViewportFogClipPath]). Pre-BUG-003 each visible tile drew with
 /// its own mask filter — the parent-tile seams accumulated TWO feather
 /// passes (one from each side), producing the bright-band damier the
 /// user reported on iOS sideload. The single-pass strategy puts the
 /// feather only on the global fog/clear boundary.
+///
+/// `BlurStyle.normal` (BUG-006 fix, 2026-04-25) replaces `BlurStyle.inner`.
+/// Inner-only blur erodes alpha INWARD from each path edge but leaves the
+/// hole side perfectly sharp — the cell-rectangle corners of revealed
+/// areas read as a stair-step grid of squares instead of a smooth circle.
+/// Normal blur smears alpha symmetrically across the boundary: fog leaks
+/// slightly into the reveal cells, rounding their corners into something
+/// that reads as a circle (matches classic fog-of-war visuals). Sigma is
+/// kept conservative (driven by `featherRadiusFraction`) so the leak does
+/// not visibly shrink the cleared zone.
 class AtmosphericMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config] and an optional [seed] for
   /// the internal simplex noise generator. Different seeds produce
@@ -99,7 +109,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     final paint = Paint()
       ..color = Color.fromARGB((alpha * 255).round(), r, g, b)
       ..style = PaintingStyle.fill
-      ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
 
     // BUG-003 fix (2026-04-25): single viewport-level path. See
     // [buildViewportFogClipPath] for the rationale (eliminates

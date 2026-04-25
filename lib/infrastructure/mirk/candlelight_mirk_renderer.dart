@@ -45,6 +45,14 @@ import 'tile_cell_iteration.dart';
 /// `canvas.drawPath` per frame. The radial gradient covers the whole
 /// canvas; the path carves out revealed cells. The mask filter applies
 /// to the global silhouette — no per-tile seam erosion.
+///
+/// ## BUG-006 (2026-04-25): rounded reveal corners
+///
+/// Switched `BlurStyle.inner` → `BlurStyle.normal` so the hole edges
+/// blur in BOTH directions, rounding the cell-rectangle reveal corners
+/// (the user's iOS UAT showed sharp 64×64 grid corners around the
+/// 20 m initial reveal — should look like a circle, not a stair-step
+/// grid). See atmospheric renderer docstring.
 class CandlelightMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config] and an optional [seed] for
   /// the internal flicker-noise generator.
@@ -95,7 +103,7 @@ class CandlelightMirkRenderer implements MirkRenderer {
     final paint = Paint()
       ..shader = shader
       ..style = PaintingStyle.fill
-      ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
 
     // BUG-003 fix (2026-04-25): single viewport-level path. See
     // [buildViewportFogClipPath] for the rationale.
