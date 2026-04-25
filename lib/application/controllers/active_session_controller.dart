@@ -10,6 +10,7 @@ import 'package:mirkfall/application/providers/boot_watchdog_provider.dart';
 import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/location_stream_provider.dart';
 import 'package:mirkfall/application/providers/reveal_streaming_controller_provider.dart';
+import 'package:mirkfall/application/providers/revealed_tile_store_provider.dart';
 import 'package:mirkfall/application/providers/session_notification_service_provider.dart';
 import 'package:mirkfall/application/providers/session_settings_provider.dart';
 import 'package:mirkfall/application/providers/session_store_provider.dart';
@@ -126,6 +127,19 @@ class ActiveSessionController extends _$ActiveSessionController {
       final settings = await ref.read(sessionSettingsProvider.future);
       final sessionStore = await ref.read(sessionStoreProvider.future);
       final fixStore = await ref.read(fixStoreProvider.future);
+      // BUG-009 follow-up (2026-04-25) — pre-resolve the async revealed-
+      // tile store BEFORE the subscription goes live. The reveal pipeline
+      // (`revealStreamingControllerProvider`) reads the tile store via
+      // `ref.watch(revealedTileStoreProvider).value`, so a synchronous
+      // `ref.read` of the family slot returns null while the path_provider
+      // bootstrap is still in flight. On a fresh cold launch the slow path
+      // in `_onFix` then early-returns at `if (reveal == null)` and drops
+      // the first fixes on the floor — including the initial 20 m disc.
+      // Awaiting `.future` here guarantees the family slot is hydrated by
+      // the time `_writeInitialRevealIfReady` (fast OR slow path) runs.
+      // `keepAlive: true` on the store provider keeps it warm for the rest
+      // of the session.
+      await ref.read(revealedTileStoreProvider.future);
       final locationStream = ref.read(locationStreamProvider);
       final notificationService = ref.read(sessionNotificationServiceProvider);
 
@@ -341,7 +355,17 @@ class ActiveSessionController extends _$ActiveSessionController {
     final activeId = _currentSessionId;
     if (activeId == null) return;
     final reveal = ref.read(revealStreamingControllerProvider(activeId));
-    if (reveal == null) return;
+    if (reveal == null) {
+      // BUG-009 follow-up (2026-04-25) — defensive log. start() now
+      // pre-resolves `revealedTileStoreProvider.future`, so this branch
+      // should be unreachable in production. Surfacing it as `warning`
+      // guarantees a regression (e.g. someone removes the await in
+      // start(), or a new family slot recomputes without the store) is
+      // immediately visible in the user-shipped log file rather than
+      // silently dropping fixes on the floor.
+      _log.warning('_onFix: reveal controller null — fix dropped (session=${activeId.value})');
+      return;
+    }
     if (!_initialRevealDone) {
       await _writeInitialRevealIfReady(fix, sessionId: activeId, reveal: reveal);
     }

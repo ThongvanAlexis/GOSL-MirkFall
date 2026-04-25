@@ -10,6 +10,7 @@ import 'package:mirkfall/application/controllers/active_session_controller.dart'
 import 'package:mirkfall/application/providers/boot_watchdog_provider.dart';
 import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/location_stream_provider.dart';
+import 'package:mirkfall/application/providers/revealed_tile_store_provider.dart';
 import 'package:mirkfall/application/providers/session_notification_service_provider.dart';
 import 'package:mirkfall/application/providers/session_store_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
@@ -28,6 +29,7 @@ import 'package:mirkfall/infrastructure/platform/ios_significant_change_watchdog
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_location_stream.dart';
+import '../../helpers/no_op_revealed_tile_store.dart';
 
 /// Captures activate/deactivate calls. Seed with an in-memory map of
 /// sessions so `requireById` can hydrate without an AppDatabase.
@@ -192,6 +194,12 @@ ProviderContainer _buildContainer({
       locationStreamProvider.overrideWith((ref) => locationStream),
       sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
       iosSignificantChangeWatchdogProvider.overrideWith((ref) => iosWatchdog ?? _FakeIosSignificantChangeWatchdog()),
+      // BUG-009 follow-up (2026-04-25) — start() now awaits
+      // `revealedTileStoreProvider.future` to guarantee the reveal
+      // pipeline is hydrated before the first fix lands. Tests must
+      // override or path_provider hangs in the widget-test
+      // environment.
+      revealedTileStoreProvider.overrideWith((ref) async => const NoOpRevealedTileStore()),
     ],
   );
 }

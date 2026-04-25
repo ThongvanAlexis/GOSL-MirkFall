@@ -301,6 +301,44 @@ void main() {
       );
     });
 
+    test('BUG-009 regression — start() pre-resolves revealedTileStore so the slow path lands on cold launch', () async {
+      // Reproduces the BUG-009 follow-up failure on iOS sideload: on a
+      // fresh cold launch, `revealedTileStoreProvider` was NOT awaited
+      // inside start(), so the synchronous `ref.read` of the family
+      // `revealStreamingControllerProvider` returned null on the first
+      // few `_onFix` calls — dropping fixes on the floor (incl. the
+      // initial 20 m disc). The fix awaits `.future` on the store inside
+      // start(); this test asserts the slow path lands without any
+      // explicit pre-resolve at the call site.
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{_testSessionId: _buildSession(_testSessionId)});
+      final fixStore = _FakeFixStore();
+      // No cached fix → forces the slow path.
+      final locationStream = FakeLocationStream();
+      final revealedTileStore = _SpyRevealedTileStore();
+
+      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, revealedTileStore: revealedTileStore);
+      addTearDown(container.dispose);
+
+      // INTENTIONALLY skip the pre-resolve `await container.read(
+      // revealedTileStoreProvider.future)` — production cold launch never
+      // does it either; start() must do it itself.
+      await container.read(activeSessionControllerProvider.future);
+      await container.read(activeSessionControllerProvider.notifier).start(_testSessionId);
+
+      // First fix arrives — initial reveal MUST fire even though the
+      // call site did not pre-resolve the store provider.
+      final firstFix = _buildFix(sessionId: _testSessionId, suffix: '01');
+      locationStream.emit(firstFix);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        revealedTileStore.mergeMaskCalls.length,
+        greaterThanOrEqualTo(1),
+        reason: 'BUG-009 regression: start() must pre-resolve the tile store so the first fix triggers the initial 20m reveal',
+      );
+    });
+
     test('stop() flushes the reveal pipeline (no buffered fixes survive)', () async {
       final cachedFix = _buildFix(sessionId: _testSessionId, suffix: '0F');
       final sessionStore = _FakeSessionStore(<SessionId, Session>{_testSessionId: _buildSession(_testSessionId)});

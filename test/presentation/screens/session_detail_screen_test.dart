@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/location_stream_provider.dart';
+import 'package:mirkfall/application/providers/revealed_tile_store_provider.dart';
 import 'package:mirkfall/application/providers/session_notification_service_provider.dart';
 import 'package:mirkfall/application/providers/session_store_provider.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
@@ -19,6 +20,7 @@ import 'package:mirkfall/presentation/screens/session_detail_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_location_stream.dart';
+import '../../helpers/no_op_revealed_tile_store.dart';
 import 'session_list_screen_test.dart' show FakeFixStore, FakeSessionStore, buildSession;
 
 class _FakeNotificationService implements SessionNotificationService {
@@ -70,6 +72,11 @@ Widget _pumpWrap({
       fixStoreProvider.overrideWith((ref) async => fixStore),
       locationStreamProvider.overrideWith((ref) => locationStream),
       sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
+      // BUG-009 follow-up (2026-04-25) — start() now awaits
+      // `revealedTileStoreProvider.future` so the reveal pipeline is
+      // hydrated before any fix lands. Tests that drive start() must
+      // override or path_provider hangs in widget-test mode.
+      revealedTileStoreProvider.overrideWith((ref) async => const NoOpRevealedTileStore()),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
