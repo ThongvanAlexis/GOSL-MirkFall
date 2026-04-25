@@ -129,7 +129,9 @@ class RevealedSdfBuilder {
     for (var i = 0; i < seed.length; i++) {
       if (seed[i] != 0) seedSetCount++;
     }
-    _log.fine('build(): seed grid filled — $seedSetCount / ${seed.length} pixels marked revealed (${(100.0 * seedSetCount / seed.length).toStringAsFixed(1)}%)');
+    _log.fine(
+      'build(): seed grid filled — $seedSetCount / ${seed.length} pixels marked revealed (${(100.0 * seedSetCount / seed.length).toStringAsFixed(1)}%)',
+    );
 
     // Step 2: chamfer two-pass distance transform. Output `dist[i]` =
     // signed distance (in pixels) from cell i to the nearest opposite
