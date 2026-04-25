@@ -21,9 +21,9 @@ void main() {
       'paint() output is identical across frames (no animation, deterministic)',
       () async {
         final renderer = SolidFillMirkRenderer(
-          MirkStyleConfig.solid() as SolidConfig,
+          const MirkStyleConfig.solid() as SolidConfig,
         );
-        final ctx0 = fakeContext(elapsedMs: 0);
+        final ctx0 = fakeContext();
         final ctx10s = fakeContext(elapsedMs: 10000);
         final bytes0 = await renderToBytes(renderer, context: ctx0);
         final bytes10s = await renderToBytes(renderer, context: ctx10s);
@@ -42,7 +42,7 @@ void main() {
       'paint() with empty visibleTiles list issues no draw calls (no-op)',
       () async {
         final renderer = SolidFillMirkRenderer(
-          MirkStyleConfig.solid() as SolidConfig,
+          const MirkStyleConfig.solid() as SolidConfig,
         );
         // Override tiles with an empty list — paint should early-return.
         final ctx = fakeContext(tiles: const []);
@@ -65,7 +65,7 @@ void main() {
       'paint() with all-revealed bitmap draws nothing (every cell skipped)',
       () async {
         final renderer = SolidFillMirkRenderer(
-          MirkStyleConfig.solid() as SolidConfig,
+          const MirkStyleConfig.solid() as SolidConfig,
         );
         // All-unrevealed tiles drive maximum draw work; all-revealed tiles
         // drive zero draw work. Compare picture sizes as a coarse signal.
@@ -86,10 +86,7 @@ void main() {
             })(),
           ],
         );
-        final picRevealed = renderToPicture(
-          renderer,
-          context: ctxAllRevealed,
-        );
+        final picRevealed = renderToPicture(renderer, context: ctxAllRevealed);
         final picUnrevealed = renderToPicture(
           renderer,
           context: ctxAllUnrevealed,
@@ -107,24 +104,27 @@ void main() {
       },
     );
 
-    test('update() is a no-op (does not throw, does not mutate output)', () async {
-      final renderer = SolidFillMirkRenderer(
-        MirkStyleConfig.solid() as SolidConfig,
-      );
-      final ctx = fakeContext();
-      final bytesBefore = await renderToBytes(renderer, context: ctx);
-      // Drive 10 frames worth of update() calls.
-      for (var i = 0; i < 10; i++) {
-        renderer.update(const Duration(milliseconds: 16));
-      }
-      final bytesAfter = await renderToBytes(renderer, context: ctx);
-      expect(bytesBefore, equals(bytesAfter));
-      await renderer.dispose();
-    });
+    test(
+      'update() is a no-op (does not throw, does not mutate output)',
+      () async {
+        final renderer = SolidFillMirkRenderer(
+          const MirkStyleConfig.solid() as SolidConfig,
+        );
+        final ctx = fakeContext();
+        final bytesBefore = await renderToBytes(renderer, context: ctx);
+        // Drive 10 frames worth of update() calls.
+        for (var i = 0; i < 10; i++) {
+          renderer.update(const Duration(milliseconds: 16));
+        }
+        final bytesAfter = await renderToBytes(renderer, context: ctx);
+        expect(bytesBefore, equals(bytesAfter));
+        await renderer.dispose();
+      },
+    );
 
     test('dispose() is idempotent (calling twice does not throw)', () async {
       final renderer = SolidFillMirkRenderer(
-        MirkStyleConfig.solid() as SolidConfig,
+        const MirkStyleConfig.solid() as SolidConfig,
       );
       await renderer.dispose();
       await renderer.dispose(); // Must not throw.
@@ -132,12 +132,15 @@ void main() {
 
     test('paint() after dispose() is a no-op (does not throw)', () async {
       final renderer = SolidFillMirkRenderer(
-        MirkStyleConfig.solid() as SolidConfig,
+        const MirkStyleConfig.solid() as SolidConfig,
       );
       await renderer.dispose();
       final ctx = fakeContext();
       // Should not throw even though the renderer was disposed.
-      expect(() => renderToPicture(renderer, context: ctx).dispose(), returnsNormally);
+      expect(
+        () => renderToPicture(renderer, context: ctx).dispose(),
+        returnsNormally,
+      );
     });
   });
 }

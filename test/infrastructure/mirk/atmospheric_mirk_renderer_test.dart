@@ -24,11 +24,11 @@ void main() {
       'paint() output differs between frames at different sessionElapsed (animation proof)',
       () async {
         final renderer = AtmosphericMirkRenderer(
-          MirkStyleConfig.atmospheric() as AtmosphericConfig,
+          const MirkStyleConfig.atmospheric() as AtmosphericConfig,
         );
         final bytes0 = await renderToBytes(
           renderer,
-          context: fakeContext(elapsedMs: 0),
+          context: fakeContext(),
         );
         final bytes5s = await renderToBytes(
           renderer,
@@ -50,10 +50,10 @@ void main() {
       () async {
         // Same seed, same elapsed → identical output across two render passes.
         final r1 = AtmosphericMirkRenderer(
-          MirkStyleConfig.atmospheric() as AtmosphericConfig,
+          const MirkStyleConfig.atmospheric() as AtmosphericConfig,
         );
         final r2 = AtmosphericMirkRenderer(
-          MirkStyleConfig.atmospheric() as AtmosphericConfig,
+          const MirkStyleConfig.atmospheric() as AtmosphericConfig,
         );
         final ctx = fakeContext(elapsedMs: 1234);
         final bytes1 = await renderToBytes(r1, context: ctx);
@@ -70,29 +70,26 @@ void main() {
       },
     );
 
-    test(
-      'paint() with empty visibleTiles list issues no draw calls',
-      () async {
-        final renderer = AtmosphericMirkRenderer(
-          MirkStyleConfig.atmospheric() as AtmosphericConfig,
-        );
-        final ctx = fakeContext(tiles: const []);
-        final pic = renderToPicture(renderer, context: ctx);
-        expect(
-          pic.approximateBytesUsed,
-          lessThan(500),
-          reason: 'Empty visibleTiles should produce a near-empty picture',
-        );
-        pic.dispose();
-        await renderer.dispose();
-      },
-    );
+    test('paint() with empty visibleTiles list issues no draw calls', () async {
+      final renderer = AtmosphericMirkRenderer(
+        const MirkStyleConfig.atmospheric() as AtmosphericConfig,
+      );
+      final ctx = fakeContext(tiles: const []);
+      final pic = renderToPicture(renderer, context: ctx);
+      expect(
+        pic.approximateBytesUsed,
+        lessThan(500),
+        reason: 'Empty visibleTiles should produce a near-empty picture',
+      );
+      pic.dispose();
+      await renderer.dispose();
+    });
 
     test(
       'paint() with all-revealed bitmap draws no fog (smaller picture than all-unrevealed)',
       () async {
         final renderer = AtmosphericMirkRenderer(
-          MirkStyleConfig.atmospheric() as AtmosphericConfig,
+          const MirkStyleConfig.atmospheric() as AtmosphericConfig,
         );
         final ctxAllRevealed = fakeContext(
           tiles: [
@@ -128,7 +125,7 @@ void main() {
 
     test('dispose() is idempotent (calling twice does not throw)', () async {
       final renderer = AtmosphericMirkRenderer(
-        MirkStyleConfig.atmospheric() as AtmosphericConfig,
+        const MirkStyleConfig.atmospheric() as AtmosphericConfig,
       );
       await renderer.dispose();
       await renderer.dispose(); // Must not throw.
@@ -136,7 +133,7 @@ void main() {
 
     test('paint() after dispose() is a no-op (does not throw)', () async {
       final renderer = AtmosphericMirkRenderer(
-        MirkStyleConfig.atmospheric() as AtmosphericConfig,
+        const MirkStyleConfig.atmospheric() as AtmosphericConfig,
       );
       await renderer.dispose();
       final ctx = fakeContext();
@@ -146,26 +143,29 @@ void main() {
       );
     });
 
-    test('different seeds produce different output (seed wired through)', () async {
-      final r1 = AtmosphericMirkRenderer(
-        MirkStyleConfig.atmospheric() as AtmosphericConfig,
-        seed: 1,
-      );
-      final r2 = AtmosphericMirkRenderer(
-        MirkStyleConfig.atmospheric() as AtmosphericConfig,
-        seed: 2,
-      );
-      final ctx = fakeContext(elapsedMs: 1000);
-      final bytes1 = await renderToBytes(r1, context: ctx);
-      final bytes2 = await renderToBytes(r2, context: ctx);
-      expect(
-        bytes1,
-        isNot(equals(bytes2)),
-        reason:
-            'Different seeds should produce visually distinct fog patterns',
-      );
-      await r1.dispose();
-      await r2.dispose();
-    });
+    test(
+      'different seeds produce different output (seed wired through)',
+      () async {
+        final r1 = AtmosphericMirkRenderer(
+          const MirkStyleConfig.atmospheric() as AtmosphericConfig,
+          seed: 1,
+        );
+        final r2 = AtmosphericMirkRenderer(
+          const MirkStyleConfig.atmospheric() as AtmosphericConfig,
+          seed: 2,
+        );
+        final ctx = fakeContext(elapsedMs: 1000);
+        final bytes1 = await renderToBytes(r1, context: ctx);
+        final bytes2 = await renderToBytes(r2, context: ctx);
+        expect(
+          bytes1,
+          isNot(equals(bytes2)),
+          reason:
+              'Different seeds should produce visually distinct fog patterns',
+        );
+        await r1.dispose();
+        await r2.dispose();
+      },
+    );
   });
 }

@@ -121,7 +121,7 @@ Future<Uint8List> renderToBytes(
   renderer.paint(canvas, size, context);
   final picture = recorder.endRecording();
   final image = await picture.toImage(size.width.toInt(), size.height.toInt());
-  final byteData = await image.toByteData(format: ImageByteFormat.rawRgba);
+  final byteData = await image.toByteData();
   picture.dispose();
   image.dispose();
   if (byteData == null) {
