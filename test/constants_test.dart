@@ -210,4 +210,105 @@ void main() {
       expect(kRevealedTileParentZoom, isA<int>());
     });
   });
+
+  // Phase 09 BUG-009 (TIER 2 fog visual) — every fog tunable carries a
+  // value + type guard so a future debug-menu wrap (slider-driven config
+  // service) sees a stable surface. Naming convention: `kMirkFogXxx`.
+  group('Phase 09 BUG-009 fog (TIER 2) constants', () {
+    test('atmospheric palette ARGB triple (indigo)', () {
+      expect(kMirkFogAtmosphericBaseColorArgb, equals(0xFF3A4358));
+      expect(kMirkFogAtmosphericHighlightColorArgb, equals(0xFF7C8AA3));
+      expect(kMirkFogAtmosphericShadowColorArgb, equals(0xFF1E2536));
+      expect(kMirkFogAtmosphericBaseColorArgb, isA<int>());
+    });
+
+    test('heavenly palette ARGB triple (dawn)', () {
+      expect(kMirkFogHeavenlyBaseColorArgb, equals(0xFFA8B5C4));
+      expect(kMirkFogHeavenlyHighlightColorArgb, equals(0xFFE8DCC8));
+      expect(kMirkFogHeavenlyShadowColorArgb, equals(0xFF5D6878));
+    });
+
+    test('atmospheric drift Z speeds form a 3-tier ladder (far < mid < near)', () {
+      expect(kMirkFogAtmosphericDriftZFar, lessThan(kMirkFogAtmosphericDriftZMid));
+      expect(kMirkFogAtmosphericDriftZMid, lessThan(kMirkFogAtmosphericDriftZNear));
+      expect(kMirkFogAtmosphericDriftZFar, equals(0.018));
+      expect(kMirkFogAtmosphericDriftZMid, equals(0.035));
+      expect(kMirkFogAtmosphericDriftZNear, equals(0.075));
+    });
+
+    test('heavenly drift Z speeds form a 3-tier ladder (far < mid < near, all > atmospheric)', () {
+      expect(kMirkFogHeavenlyDriftZFar, lessThan(kMirkFogHeavenlyDriftZMid));
+      expect(kMirkFogHeavenlyDriftZMid, lessThan(kMirkFogHeavenlyDriftZNear));
+      expect(kMirkFogHeavenlyDriftZFar, greaterThan(kMirkFogAtmosphericDriftZFar));
+    });
+
+    test('atmospheric scale ladder (far < mid < near)', () {
+      expect(kMirkFogAtmosphericScaleFar, equals(0.6));
+      expect(kMirkFogAtmosphericScaleMid, equals(1.4));
+      expect(kMirkFogAtmosphericScaleNear, equals(3.0));
+      expect(kMirkFogAtmosphericScaleFar, lessThan(kMirkFogAtmosphericScaleMid));
+      expect(kMirkFogAtmosphericScaleMid, lessThan(kMirkFogAtmosphericScaleNear));
+    });
+
+    test('heavenly scale ladder (far < mid < near)', () {
+      expect(kMirkFogHeavenlyScaleFar, equals(0.8));
+      expect(kMirkFogHeavenlyScaleMid, equals(1.8));
+      expect(kMirkFogHeavenlyScaleNear, equals(3.6));
+    });
+
+    test('opacity weights sum to ~1.0', () {
+      final sum = kMirkFogOpacityFar + kMirkFogOpacityMid + kMirkFogOpacityNear;
+      expect(sum, closeTo(1.0, 0.001));
+      expect(kMirkFogOpacityFar, greaterThan(kMirkFogOpacityMid));
+      expect(kMirkFogOpacityMid, greaterThan(kMirkFogOpacityNear));
+    });
+
+    test('curl noise tunables', () {
+      expect(kMirkFogCurlAmplitude, equals(0.18));
+      expect(kMirkFogCurlScale, equals(1.0));
+    });
+
+    test('faux-shading tunables', () {
+      expect(kMirkFogLightDirRadians, closeTo(-0.785398, 0.0001));
+      expect(kMirkFogLightOffset, equals(0.04));
+      expect(kMirkFogLightStrength, equals(0.55));
+    });
+
+    test('hue variation tunables', () {
+      expect(kMirkFogHueNoiseScale, equals(0.45));
+      expect(kMirkFogHueStrength, equals(0.35));
+    });
+
+    test('two-stop watercolour boundary distances', () {
+      expect(kMirkFogBoundarySharpDistance, equals(0.025));
+      expect(kMirkFogBoundaryBleedDistance, equals(0.085));
+      // Bleed must be longer than sharp — this is the very definition of
+      // "two stop": short crisp core + long trailing fade.
+      expect(kMirkFogBoundaryBleedDistance, greaterThan(kMirkFogBoundarySharpDistance));
+    });
+
+    test('boundary curl edge band is positive and finite', () {
+      expect(kMirkFogBoundaryEdgeBand, equals(0.07));
+      expect(kMirkFogBoundaryEdgeBand, greaterThan(0.0));
+    });
+
+    test('SDF resolution is a positive power of two-ish (256)', () {
+      expect(kMirkFogSdfResolution, equals(256));
+      expect(kMirkFogSdfResolution, isA<int>());
+    });
+
+    test('wisp particle tunables', () {
+      expect(kMirkFogWispMaxCount, equals(200));
+      expect(kMirkFogWispSpawnPerCell, equals(2));
+      expect(kMirkFogWispLifeSeconds, equals(2.5));
+      expect(kMirkFogWispInitialSpeedPx, equals(18.0));
+      expect(kMirkFogWispBirthRadiusPx, equals(6.0));
+      expect(kMirkFogWispDeathRadiusPx, equals(22.0));
+      // Death radius > birth radius — wisps grow as they fade (puff
+      // dispersing), not the reverse.
+      expect(kMirkFogWispDeathRadiusPx, greaterThan(kMirkFogWispBirthRadiusPx));
+      expect(kMirkFogWispPeakAlpha, equals(0.35));
+      expect(kMirkFogWispPeakAlpha, lessThan(1.0));
+    });
+  });
 }

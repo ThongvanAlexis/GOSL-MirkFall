@@ -424,3 +424,215 @@ const double kMirkHeavenlyCloudsBaselineAlpha = 0.80;
 /// Solid variant colour (ARGB, very dark grey — distinguishable from
 /// atmospheric yet neutral).
 const int kMirkSolidColorArgb = 0xFF1A1A1A;
+
+// =============== Phase 09 BUG-009 — fog visual (TIER 2) ===============
+//
+// Tunables for the volumetric-feeling fog shader pipeline introduced
+// in BUG-009 fix. The shader (`assets/shaders/atmospheric_fog.frag`)
+// reads these values via uniforms set Dart-side; renderers
+// (atmospheric / heavenly_clouds) pass different subsets so the same
+// `.frag` produces both palettes.
+//
+// Each tunable is grouped with the property it controls so a future
+// debug-menu phase can wrap clusters into named `FogConfig` notifiers
+// without re-classifying constants. NAMING: `kMirkFogXxx` prefix +
+// `Atmospheric` / `Heavenly` qualifier where the variants diverge.
+//
+// Palette (Northern atlas indigo — research v2 Reference 11 / palette A):
+//   - Atmospheric uses the cool indigo set (mystic, cartographic).
+//   - Heavenly uses a lighter, cooler-sky variant (airy, daytime).
+
+/// Atmospheric base fog colour (ARGB). Cool desaturated indigo,
+/// reads cartographic-mystic over both light and dark OSM tiles.
+/// Component R/G/B unpacked Dart-side and passed as `vec4` uniform.
+const int kMirkFogAtmosphericBaseColorArgb = 0xFF3A4358;
+
+/// Atmospheric highlight colour — what bright, sun-facing fog regions
+/// shade towards. Used by the faux-shading delta (sample twice, brighten
+/// the lighter side). Lighter blue-grey of the indigo palette.
+const int kMirkFogAtmosphericHighlightColorArgb = 0xFF7C8AA3;
+
+/// Atmospheric shadow colour — what dim, sun-shadowed fog regions
+/// shade towards. Darker indigo end of the same palette.
+const int kMirkFogAtmosphericShadowColorArgb = 0xFF1E2536;
+
+/// Heavenly clouds base colour. Light dawn-grey with a slight warm
+/// touch (Hebridean dawn split — research v2 palette B).
+const int kMirkFogHeavenlyBaseColorArgb = 0xFFA8B5C4;
+
+/// Heavenly clouds highlight — warm cream sun-side accent.
+const int kMirkFogHeavenlyHighlightColorArgb = 0xFFE8DCC8;
+
+/// Heavenly clouds shadow — cool grey-blue away-from-sun accent.
+const int kMirkFogHeavenlyShadowColorArgb = 0xFF5D6878;
+
+// Drift speeds — multi-rate motion (Reference 12). Three octaves at
+// three speeds. The SLOWEST layer dominates bulk drift, the FASTEST
+// surface boil. Pure z-axis (time) drift is what "kills the linear
+// slide" perception per shader-techniques T6.
+
+/// Z-axis (time-slice) drift speed for the FAR/coarse octave of 3D-FBM.
+/// Lower values → noise morphs more slowly. Atmospheric is meant to feel
+/// thick and lazy, so the values stay low.
+const double kMirkFogAtmosphericDriftZFar = 0.018;
+
+/// Z-axis drift speed for the MID octave. Slightly faster than far so
+/// the layers don't track in lockstep.
+const double kMirkFogAtmosphericDriftZMid = 0.035;
+
+/// Z-axis drift speed for the NEAR/fine octave (surface boil). Fastest
+/// — this is where the eye reads "alive".
+const double kMirkFogAtmosphericDriftZNear = 0.075;
+
+/// Heavenly clouds far-octave drift. Heavenly reads as "thinner, faster
+/// clouds" so all three octaves are uniformly faster.
+const double kMirkFogHeavenlyDriftZFar = 0.028;
+
+/// Heavenly mid-octave drift.
+const double kMirkFogHeavenlyDriftZMid = 0.060;
+
+/// Heavenly near-octave drift.
+const double kMirkFogHeavenlyDriftZNear = 0.115;
+
+// Noise scales — spatial frequency per octave. Larger = finer detail.
+// Layer ratios chosen to read as parallax depth (Reference 3 — Ventusky
+// three-altitude trick). Atmospheric and heavenly share the same ratios
+// for now — only the absolute scales differ.
+
+/// Spatial scale of the FAR/coarse 3D-FBM octave. Big lazy blobs.
+const double kMirkFogAtmosphericScaleFar = 0.6;
+
+/// Spatial scale of the MID octave. Mid-frequency detail.
+const double kMirkFogAtmosphericScaleMid = 1.4;
+
+/// Spatial scale of the NEAR/fine octave. Fine surface texture.
+const double kMirkFogAtmosphericScaleNear = 3.0;
+
+/// Heavenly far-octave scale. Heavenly clouds are smaller "puffs" than
+/// the atmospheric mass, so the near scale is finer.
+const double kMirkFogHeavenlyScaleFar = 0.8;
+
+const double kMirkFogHeavenlyScaleMid = 1.8;
+
+const double kMirkFogHeavenlyScaleNear = 3.6;
+
+// Per-octave opacities — sum to ~1.0. The far octave dominates the
+// silhouette; the near octave is a high-frequency boil layer.
+
+/// Far-octave weight in the final density mix. Largest contributor —
+/// gives the fog its bulk shape.
+const double kMirkFogOpacityFar = 0.55;
+
+/// Mid-octave weight.
+const double kMirkFogOpacityMid = 0.30;
+
+/// Near-octave weight. Smallest contributor; rides as detail on top.
+const double kMirkFogOpacityNear = 0.15;
+
+// Curl-noise advection — how much each octave warps in 2D from a
+// curl-of-scalar-noise vector field (Reference 7).
+
+/// Curl-noise warp amplitude (in noise UV units). Higher = more
+/// pronounced eddies and swirls. Tuned conservatively: too high
+/// destroys the silhouette legibility of the far octave.
+const double kMirkFogCurlAmplitude = 0.18;
+
+/// Spatial frequency of the curl-noise potential field. Lower → bigger
+/// vortices. Tied to `kMirkFogAtmosphericScaleMid` so eddies live at the
+/// mid-octave scale (where they read most as "stirred fluid").
+const double kMirkFogCurlScale = 1.0;
+
+// Faux directional shading — the single highest-leverage trick for
+// "feels volumetric" (Reference 6 + 10). Sample density at the pixel
+// AND at `pixel + lightDir * offset`. The delta modulates brightness.
+
+/// Faux-light direction (radians, 0 = +x). Slightly off-axis so the
+/// shading reads as "sun from upper-left" rather than dead-on. Standard
+/// cartographic NW-light convention (~135° clockwise-from-north → in
+/// math coords ~-45°).
+const double kMirkFogLightDirRadians = -0.785398; // -π/4
+
+/// Distance (in noise UV units) offset between the two density samples
+/// for faux shading. Roughly equivalent to "4 px on screen" at the
+/// shader's typical UV scale — tunable: too small produces no contrast,
+/// too large destroys the silhouette.
+const double kMirkFogLightOffset = 0.04;
+
+/// Strength of the faux-shading brightness modulation. 0 = no effect,
+/// 1 = sample-delta fully drives lightness. Conservative default.
+const double kMirkFogLightStrength = 0.55;
+
+// Sub-grey hue variation — second cheap noise channel modulates a tint
+// shift (Reference 5 NASA SVS multi-channel encoding).
+
+/// Spatial scale of the hue-variation noise. Coarser than the density
+/// noise so tint regions are bigger than density blobs.
+const double kMirkFogHueNoiseScale = 0.45;
+
+/// Strength of the hue tint. 0 = pure grey, 1 = full swing between
+/// shadow and highlight palette. Subtle is the goal — too high reads
+/// as "rainbow" rather than "atmosphere".
+const double kMirkFogHueStrength = 0.35;
+
+// Two-stop watercolour boundary — sharp inner gradient + long-tail
+// bleed (Reference 11 Heaven's Vault inspiration).
+//
+// SDF semantics in the shader: signed distance, normalised to [-1, 1].
+// Negative inside revealed area, positive inside fog area. The boundary
+// is at sdf = 0.
+
+/// Distance (SDF units) over which the SHARP inner gradient ramps from
+/// 0 to 0.7 alpha. Small → crisp watercolour core.
+const double kMirkFogBoundarySharpDistance = 0.025;
+
+/// Distance over which the LONG-TAIL bleed ramps from 0.7 to 1.0 alpha.
+/// Several times the sharp distance — the trailing watercolour fade.
+const double kMirkFogBoundaryBleedDistance = 0.085;
+
+/// Width (SDF units) of the curl-rotated edge field. Within this band
+/// of the fog/clear boundary the curl-noise sample is rotated ~90° so
+/// wisps appear to spiral outward from the boundary instead of through
+/// it.
+const double kMirkFogBoundaryEdgeBand = 0.07;
+
+/// Resolution (square) of the CPU-built SDF texture passed to the
+/// shader as `sampler2D`. 256² is a good cost/quality balance — the
+/// SDF is rebuilt only when revealed cells change (user walks),
+/// not every frame.
+const int kMirkFogSdfResolution = 256;
+
+// CPU wisp particle system — discrete tendrils spawned at the boundary
+// when the user walks (Reference 1 + 9).
+
+/// Hard cap on simultaneously alive wisp particles. LRU-evicted when
+/// `life <= 0`. ~200 is invisible cost on any 2026 mobile GPU and
+/// dense enough that the eye latches onto motion.
+const int kMirkFogWispMaxCount = 200;
+
+/// Wisp particles spawned per newly-revealed cell event. The user
+/// walking 1 step typically reveals 3-5 cells; multiplying by this
+/// value gives a comfortable spawn rate without flooding the cap.
+const int kMirkFogWispSpawnPerCell = 2;
+
+/// Wisp lifetime in seconds. After this the particle is evicted.
+/// Long enough that the user perceives a deliberate trail, short
+/// enough that the cap rotation feels organic.
+const double kMirkFogWispLifeSeconds = 2.5;
+
+/// Wisp initial velocity magnitude (in screen pixels per second).
+/// Slow drift — wisps are cinematic, not bullet trails.
+const double kMirkFogWispInitialSpeedPx = 18.0;
+
+/// Wisp size at birth in screen pixels. Each wisp is rendered as an
+/// additive-blended soft circle.
+const double kMirkFogWispBirthRadiusPx = 6.0;
+
+/// Wisp size at death (extrapolated linearly with life). Wisps grow
+/// as they fade — final size larger than birth gives the "puff
+/// dispersing" reading.
+const double kMirkFogWispDeathRadiusPx = 22.0;
+
+/// Wisp peak alpha (0..1). Clamps the additive contribution so a stack
+/// of wisps doesn't bleach the fog underneath. 0.35 is a comfortable
+/// non-overwhelming peak.
+const double kMirkFogWispPeakAlpha = 0.35;
