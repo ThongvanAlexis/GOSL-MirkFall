@@ -32,7 +32,22 @@ import 'package:mirkfall/domain/map/map_errors.dart';
 /// during first query after style load (same frame address as the
 /// `Runner-2026-04-22-*.ips` crash). Probe commit: if the iOS crash
 /// disappears, the `user_location` layer was the root cause.
-const List<String> kStyleLayerOrder = <String>['background', 'landcover', 'water', 'boundaries', 'roads', 'pois', 'mirk_fog'];
+///
+/// Phase 11 will APPEND a new marker layer id (e.g. `markers_flutter`) at
+/// the END of this list, after `mirk_fog`. The Phase 11 planner MUST NOT
+/// reorder existing entries — the 30 %-alpha-under-mirk composite-trick
+/// is delivered by MapLibre-native annotations (addCircle / addSymbol),
+/// not by interleaving a markers layer below `mirk_fog`. See
+/// 09-RESEARCH §Rendering Strategy Decision for the compositing rationale.
+const List<String> kStyleLayerOrder = <String>[
+  'background',
+  'landcover',
+  'water',
+  'boundaries',
+  'roads',
+  'pois',
+  'mirk_fog',
+];
 
 /// Validates that [styleJson] declares exactly the layers in
 /// [kStyleLayerOrder], in the same order.
@@ -46,17 +61,21 @@ const List<String> kStyleLayerOrder = <String>['background', 'landcover', 'water
 /// so the helper can be reused from any caller (production style loader,
 /// unit tests, tooling scripts).
 void assertStyleLayerOrder(String styleJson) {
-  final List<String> actualIds = <String>[for (final _LayerRef ref in _iterateStyleLayers(styleJson)) ref.id];
+  final List<String> actualIds = <String>[
+    for (final _LayerRef ref in _iterateStyleLayers(styleJson)) ref.id,
+  ];
 
   if (actualIds.length != kStyleLayerOrder.length) {
     throw MapStyleCorruptException(
-      reason: 'style.layers count mismatch: expected=${kStyleLayerOrder.length}, actual=${actualIds.length} — expected=$kStyleLayerOrder actual=$actualIds',
+      reason:
+          'style.layers count mismatch: expected=${kStyleLayerOrder.length}, actual=${actualIds.length} — expected=$kStyleLayerOrder actual=$actualIds',
     );
   }
   for (int i = 0; i < kStyleLayerOrder.length; i++) {
     if (actualIds[i] != kStyleLayerOrder[i]) {
       throw MapStyleCorruptException(
-        reason: 'style.layers[$i] id mismatch: expected="${kStyleLayerOrder[i]}", actual="${actualIds[i]}" — full expected=$kStyleLayerOrder actual=$actualIds',
+        reason:
+            'style.layers[$i] id mismatch: expected="${kStyleLayerOrder[i]}", actual="${actualIds[i]}" — full expected=$kStyleLayerOrder actual=$actualIds',
       );
     }
   }
@@ -85,7 +104,11 @@ void assertStyleLayerOrder(String styleJson) {
 ///   the layer MUST also declare a non-empty `source-layer` string.
 void assertStyleLayerValidity(String styleJson) {
   final Map<String, Object?> parsed = _parseStyleOrThrow(styleJson);
-  final Map<String, Object?> sources = _requireMap(parsed, 'sources', 'style.sources');
+  final Map<String, Object?> sources = _requireMap(
+    parsed,
+    'sources',
+    'style.sources',
+  );
 
   for (final _LayerRef ref in _iterateStyleLayers(styleJson, parsed: parsed)) {
     final Map<Object?, Object?> raw = ref.raw;
@@ -96,11 +119,15 @@ void assertStyleLayerValidity(String styleJson) {
       case 'background':
         if (raw.containsKey('source')) {
           throw MapStyleCorruptException(
-            reason: 'style.layers[$id] (type=background) MUST NOT declare "source" — background layers paint to the entire map surface',
+            reason:
+                'style.layers[$id] (type=background) MUST NOT declare "source" — background layers paint to the entire map surface',
           );
         }
         if (raw.containsKey('source-layer')) {
-          throw MapStyleCorruptException(reason: 'style.layers[$id] (type=background) MUST NOT declare "source-layer"');
+          throw MapStyleCorruptException(
+            reason:
+                'style.layers[$id] (type=background) MUST NOT declare "source-layer"',
+          );
         }
         break;
 
@@ -111,21 +138,37 @@ void assertStyleLayerValidity(String styleJson) {
       case 'circle':
       case 'heatmap':
       case 'raster':
-        final String sourceId = _requireString(raw, 'source', 'style.layers[$id] (type=$type).source');
+        final String sourceId = _requireString(
+          raw,
+          'source',
+          'style.layers[$id] (type=$type).source',
+        );
         final Object? sourceDef = sources[sourceId];
         if (sourceDef == null) {
-          throw MapStyleCorruptException(reason: 'style.layers[$id].source="$sourceId" does not exist in style.sources');
+          throw MapStyleCorruptException(
+            reason:
+                'style.layers[$id].source="$sourceId" does not exist in style.sources',
+          );
         }
         if (sourceDef is! Map) {
-          throw MapStyleCorruptException(reason: 'style.sources["$sourceId"] is not a JSON object');
+          throw MapStyleCorruptException(
+            reason: 'style.sources["$sourceId"] is not a JSON object',
+          );
         }
         final Object? sourceType = sourceDef['type'];
         if (sourceType == 'vector' && type != 'raster') {
           // Raster layers on vector sources are a MapLibre edge case; we
           // only enforce source-layer for the vector-layer types we ship.
-          final String sourceLayer = _requireString(raw, 'source-layer', 'style.layers[$id] (type=$type, source=vector).source-layer');
+          final String sourceLayer = _requireString(
+            raw,
+            'source-layer',
+            'style.layers[$id] (type=$type, source=vector).source-layer',
+          );
           if (sourceLayer.isEmpty) {
-            throw MapStyleCorruptException(reason: 'style.layers[$id] (type=$type, source=vector).source-layer is empty');
+            throw MapStyleCorruptException(
+              reason:
+                  'style.layers[$id] (type=$type, source=vector).source-layer is empty',
+            );
           }
         }
         break;
@@ -156,20 +199,29 @@ class _LayerRef {
 /// Parses [styleJson] (or reuses an already-parsed [parsed] map) and
 /// yields each `style.layers[i]` entry as a [_LayerRef]. Throws
 /// [MapStyleCorruptException] for any malformed entry.
-Iterable<_LayerRef> _iterateStyleLayers(String styleJson, {Map<String, Object?>? parsed}) sync* {
+Iterable<_LayerRef> _iterateStyleLayers(
+  String styleJson, {
+  Map<String, Object?>? parsed,
+}) sync* {
   final Map<String, Object?> root = parsed ?? _parseStyleOrThrow(styleJson);
   final Object? rawLayers = root['layers'];
   if (rawLayers is! List) {
-    throw const MapStyleCorruptException(reason: 'style.layers must be an array');
+    throw const MapStyleCorruptException(
+      reason: 'style.layers must be an array',
+    );
   }
   for (int i = 0; i < rawLayers.length; i++) {
     final Object? raw = rawLayers[i];
     if (raw is! Map) {
-      throw MapStyleCorruptException(reason: 'style.layers[$i] is not a JSON object');
+      throw MapStyleCorruptException(
+        reason: 'style.layers[$i] is not a JSON object',
+      );
     }
     final Object? id = raw['id'];
     if (id is! String) {
-      throw MapStyleCorruptException(reason: 'style.layers[$i].id must be a string');
+      throw MapStyleCorruptException(
+        reason: 'style.layers[$i].id must be a string',
+      );
     }
     yield _LayerRef(index: i, id: id, raw: raw);
   }
@@ -180,15 +232,23 @@ Map<String, Object?> _parseStyleOrThrow(String styleJson) {
   try {
     decoded = jsonDecode(styleJson);
   } on FormatException catch (e) {
-    throw MapStyleCorruptException(reason: 'style.json is not valid JSON: ${e.message}');
+    throw MapStyleCorruptException(
+      reason: 'style.json is not valid JSON: ${e.message}',
+    );
   }
   if (decoded is! Map) {
-    throw const MapStyleCorruptException(reason: 'style.json root must be a JSON object');
+    throw const MapStyleCorruptException(
+      reason: 'style.json root must be a JSON object',
+    );
   }
   return Map<String, Object?>.from(decoded);
 }
 
-Map<String, Object?> _requireMap(Map<Object?, Object?> src, String key, String path) {
+Map<String, Object?> _requireMap(
+  Map<Object?, Object?> src,
+  String key,
+  String path,
+) {
   final Object? v = src[key];
   if (v is! Map) {
     throw MapStyleCorruptException(reason: '$path must be a JSON object');

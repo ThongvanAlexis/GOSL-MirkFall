@@ -23,3 +23,9 @@ tags:
   # discipline as `soak`.
   integration:
     timeout: 2x
+  # Phase 09 plan 09-08 — 50k-tile fixture perf probe + any other
+  # wall-clock-sensitive render-pass benchmarks. Excluded from default
+  # suite (same discipline as `soak`). Gate command:
+  #   flutter test --tags mirk-perf test/performance/
+  mirk-perf:
+    timeout: 10x
