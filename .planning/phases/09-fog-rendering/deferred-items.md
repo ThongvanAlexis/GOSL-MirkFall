@@ -46,6 +46,33 @@ integration point to align test signatures with the real renderer API.
 
 ---
 
+### Plan 09-05 close (2026-04-25) — `atomic_renamer_test.dart::overwrites an existing target file` flaky under full-suite parallel execution
+
+**Status at Plan 09-05 verification:** `flutter test` (full suite) shows 1 failure in
+`test/infrastructure/downloads/atomic_renamer_test.dart::AtomicRenamer — happy paths overwrites an existing target file`.
+
+**Why deferred:** Plan 09-05 touches NONE of the download / filesystem
+infrastructure. Running the test file in isolation (`flutter test
+test/infrastructure/downloads/atomic_renamer_test.dart`) produces 9/9
+green. The failure only materialises under the full-suite parallel
+runner — a classic concurrent-tempfile flake. Per GSD SCOPE BOUNDARY,
+this is a pre-existing issue independent of Plan 09-05's diff
+(introduced before the V4 schema work).
+
+**Plan 09-05-only verification (in scope):**
+- `flutter analyze --fatal-warnings --fatal-infos` zero issues across the
+  whole project.
+- `flutter test test/infrastructure/db/ test/infrastructure/stores/
+  test/application/providers/ test/infrastructure/mirk/`: all green.
+- `flutter test test/infrastructure/downloads/atomic_renamer_test.dart`
+  in isolation: 9/9 green.
+
+**Owner suggestion:** Phase 10 review gate or follow-up `chore(test)`
+commit — the test likely needs a unique-temp-dir per case to survive
+parallel execution.
+
+---
+
 ### Plan 09-03 close (2026-04-25) — pre-existing format drift in `lib/domain/revealed/`
 
 **Status at Plan 09-03 verification:** `dart format --set-exit-if-changed lib/domain/revealed test/domain/revealed` reports 3 files changed (none authored by Plan 09-03):
