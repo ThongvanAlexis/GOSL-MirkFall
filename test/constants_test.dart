@@ -264,19 +264,28 @@ void main() {
     });
 
     test('curl noise tunables', () {
-      expect(kMirkFogCurlAmplitude, equals(0.18));
+      // Amplitude bumped 2026-04-25 (BUG-009 follow-up) — initial 0.18
+      // produced eddies too small to perceive. 0.45 is the new visible
+      // baseline.
+      expect(kMirkFogCurlAmplitude, equals(0.45));
       expect(kMirkFogCurlScale, equals(1.0));
     });
 
     test('faux-shading tunables', () {
+      // Light offset + strength bumped 2026-04-25 (BUG-009 follow-up) —
+      // 0.04 / 0.55 produced near-zero shading delta, so the fog read as
+      // flat. 0.12 / 1.4 give clearly visible bright/dark sides.
       expect(kMirkFogLightDirRadians, closeTo(-0.785398, 0.0001));
-      expect(kMirkFogLightOffset, equals(0.04));
-      expect(kMirkFogLightStrength, equals(0.55));
+      expect(kMirkFogLightOffset, equals(0.12));
+      expect(kMirkFogLightStrength, equals(1.4));
     });
 
     test('hue variation tunables', () {
+      // Hue strength bumped 2026-04-25 (BUG-009 follow-up) — 0.35 was
+      // below screen-noise threshold. 0.7 gives a clear material-tint
+      // shift without rainbowing.
       expect(kMirkFogHueNoiseScale, equals(0.45));
-      expect(kMirkFogHueStrength, equals(0.35));
+      expect(kMirkFogHueStrength, equals(0.7));
     });
 
     test('two-stop watercolour boundary distances', () {

@@ -244,11 +244,27 @@ void main() {
     float hueShift = (hueField - 0.5) * 2.0 * uHueStrength;
 
     // ---------- Colour mix ----------
-    // Base palette mixed by the (density × hueShift × shadeDelta) signals.
-    // hueShift > 0 → tilt toward highlight; hueShift < 0 → toward shadow.
-    vec3 highlightTint = mix(uBase.rgb, uHighlight.rgb, max(hueShift, 0.0) + max(shadeDelta, 0.0));
-    vec3 shadowTint    = mix(uBase.rgb, uShadow.rgb,    max(-hueShift, 0.0) + max(-shadeDelta, 0.0));
-    vec3 fogColor = mix(highlightTint, shadowTint, 0.5);
+    // Density signal lives roughly in [-0.5, +0.5] after FBM stack — remap
+    // to [0, 1] so it can drive the highlight↔shadow lerp directly.
+    // BUG-009 follow-up (2026-04-25): the previous mix was averaging a
+    // highlight tint and a shadow tint together (mix(..., 0.5)) which
+    // collapsed the contrast and made the output look uniform. The new
+    // pattern lets density choose which palette stop dominates, then
+    // adds the faux-shading delta and hue shift on top so they actually
+    // produce visible variation.
+    float dN = clamp(density * 0.5 + 0.5, 0.0, 1.0);
+    // Where the noise is dense → tilt toward shadow (dark valleys).
+    // Where it is sparse → tilt toward highlight (lit ridges).
+    vec3 fogColor = mix(uHighlight.rgb, uShadow.rgb, dN);
+    // Faux directional shading: brighten the side facing the light by
+    // adding the highlight↔shadow swing scaled by shadeDelta. Negative
+    // shadeDelta darkens — same swing applied with sign.
+    fogColor += (uHighlight.rgb - uShadow.rgb) * shadeDelta * uLightStrength;
+    // Hue variation: drag the colour toward the base palette tint by
+    // |hueShift|. Reads as material-complexity noise (Reference 5 NASA
+    // SVS multi-channel encoding) without rainbowing.
+    fogColor = mix(fogColor, uBase.rgb, abs(hueShift) * uHueStrength);
+    fogColor = clamp(fogColor, 0.0, 1.0);
 
     // ---------- 6. Two-stop watercolour boundary ----------
     // Sharp inner gradient: 0 → 0.7 alpha over uBoundarySharpDistance.
@@ -261,9 +277,10 @@ void main() {
     boundaryAlpha *= step(0.0, sdf);
 
     // Final alpha: configured base alpha × density density-modulation ×
-    // boundary alpha. Density modulation is gentle (0.85 → 1.0) so the
-    // fog never disappears in low-density zones.
-    float densityAlpha = mix(0.85, 1.0, density);
+    // boundary alpha. The density modulation is now WIDE (0.55 → 1.0) so
+    // light fog reads as roughly half-transparent (parallax / depth
+    // suggestion) while dense fog stays fully opaque.
+    float densityAlpha = mix(0.55, 1.0, dN);
     float finalAlpha = uBase.a * densityAlpha * boundaryAlpha;
 
     fragColor = vec4(fogColor, finalAlpha);

@@ -533,9 +533,12 @@ const double kMirkFogOpacityNear = 0.15;
 // curl-of-scalar-noise vector field (Reference 7).
 
 /// Curl-noise warp amplitude (in noise UV units). Higher = more
-/// pronounced eddies and swirls. Tuned conservatively: too high
-/// destroys the silhouette legibility of the far octave.
-const double kMirkFogCurlAmplitude = 0.18;
+/// pronounced eddies and swirls. Bumped 2026-04-25 from 0.18 → 0.45
+/// (BUG-009 follow-up) — initial value was too conservative: at 0.18
+/// the swirling motion was visually invisible and the user reported
+/// "ressemble juste à un truc semi-transparent". 0.45 gives clearly
+/// visible eddies while still preserving the far-octave silhouette.
+const double kMirkFogCurlAmplitude = 0.45;
 
 /// Spatial frequency of the curl-noise potential field. Lower → bigger
 /// vortices. Tied to `kMirkFogAtmosphericScaleMid` so eddies live at the
@@ -553,14 +556,21 @@ const double kMirkFogCurlScale = 1.0;
 const double kMirkFogLightDirRadians = -0.785398; // -π/4
 
 /// Distance (in noise UV units) offset between the two density samples
-/// for faux shading. Roughly equivalent to "4 px on screen" at the
-/// shader's typical UV scale — tunable: too small produces no contrast,
-/// too large destroys the silhouette.
-const double kMirkFogLightOffset = 0.04;
+/// for faux shading. Roughly equivalent to "screen px" at the shader's
+/// typical UV scale. Bumped 2026-04-25 from 0.04 → 0.12 (BUG-009
+/// follow-up) — too small a step landed both samples inside the same
+/// noise cell, so the delta was always near zero and the fake-shading
+/// contributed nothing visible.
+const double kMirkFogLightOffset = 0.12;
 
 /// Strength of the faux-shading brightness modulation. 0 = no effect,
-/// 1 = sample-delta fully drives lightness. Conservative default.
-const double kMirkFogLightStrength = 0.55;
+/// 1 = sample-delta fully drives lightness. Bumped 2026-04-25 from
+/// 0.55 → 1.4 (BUG-009 follow-up) — combined with the wider light
+/// offset above, this is what produces visible bright/dark sides on
+/// the fog mass. Values >1.0 are intentional: shadeDelta is small in
+/// absolute terms (delta of two normalised noise samples), so the
+/// strength multiplier needs headroom to actually move the colour.
+const double kMirkFogLightStrength = 1.4;
 
 // Sub-grey hue variation — second cheap noise channel modulates a tint
 // shift (Reference 5 NASA SVS multi-channel encoding).
@@ -569,10 +579,12 @@ const double kMirkFogLightStrength = 0.55;
 /// noise so tint regions are bigger than density blobs.
 const double kMirkFogHueNoiseScale = 0.45;
 
-/// Strength of the hue tint. 0 = pure grey, 1 = full swing between
-/// shadow and highlight palette. Subtle is the goal — too high reads
-/// as "rainbow" rather than "atmosphere".
-const double kMirkFogHueStrength = 0.35;
+/// Strength of the hue tint. 0 = pure grey, 1 = pull fully toward the
+/// base palette colour. Bumped 2026-04-25 from 0.35 → 0.7 (BUG-009
+/// follow-up) — at 0.35 the tint shift was inside JPEG-compression
+/// noise on most screens. 0.7 produces a clear "warmer in valleys,
+/// cooler on ridges" reading without rainbowing.
+const double kMirkFogHueStrength = 0.7;
 
 // Two-stop watercolour boundary — sharp inner gradient + long-tail
 // bleed (Reference 11 Heaven's Vault inspiration).
