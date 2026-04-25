@@ -41,23 +41,33 @@ void main() {
       expect(maxSeen, lessThanOrEqualTo(1.05));
     });
 
-    test('determinism: same seed produces identical sequence (instance equality)', () {
-      final a = SimplexNoise2D(seed: 42);
-      final b = SimplexNoise2D(seed: 42);
-      // Sample the same 16-point grid; every value must match bit-for-bit.
-      for (int i = 0; i < 16; i++) {
-        final x = i * 0.37;
-        final y = i * 0.59;
-        expect(a.noise2(x, y), equals(b.noise2(x, y)), reason: 'seed=42 deterministic at ($x, $y)');
-      }
-    });
+    test(
+      'determinism: same seed produces identical sequence (instance equality)',
+      () {
+        final a = SimplexNoise2D(seed: 42);
+        final b = SimplexNoise2D(seed: 42);
+        // Sample the same 16-point grid; every value must match bit-for-bit.
+        for (int i = 0; i < 16; i++) {
+          final x = i * 0.37;
+          final y = i * 0.59;
+          expect(
+            a.noise2(x, y),
+            equals(b.noise2(x, y)),
+            reason: 'seed=42 deterministic at ($x, $y)',
+          );
+        }
+      },
+    );
 
-    test('determinism: identical (x, y) returns identical value across calls (statelessness)', () {
-      final noise = SimplexNoise2D(seed: 99);
-      final v1 = noise.noise2(1.5, 2.5);
-      final v2 = noise.noise2(1.5, 2.5);
-      expect(v1, equals(v2));
-    });
+    test(
+      'determinism: identical (x, y) returns identical value across calls (statelessness)',
+      () {
+        final noise = SimplexNoise2D(seed: 99);
+        final v1 = noise.noise2(1.5, 2.5);
+        final v2 = noise.noise2(1.5, 2.5);
+        expect(v1, equals(v2));
+      },
+    );
 
     test('different seeds produce different output for at least one sample', () {
       final a = SimplexNoise2D(seed: 1);
@@ -71,7 +81,12 @@ void main() {
           break;
         }
       }
-      expect(diverged, isTrue, reason: 'seeds 1 and 2 must produce at least one different sample over 64 points');
+      expect(
+        diverged,
+        isTrue,
+        reason:
+            'seeds 1 and 2 must produce at least one different sample over 64 points',
+      );
     });
 
     test('mean of 10 000 samples in [0, 100]² is in [-0.1, 0.1]', () {
@@ -88,15 +103,26 @@ void main() {
         sum += noise.noise2(x, y);
       }
       final mean = sum / n;
-      expect(mean, inInclusiveRange(-0.1, 0.1), reason: 'mean=$mean drifted outside the [-0.1, 0.1] band');
+      expect(
+        mean,
+        inInclusiveRange(-0.1, 0.1),
+        reason: 'mean=$mean drifted outside the [-0.1, 0.1] band',
+      );
     });
 
     test('noise field is non-constant (the values actually vary)', () {
       // Guard against a stub / accidentally-constant implementation.
       final noise = SimplexNoise2D(seed: 5);
-      final samples = <double>[for (int i = 0; i < 32; i++) noise.noise2(i * 0.31, i * 0.47)];
+      final samples = <double>[
+        for (int i = 0; i < 32; i++) noise.noise2(i * 0.31, i * 0.47),
+      ];
       final unique = samples.toSet();
-      expect(unique.length, greaterThan(1), reason: 'noise2 returned the same value for 32 different inputs — constant function?');
+      expect(
+        unique.length,
+        greaterThan(1),
+        reason:
+            'noise2 returned the same value for 32 different inputs — constant function?',
+      );
     });
   });
 }
