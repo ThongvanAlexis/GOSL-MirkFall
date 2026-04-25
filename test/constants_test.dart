@@ -31,13 +31,10 @@ void main() {
   // Phase 07 (Map Integration) — every new Phase 07 slot gets a value +
   // type guard here so a silent rename/retype is caught at test time.
   group('Phase 07 constants', () {
-    test(
-      'kHttpTimeout is 30_000 ms (lowered at Phase 07-07 device-smoke — CDN edges close around 30-45 s)',
-      () {
-        expect(kHttpTimeout, equals(30000));
-        expect(kHttpTimeout, isA<int>());
-      },
-    );
+    test('kHttpTimeout is 30_000 ms (lowered at Phase 07-07 device-smoke — CDN edges close around 30-45 s)', () {
+      expect(kHttpTimeout, equals(30000));
+      expect(kHttpTimeout, isA<int>());
+    });
 
     test('kMapCatalogAssetPath is assets/maps/catalog.json', () {
       expect(kMapCatalogAssetPath, equals('assets/maps/catalog.json'));
@@ -48,12 +45,9 @@ void main() {
       expect(kWorldPmtilesAssetPath, equals('assets/maps/world.pmtiles'));
     });
 
-    test(
-      'kWorldPmtilesInternalPath is maps/world.pmtiles (relative to <app_support>)',
-      () {
-        expect(kWorldPmtilesInternalPath, equals('maps/world.pmtiles'));
-      },
-    );
+    test('kWorldPmtilesInternalPath is maps/world.pmtiles (relative to <app_support>)', () {
+      expect(kWorldPmtilesInternalPath, equals('maps/world.pmtiles'));
+    });
 
     test('kCountriesDir is maps/countries', () {
       expect(kCountriesDir, equals('maps/countries'));
@@ -75,13 +69,10 @@ void main() {
       expect(kStyleJsonAssetPath, equals('assets/maps/style.json'));
     });
 
-    test(
-      'kInitialSessionMapZoom is 13 (neighborhood/city view showing 20m reveal)',
-      () {
-        expect(kInitialSessionMapZoom, equals(13));
-        expect(kInitialSessionMapZoom, isA<int>());
-      },
-    );
+    test('kInitialSessionMapZoom is 13 (neighborhood/city view showing 20m reveal)', () {
+      expect(kInitialSessionMapZoom, equals(13));
+      expect(kInitialSessionMapZoom, isA<int>());
+    });
 
     test('kInitialRevealRadiusMeters is 20', () {
       expect(kInitialRevealRadiusMeters, equals(20));
