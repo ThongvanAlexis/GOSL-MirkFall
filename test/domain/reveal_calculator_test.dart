@@ -17,22 +17,16 @@ void main() {
     });
 
     test('length mismatch throws ArgumentError', () {
-      expect(
-        () => mergeBitmap(Uint8List(2), Uint8List(3)),
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(() => mergeBitmap(Uint8List(2), Uint8List(3)), throwsA(isA<ArgumentError>()));
     });
 
-    test(
-      'idempotent: mergeBitmap(mergeBitmap(a, b), a) == mergeBitmap(a, b)',
-      () {
-        final a = Uint8List.fromList(List.generate(16, (i) => i * 7 & 0xFF));
-        final b = Uint8List.fromList(List.generate(16, (i) => i * 13 & 0xFF));
-        final ab = mergeBitmap(a, b);
-        final aba = mergeBitmap(ab, a);
-        expect(aba, ab);
-      },
-    );
+    test('idempotent: mergeBitmap(mergeBitmap(a, b), a) == mergeBitmap(a, b)', () {
+      final a = Uint8List.fromList(List.generate(16, (i) => i * 7 & 0xFF));
+      final b = Uint8List.fromList(List.generate(16, (i) => i * 13 & 0xFF));
+      final ab = mergeBitmap(a, b);
+      final aba = mergeBitmap(ab, a);
+      expect(aba, ab);
+    });
 
     test('commutative: mergeBitmap(a, b) == mergeBitmap(b, a)', () {
       final a = Uint8List.fromList([0x12, 0x34, 0x56, 0x78]);
@@ -45,12 +39,7 @@ void main() {
       final b = Uint8List.fromList(List.generate(32, (i) => i * 5 & 0xFF));
       final merged = mergeBitmap(a, b);
       for (var i = 0; i < merged.length; i++) {
-        expect(
-          merged[i] | a[i],
-          merged[i],
-          reason:
-              'byte $i: merged=${merged[i].toRadixString(16)} a=${a[i].toRadixString(16)}',
-        );
+        expect(merged[i] | a[i], merged[i], reason: 'byte $i: merged=${merged[i].toRadixString(16)} a=${a[i].toRadixString(16)}');
         expect(merged[i] | b[i], merged[i]);
       }
     });

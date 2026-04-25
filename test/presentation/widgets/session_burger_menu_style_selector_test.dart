@@ -24,15 +24,13 @@ import '../../fakes/fake_mirk_style_store.dart';
 
 /// In-memory SessionStore — minimal surface needed by the picker.
 class _FakeSessionStore implements SessionStore {
-  _FakeSessionStore(Map<SessionId, Session>? rows)
-    : _rowById = rows ?? <SessionId, Session>{};
+  _FakeSessionStore(Map<SessionId, Session>? rows) : _rowById = rows ?? <SessionId, Session>{};
 
   final Map<SessionId, Session> _rowById;
 
   /// Records every (sessionId, mirkStyleId) tuple passed to
   /// [updateMirkStyle] so the test can assert one call.
-  final List<({SessionId sessionId, MirkStyleId? mirkStyleId})> updateCalls =
-      <({SessionId sessionId, MirkStyleId? mirkStyleId})>[];
+  final List<({SessionId sessionId, MirkStyleId? mirkStyleId})> updateCalls = <({SessionId sessionId, MirkStyleId? mirkStyleId})>[];
 
   @override
   Future<Session?> findById(SessionId id) async => _rowById[id];
@@ -56,8 +54,7 @@ class _FakeSessionStore implements SessionStore {
   Future<List<Session>> listAll() async => _rowById.values.toList();
 
   @override
-  Stream<List<Session>> watchAll() =>
-      Stream<List<Session>>.value(_rowById.values.toList());
+  Stream<List<Session>> watchAll() => Stream<List<Session>>.value(_rowById.values.toList());
 
   @override
   Future<void> insert(Session session) async => _rowById[session.id] = session;
@@ -75,10 +72,7 @@ class _FakeSessionStore implements SessionStore {
   Future<void> deactivate(SessionId id) async {}
 
   @override
-  Future<void> updateMirkStyle({
-    required SessionId sessionId,
-    required MirkStyleId? mirkStyleId,
-  }) async {
+  Future<void> updateMirkStyle({required SessionId sessionId, required MirkStyleId? mirkStyleId}) async {
     updateCalls.add((sessionId: sessionId, mirkStyleId: mirkStyleId));
     final existing = _rowById[sessionId];
     if (existing != null) {
@@ -101,27 +95,17 @@ class _FakeActiveSessionController extends ActiveSessionController {
   }
 }
 
-MirkStyle _buildStyle({
-  required String idValue,
-  required String displayName,
-  required MirkStyleConfig config,
-}) => MirkStyle(
-  id: MirkStyleId(idValue),
-  displayName: displayName,
-  config: config,
-  createdAtUtc: DateTime.utc(2026, 4, 25),
-  createdAtOffsetMinutes: 0,
-);
+MirkStyle _buildStyle({required String idValue, required String displayName, required MirkStyleConfig config}) =>
+    MirkStyle(id: MirkStyleId(idValue), displayName: displayName, config: config, createdAtUtc: DateTime.utc(2026, 4, 25), createdAtOffsetMinutes: 0);
 
-Session _buildSession({required SessionId id, MirkStyleId? mirkStyleId}) =>
-    Session(
-      id: id,
-      displayName: 'Session test',
-      status: SessionStatus.active,
-      startedAtUtc: DateTime.utc(2026, 4, 25, 10),
-      startedAtOffsetMinutes: 0,
-      mirkStyleId: mirkStyleId,
-    );
+Session _buildSession({required SessionId id, MirkStyleId? mirkStyleId}) => Session(
+  id: id,
+  displayName: 'Session test',
+  status: SessionStatus.active,
+  startedAtUtc: DateTime.utc(2026, 4, 25, 10),
+  startedAtOffsetMinutes: 0,
+  mirkStyleId: mirkStyleId,
+);
 
 Widget _wrapWithOverrides(
   Widget child, {
@@ -137,19 +121,14 @@ Widget _wrapWithOverrides(
       // Avoid the active-renderer cascade — the picker doesn't need it
       // and resolving the real provider would require seeding more
       // dependencies.
-      activeMirkRendererProvider.overrideWith(
-        (ref) async => throw StateError('renderer not under test'),
-      ),
+      activeMirkRendererProvider.overrideWith((ref) async => throw StateError('renderer not under test')),
     ],
     child: MaterialApp(
       home: Scaffold(
         drawer: child,
         body: Builder(
           builder: (context) => Center(
-            child: ElevatedButton(
-              onPressed: () => Scaffold.of(context).openDrawer(),
-              child: const Text('Open'),
-            ),
+            child: ElevatedButton(onPressed: () => Scaffold.of(context).openDrawer(), child: const Text('Open')),
           ),
         ),
       ),
@@ -163,77 +142,35 @@ void main() {
   group('09-07 — SessionBurgerMenu style selector (MIRK-07)', () {
     const SessionId sid = SessionId('sess_01ARZ3NDEKTSV4RRFFQ69G5FAV');
 
-    final tracking = Tracking(
-      sessionId: sid,
-      startedAtUtc: DateTime.utc(2026, 4, 25, 10),
-      fixCount: 0,
-      distanceFilterMeters: kDefaultDistanceFilterMeters,
-    );
+    final tracking = Tracking(sessionId: sid, startedAtUtc: DateTime.utc(2026, 4, 25, 10), fixCount: 0, distanceFilterMeters: kDefaultDistanceFilterMeters);
 
-    final atmospheric = _buildStyle(
-      idValue: 'style_builtin_atmospheric',
-      displayName: 'Atmospheric (défaut)',
-      config: const AtmosphericConfig(),
-    );
-    final solid = _buildStyle(
-      idValue: 'style_builtin_solid',
-      displayName: 'Solide',
-      config: const SolidConfig(),
-    );
-    final candlelight = _buildStyle(
-      idValue: 'style_builtin_candlelight',
-      displayName: 'Lueur de bougie',
-      config: const CandlelightConfig(),
-    );
-    final heavenly = _buildStyle(
-      idValue: 'style_builtin_heavenly_clouds',
-      displayName: 'Nuages célestes',
-      config: const HeavenlyCloudsConfig(),
-    );
+    final atmospheric = _buildStyle(idValue: 'style_builtin_atmospheric', displayName: 'Atmospheric (défaut)', config: const AtmosphericConfig());
+    final solid = _buildStyle(idValue: 'style_builtin_solid', displayName: 'Solide', config: const SolidConfig());
+    final candlelight = _buildStyle(idValue: 'style_builtin_candlelight', displayName: 'Lueur de bougie', config: const CandlelightConfig());
+    final heavenly = _buildStyle(idValue: 'style_builtin_heavenly_clouds', displayName: 'Nuages célestes', config: const HeavenlyCloudsConfig());
 
-    testWidgets(
-      'tapping "Changer le style" opens MirkStylePickerSheet with 4 builtins',
-      (tester) async {
-        final styleStore = FakeMirkStyleStore()
-          ..rows.addAll([atmospheric, solid, candlelight, heavenly]);
-        final sessionStore = _FakeSessionStore({sid: _buildSession(id: sid)});
-        final ctrl = _FakeActiveSessionController(tracking);
-        await tester.pumpWidget(
-          _wrapWithOverrides(
-            const SessionBurgerMenu(),
-            fakeController: ctrl,
-            styleStore: styleStore,
-            sessionStore: sessionStore,
-          ),
-        );
-        await tester.tap(find.text('Open'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Changer le style'));
-        await tester.pumpAndSettle();
-
-        // The 4 builtin display names are reachable.
-        expect(find.text('Atmospheric (défaut)'), findsOneWidget);
-        expect(find.text('Solide'), findsOneWidget);
-        expect(find.text('Lueur de bougie'), findsOneWidget);
-        expect(find.text('Nuages célestes'), findsOneWidget);
-      },
-    );
-
-    testWidgets('tapping a tile calls updateMirkStyle + closes the sheet', (
-      tester,
-    ) async {
-      final styleStore = FakeMirkStyleStore()
-        ..rows.addAll([atmospheric, solid, candlelight, heavenly]);
+    testWidgets('tapping "Changer le style" opens MirkStylePickerSheet with 4 builtins', (tester) async {
+      final styleStore = FakeMirkStyleStore()..rows.addAll([atmospheric, solid, candlelight, heavenly]);
       final sessionStore = _FakeSessionStore({sid: _buildSession(id: sid)});
       final ctrl = _FakeActiveSessionController(tracking);
-      await tester.pumpWidget(
-        _wrapWithOverrides(
-          const SessionBurgerMenu(),
-          fakeController: ctrl,
-          styleStore: styleStore,
-          sessionStore: sessionStore,
-        ),
-      );
+      await tester.pumpWidget(_wrapWithOverrides(const SessionBurgerMenu(), fakeController: ctrl, styleStore: styleStore, sessionStore: sessionStore));
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Changer le style'));
+      await tester.pumpAndSettle();
+
+      // The 4 builtin display names are reachable.
+      expect(find.text('Atmospheric (défaut)'), findsOneWidget);
+      expect(find.text('Solide'), findsOneWidget);
+      expect(find.text('Lueur de bougie'), findsOneWidget);
+      expect(find.text('Nuages célestes'), findsOneWidget);
+    });
+
+    testWidgets('tapping a tile calls updateMirkStyle + closes the sheet', (tester) async {
+      final styleStore = FakeMirkStyleStore()..rows.addAll([atmospheric, solid, candlelight, heavenly]);
+      final sessionStore = _FakeSessionStore({sid: _buildSession(id: sid)});
+      final ctrl = _FakeActiveSessionController(tracking);
+      await tester.pumpWidget(_wrapWithOverrides(const SessionBurgerMenu(), fakeController: ctrl, styleStore: styleStore, sessionStore: sessionStore));
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Changer le style'));
@@ -250,15 +187,10 @@ void main() {
       expect(find.text('Solide'), findsNothing);
     });
 
-    testWidgets('currently-selected style shows trailing checkmark', (
-      tester,
-    ) async {
-      final styleStore = FakeMirkStyleStore()
-        ..rows.addAll([atmospheric, solid, candlelight, heavenly]);
+    testWidgets('currently-selected style shows trailing checkmark', (tester) async {
+      final styleStore = FakeMirkStyleStore()..rows.addAll([atmospheric, solid, candlelight, heavenly]);
       // Pre-seed the session with the candlelight style.
-      final sessionStore = _FakeSessionStore({
-        sid: _buildSession(id: sid, mirkStyleId: candlelight.id),
-      });
+      final sessionStore = _FakeSessionStore({sid: _buildSession(id: sid, mirkStyleId: candlelight.id)});
       final ctrl = _FakeActiveSessionController(
         tracking.copyWith()..hashCode, // hack to ensure unique state
       );
@@ -268,14 +200,7 @@ void main() {
       // store. So just rely on the controller seed + the store.
       // (The picker reads `Tracking.mirkStyleId` actually — check
       // that the state class has it.) — see the picker code.
-      await tester.pumpWidget(
-        _wrapWithOverrides(
-          const SessionBurgerMenu(),
-          fakeController: ctrl,
-          styleStore: styleStore,
-          sessionStore: sessionStore,
-        ),
-      );
+      await tester.pumpWidget(_wrapWithOverrides(const SessionBurgerMenu(), fakeController: ctrl, styleStore: styleStore, sessionStore: sessionStore));
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Changer le style'));
@@ -288,32 +213,21 @@ void main() {
       expect(find.byIcon(Icons.check), findsOneWidget);
     });
 
-    testWidgets(
-      'no active session → tapping the entry shows a snackbar + no sheet opens',
-      (tester) async {
-        final styleStore = FakeMirkStyleStore()
-          ..rows.addAll([atmospheric, solid, candlelight, heavenly]);
-        final sessionStore = _FakeSessionStore(<SessionId, Session>{});
-        final ctrl = _FakeActiveSessionController(const Idle());
-        await tester.pumpWidget(
-          _wrapWithOverrides(
-            const SessionBurgerMenu(),
-            fakeController: ctrl,
-            styleStore: styleStore,
-            sessionStore: sessionStore,
-          ),
-        );
-        await tester.tap(find.text('Open'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Changer le style'));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 300));
+    testWidgets('no active session → tapping the entry shows a snackbar + no sheet opens', (tester) async {
+      final styleStore = FakeMirkStyleStore()..rows.addAll([atmospheric, solid, candlelight, heavenly]);
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{});
+      final ctrl = _FakeActiveSessionController(const Idle());
+      await tester.pumpWidget(_wrapWithOverrides(const SessionBurgerMenu(), fakeController: ctrl, styleStore: styleStore, sessionStore: sessionStore));
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Changer le style'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-        expect(find.textContaining('Aucune session active'), findsOneWidget);
-        // The picker's content is not in the tree — the sheet did not
-        // open.
-        expect(find.text('Solide'), findsNothing);
-      },
-    );
+      expect(find.textContaining('Aucune session active'), findsOneWidget);
+      // The picker's content is not in the tree — the sheet did not
+      // open.
+      expect(find.text('Solide'), findsNothing);
+    });
   });
 }

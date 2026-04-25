@@ -31,12 +31,7 @@ void main() {
         sessionElapsed: const Duration(minutes: 5),
         // Phase 09 plan 09-02: extended fields. Noop renderer ignores all of them; supplying the
         // narrowest valid values keeps this test focused on "100 paint/update iterations don't throw".
-        viewportBbox: MirkViewportBbox(
-          south: 0.0,
-          west: 0.0,
-          north: 1.0,
-          east: 1.0,
-        ),
+        viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
         visibleTiles: const <VisibleMirkTile>[],
       );
       final PictureRecorder rec = PictureRecorder();

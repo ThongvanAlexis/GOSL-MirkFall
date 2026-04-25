@@ -95,13 +95,7 @@ final builtinMirkStylesProvider = BuiltinMirkStylesProvider._();
 /// `cat_default` schema-sentinel pattern from `AppDatabase.onCreate`
 /// (Phase 04 finding #2).
 
-final class BuiltinMirkStylesProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<MirkStyle>>,
-          List<MirkStyle>,
-          FutureOr<List<MirkStyle>>
-        >
+final class BuiltinMirkStylesProvider extends $FunctionalProvider<AsyncValue<List<MirkStyle>>, List<MirkStyle>, FutureOr<List<MirkStyle>>>
     with $FutureModifier<List<MirkStyle>>, $FutureProvider<List<MirkStyle>> {
   /// Surfaces the 4 built-in `MirkStyle` rows, lazy-seeding them into
   /// `t_mirk_styles` on first read.
@@ -160,9 +154,7 @@ final class BuiltinMirkStylesProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<MirkStyle>> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $FutureProviderElement<List<MirkStyle>> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<List<MirkStyle>> create(Ref ref) {

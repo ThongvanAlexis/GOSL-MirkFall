@@ -89,29 +89,22 @@ class _FakeSessionStore implements SessionStore {
   }
 
   @override
-  Future<List<Session>> listAll() async =>
-      _sessionById.values.toList(growable: false);
+  Future<List<Session>> listAll() async => _sessionById.values.toList(growable: false);
 
   @override
-  Stream<List<Session>> watchAll() =>
-      Stream<List<Session>>.value(_sessionById.values.toList(growable: false));
+  Stream<List<Session>> watchAll() => Stream<List<Session>>.value(_sessionById.values.toList(growable: false));
 
   @override
-  Future<void> insert(Session session) async =>
-      _sessionById[session.id] = session;
+  Future<void> insert(Session session) async => _sessionById[session.id] = session;
 
   @override
-  Future<void> update(Session session) async =>
-      _sessionById[session.id] = session;
+  Future<void> update(Session session) async => _sessionById[session.id] = session;
 
   @override
   Future<void> delete(SessionId id) async => _sessionById.remove(id);
 
   @override
-  Future<void> updateMirkStyle({
-    required SessionId sessionId,
-    required MirkStyleId? mirkStyleId,
-  }) async {}
+  Future<void> updateMirkStyle({required SessionId sessionId, required MirkStyleId? mirkStyleId}) async {}
 }
 
 class _FakeFixStore implements FixStore {
@@ -121,22 +114,16 @@ class _FakeFixStore implements FixStore {
   Future<void> insert(Fix fix) async => inserts.add(fix);
 
   @override
-  Future<List<Fix>> listBySession(SessionId sessionId) async =>
-      inserts.where((f) => f.sessionId == sessionId).toList(growable: false);
+  Future<List<Fix>> listBySession(SessionId sessionId) async => inserts.where((f) => f.sessionId == sessionId).toList(growable: false);
 
   @override
-  Stream<List<Fix>> watchBySession(SessionId sessionId) =>
-      Stream<List<Fix>>.value(
-        inserts.where((f) => f.sessionId == sessionId).toList(growable: false),
-      );
+  Stream<List<Fix>> watchBySession(SessionId sessionId) => Stream<List<Fix>>.value(inserts.where((f) => f.sessionId == sessionId).toList(growable: false));
 
   @override
-  Future<int> countBySession(SessionId sessionId) async =>
-      inserts.where((f) => f.sessionId == sessionId).length;
+  Future<int> countBySession(SessionId sessionId) async => inserts.where((f) => f.sessionId == sessionId).length;
 
   @override
-  Future<void> deleteAllForSession(SessionId sessionId) async =>
-      inserts.removeWhere((f) => f.sessionId == sessionId);
+  Future<void> deleteAllForSession(SessionId sessionId) async => inserts.removeWhere((f) => f.sessionId == sessionId);
 }
 
 class _FakeNotificationService implements SessionNotificationService {
@@ -145,14 +132,10 @@ class _FakeNotificationService implements SessionNotificationService {
   @override
   Future<void> dismiss() async {}
   @override
-  Future<void> showResumeNotification(
-    SessionId sessionId,
-    String sessionDisplayName,
-  ) async {}
+  Future<void> showResumeNotification(SessionId sessionId, String sessionDisplayName) async {}
 }
 
-class _FakeIosSignificantChangeWatchdog
-    implements IosSignificantChangeWatchdog {
+class _FakeIosSignificantChangeWatchdog implements IosSignificantChangeWatchdog {
   @override
   Future<void> startMonitoring() async {}
   @override
@@ -165,33 +148,18 @@ class _FakeIosSignificantChangeWatchdog
 /// after start() are necessarily the initial reveal (fast path);
 /// subsequent calls are the streaming pipeline.
 class _SpyRevealedTileStore implements RevealedTileStore {
-  final List<({int parentX, int parentY, Uint8List mask})> mergeMaskCalls =
-      <({int parentX, int parentY, Uint8List mask})>[];
+  final List<({int parentX, int parentY, Uint8List mask})> mergeMaskCalls = <({int parentX, int parentY, Uint8List mask})>[];
 
   @override
-  Future<void> mergeMask({
-    required SessionId sessionId,
-    required int parentX,
-    required int parentY,
-    required Uint8List mask,
-  }) async {
-    mergeMaskCalls.add((
-      parentX: parentX,
-      parentY: parentY,
-      mask: Uint8List.fromList(mask),
-    ));
+  Future<void> mergeMask({required SessionId sessionId, required int parentX, required int parentY, required Uint8List mask}) async {
+    mergeMaskCalls.add((parentX: parentX, parentY: parentY, mask: Uint8List.fromList(mask)));
   }
 
   @override
-  Future<List<RevealedTile>> listBySession(SessionId sessionId) async =>
-      const <RevealedTile>[];
+  Future<List<RevealedTile>> listBySession(SessionId sessionId) async => const <RevealedTile>[];
 
   @override
-  Future<RevealedTile?> findByParent({
-    required SessionId sessionId,
-    required int parentX,
-    required int parentY,
-  }) async => null;
+  Future<RevealedTile?> findByParent({required SessionId sessionId, required int parentX, required int parentY}) async => null;
 }
 
 Session _buildSession(SessionId id) => Session(
@@ -202,12 +170,7 @@ Session _buildSession(SessionId id) => Session(
   startedAtOffsetMinutes: 120,
 );
 
-Fix _buildFix({
-  required SessionId sessionId,
-  String suffix = '0A',
-  double lat = 45.0,
-  double lon = 5.0,
-}) => Fix(
+Fix _buildFix({required SessionId sessionId, String suffix = '0A', double lat = 45.0, double lon = 5.0}) => Fix(
   id: FixId('fix_01HR000000000000000000$suffix'),
   sessionId: sessionId,
   recordedAtUtc: DateTime.utc(2026, 4, 25, 10, 1),
@@ -228,12 +191,8 @@ ProviderContainer _buildContainer({
       sessionStoreProvider.overrideWith((ref) async => sessionStore),
       fixStoreProvider.overrideWith((ref) async => fixStore),
       locationStreamProvider.overrideWith((ref) => locationStream),
-      sessionNotificationServiceProvider.overrideWith(
-        (ref) => _FakeNotificationService(),
-      ),
-      iosSignificantChangeWatchdogProvider.overrideWith(
-        (ref) => _FakeIosSignificantChangeWatchdog(),
-      ),
+      sessionNotificationServiceProvider.overrideWith((ref) => _FakeNotificationService()),
+      iosSignificantChangeWatchdogProvider.overrideWith((ref) => _FakeIosSignificantChangeWatchdog()),
       revealedTileStoreProvider.overrideWith((ref) async => revealedTileStore),
     ],
   );
@@ -242,211 +201,137 @@ ProviderContainer _buildContainer({
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    SharedPreferences.setMockInitialValues(const <String, Object>{
-      'distanceFilter_meters': 5,
-    });
+    SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
   });
 
   group('09-06 — ActiveSessionController initial reveal (MIRK-01)', () {
-    test(
-      'start with cached lastKnownFix fires revealInitial immediately (fast path)',
-      () async {
-        final cachedFix = _buildFix(sessionId: _testSessionId, suffix: '0F');
-        final sessionStore = _FakeSessionStore(<SessionId, Session>{
-          _testSessionId: _buildSession(_testSessionId),
-        });
-        final fixStore = _FakeFixStore();
-        final locationStream = FakeLocationStream()..setLastKnownFix(cachedFix);
-        final revealedTileStore = _SpyRevealedTileStore();
+    test('start with cached lastKnownFix fires revealInitial immediately (fast path)', () async {
+      final cachedFix = _buildFix(sessionId: _testSessionId, suffix: '0F');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{_testSessionId: _buildSession(_testSessionId)});
+      final fixStore = _FakeFixStore();
+      final locationStream = FakeLocationStream()..setLastKnownFix(cachedFix);
+      final revealedTileStore = _SpyRevealedTileStore();
 
-        final container = _buildContainer(
-          sessionStore: sessionStore,
-          fixStore: fixStore,
-          locationStream: locationStream,
-          revealedTileStore: revealedTileStore,
-        );
-        addTearDown(container.dispose);
+      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, revealedTileStore: revealedTileStore);
+      addTearDown(container.dispose);
 
-        // Pre-resolve the async revealed-tile store so the synchronous
-        // revealStreamingControllerProvider family read inside start()
-        // sees the cached AsyncData rather than a still-loading state.
-        await container.read(revealedTileStoreProvider.future);
-        await container.read(activeSessionControllerProvider.future);
-        await container
-            .read(activeSessionControllerProvider.notifier)
-            .start(_testSessionId);
+      // Pre-resolve the async revealed-tile store so the synchronous
+      // revealStreamingControllerProvider family read inside start()
+      // sees the cached AsyncData rather than a still-loading state.
+      await container.read(revealedTileStoreProvider.future);
+      await container.read(activeSessionControllerProvider.future);
+      await container.read(activeSessionControllerProvider.notifier).start(_testSessionId);
 
-        expect(
-          revealedTileStore.mergeMaskCalls.length,
-          greaterThanOrEqualTo(1),
-          reason:
-              'cached lastKnownFix must fire revealInitial during start() (fast path)',
-        );
-      },
-    );
+      expect(
+        revealedTileStore.mergeMaskCalls.length,
+        greaterThanOrEqualTo(1),
+        reason: 'cached lastKnownFix must fire revealInitial during start() (fast path)',
+      );
+    });
 
-    test(
-      'start with no cached fix → revealInitial fires on first stream emission (slow path)',
-      () async {
-        final sessionStore = _FakeSessionStore(<SessionId, Session>{
-          _testSessionId: _buildSession(_testSessionId),
-        });
-        final fixStore = _FakeFixStore();
-        // No cached fix.
-        final locationStream = FakeLocationStream();
-        final revealedTileStore = _SpyRevealedTileStore();
+    test('start with no cached fix → revealInitial fires on first stream emission (slow path)', () async {
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{_testSessionId: _buildSession(_testSessionId)});
+      final fixStore = _FakeFixStore();
+      // No cached fix.
+      final locationStream = FakeLocationStream();
+      final revealedTileStore = _SpyRevealedTileStore();
 
-        final container = _buildContainer(
-          sessionStore: sessionStore,
-          fixStore: fixStore,
-          locationStream: locationStream,
-          revealedTileStore: revealedTileStore,
-        );
-        addTearDown(container.dispose);
+      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, revealedTileStore: revealedTileStore);
+      addTearDown(container.dispose);
 
-        // Pre-resolve the async revealed-tile store so the synchronous
-        // revealStreamingControllerProvider family read inside start()
-        // sees the cached AsyncData rather than a still-loading state.
-        await container.read(revealedTileStoreProvider.future);
-        await container.read(activeSessionControllerProvider.future);
-        await container
-            .read(activeSessionControllerProvider.notifier)
-            .start(_testSessionId);
+      // Pre-resolve the async revealed-tile store so the synchronous
+      // revealStreamingControllerProvider family read inside start()
+      // sees the cached AsyncData rather than a still-loading state.
+      await container.read(revealedTileStoreProvider.future);
+      await container.read(activeSessionControllerProvider.future);
+      await container.read(activeSessionControllerProvider.notifier).start(_testSessionId);
 
-        // No reveal writes yet — start() returned without a cached fix.
-        expect(
-          revealedTileStore.mergeMaskCalls,
-          isEmpty,
-          reason: 'no reveal until first stream emission lands',
-        );
+      // No reveal writes yet — start() returned without a cached fix.
+      expect(revealedTileStore.mergeMaskCalls, isEmpty, reason: 'no reveal until first stream emission lands');
 
-        // First fix arrives — both initial reveal AND onFix should fire.
-        final firstFix = _buildFix(sessionId: _testSessionId, suffix: '01');
-        locationStream.emit(firstFix);
-        // Allow the stream subscription's onData callback (which is async)
-        // to drain.
-        await Future<void>.delayed(Duration.zero);
-        await Future<void>.delayed(Duration.zero);
+      // First fix arrives — both initial reveal AND onFix should fire.
+      final firstFix = _buildFix(sessionId: _testSessionId, suffix: '01');
+      locationStream.emit(firstFix);
+      // Allow the stream subscription's onData callback (which is async)
+      // to drain.
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
-        expect(
-          revealedTileStore.mergeMaskCalls.length,
-          greaterThanOrEqualTo(1),
-          reason:
-              'first stream emission must trigger initial reveal (slow path)',
-        );
-      },
-    );
+      expect(revealedTileStore.mergeMaskCalls.length, greaterThanOrEqualTo(1), reason: 'first stream emission must trigger initial reveal (slow path)');
+    });
 
-    test(
-      'subsequent fixes do NOT re-fire revealInitial (only onFix forwards)',
-      () async {
-        final cachedFix = _buildFix(sessionId: _testSessionId, suffix: '0F');
-        final sessionStore = _FakeSessionStore(<SessionId, Session>{
-          _testSessionId: _buildSession(_testSessionId),
-        });
-        final fixStore = _FakeFixStore();
-        final locationStream = FakeLocationStream()..setLastKnownFix(cachedFix);
-        final revealedTileStore = _SpyRevealedTileStore();
+    test('subsequent fixes do NOT re-fire revealInitial (only onFix forwards)', () async {
+      final cachedFix = _buildFix(sessionId: _testSessionId, suffix: '0F');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{_testSessionId: _buildSession(_testSessionId)});
+      final fixStore = _FakeFixStore();
+      final locationStream = FakeLocationStream()..setLastKnownFix(cachedFix);
+      final revealedTileStore = _SpyRevealedTileStore();
 
-        final container = _buildContainer(
-          sessionStore: sessionStore,
-          fixStore: fixStore,
-          locationStream: locationStream,
-          revealedTileStore: revealedTileStore,
-        );
-        addTearDown(container.dispose);
+      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, revealedTileStore: revealedTileStore);
+      addTearDown(container.dispose);
 
-        // Pre-resolve the async revealed-tile store so the synchronous
-        // revealStreamingControllerProvider family read inside start()
-        // sees the cached AsyncData rather than a still-loading state.
-        await container.read(revealedTileStoreProvider.future);
-        await container.read(activeSessionControllerProvider.future);
-        await container
-            .read(activeSessionControllerProvider.notifier)
-            .start(_testSessionId);
+      // Pre-resolve the async revealed-tile store so the synchronous
+      // revealStreamingControllerProvider family read inside start()
+      // sees the cached AsyncData rather than a still-loading state.
+      await container.read(revealedTileStoreProvider.future);
+      await container.read(activeSessionControllerProvider.future);
+      await container.read(activeSessionControllerProvider.notifier).start(_testSessionId);
 
-        final initialCallCount = revealedTileStore.mergeMaskCalls.length;
-        expect(initialCallCount, greaterThanOrEqualTo(1));
+      final initialCallCount = revealedTileStore.mergeMaskCalls.length;
+      expect(initialCallCount, greaterThanOrEqualTo(1));
 
-        // Emit a fix far enough away that it touches a NEW parent tile.
-        // ~0.5° east of cachedFix at lat 45° = ~40 km — definitely a
-        // different parent tile at zoom 14.
-        final newFix = _buildFix(
-          sessionId: _testSessionId,
-          suffix: '0E',
-          lon: 5.5,
-        );
-        locationStream.emit(newFix);
-        await Future<void>.delayed(Duration.zero);
-        await Future<void>.delayed(Duration.zero);
+      // Emit a fix far enough away that it touches a NEW parent tile.
+      // ~0.5° east of cachedFix at lat 45° = ~40 km — definitely a
+      // different parent tile at zoom 14.
+      final newFix = _buildFix(sessionId: _testSessionId, suffix: '0E', lon: 5.5);
+      locationStream.emit(newFix);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
-        // The reveal pipeline buffers fixes — we cannot synchronously
-        // assert a write happened. But we CAN flush by calling stop()
-        // and then assert a NEW mergeMask call happened on the new tile.
-        await container.read(activeSessionControllerProvider.notifier).stop();
+      // The reveal pipeline buffers fixes — we cannot synchronously
+      // assert a write happened. But we CAN flush by calling stop()
+      // and then assert a NEW mergeMask call happened on the new tile.
+      await container.read(activeSessionControllerProvider.notifier).stop();
 
-        final newTilesTouched = revealedTileStore.mergeMaskCalls
-            .map((c) => '${c.parentX}_${c.parentY}')
-            .toSet();
-        expect(
-          newTilesTouched.length,
-          greaterThanOrEqualTo(2),
-          reason:
-              'after stop()/flush, both the initial-reveal tile AND the new-fix tile have been written',
-        );
-      },
-    );
+      final newTilesTouched = revealedTileStore.mergeMaskCalls.map((c) => '${c.parentX}_${c.parentY}').toSet();
+      expect(
+        newTilesTouched.length,
+        greaterThanOrEqualTo(2),
+        reason: 'after stop()/flush, both the initial-reveal tile AND the new-fix tile have been written',
+      );
+    });
 
-    test(
-      'stop() flushes the reveal pipeline (no buffered fixes survive)',
-      () async {
-        final cachedFix = _buildFix(sessionId: _testSessionId, suffix: '0F');
-        final sessionStore = _FakeSessionStore(<SessionId, Session>{
-          _testSessionId: _buildSession(_testSessionId),
-        });
-        final fixStore = _FakeFixStore();
-        final locationStream = FakeLocationStream()..setLastKnownFix(cachedFix);
-        final revealedTileStore = _SpyRevealedTileStore();
+    test('stop() flushes the reveal pipeline (no buffered fixes survive)', () async {
+      final cachedFix = _buildFix(sessionId: _testSessionId, suffix: '0F');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{_testSessionId: _buildSession(_testSessionId)});
+      final fixStore = _FakeFixStore();
+      final locationStream = FakeLocationStream()..setLastKnownFix(cachedFix);
+      final revealedTileStore = _SpyRevealedTileStore();
 
-        final container = _buildContainer(
-          sessionStore: sessionStore,
-          fixStore: fixStore,
-          locationStream: locationStream,
-          revealedTileStore: revealedTileStore,
-        );
-        addTearDown(container.dispose);
+      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, revealedTileStore: revealedTileStore);
+      addTearDown(container.dispose);
 
-        // Pre-resolve the async revealed-tile store so the synchronous
-        // revealStreamingControllerProvider family read inside start()
-        // sees the cached AsyncData rather than a still-loading state.
-        await container.read(revealedTileStoreProvider.future);
-        await container.read(activeSessionControllerProvider.future);
-        await container
-            .read(activeSessionControllerProvider.notifier)
-            .start(_testSessionId);
-        // Add a few fixes that the buffer would normally hold pending.
-        locationStream.emit(_buildFix(sessionId: _testSessionId, suffix: '01'));
-        locationStream.emit(_buildFix(sessionId: _testSessionId, suffix: '02'));
-        await Future<void>.delayed(Duration.zero);
-        await Future<void>.delayed(Duration.zero);
+      // Pre-resolve the async revealed-tile store so the synchronous
+      // revealStreamingControllerProvider family read inside start()
+      // sees the cached AsyncData rather than a still-loading state.
+      await container.read(revealedTileStoreProvider.future);
+      await container.read(activeSessionControllerProvider.future);
+      await container.read(activeSessionControllerProvider.notifier).start(_testSessionId);
+      // Add a few fixes that the buffer would normally hold pending.
+      locationStream.emit(_buildFix(sessionId: _testSessionId, suffix: '01'));
+      locationStream.emit(_buildFix(sessionId: _testSessionId, suffix: '02'));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
-        final beforeStop = revealedTileStore.mergeMaskCalls.length;
+      final beforeStop = revealedTileStore.mergeMaskCalls.length;
 
-        await container.read(activeSessionControllerProvider.notifier).stop();
+      await container.read(activeSessionControllerProvider.notifier).stop();
 
-        // After stop() the buffer must be drained — call count is at
-        // least equal to before-stop (idempotent + flush pushes any
-        // buffered fixes to mergeMask).
-        expect(
-          revealedTileStore.mergeMaskCalls.length,
-          greaterThanOrEqualTo(beforeStop),
-          reason: 'stop() must flush — no fix is dropped on session end',
-        );
-        expect(
-          container.read(activeSessionControllerProvider).value,
-          isA<Idle>(),
-        );
-      },
-    );
+      // After stop() the buffer must be drained — call count is at
+      // least equal to before-stop (idempotent + flush pushes any
+      // buffered fixes to mergeMask).
+      expect(revealedTileStore.mergeMaskCalls.length, greaterThanOrEqualTo(beforeStop), reason: 'stop() must flush — no fix is dropped on session end');
+      expect(container.read(activeSessionControllerProvider).value, isA<Idle>());
+    });
   });
 }

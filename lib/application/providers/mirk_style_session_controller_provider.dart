@@ -28,9 +28,5 @@ part 'mirk_style_session_controller_provider.g.dart';
 Future<MirkStyleSessionController> mirkStyleSessionController(Ref ref) async {
   final sessionStore = await ref.watch(sessionStoreProvider.future);
   final styleStore = await ref.watch(mirkStyleStoreProvider.future);
-  return MirkStyleSessionController(
-    sessionStore: sessionStore,
-    styleStore: styleStore,
-    invalidateRenderer: () => ref.invalidate(activeMirkRendererProvider),
-  );
+  return MirkStyleSessionController(sessionStore: sessionStore, styleStore: styleStore, invalidateRenderer: () => ref.invalidate(activeMirkRendererProvider));
 }

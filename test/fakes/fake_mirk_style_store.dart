@@ -56,9 +56,7 @@ class FakeMirkStyleStore implements MirkStyleStore {
   Future<void> update(MirkStyle style) async {
     final idx = rows.indexWhere((r) => r.id == style.id);
     if (idx == -1) {
-      throw StateError(
-        'FakeMirkStyleStore.update: id ${style.id.value} not found',
-      );
+      throw StateError('FakeMirkStyleStore.update: id ${style.id.value} not found');
     }
     rows[idx] = style;
   }

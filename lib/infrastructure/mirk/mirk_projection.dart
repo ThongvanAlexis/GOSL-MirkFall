@@ -44,12 +44,7 @@ class MirkProjection {
   ///
   /// See class-level docstring for the outside-viewport / zero-span
   /// guard rationale.
-  static Offset latLonToScreen({
-    required double lat,
-    required double lon,
-    required MirkViewportBbox viewport,
-    required Size size,
-  }) {
+  static Offset latLonToScreen({required double lat, required double lon, required MirkViewportBbox viewport, required Size size}) {
     final dLat = viewport.north - viewport.south;
     final dLon = viewport.east - viewport.west;
     // Defensive: a zero-span bbox would produce NaN/Infinity on the

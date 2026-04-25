@@ -3,8 +3,7 @@
 // See LICENSE file for details
 
 import 'dart:math' as math;
-import 'dart:ui'
-    show BlurStyle, Canvas, Color, MaskFilter, Paint, PaintingStyle, Size;
+import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Paint, PaintingStyle, Size;
 
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
@@ -38,8 +37,7 @@ import 'tile_cell_iteration.dart';
 class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config] and an optional [seed] for
   /// the internal cloud-noise generator.
-  HeavenlyCloudsMirkRenderer(this.config, {int seed = 91})
-    : _noise = SimplexNoise2D(seed: seed);
+  HeavenlyCloudsMirkRenderer(this.config, {int seed = 91}) : _noise = SimplexNoise2D(seed: seed);
 
   /// Heavenly-clouds configuration.
   final HeavenlyCloudsConfig config;
@@ -84,11 +82,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
         ..style = PaintingStyle.fill
         ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
 
-      final path = buildUnrevealedCellsPath(
-        tile: tile,
-        viewport: context.viewportBbox,
-        canvasSize: size,
-      );
+      final path = buildUnrevealedCellsPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
       if (path.getBounds().isEmpty) continue;
       canvas.drawPath(path, paint);
     }

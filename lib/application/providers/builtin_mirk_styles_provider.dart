@@ -56,9 +56,7 @@ part 'builtin_mirk_styles_provider.g.dart';
 Future<List<MirkStyle>> builtinMirkStyles(Ref ref) async {
   final store = await ref.watch(mirkStyleStoreProvider.future);
   final existing = await store.listAll();
-  final existingById = <String, MirkStyle>{
-    for (final row in existing) row.id.value: row,
-  };
+  final existingById = <String, MirkStyle>{for (final row in existing) row.id.value: row};
 
   final result = <MirkStyle>[];
   for (final descriptor in kBuiltinMirkStyles) {

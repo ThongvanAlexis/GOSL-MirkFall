@@ -30,11 +30,7 @@ class FakeLocationStream implements LocationStream {
   Object? throwGpsOnPositions;
 
   @override
-  Stream<Fix> positions({
-    required SessionId sessionId,
-    required int distanceFilterMeters,
-    required String sessionDisplayName,
-  }) {
+  Stream<Fix> positions({required SessionId sessionId, required int distanceFilterMeters, required String sessionDisplayName}) {
     _sessionId = sessionId;
     _distanceFilter = distanceFilterMeters;
     _displayName = sessionDisplayName;
@@ -63,8 +59,7 @@ class FakeLocationStream implements LocationStream {
   }
 
   /// Injects a stream error.
-  void emitError(Object error, [StackTrace? stackTrace]) =>
-      _controller.addError(error, stackTrace);
+  void emitError(Object error, [StackTrace? stackTrace]) => _controller.addError(error, stackTrace);
 
   /// Pre-seeds [lastKnownFix] without emitting on the stream — used by
   /// Plan 09-06 Task 4 to test the fast-path branch of

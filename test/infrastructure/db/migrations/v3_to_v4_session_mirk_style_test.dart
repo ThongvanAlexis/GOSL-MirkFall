@@ -71,27 +71,11 @@ void main() {
         await prodDb.customStatement('SELECT 1');
 
         // 1. mirk_style_id column exists on t_sessions.
-        final colInfo = await prodDb
-            .customSelect("PRAGMA table_info('t_sessions')")
-            .get();
-        final mirkCol = colInfo
-            .where((row) => row.read<String>('name') == 'mirk_style_id')
-            .toList();
-        expect(
-          mirkCol,
-          hasLength(1),
-          reason: 'V3→V4 migration must add t_sessions.mirk_style_id',
-        );
-        expect(
-          mirkCol.single.read<String>('type'),
-          'TEXT',
-          reason: 'mirk_style_id is TEXT (string FK to t_mirk_styles.id)',
-        );
-        expect(
-          mirkCol.single.read<int>('notnull'),
-          0,
-          reason: 'mirk_style_id is nullable (notnull = 0)',
-        );
+        final colInfo = await prodDb.customSelect("PRAGMA table_info('t_sessions')").get();
+        final mirkCol = colInfo.where((row) => row.read<String>('name') == 'mirk_style_id').toList();
+        expect(mirkCol, hasLength(1), reason: 'V3→V4 migration must add t_sessions.mirk_style_id');
+        expect(mirkCol.single.read<String>('type'), 'TEXT', reason: 'mirk_style_id is TEXT (string FK to t_mirk_styles.id)');
+        expect(mirkCol.single.read<int>('notnull'), 0, reason: 'mirk_style_id is nullable (notnull = 0)');
 
         // 2. Pre-existing V3 row preserves a NULL mirk_style_id.
         final preExisting = await prodDb
@@ -100,11 +84,7 @@ void main() {
               "WHERE id = 'sess_01HRV4MIGRATIONTESTAAAAAAAA'",
             )
             .getSingle();
-        expect(
-          preExisting.readNullable<String>('mirk_style_id'),
-          isNull,
-          reason: 'pre-existing rows default to NULL on ALTER TABLE ADD COLUMN',
-        );
+        expect(preExisting.readNullable<String>('mirk_style_id'), isNull, reason: 'pre-existing rows default to NULL on ALTER TABLE ADD COLUMN');
 
         // 3. Column is writeable: UPDATE with the seeded style id.
         await prodDb.customStatement(
@@ -117,10 +97,7 @@ void main() {
               "WHERE id = 'sess_01HRV4MIGRATIONTESTAAAAAAAA'",
             )
             .getSingle();
-        expect(
-          reread.read<String>('mirk_style_id'),
-          'mst_01HRV4PREEXISTINGSTYLEAAAAA',
-        );
+        expect(reread.read<String>('mirk_style_id'), 'mst_01HRV4PREEXISTINGSTYLEAAAAA');
       } finally {
         await prodDb.close();
       }

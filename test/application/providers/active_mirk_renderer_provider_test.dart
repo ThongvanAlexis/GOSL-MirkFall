@@ -76,20 +76,16 @@ class _FakeSessionStore implements SessionStore {
   }
 
   @override
-  Future<List<Session>> listAll() async =>
-      _sessionById.values.toList(growable: false);
+  Future<List<Session>> listAll() async => _sessionById.values.toList(growable: false);
 
   @override
-  Stream<List<Session>> watchAll() =>
-      Stream<List<Session>>.value(_sessionById.values.toList(growable: false));
+  Stream<List<Session>> watchAll() => Stream<List<Session>>.value(_sessionById.values.toList(growable: false));
 
   @override
-  Future<void> insert(Session session) async =>
-      _sessionById[session.id] = session;
+  Future<void> insert(Session session) async => _sessionById[session.id] = session;
 
   @override
-  Future<void> update(Session session) async =>
-      _sessionById[session.id] = session;
+  Future<void> update(Session session) async => _sessionById[session.id] = session;
 
   @override
   Future<void> delete(SessionId id) async => _sessionById.remove(id);
@@ -111,10 +107,7 @@ class _FakeSessionStore implements SessionStore {
   }
 
   @override
-  Future<void> updateMirkStyle({
-    required SessionId sessionId,
-    required MirkStyleId? mirkStyleId,
-  }) async {
+  Future<void> updateMirkStyle({required SessionId sessionId, required MirkStyleId? mirkStyleId}) async {
     final existing = _sessionById[sessionId];
     if (existing != null) {
       _sessionById[sessionId] = existing.copyWith(mirkStyleId: mirkStyleId);
@@ -151,11 +144,7 @@ class _SpyingFactory implements MirkRendererFactory {
 
 /// Builds a [Session] entity with sensible defaults for tests that only
 /// care about the id + mirkStyleId fields.
-Session _buildSession({
-  required SessionId id,
-  MirkStyleId? mirkStyleId,
-  SessionStatus status = SessionStatus.active,
-}) => Session(
+Session _buildSession({required SessionId id, MirkStyleId? mirkStyleId, SessionStatus status = SessionStatus.active}) => Session(
   id: id,
   displayName: 'Test session',
   status: status,
@@ -166,25 +155,12 @@ Session _buildSession({
 
 /// Builds a [MirkStyle] with the given id + config — sufficient for
 /// resolver tests; createdAt fields are stable.
-MirkStyle _buildStyle({
-  required MirkStyleId id,
-  required MirkStyleConfig config,
-  String displayName = 'Test style',
-}) => MirkStyle(
-  id: id,
-  displayName: displayName,
-  config: config,
-  createdAtUtc: DateTime.utc(2026, 4, 25),
-  createdAtOffsetMinutes: 0,
-);
+MirkStyle _buildStyle({required MirkStyleId id, required MirkStyleConfig config, String displayName = 'Test style'}) =>
+    MirkStyle(id: id, displayName: displayName, config: config, createdAtUtc: DateTime.utc(2026, 4, 25), createdAtOffsetMinutes: 0);
 
 /// Builds a `Tracking` state for [sessionId] with sensible defaults.
-Tracking _buildTracking(SessionId sessionId) => Tracking(
-  sessionId: sessionId,
-  startedAtUtc: DateTime.utc(2026, 4, 25, 10),
-  fixCount: 0,
-  distanceFilterMeters: 5,
-);
+Tracking _buildTracking(SessionId sessionId) =>
+    Tracking(sessionId: sessionId, startedAtUtc: DateTime.utc(2026, 4, 25, 10), fixCount: 0, distanceFilterMeters: 5);
 
 ProviderContainer _buildContainer({
   required ActiveSessionState initialSessionState,
@@ -194,13 +170,10 @@ ProviderContainer _buildContainer({
 }) {
   return ProviderContainer(
     overrides: [
-      activeSessionControllerProvider.overrideWith(
-        () => _FakeActiveSessionController(initialSessionState),
-      ),
+      activeSessionControllerProvider.overrideWith(() => _FakeActiveSessionController(initialSessionState)),
       sessionStoreProvider.overrideWith((ref) async => sessionStore),
       mirkStyleStoreProvider.overrideWith((ref) async => styleStore),
-      if (factoryOverride != null)
-        mirkRendererFactoryProvider.overrideWithValue(factoryOverride),
+      if (factoryOverride != null) mirkRendererFactoryProvider.overrideWithValue(factoryOverride),
     ],
   );
 }
@@ -219,46 +192,24 @@ void main() {
       expect(renderer, isA<NoopMirkRenderer>());
     });
 
-    test(
-      'Starting session → NoopMirkRenderer (no fog until Tracking)',
-      () async {
-        final container = _buildContainer(
-          initialSessionState: const Starting(SessionId('sess_starting')),
-          sessionStore: _FakeSessionStore(<SessionId, Session>{}),
-          styleStore: FakeMirkStyleStore(),
-        );
-        addTearDown(container.dispose);
+    test('Starting session → NoopMirkRenderer (no fog until Tracking)', () async {
+      final container = _buildContainer(
+        initialSessionState: const Starting(SessionId('sess_starting')),
+        sessionStore: _FakeSessionStore(<SessionId, Session>{}),
+        styleStore: FakeMirkStyleStore(),
+      );
+      addTearDown(container.dispose);
 
-        final renderer = await container.read(
-          activeMirkRendererProvider.future,
-        );
-        expect(
-          renderer,
-          isA<NoopMirkRenderer>(),
-          reason: 'fog only appears once Tracking — Starting renders Noop',
-        );
-      },
-    );
+      final renderer = await container.read(activeMirkRendererProvider.future);
+      expect(renderer, isA<NoopMirkRenderer>(), reason: 'fog only appears once Tracking — Starting renders Noop');
+    });
 
     test('Tracking + atmospheric style → AtmosphericMirkRenderer', () async {
       const styleId = MirkStyleId('style_builtin_atmospheric');
       const sessionId = SessionId('sess_tracking_atmospheric');
-      final styleStore = FakeMirkStyleStore()
-        ..rows.add(
-          _buildStyle(
-            id: styleId,
-            config: const AtmosphericConfig(),
-            displayName: 'Atmospheric (défaut)',
-          ),
-        );
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{
-        sessionId: _buildSession(id: sessionId, mirkStyleId: styleId),
-      });
-      final container = _buildContainer(
-        initialSessionState: _buildTracking(sessionId),
-        sessionStore: sessionStore,
-        styleStore: styleStore,
-      );
+      final styleStore = FakeMirkStyleStore()..rows.add(_buildStyle(id: styleId, config: const AtmosphericConfig(), displayName: 'Atmospheric (défaut)'));
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(id: sessionId, mirkStyleId: styleId)});
+      final container = _buildContainer(initialSessionState: _buildTracking(sessionId), sessionStore: sessionStore, styleStore: styleStore);
       addTearDown(container.dispose);
 
       final renderer = await container.read(activeMirkRendererProvider.future);
@@ -268,132 +219,82 @@ void main() {
     test('Tracking + candlelight style → CandlelightMirkRenderer', () async {
       const styleId = MirkStyleId('style_builtin_candlelight');
       const sessionId = SessionId('sess_tracking_candlelight');
-      final styleStore = FakeMirkStyleStore()
-        ..rows.add(
-          _buildStyle(
-            id: styleId,
-            config: const CandlelightConfig(),
-            displayName: 'Lueur de bougie',
-          ),
-        );
-      final sessionStore = _FakeSessionStore(<SessionId, Session>{
-        sessionId: _buildSession(id: sessionId, mirkStyleId: styleId),
-      });
-      final container = _buildContainer(
-        initialSessionState: _buildTracking(sessionId),
-        sessionStore: sessionStore,
-        styleStore: styleStore,
-      );
+      final styleStore = FakeMirkStyleStore()..rows.add(_buildStyle(id: styleId, config: const CandlelightConfig(), displayName: 'Lueur de bougie'));
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(id: sessionId, mirkStyleId: styleId)});
+      final container = _buildContainer(initialSessionState: _buildTracking(sessionId), sessionStore: sessionStore, styleStore: styleStore);
       addTearDown(container.dispose);
 
       final renderer = await container.read(activeMirkRendererProvider.future);
       expect(renderer, isA<CandlelightMirkRenderer>());
     });
 
-    test(
-      'Tracking + null mirkStyleId → AtmosphericMirkRenderer (default fallback)',
-      () async {
-        const sessionId = SessionId('sess_tracking_null_style');
-        final sessionStore = _FakeSessionStore(<SessionId, Session>{
-          // Explicit `mirkStyleId: null` is the SUT's fallback trigger;
-          // the lint flags it as redundant because null is the default,
-          // but the explicitness is load-bearing for test readability.
-          // ignore: avoid_redundant_argument_values
-          sessionId: _buildSession(id: sessionId, mirkStyleId: null),
-        });
-        final container = _buildContainer(
-          initialSessionState: _buildTracking(sessionId),
-          sessionStore: sessionStore,
-          styleStore: FakeMirkStyleStore(),
-        );
-        addTearDown(container.dispose);
+    test('Tracking + null mirkStyleId → AtmosphericMirkRenderer (default fallback)', () async {
+      const sessionId = SessionId('sess_tracking_null_style');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        // Explicit `mirkStyleId: null` is the SUT's fallback trigger;
+        // the lint flags it as redundant because null is the default,
+        // but the explicitness is load-bearing for test readability.
+        // ignore: avoid_redundant_argument_values
+        sessionId: _buildSession(id: sessionId, mirkStyleId: null),
+      });
+      final container = _buildContainer(initialSessionState: _buildTracking(sessionId), sessionStore: sessionStore, styleStore: FakeMirkStyleStore());
+      addTearDown(container.dispose);
 
-        final renderer = await container.read(
-          activeMirkRendererProvider.future,
-        );
-        expect(
-          renderer,
-          isA<AtmosphericMirkRenderer>(),
-          reason: 'null mirkStyleId degrades to default atmospheric',
-        );
-      },
-    );
+      final renderer = await container.read(activeMirkRendererProvider.future);
+      expect(renderer, isA<AtmosphericMirkRenderer>(), reason: 'null mirkStyleId degrades to default atmospheric');
+    });
 
-    test(
-      'Tracking + referenced style missing from store → AtmosphericMirkRenderer (fallback)',
-      () async {
-        const sessionId = SessionId('sess_tracking_phantom_style');
-        final sessionStore = _FakeSessionStore(<SessionId, Session>{
-          sessionId: _buildSession(
-            id: sessionId,
-            mirkStyleId: const MirkStyleId('style_user_phantom_import'),
-          ),
-        });
-        final container = _buildContainer(
-          initialSessionState: _buildTracking(sessionId),
-          sessionStore: sessionStore,
-          styleStore: FakeMirkStyleStore(),
-        );
-        addTearDown(container.dispose);
+    test('Tracking + referenced style missing from store → AtmosphericMirkRenderer (fallback)', () async {
+      const sessionId = SessionId('sess_tracking_phantom_style');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionId: _buildSession(id: sessionId, mirkStyleId: const MirkStyleId('style_user_phantom_import')),
+      });
+      final container = _buildContainer(initialSessionState: _buildTracking(sessionId), sessionStore: sessionStore, styleStore: FakeMirkStyleStore());
+      addTearDown(container.dispose);
 
-        final renderer = await container.read(
-          activeMirkRendererProvider.future,
-        );
-        expect(
-          renderer,
-          isA<AtmosphericMirkRenderer>(),
-          reason:
-              'missing style row degrades to default atmospheric, '
-              'never crashes the renderer chain',
-        );
-      },
-    );
+      final renderer = await container.read(activeMirkRendererProvider.future);
+      expect(
+        renderer,
+        isA<AtmosphericMirkRenderer>(),
+        reason:
+            'missing style row degrades to default atmospheric, '
+            'never crashes the renderer chain',
+      );
+    });
 
-    test(
-      'invalidation calls dispose() exactly once on the prior renderer',
-      () async {
-        final fakeRenderer = FakeMirkRenderer();
-        final spyingFactory = _SpyingFactory(stubFor: fakeRenderer);
+    test('invalidation calls dispose() exactly once on the prior renderer', () async {
+      final fakeRenderer = FakeMirkRenderer();
+      final spyingFactory = _SpyingFactory(stubFor: fakeRenderer);
 
-        const styleId = MirkStyleId('style_builtin_atmospheric');
-        const sessionId = SessionId('sess_dispose_lifecycle');
-        final styleStore = FakeMirkStyleStore()
-          ..rows.add(
-            _buildStyle(id: styleId, config: const AtmosphericConfig()),
-          );
-        final sessionStore = _FakeSessionStore(<SessionId, Session>{
-          sessionId: _buildSession(id: sessionId, mirkStyleId: styleId),
-        });
-        final container = _buildContainer(
-          initialSessionState: _buildTracking(sessionId),
-          sessionStore: sessionStore,
-          styleStore: styleStore,
-          factoryOverride: spyingFactory,
-        );
-        addTearDown(container.dispose);
+      const styleId = MirkStyleId('style_builtin_atmospheric');
+      const sessionId = SessionId('sess_dispose_lifecycle');
+      final styleStore = FakeMirkStyleStore()..rows.add(_buildStyle(id: styleId, config: const AtmosphericConfig()));
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(id: sessionId, mirkStyleId: styleId)});
+      final container = _buildContainer(
+        initialSessionState: _buildTracking(sessionId),
+        sessionStore: sessionStore,
+        styleStore: styleStore,
+        factoryOverride: spyingFactory,
+      );
+      addTearDown(container.dispose);
 
-        final first = await container.read(activeMirkRendererProvider.future);
-        expect(
-          identical(first, fakeRenderer),
-          isTrue,
-          reason: 'spying factory must hand back the prepared FakeMirkRenderer',
-        );
-        expect(fakeRenderer.disposeCallCount, 0);
+      final first = await container.read(activeMirkRendererProvider.future);
+      expect(identical(first, fakeRenderer), isTrue, reason: 'spying factory must hand back the prepared FakeMirkRenderer');
+      expect(fakeRenderer.disposeCallCount, 0);
 
-        // Force teardown of the prior provider state.
-        container.invalidate(activeMirkRendererProvider);
-        // Re-read so the prior `ref.onDispose` actually fires.
-        await container.read(activeMirkRendererProvider.future);
+      // Force teardown of the prior provider state.
+      container.invalidate(activeMirkRendererProvider);
+      // Re-read so the prior `ref.onDispose` actually fires.
+      await container.read(activeMirkRendererProvider.future);
 
-        expect(
-          fakeRenderer.disposeCallCount,
-          1,
-          reason:
-              'ref.onDispose must call dispose() exactly once on the prior '
-              'renderer when the provider invalidates',
-        );
-      },
-    );
+      expect(
+        fakeRenderer.disposeCallCount,
+        1,
+        reason:
+            'ref.onDispose must call dispose() exactly once on the prior '
+            'renderer when the provider invalidates',
+      );
+    });
 
     test('Noop fallback path also routes through ref.onDispose', () async {
       // Sanity check: even the Idle → NoopMirkRenderer branch wires

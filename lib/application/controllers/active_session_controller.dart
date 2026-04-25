@@ -137,11 +137,7 @@ class ActiveSessionController extends _$ActiveSessionController {
       _stream = locationStream;
 
       _sub = locationStream
-          .positions(
-            sessionId: id,
-            sessionDisplayName: activatedSession.displayName,
-            distanceFilterMeters: settings.distanceFilterMeters,
-          )
+          .positions(sessionId: id, sessionDisplayName: activatedSession.displayName, distanceFilterMeters: settings.distanceFilterMeters)
           .listen(
             (fix) => _onFix(fix, fixStore),
             onError: _onStreamError,
@@ -153,14 +149,7 @@ class ActiveSessionController extends _$ActiveSessionController {
             cancelOnError: false,
           );
 
-      state = AsyncData(
-        Tracking(
-          sessionId: id,
-          startedAtUtc: activatedSession.startedAtUtc,
-          fixCount: 0,
-          distanceFilterMeters: settings.distanceFilterMeters,
-        ),
-      );
+      state = AsyncData(Tracking(sessionId: id, startedAtUtc: activatedSession.startedAtUtc, fixCount: 0, distanceFilterMeters: settings.distanceFilterMeters));
 
       // Phase 09 plan 09-06 — initial 20 m reveal fast path. If the
       // location stream already has a cached fix from a prior
@@ -197,10 +186,7 @@ class ActiveSessionController extends _$ActiveSessionController {
   /// partial-unique-index. Inner failures are logged-and-swallowed via
   /// [_bestEffort] — the catch path is already propagating a primary
   /// exception to the caller.
-  Future<void> _rollbackPartialActivation({
-    required bool activated,
-    required SessionId id,
-  }) async {
+  Future<void> _rollbackPartialActivation({required bool activated, required SessionId id}) async {
     await _sub?.cancel();
     _sub = null;
     await _stream?.dispose();
@@ -212,9 +198,7 @@ class ActiveSessionController extends _$ActiveSessionController {
         await sessionStore.deactivate(id);
       });
       await _bestEffort('start.rollback_dismiss', () async {
-        final notificationService = ref.read(
-          sessionNotificationServiceProvider,
-        );
+        final notificationService = ref.read(sessionNotificationServiceProvider);
         await notificationService.dismiss();
       });
     }
@@ -283,9 +267,7 @@ class ActiveSessionController extends _$ActiveSessionController {
       final stoppingId = _currentSessionId;
       if (stoppingId != null) {
         await _bestEffort('stop.revealFlush', () async {
-          final reveal = ref.read(
-            revealStreamingControllerProvider(stoppingId),
-          );
+          final reveal = ref.read(revealStreamingControllerProvider(stoppingId));
           await reveal?.flush();
           // Invalidate the family slot so the controller's onDispose
           // (which itself flushes any remaining fixes + cancels the
@@ -304,9 +286,7 @@ class ActiveSessionController extends _$ActiveSessionController {
       // A stale notification surfaces via _log.fine rather than going
       // unnoticed (CLAUDE.md §Error handling level 3).
       await _bestEffort('stop.dismiss', () async {
-        final notificationService = ref.read(
-          sessionNotificationServiceProvider,
-        );
+        final notificationService = ref.read(sessionNotificationServiceProvider);
         await notificationService.dismiss();
       });
 
@@ -346,9 +326,7 @@ class ActiveSessionController extends _$ActiveSessionController {
     // Riverpod-2 `valueOrNull` getter that no longer exists.
     final current = state.value;
     if (current is Tracking) {
-      state = AsyncData(
-        current.copyWith(fixCount: current.fixCount + 1, lastFix: fix),
-      );
+      state = AsyncData(current.copyWith(fixCount: current.fixCount + 1, lastFix: fix));
     }
 
     // Phase 09 plan 09-06 — initial-reveal slow path: first fix on a
@@ -360,11 +338,7 @@ class ActiveSessionController extends _$ActiveSessionController {
     final reveal = ref.read(revealStreamingControllerProvider(activeId));
     if (reveal == null) return;
     if (!_initialRevealDone) {
-      await _writeInitialRevealIfReady(
-        fix,
-        sessionId: activeId,
-        reveal: reveal,
-      );
+      await _writeInitialRevealIfReady(fix, sessionId: activeId, reveal: reveal);
     }
     await reveal.onFix(fix);
   }
@@ -375,14 +349,9 @@ class ActiveSessionController extends _$ActiveSessionController {
   /// [reveal] is optional; when omitted, a fresh read of the provider
   /// is performed (used by the start() fast path where the controller
   /// reference has not been threaded through).
-  Future<void> _writeInitialRevealIfReady(
-    Fix fix, {
-    required SessionId sessionId,
-    RevealStreamingController? reveal,
-  }) async {
+  Future<void> _writeInitialRevealIfReady(Fix fix, {required SessionId sessionId, RevealStreamingController? reveal}) async {
     if (_initialRevealDone) return;
-    final controller =
-        reveal ?? ref.read(revealStreamingControllerProvider(sessionId));
+    final controller = reveal ?? ref.read(revealStreamingControllerProvider(sessionId));
     if (controller == null) return;
     _initialRevealDone = true;
     try {

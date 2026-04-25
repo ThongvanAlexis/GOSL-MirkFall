@@ -27,9 +27,7 @@ import '../../fakes/fake_mirk_style_store.dart';
 ///   read re-seeds it.
 /// * `mirkRendererFactoryProvider` is a stable singleton.
 ProviderContainer _buildContainer({required FakeMirkStyleStore styleStore}) {
-  return ProviderContainer(
-    overrides: [mirkStyleStoreProvider.overrideWith((ref) async => styleStore)],
-  );
+  return ProviderContainer(overrides: [mirkStyleStoreProvider.overrideWith((ref) async => styleStore)]);
 }
 
 void main() {
@@ -53,11 +51,7 @@ void main() {
     });
 
     test('first read seeds 4 builtins in canonical order', () async {
-      expect(
-        styleStore.rows,
-        isEmpty,
-        reason: 'precondition: store starts empty',
-      );
+      expect(styleStore.rows, isEmpty, reason: 'precondition: store starts empty');
 
       final container = _buildContainer(styleStore: styleStore);
       addTearDown(container.dispose);
@@ -65,21 +59,13 @@ void main() {
       final styles = await container.read(builtinMirkStylesProvider.future);
 
       expect(styles, hasLength(4));
-      expect(
-        styleStore.rows,
-        hasLength(4),
-        reason: 'all 4 builtins must be inserted into the store',
-      );
-      expect(
-        styles.map((s) => s.id.value).toList(),
-        <String>[
-          'style_builtin_atmospheric',
-          'style_builtin_solid',
-          'style_builtin_candlelight',
-          'style_builtin_heavenly_clouds',
-        ],
-        reason: 'canonical builtin order from kBuiltinMirkStyles',
-      );
+      expect(styleStore.rows, hasLength(4), reason: 'all 4 builtins must be inserted into the store');
+      expect(styles.map((s) => s.id.value).toList(), <String>[
+        'style_builtin_atmospheric',
+        'style_builtin_solid',
+        'style_builtin_candlelight',
+        'style_builtin_heavenly_clouds',
+      ], reason: 'canonical builtin order from kBuiltinMirkStyles');
 
       // Each entity carries the descriptor's default config variant.
       expect(styles[0].config, isA<AtmosphericConfig>());
@@ -100,11 +86,7 @@ void main() {
       container.invalidate(builtinMirkStylesProvider);
       final secondRead = await container.read(builtinMirkStylesProvider.future);
 
-      expect(
-        styleStore.rows,
-        hasLength(4),
-        reason: 'idempotent — no duplicate inserts on re-read',
-      );
+      expect(styleStore.rows, hasLength(4), reason: 'idempotent — no duplicate inserts on re-read');
       expect(secondRead, hasLength(4));
     });
 
@@ -122,15 +104,8 @@ void main() {
       container.invalidate(builtinMirkStylesProvider);
       await container.read(builtinMirkStylesProvider.future);
 
-      expect(
-        styleStore.rows,
-        hasLength(4),
-        reason: 'self-healing — missing builtin re-seeded',
-      );
-      expect(
-        styleStore.rows.any((r) => r.id.value == 'style_builtin_solid'),
-        isTrue,
-      );
+      expect(styleStore.rows, hasLength(4), reason: 'self-healing — missing builtin re-seeded');
+      expect(styleStore.rows.any((r) => r.id.value == 'style_builtin_solid'), isTrue);
     });
 
     test('seeded entities carry stable creation metadata', () async {
@@ -142,11 +117,7 @@ void main() {
       // offset 0 — schema-sentinel pattern (parallels cat_default's
       // 2026-04-18 fixed timestamp).
       for (final style in styles) {
-        expect(
-          style.createdAtOffsetMinutes,
-          0,
-          reason: 'builtins use UTC offset 0 (schema-sentinel)',
-        );
+        expect(style.createdAtOffsetMinutes, 0, reason: 'builtins use UTC offset 0 (schema-sentinel)');
         expect(style.createdAtUtc.year, 2026);
         expect(style.createdAtUtc.month, 4);
         expect(style.createdAtUtc.day, 25);

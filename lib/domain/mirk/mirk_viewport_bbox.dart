@@ -24,18 +24,7 @@ part 'mirk_viewport_bbox.freezed.dart';
 /// `LatLngBounds`.
 @freezed
 abstract class MirkViewportBbox with _$MirkViewportBbox {
-  @Assert(
-    'south <= north',
-    'MirkViewportBbox: south must be <= north (got south=\$south, north=\$north)',
-  )
-  @Assert(
-    'west <= east || (west > 0 && east < 0)',
-    'MirkViewportBbox: east < west only permitted on antimeridian wrap',
-  )
-  factory MirkViewportBbox({
-    required double south,
-    required double west,
-    required double north,
-    required double east,
-  }) = _MirkViewportBbox;
+  @Assert('south <= north', 'MirkViewportBbox: south must be <= north (got south=\$south, north=\$north)')
+  @Assert('west <= east || (west > 0 && east < 0)', 'MirkViewportBbox: east < west only permitted on antimeridian wrap')
+  factory MirkViewportBbox({required double south, required double west, required double north, required double east}) = _MirkViewportBbox;
 }

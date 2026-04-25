@@ -3,17 +3,7 @@
 // See LICENSE file for details
 
 import 'dart:math' as math;
-import 'dart:ui'
-    show
-        BlurStyle,
-        Canvas,
-        Color,
-        Gradient,
-        MaskFilter,
-        Offset,
-        Paint,
-        PaintingStyle,
-        Size;
+import 'dart:ui' show BlurStyle, Canvas, Color, Gradient, MaskFilter, Offset, Paint, PaintingStyle, Size;
 
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
@@ -50,8 +40,7 @@ import 'tile_cell_iteration.dart';
 class CandlelightMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config] and an optional [seed] for
   /// the internal flicker-noise generator.
-  CandlelightMirkRenderer(this.config, {int seed = 17})
-    : _noise = SimplexNoise2D(seed: seed);
+  CandlelightMirkRenderer(this.config, {int seed = 17}) : _noise = SimplexNoise2D(seed: seed);
 
   /// Candlelight configuration.
   final CandlelightConfig config;
@@ -74,12 +63,7 @@ class CandlelightMirkRenderer implements MirkRenderer {
     // centre as fallback. The fallback keeps the user UX coherent
     // before the first fix lands (or after a signal loss).
     final centre = context.currentFix != null
-        ? MirkProjection.latLonToScreen(
-            lat: context.currentFix!.latitude,
-            lon: context.currentFix!.longitude,
-            viewport: context.viewportBbox,
-            size: size,
-          )
+        ? MirkProjection.latLonToScreen(lat: context.currentFix!.latitude, lon: context.currentFix!.longitude, viewport: context.viewportBbox, size: size)
         : Offset(size.width / 2, size.height / 2);
 
     // Glow radius — half the canvas diagonal so the gradient covers the
@@ -87,9 +71,7 @@ class CandlelightMirkRenderer implements MirkRenderer {
     // the real "fades out further from centre" work. Defensive >0 guard:
     // the Gradient.radial constructor requires radius > 0.
     final diagonalSquared = size.width * size.width + size.height * size.height;
-    final radius = diagonalSquared == 0
-        ? 1.0
-        : 0.5 * math.sqrt(diagonalSquared);
+    final radius = diagonalSquared == 0 ? 1.0 : 0.5 * math.sqrt(diagonalSquared);
 
     // Modulate alpha by ±7% around the configured baseline.
     final alpha = (config.baselineAlpha + flicker * 0.07).clamp(0.0, 1.0);
@@ -99,26 +81,16 @@ class CandlelightMirkRenderer implements MirkRenderer {
     final peripheryColor = _applyAlpha(config.peripheryColorArgb, aMul);
 
     final cellSize = size.height / kRevealedTileSubgridSize;
-    final featherSigma =
-        cellSize * config.featherRadiusFraction * context.pixelRatio;
+    final featherSigma = cellSize * config.featherRadiusFraction * context.pixelRatio;
 
-    final shader = Gradient.radial(
-      centre,
-      radius,
-      <Color>[centerColor, peripheryColor],
-      <double>[0.0, 1.0],
-    );
+    final shader = Gradient.radial(centre, radius, <Color>[centerColor, peripheryColor], <double>[0.0, 1.0]);
     final paint = Paint()
       ..shader = shader
       ..style = PaintingStyle.fill
       ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
 
     for (final tile in context.visibleTiles) {
-      final path = buildUnrevealedCellsPath(
-        tile: tile,
-        viewport: context.viewportBbox,
-        canvasSize: size,
-      );
+      final path = buildUnrevealedCellsPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
       if (path.getBounds().isEmpty) continue;
       canvas.drawPath(path, paint);
     }

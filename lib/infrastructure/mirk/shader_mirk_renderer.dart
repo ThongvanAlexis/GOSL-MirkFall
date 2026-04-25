@@ -35,14 +35,11 @@ class ShaderMirkRenderer implements MirkRenderer {
   final ShaderConfig config;
 
   @override
-  void paint(Canvas canvas, Size size, MirkPaintContext context) =>
-      throw UnimplementedError('Phase 13 — ShaderConfig body');
+  void paint(Canvas canvas, Size size, MirkPaintContext context) => throw UnimplementedError('Phase 13 — ShaderConfig body');
 
   @override
-  void update(Duration elapsed) =>
-      throw UnimplementedError('Phase 13 — ShaderConfig body');
+  void update(Duration elapsed) => throw UnimplementedError('Phase 13 — ShaderConfig body');
 
   @override
-  Future<void> dispose() async =>
-      throw UnimplementedError('Phase 13 — ShaderConfig body');
+  Future<void> dispose() async => throw UnimplementedError('Phase 13 — ShaderConfig body');
 }

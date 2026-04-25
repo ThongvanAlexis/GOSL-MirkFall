@@ -65,10 +65,7 @@ sealed class MirkStyleConfig with _$MirkStyleConfig {
   }) = AtmosphericConfig;
 
   /// Solid fill — no noise, no animation. Proof-of-seam minimalist.
-  const factory MirkStyleConfig.solid({
-    @Default(0xFF1A1A1A) int colorArgb,
-    @Default(0.99) double baselineAlpha,
-  }) = SolidConfig;
+  const factory MirkStyleConfig.solid({@Default(0xFF1A1A1A) int colorArgb, @Default(0.99) double baselineAlpha}) = SolidConfig;
 
   /// Warm candlelight glow with high-frequency flicker.
   const factory MirkStyleConfig.candlelight({
@@ -95,8 +92,7 @@ sealed class MirkStyleConfig with _$MirkStyleConfig {
   }) = HeavenlyCloudsConfig;
 
   /// GPU shader-backed fog (Phase 09 advanced renderer — body lands in Phase 13).
-  const factory MirkStyleConfig.shader({required String shaderAssetPath}) =
-      ShaderConfig;
+  const factory MirkStyleConfig.shader({required String shaderAssetPath}) = ShaderConfig;
 
   /// Forward-compatibility fallback: preserves the original JSON map verbatim
   /// when the local app version does not recognize `rendererType`. The
@@ -104,17 +100,10 @@ sealed class MirkStyleConfig with _$MirkStyleConfig {
   /// `UnknownConfig.fromJson(json)` capture the WHOLE `json` map into
   /// [raw] instead of looking for a nested `'raw'` key.
   const factory MirkStyleConfig.unknown({
-    @JsonKey(
-      fromJson: _unknownRawFromJson,
-      toJson: _unknownRawToJson,
-      disallowNullValue: true,
-      readValue: _readWholeMap,
-    )
-    required Map<String, Object?> raw,
+    @JsonKey(fromJson: _unknownRawFromJson, toJson: _unknownRawToJson, disallowNullValue: true, readValue: _readWholeMap) required Map<String, Object?> raw,
   }) = UnknownConfig;
 
-  factory MirkStyleConfig.fromJson(Map<String, Object?> json) =>
-      _$MirkStyleConfigFromJson(json);
+  factory MirkStyleConfig.fromJson(Map<String, Object?> json) => _$MirkStyleConfigFromJson(json);
 }
 
 /// `readValue` hook — instructs json_serializable to pass the ENTIRE source

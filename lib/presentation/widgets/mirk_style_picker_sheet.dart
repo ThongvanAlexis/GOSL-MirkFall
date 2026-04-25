@@ -21,10 +21,7 @@ part 'mirk_style_picker_sheet.g.dart';
 /// carry the style id directly (it lives on the persisted `Session`
 /// row, behind `SessionStore.findById`).
 @riverpod
-Future<MirkStyleId?> currentSessionMirkStyleId(
-  Ref ref,
-  SessionId sessionId,
-) async {
+Future<MirkStyleId?> currentSessionMirkStyleId(Ref ref, SessionId sessionId) async {
   final store = await ref.watch(sessionStoreProvider.future);
   final session = await store.findById(sessionId);
   return session?.mirkStyleId;
@@ -57,9 +54,7 @@ class MirkStylePickerSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final builtinsAsync = ref.watch(builtinMirkStylesProvider);
-    final currentStyleAsync = ref.watch(
-      currentSessionMirkStyleIdProvider(sessionId),
-    );
+    final currentStyleAsync = ref.watch(currentSessionMirkStyleIdProvider(sessionId));
     final MirkStyleId? currentStyleId = currentStyleAsync.value;
 
     return SafeArea(
@@ -71,29 +66,18 @@ class MirkStylePickerSheet extends ConsumerWidget {
           children: <Widget>[
             Padding(
               padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 8.0),
-              child: Text(
-                'Choisir un style',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              child: Text('Choisir un style', style: Theme.of(context).textTheme.titleMedium),
             ),
             builtinsAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32.0),
                 child: Center(child: CircularProgressIndicator.adaptive()),
               ),
-              error: (err, _) => Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text('Erreur : $err'),
-              ),
+              error: (err, _) => Padding(padding: const EdgeInsets.all(16.0), child: Text('Erreur : $err')),
               data: (builtins) => Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  for (final style in builtins)
-                    _StyleTile(
-                      style: style,
-                      isCurrent: currentStyleId == style.id,
-                      onTap: () => _onSelect(context, ref, style),
-                    ),
+                  for (final style in builtins) _StyleTile(style: style, isCurrent: currentStyleId == style.id, onTap: () => _onSelect(context, ref, style)),
                 ],
               ),
             ),
@@ -103,27 +87,17 @@ class MirkStylePickerSheet extends ConsumerWidget {
     );
   }
 
-  Future<void> _onSelect(
-    BuildContext context,
-    WidgetRef ref,
-    MirkStyle style,
-  ) async {
+  Future<void> _onSelect(BuildContext context, WidgetRef ref, MirkStyle style) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     try {
-      final controller = await ref.read(
-        mirkStyleSessionControllerProvider.future,
-      );
+      final controller = await ref.read(mirkStyleSessionControllerProvider.future);
       await controller.select(sessionId: sessionId, styleId: style.id);
     } on MirkStyleNotFoundException catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Style introuvable')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Style introuvable')));
       return;
     } on NoActiveSessionException catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Aucune session active')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Aucune session active')));
       return;
     } on Object catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Erreur : $e')));
@@ -134,11 +108,7 @@ class MirkStylePickerSheet extends ConsumerWidget {
 }
 
 class _StyleTile extends StatelessWidget {
-  const _StyleTile({
-    required this.style,
-    required this.isCurrent,
-    required this.onTap,
-  });
+  const _StyleTile({required this.style, required this.isCurrent, required this.onTap});
 
   final MirkStyle style;
   final bool isCurrent;
@@ -146,10 +116,6 @@ class _StyleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      title: Text(style.displayName),
-      trailing: isCurrent ? const Icon(Icons.check) : null,
-      onTap: onTap,
-    );
+    return ListTile(title: Text(style.displayName), trailing: isCurrent ? const Icon(Icons.check) : null, onTap: onTap);
   }
 }

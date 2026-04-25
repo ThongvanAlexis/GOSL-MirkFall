@@ -30,11 +30,7 @@ abstract class LocationStream {
   /// Platform-level errors are propagated as stream errors typed via
   /// `lib/domain/gps/gps_errors.dart` — subscribers pattern-match over the
   /// sealed [`GpsError`] hierarchy.
-  Stream<Fix> positions({
-    required SessionId sessionId,
-    required int distanceFilterMeters,
-    required String sessionDisplayName,
-  });
+  Stream<Fix> positions({required SessionId sessionId, required int distanceFilterMeters, required String sessionDisplayName});
 
   /// The most recently emitted [Fix] from the current or last [positions]
   /// subscription, or `null` if no fix has been emitted yet.

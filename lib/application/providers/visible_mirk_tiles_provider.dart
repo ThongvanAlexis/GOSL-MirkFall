@@ -55,16 +55,8 @@ Future<List<VisibleMirkTile>> visibleMirkTiles(Ref ref) async {
   // Tile-coordinate north corresponds to MIN y (slippy-map convention).
   // Compute the four bbox corners' tile indices and produce the
   // inclusive (xMin..xMax, yMin..yMax) rectangle.
-  final TilePosition nwTile = TileMath.latLonToTile(
-    lat: viewport.north,
-    lon: viewport.west,
-    zoom: kRevealedTileParentZoom,
-  );
-  final TilePosition seTile = TileMath.latLonToTile(
-    lat: viewport.south,
-    lon: viewport.east,
-    zoom: kRevealedTileParentZoom,
-  );
+  final TilePosition nwTile = TileMath.latLonToTile(lat: viewport.north, lon: viewport.west, zoom: kRevealedTileParentZoom);
+  final TilePosition seTile = TileMath.latLonToTile(lat: viewport.south, lon: viewport.east, zoom: kRevealedTileParentZoom);
   final int xMin = nwTile.x < seTile.x ? nwTile.x : seTile.x;
   final int xMax = nwTile.x > seTile.x ? nwTile.x : seTile.x;
   final int yMin = nwTile.y < seTile.y ? nwTile.y : seTile.y;
@@ -73,35 +65,13 @@ Future<List<VisibleMirkTile>> visibleMirkTiles(Ref ref) async {
   final result = <VisibleMirkTile>[];
   for (var y = yMin; y <= yMax; y++) {
     for (var x = xMin; x <= xMax; x++) {
-      final row = await store.findByParent(
-        sessionId: sessionId,
-        parentX: x,
-        parentY: y,
-      );
+      final row = await store.findByParent(sessionId: sessionId, parentX: x, parentY: y);
       // Null bitmap = no bits revealed yet for this tile. Still include
       // the tile — all-zero bitmap means the entire tile renders as fog.
       final bitmap = row?.bitmap ?? Uint8List(kRevealedTileBitmapBytes);
-      final ({double lat, double lon}) nw = TileMath.tileToLatLon(
-        x: x,
-        y: y,
-        zoom: kRevealedTileParentZoom,
-      );
-      final ({double lat, double lon}) se = TileMath.tileToLatLon(
-        x: x + 1,
-        y: y + 1,
-        zoom: kRevealedTileParentZoom,
-      );
-      result.add(
-        VisibleMirkTile(
-          parentX: x,
-          parentY: y,
-          bitmap: bitmap,
-          tileNorthLat: nw.lat,
-          tileWestLon: nw.lon,
-          tileSouthLat: se.lat,
-          tileEastLon: se.lon,
-        ),
-      );
+      final ({double lat, double lon}) nw = TileMath.tileToLatLon(x: x, y: y, zoom: kRevealedTileParentZoom);
+      final ({double lat, double lon}) se = TileMath.tileToLatLon(x: x + 1, y: y + 1, zoom: kRevealedTileParentZoom);
+      result.add(VisibleMirkTile(parentX: x, parentY: y, bitmap: bitmap, tileNorthLat: nw.lat, tileWestLon: nw.lon, tileSouthLat: se.lat, tileEastLon: se.lon));
     }
   }
   return result;

@@ -21,19 +21,14 @@ import 'package:mirkfall/domain/revealed/revealed_tile_store.dart';
 /// In-memory fake [RevealedTileStore] — only `findByParent` is exercised
 /// by `visibleMirkTilesProvider`.
 class _FakeRevealedTileStore implements RevealedTileStore {
-  _FakeRevealedTileStore({Map<String, Uint8List>? rows})
-    : _rowByKey = rows ?? <String, Uint8List>{};
+  _FakeRevealedTileStore({Map<String, Uint8List>? rows}) : _rowByKey = rows ?? <String, Uint8List>{};
 
   final Map<String, Uint8List> _rowByKey;
 
   String _key(SessionId sessionId, int x, int y) => '${sessionId.value}|$x|$y';
 
   @override
-  Future<RevealedTile?> findByParent({
-    required SessionId sessionId,
-    required int parentX,
-    required int parentY,
-  }) async {
+  Future<RevealedTile?> findByParent({required SessionId sessionId, required int parentX, required int parentY}) async {
     final bitmap = _rowByKey[_key(sessionId, parentX, parentY)];
     if (bitmap == null) return null;
     final setBitCount = bitmap.fold<int>(0, (acc, b) => acc + _popcount8(b));
@@ -56,16 +51,10 @@ class _FakeRevealedTileStore implements RevealedTileStore {
   }
 
   @override
-  Future<List<RevealedTile>> listBySession(SessionId sessionId) async =>
-      <RevealedTile>[];
+  Future<List<RevealedTile>> listBySession(SessionId sessionId) async => <RevealedTile>[];
 
   @override
-  Future<void> mergeMask({
-    required SessionId sessionId,
-    required int parentX,
-    required int parentY,
-    required Uint8List mask,
-  }) async {
+  Future<void> mergeMask({required SessionId sessionId, required int parentX, required int parentY, required Uint8List mask}) async {
     _rowByKey[_key(sessionId, parentX, parentY)] = Uint8List.fromList(mask);
   }
 }
@@ -86,16 +75,10 @@ class _SeededMapViewport extends MapViewport {
   MirkViewportBbox? build() => _initial;
 }
 
-ProviderContainer _buildContainer({
-  required ActiveSessionState sessionState,
-  required RevealedTileStore store,
-  MirkViewportBbox? viewport,
-}) {
+ProviderContainer _buildContainer({required ActiveSessionState sessionState, required RevealedTileStore store, MirkViewportBbox? viewport}) {
   return ProviderContainer(
     overrides: [
-      activeSessionControllerProvider.overrideWith(
-        () => _FakeActiveSessionController(sessionState),
-      ),
+      activeSessionControllerProvider.overrideWith(() => _FakeActiveSessionController(sessionState)),
       revealedTileStoreProvider.overrideWith((ref) async => store),
       mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
     ],
@@ -112,12 +95,7 @@ void main() {
       final container = _buildContainer(
         sessionState: const Idle(),
         store: _FakeRevealedTileStore(),
-        viewport: MirkViewportBbox(
-          south: 43.0,
-          west: 5.5,
-          north: 44.5,
-          east: 6.0,
-        ),
+        viewport: MirkViewportBbox(south: 43.0, west: 5.5, north: 44.5, east: 6.0),
       );
       addTearDown(container.dispose);
 
@@ -127,12 +105,7 @@ void main() {
 
     test('returns empty list when viewport is null', () async {
       final container = _buildContainer(
-        sessionState: Tracking(
-          sessionId: const SessionId('sess_no_viewport'),
-          startedAtUtc: DateTime.utc(2026, 4, 25),
-          fixCount: 0,
-          distanceFilterMeters: 5,
-        ),
+        sessionState: Tracking(sessionId: const SessionId('sess_no_viewport'), startedAtUtc: DateTime.utc(2026, 4, 25), fixCount: 0, distanceFilterMeters: 5),
         store: _FakeRevealedTileStore(),
       );
       addTearDown(container.dispose);
@@ -148,19 +121,9 @@ void main() {
       // covering the centre); since the store has no row, the bitmap is
       // all zeros.
       final container = _buildContainer(
-        sessionState: Tracking(
-          sessionId: const SessionId('sess_marseille'),
-          startedAtUtc: DateTime.utc(2026, 4, 25),
-          fixCount: 0,
-          distanceFilterMeters: 5,
-        ),
+        sessionState: Tracking(sessionId: const SessionId('sess_marseille'), startedAtUtc: DateTime.utc(2026, 4, 25), fixCount: 0, distanceFilterMeters: 5),
         store: _FakeRevealedTileStore(),
-        viewport: MirkViewportBbox(
-          south: 43.295,
-          west: 5.385,
-          north: 43.300,
-          east: 5.395,
-        ),
+        viewport: MirkViewportBbox(south: 43.295, west: 5.385, north: 43.300, east: 5.395),
       );
       addTearDown(container.dispose);
 
@@ -185,19 +148,9 @@ void main() {
 
       // Compute the parent tile at z14 for Marseille centre.
       final container = _buildContainer(
-        sessionState: Tracking(
-          sessionId: sessionId,
-          startedAtUtc: DateTime.utc(2026, 4, 25),
-          fixCount: 0,
-          distanceFilterMeters: 5,
-        ),
+        sessionState: Tracking(sessionId: sessionId, startedAtUtc: DateTime.utc(2026, 4, 25), fixCount: 0, distanceFilterMeters: 5),
         store: store,
-        viewport: MirkViewportBbox(
-          south: 43.295,
-          west: 5.385,
-          north: 43.300,
-          east: 5.395,
-        ),
+        viewport: MirkViewportBbox(south: 43.295, west: 5.385, north: 43.300, east: 5.395),
       );
       addTearDown(container.dispose);
 
@@ -208,19 +161,12 @@ void main() {
       // for the test to know which tile to seed.)
       final firstFetch = await container.read(visibleMirkTilesProvider.future);
       final aTile = firstFetch.first;
-      await store.mergeMask(
-        sessionId: sessionId,
-        parentX: aTile.parentX,
-        parentY: aTile.parentY,
-        mask: knownBitmap,
-      );
+      await store.mergeMask(sessionId: sessionId, parentX: aTile.parentX, parentY: aTile.parentY, mask: knownBitmap);
 
       // Invalidate to force a re-read.
       container.invalidate(visibleMirkTilesProvider);
       final tiles = await container.read(visibleMirkTilesProvider.future);
-      final seeded = tiles.firstWhere(
-        (t) => t.parentX == aTile.parentX && t.parentY == aTile.parentY,
-      );
+      final seeded = tiles.firstWhere((t) => t.parentX == aTile.parentX && t.parentY == aTile.parentY);
       expect(seeded.bitmap[0], 0xFF);
       expect(seeded.bitmap[1], 0xAA);
     });

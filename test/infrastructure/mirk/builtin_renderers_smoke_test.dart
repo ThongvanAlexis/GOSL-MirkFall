@@ -27,44 +27,27 @@ import '_render_helpers.dart';
 
 void main() {
   group('09-04 — 4 builtin renderers smoke (MIRK-06)', () {
-    test(
-      'all 4 instantiate + paint + update + dispose without throw',
-      () async {
-        final renderers = <MirkRenderer>[
-          AtmosphericMirkRenderer(
-            const MirkStyleConfig.atmospheric() as AtmosphericConfig,
-          ),
-          SolidFillMirkRenderer(const MirkStyleConfig.solid() as SolidConfig),
-          CandlelightMirkRenderer(
-            const MirkStyleConfig.candlelight() as CandlelightConfig,
-          ),
-          HeavenlyCloudsMirkRenderer(
-            const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig,
-          ),
-        ];
+    test('all 4 instantiate + paint + update + dispose without throw', () async {
+      final renderers = <MirkRenderer>[
+        AtmosphericMirkRenderer(const MirkStyleConfig.atmospheric() as AtmosphericConfig),
+        SolidFillMirkRenderer(const MirkStyleConfig.solid() as SolidConfig),
+        CandlelightMirkRenderer(const MirkStyleConfig.candlelight() as CandlelightConfig),
+        HeavenlyCloudsMirkRenderer(const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig),
+      ];
 
-        for (final renderer in renderers) {
-          final ctx = fakeContext(elapsedMs: 1000);
-          final recorder = PictureRecorder();
-          final canvas = Canvas(recorder);
-          // paint must not throw
-          expect(
-            () => renderer.paint(canvas, kTestCanvasSize, ctx),
-            returnsNormally,
-            reason: '${renderer.runtimeType}.paint() threw',
-          );
-          // update must not throw
-          expect(
-            () => renderer.update(const Duration(milliseconds: 16)),
-            returnsNormally,
-            reason: '${renderer.runtimeType}.update() threw',
-          );
-          // Release the picture so the recorder doesn't leak.
-          recorder.endRecording().dispose();
-          // dispose must not throw + must complete
-          await renderer.dispose();
-        }
-      },
-    );
+      for (final renderer in renderers) {
+        final ctx = fakeContext(elapsedMs: 1000);
+        final recorder = PictureRecorder();
+        final canvas = Canvas(recorder);
+        // paint must not throw
+        expect(() => renderer.paint(canvas, kTestCanvasSize, ctx), returnsNormally, reason: '${renderer.runtimeType}.paint() threw');
+        // update must not throw
+        expect(() => renderer.update(const Duration(milliseconds: 16)), returnsNormally, reason: '${renderer.runtimeType}.update() threw');
+        // Release the picture so the recorder doesn't leak.
+        recorder.endRecording().dispose();
+        // dispose must not throw + must complete
+        await renderer.dispose();
+      }
+    });
   });
 }

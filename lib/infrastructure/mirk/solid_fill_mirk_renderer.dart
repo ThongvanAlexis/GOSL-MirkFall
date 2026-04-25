@@ -44,9 +44,7 @@ class SolidFillMirkRenderer implements MirkRenderer {
     final g = (argb >> 8) & 0xFF;
     final b = argb & 0xFF;
     final aFromArgb = (argb >> 24) & 0xFF;
-    final finalAlpha = (aFromArgb * config.baselineAlpha)
-        .clamp(0.0, 255.0)
-        .round();
+    final finalAlpha = (aFromArgb * config.baselineAlpha).clamp(0.0, 255.0).round();
     return Color.fromARGB(finalAlpha, r, g, b);
   }
 
@@ -55,11 +53,7 @@ class SolidFillMirkRenderer implements MirkRenderer {
     if (_disposed) return;
     if (context.visibleTiles.isEmpty) return;
     for (final tile in context.visibleTiles) {
-      final path = buildUnrevealedCellsPath(
-        tile: tile,
-        viewport: context.viewportBbox,
-        canvasSize: size,
-      );
+      final path = buildUnrevealedCellsPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
       // Skip drawing entirely when the path is empty (every cell of the
       // tile was already revealed — nothing to fog).
       if (path.getBounds().isEmpty) continue;

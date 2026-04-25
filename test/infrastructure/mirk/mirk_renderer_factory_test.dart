@@ -79,10 +79,7 @@ void main() {
 
     test('UnknownConfig -> AtmosphericMirkRenderer with default config '
         '(forward-compat fallback)', () {
-      final config = MirkStyleConfig.fromJson(<String, Object?>{
-        'rendererType': 'unknown-future-renderer-v999',
-        'someParam': 42,
-      });
+      final config = MirkStyleConfig.fromJson(<String, Object?>{'rendererType': 'unknown-future-renderer-v999', 'someParam': 42});
       expect(
         config,
         isA<UnknownConfig>(),
@@ -100,10 +97,7 @@ void main() {
             'renderer rather than crashing or returning a Noop',
       );
       // Atmospheric default config: baseColorArgb = 0xFF000000.
-      expect(
-        (renderer as AtmosphericMirkRenderer).config.baseColorArgb,
-        0xFF000000,
-      );
+      expect((renderer as AtmosphericMirkRenderer).config.baseColorArgb, 0xFF000000);
     });
   });
 
@@ -120,46 +114,28 @@ void main() {
 
     test('every descriptor carries a non-empty French display name', () {
       for (final descriptor in kBuiltinMirkStyles) {
-        expect(
-          descriptor.displayName.trim(),
-          isNotEmpty,
-          reason: '${descriptor.id} must carry a display name',
-        );
+        expect(descriptor.displayName.trim(), isNotEmpty, reason: '${descriptor.id} must carry a display name');
       }
     });
 
-    test(
-      'atmospheric descriptor defaultConfig() returns AtmosphericConfig',
-      () {
-        final descriptor = kBuiltinMirkStyles.firstWhere(
-          (d) => d.id == 'style_builtin_atmospheric',
-        );
-        expect(descriptor.defaultConfig(), isA<AtmosphericConfig>());
-      },
-    );
+    test('atmospheric descriptor defaultConfig() returns AtmosphericConfig', () {
+      final descriptor = kBuiltinMirkStyles.firstWhere((d) => d.id == 'style_builtin_atmospheric');
+      expect(descriptor.defaultConfig(), isA<AtmosphericConfig>());
+    });
 
     test('solid descriptor defaultConfig() returns SolidConfig', () {
-      final descriptor = kBuiltinMirkStyles.firstWhere(
-        (d) => d.id == 'style_builtin_solid',
-      );
+      final descriptor = kBuiltinMirkStyles.firstWhere((d) => d.id == 'style_builtin_solid');
       expect(descriptor.defaultConfig(), isA<SolidConfig>());
     });
 
-    test(
-      'candlelight descriptor defaultConfig() returns CandlelightConfig',
-      () {
-        final descriptor = kBuiltinMirkStyles.firstWhere(
-          (d) => d.id == 'style_builtin_candlelight',
-        );
-        expect(descriptor.defaultConfig(), isA<CandlelightConfig>());
-      },
-    );
+    test('candlelight descriptor defaultConfig() returns CandlelightConfig', () {
+      final descriptor = kBuiltinMirkStyles.firstWhere((d) => d.id == 'style_builtin_candlelight');
+      expect(descriptor.defaultConfig(), isA<CandlelightConfig>());
+    });
 
     test('heavenly_clouds descriptor defaultConfig() returns '
         'HeavenlyCloudsConfig', () {
-      final descriptor = kBuiltinMirkStyles.firstWhere(
-        (d) => d.id == 'style_builtin_heavenly_clouds',
-      );
+      final descriptor = kBuiltinMirkStyles.firstWhere((d) => d.id == 'style_builtin_heavenly_clouds');
       expect(descriptor.defaultConfig(), isA<HeavenlyCloudsConfig>());
     });
 
@@ -172,19 +148,13 @@ void main() {
       // (in case Phase 13 extends with runtime params). We verify by
       // checking value-equality holds (Freezed generates ==).
       final descriptor = kBuiltinMirkStyles.first;
-      expect(
-        descriptor.defaultConfig(),
-        descriptor.defaultConfig(),
-        reason: 'two consecutive defaultConfig() calls must compare equal',
-      );
+      expect(descriptor.defaultConfig(), descriptor.defaultConfig(), reason: 'two consecutive defaultConfig() calls must compare equal');
     });
 
     test('factory dispatches every kBuiltinMirkStyles defaultConfig() '
         'to its expected concrete renderer', () {
       const factory = MirkRendererFactory();
-      final renderers = kBuiltinMirkStyles
-          .map((d) => factory.create(d.defaultConfig()))
-          .toList();
+      final renderers = kBuiltinMirkStyles.map((d) => factory.create(d.defaultConfig())).toList();
       expect(renderers[0], isA<AtmosphericMirkRenderer>());
       expect(renderers[1], isA<SolidFillMirkRenderer>());
       expect(renderers[2], isA<CandlelightMirkRenderer>());

@@ -31,11 +31,7 @@ final Logger _log = Logger('application.controllers.mirk_style_session');
 /// * Same-style reselect (session already references [styleId]) → no-op
 ///   (no DB write, no invalidate, no log noise).
 class MirkStyleSessionController {
-  MirkStyleSessionController({
-    required this.sessionStore,
-    required this.styleStore,
-    required this.invalidateRenderer,
-  });
+  MirkStyleSessionController({required this.sessionStore, required this.styleStore, required this.invalidateRenderer});
 
   final SessionStore sessionStore;
   final MirkStyleStore styleStore;
@@ -52,10 +48,7 @@ class MirkStyleSessionController {
   ///
   /// Idempotent on same-style reselect. Throws on missing session /
   /// missing style — never silent.
-  Future<void> select({
-    required SessionId sessionId,
-    required MirkStyleId styleId,
-  }) async {
+  Future<void> select({required SessionId sessionId, required MirkStyleId styleId}) async {
     final style = await styleStore.findById(styleId);
     if (style == null) {
       throw MirkStyleNotFoundException(styleId: styleId);
@@ -71,10 +64,7 @@ class MirkStyleSessionController {
       return;
     }
 
-    await sessionStore.updateMirkStyle(
-      sessionId: sessionId,
-      mirkStyleId: styleId,
-    );
+    await sessionStore.updateMirkStyle(sessionId: sessionId, mirkStyleId: styleId);
     invalidateRenderer();
   }
 }

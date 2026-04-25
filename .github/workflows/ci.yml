@@ -35,7 +35,7 @@ jobs:
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.5'
+          flutter-version: '3.41.7'
           channel: stable
           cache: true
 
@@ -232,7 +232,7 @@ jobs:
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.5'
+          flutter-version: '3.41.7'
           channel: stable
           cache: true
 
@@ -328,7 +328,7 @@ jobs:
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.5'
+          flutter-version: '3.41.7'
           channel: stable
           cache: true
 

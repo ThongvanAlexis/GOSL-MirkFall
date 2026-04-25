@@ -23,8 +23,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Fake [PathProviderPlatform] pointing at a test-owned temp directory.
 /// Reused across all Phase 02 widget tests that need `path_provider` to
 /// return something that exists on the host OS.
-class _FakePathProvider extends PathProviderPlatform
-    with MockPlatformInterfaceMixin {
+class _FakePathProvider extends PathProviderPlatform with MockPlatformInterfaceMixin {
   _FakePathProvider(this._root);
   final Directory _root;
 
@@ -50,8 +49,7 @@ class _EmptyStreamSessionStore implements SessionStore {
   Future<Session?> findById(SessionId id) async => null;
 
   @override
-  Future<Session> requireById(SessionId id) async =>
-      throw StateError('smoke test: no sessions');
+  Future<Session> requireById(SessionId id) async => throw StateError('smoke test: no sessions');
 
   @override
   Future<Session?> findActive() async => null;
@@ -72,14 +70,10 @@ class _EmptyStreamSessionStore implements SessionStore {
   Future<void> deactivate(SessionId id) async {}
 
   @override
-  Future<void> updateMirkStyle({
-    required SessionId sessionId,
-    required MirkStyleId? mirkStyleId,
-  }) async {}
+  Future<void> updateMirkStyle({required SessionId sessionId, required MirkStyleId? mirkStyleId}) async {}
 
   @override
-  Stream<List<Session>> watchAll() =>
-      Stream<List<Session>>.value(const <Session>[]);
+  Stream<List<Session>> watchAll() => Stream<List<Session>>.value(const <Session>[]);
 }
 
 void main() {
@@ -121,9 +115,7 @@ void main() {
     }
   }
 
-  testWidgets('MirkFallApp pumps and renders the Phase 05 session list home', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('MirkFallApp pumps and renders the Phase 05 session list home', (WidgetTester tester) async {
     // Phase 05-04: `/` is [SessionListScreen] which consumes
     // [sessionListProvider] → sessionStoreProvider → appDatabaseProvider.
     // The smoke test overrides [sessionStoreProvider] with an
@@ -134,24 +126,11 @@ void main() {
     // that already inject fakes; the smoke only proves bootstrap +
     // route mount + Scaffold render.
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sessionStoreProvider.overrideWith(
-            (ref) async => _EmptyStreamSessionStore(),
-          ),
-        ],
-        child: const MirkFallApp(),
-      ),
+      ProviderScope(overrides: [sessionStoreProvider.overrideWith((ref) async => _EmptyStreamSessionStore())], child: const MirkFallApp()),
     );
     await settlePumpUntilText(tester, 'Mes sessions');
 
-    expect(
-      find.descendant(
-        of: find.byType(AppBar),
-        matching: find.text('Mes sessions'),
-      ),
-      findsOneWidget,
-    );
+    expect(find.descendant(of: find.byType(AppBar), matching: find.text('Mes sessions')), findsOneWidget);
     // Double-check kAppName still resolves (catches unrelated Phase 01
     // constant renames that would break the smoke build).
     expect(kAppName, isNotEmpty);

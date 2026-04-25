@@ -23,11 +23,7 @@ import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 class BuiltinMirkStyleDescriptor {
   /// Constructs a descriptor with [id], [displayName], and the
   /// [defaultConfig] factory.
-  const BuiltinMirkStyleDescriptor({
-    required this.id,
-    required this.displayName,
-    required this.defaultConfig,
-  });
+  const BuiltinMirkStyleDescriptor({required this.id, required this.displayName, required this.defaultConfig});
 
   /// Deterministic id — `style_builtin_<variant>`. Doubles as a
   /// DB-layer marker of "built-in" for the Phase 13 OPT-04
@@ -60,29 +56,12 @@ class BuiltinMirkStyleDescriptor {
 /// structurally (analyzer error). MIRK-05 "ajouter un style = nouveau
 /// fichier, zéro core modification" is satisfied: each variant ALSO
 /// gets a new file in `lib/infrastructure/mirk/<variant>_mirk_renderer.dart`.
-const List<BuiltinMirkStyleDescriptor> kBuiltinMirkStyles =
-    <BuiltinMirkStyleDescriptor>[
-      BuiltinMirkStyleDescriptor(
-        id: 'style_builtin_atmospheric',
-        displayName: 'Atmospheric (défaut)',
-        defaultConfig: _atmosphericDefault,
-      ),
-      BuiltinMirkStyleDescriptor(
-        id: 'style_builtin_solid',
-        displayName: 'Solide',
-        defaultConfig: _solidDefault,
-      ),
-      BuiltinMirkStyleDescriptor(
-        id: 'style_builtin_candlelight',
-        displayName: 'Lueur de bougie',
-        defaultConfig: _candlelightDefault,
-      ),
-      BuiltinMirkStyleDescriptor(
-        id: 'style_builtin_heavenly_clouds',
-        displayName: 'Nuages célestes',
-        defaultConfig: _heavenlyCloudsDefault,
-      ),
-    ];
+const List<BuiltinMirkStyleDescriptor> kBuiltinMirkStyles = <BuiltinMirkStyleDescriptor>[
+  BuiltinMirkStyleDescriptor(id: 'style_builtin_atmospheric', displayName: 'Atmospheric (défaut)', defaultConfig: _atmosphericDefault),
+  BuiltinMirkStyleDescriptor(id: 'style_builtin_solid', displayName: 'Solide', defaultConfig: _solidDefault),
+  BuiltinMirkStyleDescriptor(id: 'style_builtin_candlelight', displayName: 'Lueur de bougie', defaultConfig: _candlelightDefault),
+  BuiltinMirkStyleDescriptor(id: 'style_builtin_heavenly_clouds', displayName: 'Nuages célestes', defaultConfig: _heavenlyCloudsDefault),
+];
 
 // Top-level functions rather than closures so the descriptor's
 // `defaultConfig` field can be `const`-friendly via tear-off and the

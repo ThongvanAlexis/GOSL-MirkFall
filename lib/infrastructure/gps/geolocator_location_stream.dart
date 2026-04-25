@@ -21,8 +21,7 @@ final Logger _log = Logger('gps.stream');
 /// Factory shape that produces the underlying `Stream<Position>` from a
 /// built [geo.LocationSettings]. Default hits `Geolocator.getPositionStream`;
 /// tests inject a fake so the seam avoids mocking the static method.
-typedef PositionStreamFactory =
-    Stream<geo.Position> Function(geo.LocationSettings settings);
+typedef PositionStreamFactory = Stream<geo.Position> Function(geo.LocationSettings settings);
 
 /// Production [LocationStream] — wraps `geolocator`'s `getPositionStream` and
 /// translates `Position` into a domain [Fix].
@@ -45,11 +44,9 @@ typedef PositionStreamFactory =
 ///   [GpsError]; anything else is an infrastructure bug per CLAUDE.md's
 ///   error-handling tiers).
 class GeolocatorLocationStream implements LocationStream {
-  GeolocatorLocationStream({
-    required IdGenerator idGenerator,
-    PositionStreamFactory? positionStreamFactory,
-  }) : _idGenerator = idGenerator,
-       _positionStreamFactory = positionStreamFactory ?? _defaultFactory;
+  GeolocatorLocationStream({required IdGenerator idGenerator, PositionStreamFactory? positionStreamFactory})
+    : _idGenerator = idGenerator,
+      _positionStreamFactory = positionStreamFactory ?? _defaultFactory;
 
   final IdGenerator _idGenerator;
   final PositionStreamFactory _positionStreamFactory;
@@ -68,8 +65,7 @@ class GeolocatorLocationStream implements LocationStream {
   @override
   Fix? get lastKnownFix => _lastKnownFix;
 
-  static Stream<geo.Position> _defaultFactory(geo.LocationSettings settings) =>
-      geo.Geolocator.getPositionStream(locationSettings: settings);
+  static Stream<geo.Position> _defaultFactory(geo.LocationSettings settings) => geo.Geolocator.getPositionStream(locationSettings: settings);
 
   /// Minimum distance (meters) below which a new fix is treated as the same
   /// spot as the last emitted one and filtered out if also within
@@ -82,15 +78,8 @@ class GeolocatorLocationStream implements LocationStream {
   static const int _stationaryDedupWindowSeconds = 10;
 
   @override
-  Stream<Fix> positions({
-    required SessionId sessionId,
-    required int distanceFilterMeters,
-    required String sessionDisplayName,
-  }) {
-    final settings = buildLocationSettings(
-      distanceFilterMeters: distanceFilterMeters,
-      sessionDisplayName: sessionDisplayName,
-    );
+  Stream<Fix> positions({required SessionId sessionId, required int distanceFilterMeters, required String sessionDisplayName}) {
+    final settings = buildLocationSettings(distanceFilterMeters: distanceFilterMeters, sessionDisplayName: sessionDisplayName);
 
     final controller = StreamController<Fix>();
     double? lastLatitude;
@@ -102,9 +91,7 @@ class GeolocatorLocationStream implements LocationStream {
     int droppedStationary = 0;
 
     controller.onListen = () {
-      _log.fine(
-        'stream start · session=${sessionId.value} distanceFilter=${distanceFilterMeters}m accuracyCeiling=${kMaxAcceptableAccuracyMeters}m',
-      );
+      _log.fine('stream start · session=${sessionId.value} distanceFilter=${distanceFilterMeters}m accuracyCeiling=${kMaxAcceptableAccuracyMeters}m');
       _subscription = _positionStreamFactory(settings).listen(
         (geo.Position position) {
           positionsReceived++;
@@ -119,18 +106,10 @@ class GeolocatorLocationStream implements LocationStream {
           }
 
           final now = DateTime.now().toUtc();
-          if (lastLatitude != null &&
-              lastLongitude != null &&
-              lastEmittedAt != null) {
-            final double distanceMeters = geo.Geolocator.distanceBetween(
-              lastLatitude!,
-              lastLongitude!,
-              position.latitude,
-              position.longitude,
-            );
+          if (lastLatitude != null && lastLongitude != null && lastEmittedAt != null) {
+            final double distanceMeters = geo.Geolocator.distanceBetween(lastLatitude!, lastLongitude!, position.latitude, position.longitude);
             final Duration sinceLast = now.difference(lastEmittedAt!);
-            if (distanceMeters < _stationaryDedupMinDistanceMeters &&
-                sinceLast.inSeconds < _stationaryDedupWindowSeconds) {
+            if (distanceMeters < _stationaryDedupMinDistanceMeters && sinceLast.inSeconds < _stationaryDedupWindowSeconds) {
               droppedStationary++;
               _log.fine(
                 'position rejected (stationary ${distanceMeters.toStringAsFixed(2)}m < '
@@ -148,9 +127,7 @@ class GeolocatorLocationStream implements LocationStream {
             latitude: position.latitude,
             longitude: position.longitude,
             accuracyMeters: position.accuracy,
-            altitudeMeters: position.altitude.isFinite
-                ? position.altitude
-                : null,
+            altitudeMeters: position.altitude.isFinite ? position.altitude : null,
             speedMps: position.speed.isFinite ? position.speed : null,
             headingDegrees: position.heading.isFinite ? position.heading : null,
           );
@@ -172,11 +149,7 @@ class GeolocatorLocationStream implements LocationStream {
         },
         onError: (Object error, StackTrace stackTrace) {
           final translated = _translate(error);
-          _log.warning(
-            'stream error (translated=${translated.runtimeType})',
-            error,
-            stackTrace,
-          );
+          _log.warning('stream error (translated=${translated.runtimeType})', error, stackTrace);
           controller.addError(translated, stackTrace);
         },
         cancelOnError: false,

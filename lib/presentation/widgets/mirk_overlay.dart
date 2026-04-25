@@ -40,8 +40,7 @@ class MirkOverlay extends ConsumerStatefulWidget {
   ConsumerState<MirkOverlay> createState() => _MirkOverlayState();
 }
 
-class _MirkOverlayState extends ConsumerState<MirkOverlay>
-    with SingleTickerProviderStateMixin {
+class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
   Duration _tickerElapsed = Duration.zero;
 
@@ -64,9 +63,7 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final AsyncValue<MirkRenderer> rendererAsync = ref.watch(
-      activeMirkRendererProvider,
-    );
+    final AsyncValue<MirkRenderer> rendererAsync = ref.watch(activeMirkRendererProvider);
     final tilesAsync = ref.watch(visibleMirkTilesProvider);
     final viewport = ref.watch(mapViewportProvider);
     final sessionState = ref.watch(activeSessionControllerProvider);
@@ -75,17 +72,12 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay>
     // Bail out cheaply when any prerequisite is not ready. The overlay
     // becomes invisible — the underlying RepaintBoundary keeps the
     // pipeline cold.
-    if (!rendererAsync.hasValue ||
-        !tilesAsync.hasValue ||
-        viewport == null ||
-        zoom == null) {
+    if (!rendererAsync.hasValue || !tilesAsync.hasValue || viewport == null || zoom == null) {
       return const SizedBox.shrink();
     }
     final renderer = rendererAsync.value!;
     final tiles = tilesAsync.value!;
-    final Tracking? tracking = sessionState.value is Tracking
-        ? sessionState.value as Tracking
-        : null;
+    final Tracking? tracking = sessionState.value is Tracking ? sessionState.value as Tracking : null;
     final Fix? currentFix = tracking?.lastFix;
 
     return CustomPaint(
@@ -118,8 +110,7 @@ class _MirkPainter extends CustomPainter {
   final MirkPaintContext paintContext;
 
   @override
-  void paint(Canvas canvas, Size size) =>
-      renderer.paint(canvas, size, paintContext);
+  void paint(Canvas canvas, Size size) => renderer.paint(canvas, size, paintContext);
 
   /// Always returns true: the Ticker drives the rebuild via setState,
   /// so the painter's repaint signal is gated by the widget tree

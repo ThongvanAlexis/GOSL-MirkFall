@@ -34,16 +34,10 @@ import 'mirk_projection.dart';
 /// `tile.tileWestLon`, `tile.tileSouthLat`, `tile.tileEastLon`). The
 /// resulting cell rectangle is then projected to screen space via
 /// [MirkProjection.latLonToScreen].
-Path buildUnrevealedCellsPath({
-  required VisibleMirkTile tile,
-  required MirkViewportBbox viewport,
-  required Size canvasSize,
-}) {
+Path buildUnrevealedCellsPath({required VisibleMirkTile tile, required MirkViewportBbox viewport, required Size canvasSize}) {
   final path = Path();
-  final cellLatSpan =
-      (tile.tileNorthLat - tile.tileSouthLat) / kRevealedTileSubgridSize;
-  final cellLonSpan =
-      (tile.tileEastLon - tile.tileWestLon) / kRevealedTileSubgridSize;
+  final cellLatSpan = (tile.tileNorthLat - tile.tileSouthLat) / kRevealedTileSubgridSize;
+  final cellLonSpan = (tile.tileEastLon - tile.tileWestLon) / kRevealedTileSubgridSize;
   for (var j = 0; j < kRevealedTileSubgridSize; j++) {
     final cellNorthLat = tile.tileNorthLat - j * cellLatSpan;
     final cellSouthLat = tile.tileNorthLat - (j + 1) * cellLatSpan;
@@ -55,18 +49,8 @@ Path buildUnrevealedCellsPath({
       if (bit == 1) continue; // revealed — skip
       final cellWestLon = tile.tileWestLon + i * cellLonSpan;
       final cellEastLon = tile.tileWestLon + (i + 1) * cellLonSpan;
-      final nw = MirkProjection.latLonToScreen(
-        lat: cellNorthLat,
-        lon: cellWestLon,
-        viewport: viewport,
-        size: canvasSize,
-      );
-      final se = MirkProjection.latLonToScreen(
-        lat: cellSouthLat,
-        lon: cellEastLon,
-        viewport: viewport,
-        size: canvasSize,
-      );
+      final nw = MirkProjection.latLonToScreen(lat: cellNorthLat, lon: cellWestLon, viewport: viewport, size: canvasSize);
+      final se = MirkProjection.latLonToScreen(lat: cellSouthLat, lon: cellEastLon, viewport: viewport, size: canvasSize);
       path.addRect(Rect.fromPoints(nw, se));
     }
   }

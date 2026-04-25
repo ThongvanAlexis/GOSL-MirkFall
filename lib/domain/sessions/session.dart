@@ -39,21 +39,14 @@ part 'session.g.dart';
 /// see `migrations/v3_to_v4_session_mirk_style.dart`.
 @freezed
 abstract class Session with _$Session {
-  @Assert(
-    'displayName.trim().isNotEmpty',
-    'Session.displayName must be non-empty',
-  )
-  @Assert(
-    'startedAtOffsetMinutes >= -720 && startedAtOffsetMinutes <= 840',
-    'Session.startedAtOffsetMinutes out of range (UTC-12 to UTC+14)',
-  )
+  @Assert('displayName.trim().isNotEmpty', 'Session.displayName must be non-empty')
+  @Assert('startedAtOffsetMinutes >= -720 && startedAtOffsetMinutes <= 840', 'Session.startedAtOffsetMinutes out of range (UTC-12 to UTC+14)')
   @Assert(
     'stoppedAtOffsetMinutes == null || (stoppedAtOffsetMinutes >= -720 && stoppedAtOffsetMinutes <= 840)',
     'Session.stoppedAtOffsetMinutes out of range (UTC-12 to UTC+14)',
   )
   factory Session({
-    @JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson)
-    required SessionId id,
+    @JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required SessionId id,
     required String displayName,
     required SessionStatus status,
     required DateTime startedAtUtc,
@@ -61,15 +54,10 @@ abstract class Session with _$Session {
     DateTime? stoppedAtUtc,
     int? stoppedAtOffsetMinutes,
     String? notes,
-    @JsonKey(
-      fromJson: _mirkStyleIdFromJsonNullable,
-      toJson: _mirkStyleIdToJsonNullable,
-    )
-    MirkStyleId? mirkStyleId,
+    @JsonKey(fromJson: _mirkStyleIdFromJsonNullable, toJson: _mirkStyleIdToJsonNullable) MirkStyleId? mirkStyleId,
   }) = _Session;
 
-  factory Session.fromJson(Map<String, Object?> json) =>
-      _$SessionFromJson(json);
+  factory Session.fromJson(Map<String, Object?> json) => _$SessionFromJson(json);
 }
 
 /// Nullable JSON converter for [MirkStyleId] — wraps [mirkStyleIdFromJson]
@@ -79,8 +67,6 @@ abstract class Session with _$Session {
 /// cannot be `T extends Object?` in `JsonConverter`); the optional Session
 /// field needs its own pair so json_serializable does not try to call the
 /// non-null converter with `null`.
-MirkStyleId? _mirkStyleIdFromJsonNullable(String? json) =>
-    json == null ? null : mirkStyleIdFromJson(json);
+MirkStyleId? _mirkStyleIdFromJsonNullable(String? json) => json == null ? null : mirkStyleIdFromJson(json);
 
-String? _mirkStyleIdToJsonNullable(MirkStyleId? value) =>
-    value == null ? null : mirkStyleIdToJson(value);
+String? _mirkStyleIdToJsonNullable(MirkStyleId? value) => value == null ? null : mirkStyleIdToJson(value);

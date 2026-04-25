@@ -64,10 +64,7 @@ abstract class SessionStore {
   /// other columns).
   ///
   /// Throws `SessionNotFoundException` when the row is absent.
-  Future<void> updateMirkStyle({
-    required SessionId sessionId,
-    required MirkStyleId? mirkStyleId,
-  });
+  Future<void> updateMirkStyle({required SessionId sessionId, required MirkStyleId? mirkStyleId});
 
   /// Emits the current list of sessions on every row change in
   /// `t_sessions`. Ordering matches [listAll] — `startedAtUtc` DESC.

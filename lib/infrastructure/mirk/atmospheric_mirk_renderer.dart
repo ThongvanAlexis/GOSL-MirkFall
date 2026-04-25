@@ -3,8 +3,7 @@
 // See LICENSE file for details
 
 import 'dart:math' as math;
-import 'dart:ui'
-    show BlurStyle, Canvas, Color, MaskFilter, Paint, PaintingStyle, Size;
+import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Paint, PaintingStyle, Size;
 
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
@@ -43,8 +42,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config] and an optional [seed] for
   /// the internal simplex noise generator. Different seeds produce
   /// different fog patterns under the same config.
-  AtmosphericMirkRenderer(this.config, {int seed = 42})
-    : _noise = SimplexNoise2D(seed: seed);
+  AtmosphericMirkRenderer(this.config, {int seed = 42}) : _noise = SimplexNoise2D(seed: seed);
 
   /// Atmospheric configuration: base colour, noise scale/speed, drift
   /// direction, baseline alpha, feather radius fraction.
@@ -80,8 +78,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     // approximate with size.height / 64 (worst-case fattest cell);
     // this is a sigma magnitude, not an exact pixel count.
     final cellSize = size.height / kRevealedTileSubgridSize;
-    final featherSigma =
-        cellSize * config.featherRadiusFraction * context.pixelRatio;
+    final featherSigma = cellSize * config.featherRadiusFraction * context.pixelRatio;
 
     for (final tile in context.visibleTiles) {
       final noiseSample = _noise.noise2(
@@ -89,20 +86,13 @@ class AtmosphericMirkRenderer implements MirkRenderer {
         tile.parentY * config.noiseScale + tSec * config.noiseSpeed * driftY,
       );
       // Modulate alpha by ±3% around the configured baseline.
-      final alpha = (config.densityBaselineAlpha + noiseSample * 0.03).clamp(
-        0.0,
-        1.0,
-      );
+      final alpha = (config.densityBaselineAlpha + noiseSample * 0.03).clamp(0.0, 1.0);
       final paint = Paint()
         ..color = Color.fromARGB((alpha * 255).round(), r, g, b)
         ..style = PaintingStyle.fill
         ..maskFilter = MaskFilter.blur(BlurStyle.inner, featherSigma);
 
-      final path = buildUnrevealedCellsPath(
-        tile: tile,
-        viewport: context.viewportBbox,
-        canvasSize: size,
-      );
+      final path = buildUnrevealedCellsPath(tile: tile, viewport: context.viewportBbox, canvasSize: size);
       // Skip drawing entirely when the path is empty (every cell of the
       // tile was already revealed — nothing to fog). Avoids cost of an
       // empty drawPath command in the picture record.

@@ -36,17 +36,10 @@ final Logger _log = Logger('application.controllers.reveal_streaming');
 /// continues. The whole batch is not dropped — partial progress is
 /// strictly better than no progress in a fog-of-war reveal pipeline.
 class RevealStreamingController {
-  RevealStreamingController({
-    required this.sessionId,
-    required this.store,
-    Duration? flushInterval,
-    int? flushMaxFixes,
-    double? revealRadiusMeters,
-  }) : flushInterval =
-           flushInterval ??
-           const Duration(seconds: kRevealFlushIntervalSeconds),
-       flushMaxFixes = flushMaxFixes ?? kRevealFlushMaxFixes,
-       revealRadiusMeters = revealRadiusMeters ?? kDefaultRevealRadiusMeters;
+  RevealStreamingController({required this.sessionId, required this.store, Duration? flushInterval, int? flushMaxFixes, double? revealRadiusMeters})
+    : flushInterval = flushInterval ?? const Duration(seconds: kRevealFlushIntervalSeconds),
+      flushMaxFixes = flushMaxFixes ?? kRevealFlushMaxFixes,
+      revealRadiusMeters = revealRadiusMeters ?? kDefaultRevealRadiusMeters;
 
   final SessionId sessionId;
   final RevealedTileStore store;
@@ -81,11 +74,7 @@ class RevealStreamingController {
   /// session open to seed an immediate disc around the user position.
   Future<void> revealInitial(Fix fix) async {
     if (_disposed) return;
-    await _writeCircleReveal(
-      fix.latitude,
-      fix.longitude,
-      kInitialRevealRadiusMeters.toDouble(),
-    );
+    await _writeCircleReveal(fix.latitude, fix.longitude, kInitialRevealRadiusMeters.toDouble());
   }
 
   /// Triggers a flush of the buffered fixes immediately — bypasses the
@@ -141,23 +130,14 @@ class RevealStreamingController {
       );
       if (!_hasAnyBit(mask)) continue;
       try {
-        await store.mergeMask(
-          sessionId: sessionId,
-          parentX: tile.x,
-          parentY: tile.y,
-          mask: mask,
-        );
+        await store.mergeMask(sessionId: sessionId, parentX: tile.x, parentY: tile.y, mask: mask);
       } on Object catch (e, stack) {
         // CLAUDE.md §Error handling level 2: a per-tile DB write failure
         // is recoverable noise — log and continue with the rest of the
         // batch. Surfacing it would drop later tiles' reveal data on
         // the floor, which is strictly worse than losing one tile's
         // update.
-        _log.warning(
-          'mergeMask failed for parent (${tile.x}, ${tile.y}) — continuing',
-          e,
-          stack,
-        );
+        _log.warning('mergeMask failed for parent (${tile.x}, ${tile.y}) — continuing', e, stack);
       }
     }
   }
@@ -171,19 +151,11 @@ class RevealStreamingController {
   /// Haversine clamp, so a slight bbox over-estimate here produces at
   /// most a few empty-mask candidates that get filtered by the
   /// `_hasAnyBit` guard.
-  Iterable<({int x, int y})> _touchedParentTiles(
-    double lat,
-    double lon,
-    double radius,
-  ) {
+  Iterable<({int x, int y})> _touchedParentTiles(double lat, double lon, double radius) {
     const latDegPerMeter = 1.0 / 111320.0;
     // Guard the cosine against the polar Mercator clamp (cos(±90°) →
     // 0 → infinite lon-degree-per-metre).
-    final clampedCosLat = math.cos(
-      lat.clamp(-TileMath.maxLatMercator, TileMath.maxLatMercator) *
-          math.pi /
-          180.0,
-    );
+    final clampedCosLat = math.cos(lat.clamp(-TileMath.maxLatMercator, TileMath.maxLatMercator) * math.pi / 180.0);
     final lonDegPerMeter = 1.0 / (111320.0 * clampedCosLat);
 
     final minLat = lat - radius * latDegPerMeter;
@@ -191,16 +163,8 @@ class RevealStreamingController {
     final minLon = lon - radius * lonDegPerMeter;
     final maxLon = lon + radius * lonDegPerMeter;
 
-    final nw = TileMath.latLonToTile(
-      lat: maxLat,
-      lon: minLon,
-      zoom: kRevealedTileParentZoom,
-    );
-    final se = TileMath.latLonToTile(
-      lat: minLat,
-      lon: maxLon,
-      zoom: kRevealedTileParentZoom,
-    );
+    final nw = TileMath.latLonToTile(lat: maxLat, lon: minLon, zoom: kRevealedTileParentZoom);
+    final se = TileMath.latLonToTile(lat: minLat, lon: maxLon, zoom: kRevealedTileParentZoom);
 
     final tiles = <({int x, int y})>[];
     for (var y = nw.y; y <= se.y; y++) {

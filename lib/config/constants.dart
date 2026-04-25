@@ -82,8 +82,7 @@ const int kRevealedTileSubgridSize = 64;
 /// Convenience: bytes per stored bitmap, derived from [kRevealedTileSubgridSize].
 /// 64 * 64 / 8 = 512. Hoisted as a constant so callers (DB schema, perf
 /// budgets, fixture seeders) reference the same number without re-deriving.
-const int kRevealedTileBitmapBytes =
-    (kRevealedTileSubgridSize * kRevealedTileSubgridSize) ~/ 8;
+const int kRevealedTileBitmapBytes = (kRevealedTileSubgridSize * kRevealedTileSubgridSize) ~/ 8;
 
 /// Lower bound on UTC-offset-minutes for Session + timestamp columns.
 /// -720 min = UTC-12 (Baker Island / US Minor Outlying — the westernmost

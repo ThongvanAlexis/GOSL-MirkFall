@@ -32,12 +32,10 @@ class MirkInitialRevealFade extends ConsumerStatefulWidget {
   final Widget child;
 
   @override
-  ConsumerState<MirkInitialRevealFade> createState() =>
-      _MirkInitialRevealFadeState();
+  ConsumerState<MirkInitialRevealFade> createState() => _MirkInitialRevealFadeState();
 }
 
-class _MirkInitialRevealFadeState extends ConsumerState<MirkInitialRevealFade>
-    with SingleTickerProviderStateMixin {
+class _MirkInitialRevealFadeState extends ConsumerState<MirkInitialRevealFade> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _opacity;
 
@@ -57,11 +55,7 @@ class _MirkInitialRevealFadeState extends ConsumerState<MirkInitialRevealFade>
     _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     // Listen to provider via ref.listen — defers state mutations to a
     // safe phase (avoids "modified during build" Riverpod errors).
-    ref.listenManual<AsyncValue<ActiveSessionState>>(
-      activeSessionControllerProvider,
-      (previous, next) => _onStateChange(next),
-      fireImmediately: true,
-    );
+    ref.listenManual<AsyncValue<ActiveSessionState>>(activeSessionControllerProvider, (previous, next) => _onStateChange(next), fireImmediately: true);
   }
 
   void _onStateChange(AsyncValue<ActiveSessionState> next) {

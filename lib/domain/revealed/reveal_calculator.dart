@@ -23,11 +23,7 @@ import 'tile_math.dart';
 /// Throws [ArgumentError] if [current] and [mask] have different lengths.
 Uint8List mergeBitmap(Uint8List current, Uint8List mask) {
   if (current.length != mask.length) {
-    throw ArgumentError.value(
-      mask,
-      'mask',
-      'length ${mask.length} != current length ${current.length}',
-    );
+    throw ArgumentError.value(mask, 'mask', 'length ${mask.length} != current length ${current.length}');
   }
   final result = Uint8List(current.length);
   for (var i = 0; i < current.length; i++) {
@@ -84,16 +80,8 @@ Uint8List computeRevealMask({
   final mask = Uint8List(kRevealedTileBitmapBytes);
   if (radiusMeters <= 0.0) return mask;
 
-  final parentNw = TileMath.tileToLatLon(
-    x: parentX,
-    y: parentY,
-    zoom: parentZoom,
-  );
-  final parentSe = TileMath.tileToLatLon(
-    x: parentX + 1,
-    y: parentY + 1,
-    zoom: parentZoom,
-  );
+  final parentNw = TileMath.tileToLatLon(x: parentX, y: parentY, zoom: parentZoom);
+  final parentSe = TileMath.tileToLatLon(x: parentX + 1, y: parentY + 1, zoom: parentZoom);
 
   // Crude Mercator inverse: degrees per metre. The longitude scale uses
   // the latitude of the circle centre because we only need the bbox
@@ -103,9 +91,7 @@ Uint8List computeRevealMask({
   // Guard the cosine against the polar Mercator clamp (cos(85.0511°) ≈
   // 0.087 ≠ 0; cos(±90°) would zero-divide). Latitudes outside
   // ±[TileMath.maxLatMercator] are projected back into-range here.
-  final clampedCosLat = math.cos(
-    _toRad(centerLat.clamp(-TileMath.maxLatMercator, TileMath.maxLatMercator)),
-  );
+  final clampedCosLat = math.cos(_toRad(centerLat.clamp(-TileMath.maxLatMercator, TileMath.maxLatMercator)));
   final lonDegPerMeter = 1.0 / (_metersPerDegreeLat * clampedCosLat);
 
   final circleMinLat = centerLat - radiusMeters * latDegPerMeter;
@@ -149,12 +135,7 @@ Uint8List computeRevealMask({
       final closestLat = _clampDouble(centerLat, cellSouthLat, cellNorthLat);
       final closestLon = _clampDouble(centerLon, cellWestLon, cellEastLon);
 
-      final distance = _haversineMeters(
-        centerLat,
-        centerLon,
-        closestLat,
-        closestLon,
-      );
+      final distance = _haversineMeters(centerLat, centerLon, closestLat, closestLon);
       if (distance <= radiusMeters) {
         final bitIndex = j * cellsPerSide + i;
         final byteIndex = bitIndex >> 3;
@@ -200,9 +181,7 @@ double _haversineMeters(double lat1, double lon1, double lat2, double lon2) {
   final dLon = _toRad(lon2 - lon1);
   final l1 = _toRad(lat1);
   final l2 = _toRad(lat2);
-  final a =
-      math.sin(dLat / 2) * math.sin(dLat / 2) +
-      math.sin(dLon / 2) * math.sin(dLon / 2) * math.cos(l1) * math.cos(l2);
+  final a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.sin(dLon / 2) * math.sin(dLon / 2) * math.cos(l1) * math.cos(l2);
   final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
   return _earthRadiusMeters * c;
 }

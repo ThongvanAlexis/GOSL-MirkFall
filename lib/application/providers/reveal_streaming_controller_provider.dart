@@ -32,10 +32,7 @@ part 'reveal_streaming_controller_provider.g.dart';
 /// changes would risk flushing stale fixes to a freshly-restarted
 /// session.
 @riverpod
-RevealStreamingController? revealStreamingController(
-  Ref ref,
-  SessionId sessionId,
-) {
+RevealStreamingController? revealStreamingController(Ref ref, SessionId sessionId) {
   // The store provider is async (path_provider boot). When the consumer
   // (ActiveSessionController.start) reaches this provider, the store
   // bootstrap is well past complete (the same start() awaited the
@@ -45,10 +42,7 @@ RevealStreamingController? revealStreamingController(
   final store = storeAsync.value;
   if (store == null) return null;
 
-  final controller = RevealStreamingController(
-    sessionId: sessionId,
-    store: store,
-  );
+  final controller = RevealStreamingController(sessionId: sessionId, store: store);
   ref.onDispose(() async {
     await controller.dispose();
   });

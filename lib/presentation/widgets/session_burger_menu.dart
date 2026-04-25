@@ -44,11 +44,7 @@ class SessionBurgerMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final Size screenSize = MediaQuery.of(context).size;
     final bool isLandscape = screenSize.width > screenSize.height;
-    final double drawerWidth =
-        screenSize.width *
-        (isLandscape
-            ? _kDrawerWidthLandscapeFraction
-            : _kDrawerWidthPortraitFraction);
+    final double drawerWidth = screenSize.width * (isLandscape ? _kDrawerWidthLandscapeFraction : _kDrawerWidthPortraitFraction);
 
     final asyncSession = ref.watch(activeSessionControllerProvider);
     final ActiveSessionState? sessionState = asyncSession.value;
@@ -69,39 +65,25 @@ class SessionBurgerMenu extends ConsumerWidget {
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
               title: const Text('Prendre une photo'),
-              onTap: () => _showPhase13Snackbar(
-                context,
-                'Prendre une photo disponible en Phase 11',
-              ),
+              onTap: () => _showPhase13Snackbar(context, 'Prendre une photo disponible en Phase 11'),
             ),
             ListTile(
               leading: const Icon(Icons.place_outlined),
               title: const Text('Placer un marker'),
-              onTap: () => _showPhase13Snackbar(
-                context,
-                'Placer un marker disponible en Phase 11',
-              ),
+              onTap: () => _showPhase13Snackbar(context, 'Placer un marker disponible en Phase 11'),
             ),
             const Divider(),
             _PositionRow(lastFix: tracking?.lastFix),
             const _ZoomRow(),
             _DistanceRow(lastFix: tracking?.lastFix),
-            if (tracking != null)
-              _ChronoRow(startedAtUtc: tracking.startedAtUtc)
-            else
-              const _PendingChronoRow(),
+            if (tracking != null) _ChronoRow(startedAtUtc: tracking.startedAtUtc) else const _PendingChronoRow(),
             if (tracking != null) ...<Widget>[
               const Divider(),
               ListTile(
-                leading: const Icon(
-                  Icons.stop_circle_outlined,
-                  color: Colors.red,
-                ),
+                leading: const Icon(Icons.stop_circle_outlined, color: Colors.red),
                 title: const Text('Arrêter la session'),
                 onTap: () async {
-                  await ref
-                      .read(activeSessionControllerProvider.notifier)
-                      .stop();
+                  await ref.read(activeSessionControllerProvider.notifier).stop();
                   if (!context.mounted) return;
                   Navigator.of(context).pop();
                 },
@@ -114,9 +96,7 @@ class SessionBurgerMenu extends ConsumerWidget {
   }
 
   void _showPhase13Snackbar(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// Opens the [MirkStylePickerSheet] for the active session, or surfaces
@@ -130,9 +110,7 @@ class SessionBurgerMenu extends ConsumerWidget {
     final scaffold = Scaffold.maybeOf(context);
     if (sessionId == null) {
       Navigator.of(context).maybePop();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Aucune session active')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Aucune session active')));
       return;
     }
     Navigator.of(context).maybePop();
@@ -158,19 +136,9 @@ class _DrawerHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            'MirkFall',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: cs.onPrimaryContainer),
-          ),
+          Text('MirkFall', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: cs.onPrimaryContainer)),
           const SizedBox(height: 4.0),
-          Text(
-            isTracking ? 'Session active' : 'Aucune session active',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: cs.onPrimaryContainer),
-          ),
+          Text(isTracking ? 'Session active' : 'Aucune session active', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onPrimaryContainer)),
         ],
       ),
     );
@@ -212,9 +180,7 @@ class _ZoomRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final double? zoom = ref.watch(mapViewportZoomProvider);
-    final String text = zoom == null
-        ? 'Zoom : —'
-        : 'Zoom : ${zoom.toStringAsFixed(2)}';
+    final String text = zoom == null ? 'Zoom : —' : 'Zoom : ${zoom.toStringAsFixed(2)}';
     return ListTile(
       leading: const Icon(Icons.zoom_in_outlined),
       title: Text(text, style: Theme.of(context).textTheme.bodyMedium),
@@ -236,10 +202,7 @@ class _DistanceRow extends ConsumerWidget {
     // fed a fabricated zero. Addresses §3 row #41.
     return ListTile(
       leading: const Icon(Icons.straighten_outlined),
-      title: Text(
-        'Distance : — (Phase 09)',
-        style: Theme.of(context).textTheme.bodyMedium,
-      ),
+      title: Text('Distance : — (Phase 09)', style: Theme.of(context).textTheme.bodyMedium),
     );
   }
 }
@@ -269,13 +232,8 @@ class _ChronoRowState extends State<_ChronoRow> {
       title: StreamBuilder<int>(
         stream: _tickStream,
         builder: (context, _) {
-          final Duration elapsed = DateTime.now().toUtc().difference(
-            widget.startedAtUtc,
-          );
-          return Text(
-            'Durée : ${_formatDuration(elapsed)}',
-            style: Theme.of(context).textTheme.bodyMedium,
-          );
+          final Duration elapsed = DateTime.now().toUtc().difference(widget.startedAtUtc);
+          return Text('Durée : ${_formatDuration(elapsed)}', style: Theme.of(context).textTheme.bodyMedium);
         },
       ),
     );
@@ -300,10 +258,7 @@ class _PendingChronoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: const Icon(Icons.timer_outlined),
-      title: Text(
-        'Durée : --:--:--',
-        style: Theme.of(context).textTheme.bodyMedium,
-      ),
+      title: Text('Durée : --:--:--', style: Theme.of(context).textTheme.bodyMedium),
     );
   }
 }

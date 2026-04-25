@@ -20,15 +20,8 @@ import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 
 import '../../fakes/fake_mirk_renderer.dart';
 
-VisibleMirkTile _allUnrevealedTile() => VisibleMirkTile(
-  parentX: 8456,
-  parentY: 5959,
-  bitmap: Uint8List(512),
-  tileNorthLat: 43.7,
-  tileWestLon: 5.3,
-  tileSouthLat: 43.5,
-  tileEastLon: 5.5,
-);
+VisibleMirkTile _allUnrevealedTile() =>
+    VisibleMirkTile(parentX: 8456, parentY: 5959, bitmap: Uint8List(512), tileNorthLat: 43.7, tileWestLon: 5.3, tileSouthLat: 43.5, tileEastLon: 5.5);
 
 class _FakeActiveSessionController extends ActiveSessionController {
   _FakeActiveSessionController(this._initial);
@@ -58,24 +51,16 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('09-07 — MirkOverlay composition (MAP-04)', () {
-    testWidgets('renders SizedBox.shrink while session is Idle', (
-      tester,
-    ) async {
+    testWidgets('renders SizedBox.shrink while session is Idle', (tester) async {
       final fakeRenderer = FakeMirkRenderer();
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            activeSessionControllerProvider.overrideWith(
-              () => _FakeActiveSessionController(const Idle()),
-            ),
-            activeMirkRendererProvider.overrideWith(
-              (ref) async => fakeRenderer,
-            ),
+            activeSessionControllerProvider.overrideWith(() => _FakeActiveSessionController(const Idle())),
+            activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
             visibleMirkTilesProvider.overrideWith((ref) async => const []),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(null)),
-            mapViewportZoomProvider.overrideWith(
-              () => _SeededMapViewportZoom(null),
-            ),
+            mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(null)),
           ],
           child: const Directionality(
             textDirection: TextDirection.ltr,
@@ -90,33 +75,20 @@ void main() {
       expect(fakeRenderer.paintCallCount, 0);
     });
 
-    testWidgets('renders SizedBox.shrink while viewport is null', (
-      tester,
-    ) async {
+    testWidgets('renders SizedBox.shrink while viewport is null', (tester) async {
       final fakeRenderer = FakeMirkRenderer();
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             activeSessionControllerProvider.overrideWith(
               () => _FakeActiveSessionController(
-                Tracking(
-                  sessionId: const SessionId('sess_no_viewport'),
-                  startedAtUtc: DateTime.utc(2026, 4, 25),
-                  fixCount: 0,
-                  distanceFilterMeters: 5,
-                ),
+                Tracking(sessionId: const SessionId('sess_no_viewport'), startedAtUtc: DateTime.utc(2026, 4, 25), fixCount: 0, distanceFilterMeters: 5),
               ),
             ),
-            activeMirkRendererProvider.overrideWith(
-              (ref) async => fakeRenderer,
-            ),
-            visibleMirkTilesProvider.overrideWith(
-              (ref) async => [_allUnrevealedTile()],
-            ),
+            activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
+            visibleMirkTilesProvider.overrideWith((ref) async => [_allUnrevealedTile()]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(null)),
-            mapViewportZoomProvider.overrideWith(
-              () => _SeededMapViewportZoom(14.0),
-            ),
+            mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
           ],
           child: const Directionality(
             textDirection: TextDirection.ltr,
@@ -129,9 +101,7 @@ void main() {
       expect(fakeRenderer.paintCallCount, 0);
     });
 
-    testWidgets('renders MirkOverlay widget — finder hits the public widget', (
-      tester,
-    ) async {
+    testWidgets('renders MirkOverlay widget — finder hits the public widget', (tester) async {
       // Smoke check: MirkOverlay's widget identity is reachable from the
       // tree even when prerequisites are unresolved (returns
       // SizedBox.shrink internally — overlay still mounted).
@@ -150,41 +120,21 @@ void main() {
       expect(find.byType(MirkOverlay), findsOneWidget);
     });
 
-    testWidgets('paints with all-zero bitmap tile (entire tile = fog)', (
-      tester,
-    ) async {
+    testWidgets('paints with all-zero bitmap tile (entire tile = fog)', (tester) async {
       final fakeRenderer = FakeMirkRenderer();
-      final viewport = MirkViewportBbox(
-        south: 43.0,
-        west: 5.0,
-        north: 44.0,
-        east: 6.0,
-      );
+      final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             activeSessionControllerProvider.overrideWith(
               () => _FakeActiveSessionController(
-                Tracking(
-                  sessionId: const SessionId('sess_fog_tile'),
-                  startedAtUtc: DateTime.utc(2026, 4, 25),
-                  fixCount: 0,
-                  distanceFilterMeters: 5,
-                ),
+                Tracking(sessionId: const SessionId('sess_fog_tile'), startedAtUtc: DateTime.utc(2026, 4, 25), fixCount: 0, distanceFilterMeters: 5),
               ),
             ),
-            activeMirkRendererProvider.overrideWith(
-              (ref) async => fakeRenderer,
-            ),
-            visibleMirkTilesProvider.overrideWith(
-              (ref) async => [_allUnrevealedTile()],
-            ),
-            mapViewportProvider.overrideWith(
-              () => _SeededMapViewport(viewport),
-            ),
-            mapViewportZoomProvider.overrideWith(
-              () => _SeededMapViewportZoom(14.0),
-            ),
+            activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
+            visibleMirkTilesProvider.overrideWith((ref) async => [_allUnrevealedTile()]),
+            mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
+            mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
           ],
           child: const Directionality(
             textDirection: TextDirection.ltr,

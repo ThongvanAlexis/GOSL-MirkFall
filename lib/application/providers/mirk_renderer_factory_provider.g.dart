@@ -27,13 +27,7 @@ final mirkRendererFactoryProvider = MirkRendererFactoryProvider._();
 /// watches it). Tests override with a stub by passing
 /// `mirkRendererFactoryProvider.overrideWithValue(otherFactory)`.
 
-final class MirkRendererFactoryProvider
-    extends
-        $FunctionalProvider<
-          MirkRendererFactory,
-          MirkRendererFactory,
-          MirkRendererFactory
-        >
+final class MirkRendererFactoryProvider extends $FunctionalProvider<MirkRendererFactory, MirkRendererFactory, MirkRendererFactory>
     with $Provider<MirkRendererFactory> {
   /// Production [MirkRendererFactory] — pure singleton (no DB / no IO).
   ///
@@ -58,9 +52,7 @@ final class MirkRendererFactoryProvider
 
   @$internal
   @override
-  $ProviderElement<MirkRendererFactory> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
+  $ProviderElement<MirkRendererFactory> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
 
   @override
   MirkRendererFactory create(Ref ref) {
@@ -69,12 +61,8 @@ final class MirkRendererFactoryProvider
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(MirkRendererFactory value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<MirkRendererFactory>(value),
-    );
+    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<MirkRendererFactory>(value));
   }
 }
 
-String _$mirkRendererFactoryHash() =>
-    r'46f2c78e7ba055d2640e00553a734939e8cc52b9';
+String _$mirkRendererFactoryHash() => r'46f2c78e7ba055d2640e00553a734939e8cc52b9';

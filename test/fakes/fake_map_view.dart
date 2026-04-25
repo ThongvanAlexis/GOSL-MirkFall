@@ -20,14 +20,10 @@ import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 /// Conforms to the `implements` convention from Phase 05's
 /// `FakeLocationStream` — never extends a concrete adapter.
 class FakeMapView implements MapView {
-  FakeMapView({MapTheme initialTheme = const MapThemeStandard()})
-    : _currentTheme = initialTheme;
+  FakeMapView({MapTheme initialTheme = const MapThemeStandard()}) : _currentTheme = initialTheme;
 
-  final StreamController<({double latitude, double longitude, double zoom})>
-  _viewportCtrl =
-      StreamController<
-        ({double latitude, double longitude, double zoom})
-      >.broadcast();
+  final StreamController<({double latitude, double longitude, double zoom})> _viewportCtrl =
+      StreamController<({double latitude, double longitude, double zoom})>.broadcast();
 
   MapTheme _currentTheme;
   bool _followMe = false;
@@ -80,16 +76,8 @@ class FakeMapView implements MapView {
   /// observe a camera-idle event. Also updates the value that
   /// [queryViewport] will return (matches real MapLibre semantics — the
   /// last idle camera IS the viewport until the next gesture).
-  void pushViewport({
-    required double latitude,
-    required double longitude,
-    required double zoom,
-  }) {
-    final ({double latitude, double longitude, double zoom}) v = (
-      latitude: latitude,
-      longitude: longitude,
-      zoom: zoom,
-    );
+  void pushViewport({required double latitude, required double longitude, required double zoom}) {
+    final ({double latitude, double longitude, double zoom}) v = (latitude: latitude, longitude: longitude, zoom: zoom);
     _lastViewport = v;
     _viewportCtrl.add(v);
   }
@@ -108,42 +96,20 @@ class FakeMapView implements MapView {
   }
 
   @override
-  Future<void> moveCameraTo({
-    required double latitude,
-    required double longitude,
-    required double zoom,
-  }) async {
+  Future<void> moveCameraTo({required double latitude, required double longitude, required double zoom}) async {
     if (_noopIfDisposed('moveCameraTo')) return;
     methodLog.add('moveCameraTo($latitude, $longitude, $zoom)');
-    cameraMovesObserved.add(
-      CameraMove(
-        latitude: latitude,
-        longitude: longitude,
-        zoom: zoom,
-        timestamp: DateTime.now().toUtc(),
-      ),
-    );
+    cameraMovesObserved.add(CameraMove(latitude: latitude, longitude: longitude, zoom: zoom, timestamp: DateTime.now().toUtc()));
   }
 
   @override
-  Future<void> jumpCameraTo({
-    required double latitude,
-    required double longitude,
-    required double zoom,
-  }) async {
+  Future<void> jumpCameraTo({required double latitude, required double longitude, required double zoom}) async {
     if (_noopIfDisposed('jumpCameraTo')) return;
     methodLog.add('jumpCameraTo($latitude, $longitude, $zoom)');
     // Record jumps in the same observation queue as animated moves —
     // tests that assert "camera moved at least once" work for either
     // animation path.
-    cameraMovesObserved.add(
-      CameraMove(
-        latitude: latitude,
-        longitude: longitude,
-        zoom: zoom,
-        timestamp: DateTime.now().toUtc(),
-      ),
-    );
+    cameraMovesObserved.add(CameraMove(latitude: latitude, longitude: longitude, zoom: zoom, timestamp: DateTime.now().toUtc()));
   }
 
   @override
@@ -161,8 +127,7 @@ class FakeMapView implements MapView {
   }
 
   @override
-  Future<({double latitude, double longitude, double zoom})>
-  queryViewport() async {
+  Future<({double latitude, double longitude, double zoom})> queryViewport() async {
     if (_noopIfDisposed('queryViewport')) {
       return _lastViewport ?? (latitude: 0.0, longitude: 0.0, zoom: 0.0);
     }
@@ -171,8 +136,7 @@ class FakeMapView implements MapView {
   }
 
   @override
-  Stream<({double latitude, double longitude, double zoom})>
-  get viewportUpdates => _viewportCtrl.stream;
+  Stream<({double latitude, double longitude, double zoom})> get viewportUpdates => _viewportCtrl.stream;
 
   @override
   Future<MirkViewportBbox> queryViewportBounds() async {
@@ -185,31 +149,20 @@ class FakeMapView implements MapView {
     if (v == null) {
       // Mirror the production adapter's "no surface yet" semantics —
       // throw so the provider's catch-and-recover path is exercised.
-      throw StateError(
-        'FakeMapView.queryViewportBounds: viewportBoundsToReturn is null',
-      );
+      throw StateError('FakeMapView.queryViewportBounds: viewportBoundsToReturn is null');
     }
     return v;
   }
 
   @override
-  Future<void> markVisited(
-    List<({double latitude, double longitude})> polygon,
-  ) async {
+  Future<void> markVisited(List<({double latitude, double longitude})> polygon) async {
     if (_noopIfDisposed('markVisited')) return;
     methodLog.add('markVisited(${polygon.length} pts)');
-    lastVisitedPolygon = List<({double latitude, double longitude})>.from(
-      polygon,
-    );
+    lastVisitedPolygon = List<({double latitude, double longitude})>.from(polygon);
   }
 
   @override
-  Future<void> addPointOfInterest({
-    required String id,
-    required double latitude,
-    required double longitude,
-    required String iconId,
-  }) async {
+  Future<void> addPointOfInterest({required String id, required double latitude, required double longitude, required String iconId}) async {
     if (_noopIfDisposed('addPointOfInterest')) return;
     methodLog.add('addPointOfInterest($id)');
     poiAddObservations.add(id);
@@ -258,12 +211,7 @@ class FakeMapView implements MapView {
 /// Snapshot of a single [MapView.moveCameraTo] invocation — captured for
 /// test inspection via [FakeMapView.cameraMovesObserved].
 class CameraMove {
-  const CameraMove({
-    required this.latitude,
-    required this.longitude,
-    required this.zoom,
-    required this.timestamp,
-  });
+  const CameraMove({required this.latitude, required this.longitude, required this.zoom, required this.timestamp});
 
   final double latitude;
   final double longitude;
@@ -271,6 +219,5 @@ class CameraMove {
   final DateTime timestamp;
 
   @override
-  String toString() =>
-      'CameraMove($latitude, $longitude, zoom=$zoom, at=$timestamp)';
+  String toString() => 'CameraMove($latitude, $longitude, zoom=$zoom, at=$timestamp)';
 }

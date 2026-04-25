@@ -20,150 +20,88 @@ import 'package:test/test.dart';
 /// one parent tile by construction).
 void main() {
   group('09-03 — computeRevealMask parent-tile boundary split (MIRK-01)', () {
-    test(
-      'circle straddling east-west boundary populates both neighbour tiles',
-      () {
-        // Anchor the fix slightly east of a tile's WEST edge so the disc
-        // crosses into the western neighbour tile. We pick lat 45° / lon 5°
-        // for unambiguous tile coords, then place the fix at the WEST edge
-        // of the home tile.
-        const fixLat = 45.0;
-        const seedLon = 5.0;
-        final homeTile = TileMath.latLonToTile(
-          lat: fixLat,
-          lon: seedLon,
-          zoom: kRevealedTileParentZoom,
-        );
-        final homeNw = TileMath.tileToLatLon(
-          x: homeTile.x,
-          y: homeTile.y,
-          zoom: kRevealedTileParentZoom,
-        );
+    test('circle straddling east-west boundary populates both neighbour tiles', () {
+      // Anchor the fix slightly east of a tile's WEST edge so the disc
+      // crosses into the western neighbour tile. We pick lat 45° / lon 5°
+      // for unambiguous tile coords, then place the fix at the WEST edge
+      // of the home tile.
+      const fixLat = 45.0;
+      const seedLon = 5.0;
+      final homeTile = TileMath.latLonToTile(lat: fixLat, lon: seedLon, zoom: kRevealedTileParentZoom);
+      final homeNw = TileMath.tileToLatLon(x: homeTile.x, y: homeTile.y, zoom: kRevealedTileParentZoom);
 
-        // Place fix exactly on the west boundary (epsilon east so it is
-        // unambiguously inside the home tile per the half-open NW convention).
-        final fixLon = homeNw.lon + 1e-9;
+      // Place fix exactly on the west boundary (epsilon east so it is
+      // unambiguously inside the home tile per the half-open NW convention).
+      final fixLon = homeNw.lon + 1e-9;
 
-        final radiusMeters =
-            kDefaultRevealRadiusMeters *
-            4; // 100 m disc to comfortably straddle a ~38 m cell band
-        final homeMask = computeRevealMask(
-          centerLat: fixLat,
-          centerLon: fixLon,
-          radiusMeters: radiusMeters,
-          parentX: homeTile.x,
-          parentY: homeTile.y,
-          parentZoom: kRevealedTileParentZoom,
-        );
-        final westMask = computeRevealMask(
-          centerLat: fixLat,
-          centerLon: fixLon,
-          radiusMeters: radiusMeters,
-          parentX: homeTile.x - 1,
-          parentY: homeTile.y,
-          parentZoom: kRevealedTileParentZoom,
-        );
+      final radiusMeters = kDefaultRevealRadiusMeters * 4; // 100 m disc to comfortably straddle a ~38 m cell band
+      final homeMask = computeRevealMask(
+        centerLat: fixLat,
+        centerLon: fixLon,
+        radiusMeters: radiusMeters,
+        parentX: homeTile.x,
+        parentY: homeTile.y,
+        parentZoom: kRevealedTileParentZoom,
+      );
+      final westMask = computeRevealMask(
+        centerLat: fixLat,
+        centerLon: fixLon,
+        radiusMeters: radiusMeters,
+        parentX: homeTile.x - 1,
+        parentY: homeTile.y,
+        parentZoom: kRevealedTileParentZoom,
+      );
 
-        expect(homeMask.length, kRevealedTileBitmapBytes);
-        expect(westMask.length, kRevealedTileBitmapBytes);
-        expect(
-          popcount(homeMask),
-          greaterThan(0),
-          reason: 'home tile must contain part of the disc',
-        );
-        expect(
-          popcount(westMask),
-          greaterThan(0),
-          reason: 'west neighbour must contain the leaked portion of the disc',
-        );
-        // Together they must reveal more than the home tile alone.
-        final unionPopcount = popcount(_orMasks(homeMask, westMask));
-        expect(
-          unionPopcount,
-          equals(popcount(homeMask) + popcount(westMask)),
-          reason:
-              'home + west cells are disjoint by construction (different parent tiles)',
-        );
-      },
-    );
+      expect(homeMask.length, kRevealedTileBitmapBytes);
+      expect(westMask.length, kRevealedTileBitmapBytes);
+      expect(popcount(homeMask), greaterThan(0), reason: 'home tile must contain part of the disc');
+      expect(popcount(westMask), greaterThan(0), reason: 'west neighbour must contain the leaked portion of the disc');
+      // Together they must reveal more than the home tile alone.
+      final unionPopcount = popcount(_orMasks(homeMask, westMask));
+      expect(unionPopcount, equals(popcount(homeMask) + popcount(westMask)), reason: 'home + west cells are disjoint by construction (different parent tiles)');
+    });
 
-    test(
-      'circle straddling north-south boundary populates both neighbour tiles',
-      () {
-        const fixLat = 45.0;
-        const fixLonSeed = 5.0;
-        final homeTile = TileMath.latLonToTile(
-          lat: fixLat,
-          lon: fixLonSeed,
-          zoom: kRevealedTileParentZoom,
-        );
-        final homeNw = TileMath.tileToLatLon(
-          x: homeTile.x,
-          y: homeTile.y,
-          zoom: kRevealedTileParentZoom,
-        );
+    test('circle straddling north-south boundary populates both neighbour tiles', () {
+      const fixLat = 45.0;
+      const fixLonSeed = 5.0;
+      final homeTile = TileMath.latLonToTile(lat: fixLat, lon: fixLonSeed, zoom: kRevealedTileParentZoom);
+      final homeNw = TileMath.tileToLatLon(x: homeTile.x, y: homeTile.y, zoom: kRevealedTileParentZoom);
 
-        // Place fix on the NORTH edge of the home tile so the disc leaks
-        // into the northern neighbour (parentY - 1).
-        final fixLatOnEdge = homeNw.lat - 1e-9;
-        final fixLon =
-            homeNw.lon + 0.001; // safely inside the tile longitudinally
+      // Place fix on the NORTH edge of the home tile so the disc leaks
+      // into the northern neighbour (parentY - 1).
+      final fixLatOnEdge = homeNw.lat - 1e-9;
+      final fixLon = homeNw.lon + 0.001; // safely inside the tile longitudinally
 
-        final radiusMeters = kDefaultRevealRadiusMeters * 4;
-        final homeMask = computeRevealMask(
-          centerLat: fixLatOnEdge,
-          centerLon: fixLon,
-          radiusMeters: radiusMeters,
-          parentX: homeTile.x,
-          parentY: homeTile.y,
-          parentZoom: kRevealedTileParentZoom,
-        );
-        final northMask = computeRevealMask(
-          centerLat: fixLatOnEdge,
-          centerLon: fixLon,
-          radiusMeters: radiusMeters,
-          parentX: homeTile.x,
-          parentY: homeTile.y - 1,
-          parentZoom: kRevealedTileParentZoom,
-        );
+      final radiusMeters = kDefaultRevealRadiusMeters * 4;
+      final homeMask = computeRevealMask(
+        centerLat: fixLatOnEdge,
+        centerLon: fixLon,
+        radiusMeters: radiusMeters,
+        parentX: homeTile.x,
+        parentY: homeTile.y,
+        parentZoom: kRevealedTileParentZoom,
+      );
+      final northMask = computeRevealMask(
+        centerLat: fixLatOnEdge,
+        centerLon: fixLon,
+        radiusMeters: radiusMeters,
+        parentX: homeTile.x,
+        parentY: homeTile.y - 1,
+        parentZoom: kRevealedTileParentZoom,
+      );
 
-        expect(
-          popcount(homeMask),
-          greaterThan(0),
-          reason: 'home tile must contain south half of disc',
-        );
-        expect(
-          popcount(northMask),
-          greaterThan(0),
-          reason: 'north neighbour must contain the leaked portion',
-        );
-        final unionPopcount = popcount(_orMasks(homeMask, northMask));
-        expect(
-          unionPopcount,
-          equals(popcount(homeMask) + popcount(northMask)),
-          reason: 'home + north cells are disjoint by construction',
-        );
-      },
-    );
+      expect(popcount(homeMask), greaterThan(0), reason: 'home tile must contain south half of disc');
+      expect(popcount(northMask), greaterThan(0), reason: 'north neighbour must contain the leaked portion');
+      final unionPopcount = popcount(_orMasks(homeMask, northMask));
+      expect(unionPopcount, equals(popcount(homeMask) + popcount(northMask)), reason: 'home + north cells are disjoint by construction');
+    });
 
     test('circle far from any boundary populates only the home tile', () {
       const fixLat = 45.0;
       const fixLon = 5.0;
-      final homeTile = TileMath.latLonToTile(
-        lat: fixLat,
-        lon: fixLon,
-        zoom: kRevealedTileParentZoom,
-      );
-      final tileNw = TileMath.tileToLatLon(
-        x: homeTile.x,
-        y: homeTile.y,
-        zoom: kRevealedTileParentZoom,
-      );
-      final tileSe = TileMath.tileToLatLon(
-        x: homeTile.x + 1,
-        y: homeTile.y + 1,
-        zoom: kRevealedTileParentZoom,
-      );
+      final homeTile = TileMath.latLonToTile(lat: fixLat, lon: fixLon, zoom: kRevealedTileParentZoom);
+      final tileNw = TileMath.tileToLatLon(x: homeTile.x, y: homeTile.y, zoom: kRevealedTileParentZoom);
+      final tileSe = TileMath.tileToLatLon(x: homeTile.x + 1, y: homeTile.y + 1, zoom: kRevealedTileParentZoom);
       final centreLat = (tileNw.lat + tileSe.lat) / 2.0;
       final centreLon = (tileNw.lon + tileSe.lon) / 2.0;
 
@@ -204,16 +142,8 @@ void main() {
 
       expect(popcount(eastMask), 0, reason: 'east neighbour must be untouched');
       expect(popcount(westMask), 0, reason: 'west neighbour must be untouched');
-      expect(
-        popcount(northMask),
-        0,
-        reason: 'north neighbour must be untouched',
-      );
-      expect(
-        popcount(southMask),
-        0,
-        reason: 'south neighbour must be untouched',
-      );
+      expect(popcount(northMask), 0, reason: 'north neighbour must be untouched');
+      expect(popcount(southMask), 0, reason: 'south neighbour must be untouched');
     });
   });
 }

@@ -54,29 +54,16 @@ class Sessions extends Table {
   // DB-level CHECK constraint (finding #10, Batch B) — defense-in-depth on
   // top of the `SessionStatusStringConverter` contract. Raw SQL inserts that
   // bypass the converter will now be refused by SQLite itself.
-  TextColumn get status =>
-      text().check(status.isIn(const <String>['active', 'stopped']))();
-  IntColumn get startedAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
-  IntColumn get startedAtOffsetMinutes => integer().check(
-    startedAtOffsetMinutes.isBetweenValues(
-      kMinUtcOffsetMinutes,
-      kMaxUtcOffsetMinutes,
-    ),
-  )();
-  IntColumn get stoppedAtUtc =>
-      integer().nullable().map(const UnixMsToDateTimeConverter())();
+  TextColumn get status => text().check(status.isIn(const <String>['active', 'stopped']))();
+  IntColumn get startedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get startedAtOffsetMinutes => integer().check(startedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
+  IntColumn get stoppedAtUtc => integer().nullable().map(const UnixMsToDateTimeConverter())();
   // Finding #12 (Batch B) — offset-CHECK asymmetry: extend `[-720, 840]`
   // bound to `stoppedAtOffsetMinutes` parity with `startedAtOffsetMinutes`.
   // SQLite CHECK evaluates to UNKNOWN on NULL and does NOT fail, so null
   // rows (in-flight sessions) remain allowed; only out-of-range non-null
   // values are rejected.
-  IntColumn get stoppedAtOffsetMinutes => integer().nullable().check(
-    stoppedAtOffsetMinutes.isBetweenValues(
-      kMinUtcOffsetMinutes,
-      kMaxUtcOffsetMinutes,
-    ),
-  )();
+  IntColumn get stoppedAtOffsetMinutes => integer().nullable().check(stoppedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   // V2: fictive notes column — see migrations/v1_to_v2_notes.dart for
   // rationale. Ships nullable to match the V1->V2 `ALTER TABLE ... ADD
@@ -88,11 +75,7 @@ class Sessions extends Table {
   // style degrades the session to the renderer-side default
   // (atmospheric) without orphaning the row. See
   // `migrations/v3_to_v4_session_mirk_style.dart`.
-  TextColumn get mirkStyleId => text().nullable().references(
-    MirkStyles,
-    #id,
-    onDelete: KeyAction.setNull,
-  )();
+  TextColumn get mirkStyleId => text().nullable().references(MirkStyles, #id, onDelete: KeyAction.setNull)();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -117,15 +100,9 @@ class MarkerCategories extends Table {
   TextColumn get id => text()();
   TextColumn get displayName => text()();
   TextColumn get iconName => text()();
-  IntColumn get createdAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
-  IntColumn get createdAtOffsetMinutes => integer().check(
-    createdAtOffsetMinutes.isBetweenValues(
-      kMinUtcOffsetMinutes,
-      kMaxUtcOffsetMinutes,
-    ),
-  )();
+  IntColumn get createdAtOffsetMinutes => integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -140,33 +117,22 @@ class MarkerCategories extends Table {
 ///   `MarkerCategoryStore.delete` impl (03-06) reassigns markers to
 ///   `kCategoryDefaultId` inside a transaction before deleting the category.
 @DataClassName('MarkerRow')
-@TableIndex.sql(
-  'CREATE INDEX idx_t_markers_session_id ON t_markers(session_id);',
-)
-@TableIndex.sql(
-  'CREATE INDEX idx_t_markers_category_id ON t_markers(category_id);',
-)
+@TableIndex.sql('CREATE INDEX idx_t_markers_session_id ON t_markers(session_id);')
+@TableIndex.sql('CREATE INDEX idx_t_markers_category_id ON t_markers(category_id);')
 class Markers extends Table {
   @override
   String get tableName => 't_markers';
 
   TextColumn get id => text()();
-  TextColumn get sessionId =>
-      text().references(Sessions, #id, onDelete: KeyAction.cascade)();
+  TextColumn get sessionId => text().references(Sessions, #id, onDelete: KeyAction.cascade)();
   TextColumn get categoryId => text().references(MarkerCategories, #id)();
   RealColumn get lat => real()();
   RealColumn get lon => real()();
   TextColumn get title => text()();
   TextColumn get notes => text().nullable()();
-  IntColumn get createdAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
-  IntColumn get createdAtOffsetMinutes => integer().check(
-    createdAtOffsetMinutes.isBetweenValues(
-      kMinUtcOffsetMinutes,
-      kMaxUtcOffsetMinutes,
-    ),
-  )();
+  IntColumn get createdAtOffsetMinutes => integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -186,14 +152,12 @@ class RevealedTiles extends Table {
   String get tableName => 't_revealed_tiles';
 
   TextColumn get id => text()();
-  TextColumn get sessionId =>
-      text().references(Sessions, #id, onDelete: KeyAction.cascade)();
+  TextColumn get sessionId => text().references(Sessions, #id, onDelete: KeyAction.cascade)();
   IntColumn get parentX => integer()();
   IntColumn get parentY => integer()();
   // Finding #5/#13 (Batch C) — replace the magic `14` with
   // `kRevealedTileParentZoom` (source of truth in `lib/config/constants.dart`).
-  IntColumn get parentZoom =>
-      integer().withDefault(const Constant(kRevealedTileParentZoom))();
+  IntColumn get parentZoom => integer().withDefault(const Constant(kRevealedTileParentZoom))();
   // Finding #14 (Batch B) — DB-level defense on the 512-byte bitmap
   // invariant already guarded by the store. `length(bitmap) = 512` refuses
   // any SQL-level write that bypasses the store path.
@@ -209,11 +173,9 @@ class RevealedTiles extends Table {
   // generator (the expression is emitted as literal SQL at build time), so
   // the literal 512 is paired with a unit-test-level guard referencing the
   // constant.
-  BlobColumn get bitmap =>
-      blob().check(const CustomExpression<bool>('length(bitmap) = 512'))();
+  BlobColumn get bitmap => blob().check(const CustomExpression<bool>('length(bitmap) = 512'))();
   IntColumn get setBitCount => integer().withDefault(const Constant(0))();
-  IntColumn get updatedAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get updatedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -236,15 +198,9 @@ class MirkStyles extends Table {
   TextColumn get displayName => text()();
   TextColumn get rendererType => text()();
   TextColumn get config => text().map(const MirkStyleConfigJsonConverter())();
-  IntColumn get createdAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
-  IntColumn get createdAtOffsetMinutes => integer().check(
-    createdAtOffsetMinutes.isBetweenValues(
-      kMinUtcOffsetMinutes,
-      kMaxUtcOffsetMinutes,
-    ),
-  )();
+  IntColumn get createdAtOffsetMinutes => integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -278,22 +234,12 @@ class Fixes extends Table {
   String get tableName => 't_fixes';
 
   TextColumn get id => text()();
-  TextColumn get sessionId =>
-      text().references(Sessions, #id, onDelete: KeyAction.cascade)();
-  IntColumn get recordedAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
-  IntColumn get recordedAtOffsetMinutes => integer().check(
-    recordedAtOffsetMinutes.isBetweenValues(
-      kMinUtcOffsetMinutes,
-      kMaxUtcOffsetMinutes,
-    ),
-  )();
-  RealColumn get latitude =>
-      real().check(latitude.isBetweenValues(-90.0, 90.0))();
-  RealColumn get longitude =>
-      real().check(longitude.isBetweenValues(-180.0, 180.0))();
-  RealColumn get accuracyMeters =>
-      real().check(accuracyMeters.isBiggerOrEqualValue(0.0))();
+  TextColumn get sessionId => text().references(Sessions, #id, onDelete: KeyAction.cascade)();
+  IntColumn get recordedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get recordedAtOffsetMinutes => integer().check(recordedAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
+  RealColumn get latitude => real().check(latitude.isBetweenValues(-90.0, 90.0))();
+  RealColumn get longitude => real().check(longitude.isBetweenValues(-180.0, 180.0))();
+  RealColumn get accuracyMeters => real().check(accuracyMeters.isBiggerOrEqualValue(0.0))();
   RealColumn get altitudeMeters => real().nullable()();
   RealColumn get speedMps => real().nullable()();
   RealColumn get headingDegrees => real().nullable()();
@@ -312,21 +258,14 @@ class Photos extends Table {
   String get tableName => 't_photos';
 
   TextColumn get id => text()();
-  TextColumn get markerId =>
-      text().references(Markers, #id, onDelete: KeyAction.cascade)();
+  TextColumn get markerId => text().references(Markers, #id, onDelete: KeyAction.cascade)();
   TextColumn get relativeBasename => text()();
   IntColumn get widthPx => integer()();
   IntColumn get heightPx => integer()();
   IntColumn get fileSizeBytes => integer()();
-  IntColumn get createdAtUtc =>
-      integer().map(const UnixMsToDateTimeConverter())();
+  IntColumn get createdAtUtc => integer().map(const UnixMsToDateTimeConverter())();
   // Finding #12 (Batch B) — offset-CHECK asymmetry: extend UTC-offset bound.
-  IntColumn get createdAtOffsetMinutes => integer().check(
-    createdAtOffsetMinutes.isBetweenValues(
-      kMinUtcOffsetMinutes,
-      kMaxUtcOffsetMinutes,
-    ),
-  )();
+  IntColumn get createdAtOffsetMinutes => integer().check(createdAtOffsetMinutes.isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -352,17 +291,7 @@ class Photos extends Table {
 /// 2. `MigrationStrategy.beforeOpen` calls [applyRuntimePragmas] to set the
 ///    other three pragmas (synchronous, busy_timeout, foreign_keys) on every
 ///    cold + warm open.
-@DriftDatabase(
-  tables: [
-    Sessions,
-    MarkerCategories,
-    Markers,
-    RevealedTiles,
-    MirkStyles,
-    Photos,
-    Fixes,
-  ],
-)
+@DriftDatabase(tables: [Sessions, MarkerCategories, Markers, RevealedTiles, MirkStyles, Photos, Fixes])
 class AppDatabase extends _$AppDatabase {
   /// Creates an [AppDatabase] backed by [executor].
   ///

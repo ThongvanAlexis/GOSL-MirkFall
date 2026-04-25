@@ -58,15 +58,8 @@ Uint8List makeAllRevealedBitmap() {
 ///   fully unrevealed — so renderers have something non-trivial to
 ///   paint and the visual-distinctness suite has signal.
 /// * `sessionElapsed` defaults to 0 ms (override for animation tests).
-MirkPaintContext fakeContext({
-  int elapsedMs = 0,
-  List<VisibleMirkTile>? tiles,
-  Fix? currentFix,
-  MirkViewportBbox? viewport,
-}) {
-  final bbox =
-      viewport ??
-      MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+MirkPaintContext fakeContext({int elapsedMs = 0, List<VisibleMirkTile>? tiles, Fix? currentFix, MirkViewportBbox? viewport}) {
+  final bbox = viewport ?? MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
   return MirkPaintContext(
     zoomLevel: 14.0,
     pixelRatio: 1.0,
@@ -105,19 +98,12 @@ MirkPaintContext fakeContext({
 /// default for the test canvas — small enough that the rasterisation
 /// is sub-millisecond yet large enough that two visually-distinct
 /// renderer outputs will differ by hundreds of bytes.
-Future<Uint8List> renderToBytes(
-  MirkRenderer renderer, {
-  required MirkPaintContext context,
-  Size size = kTestCanvasSize,
-}) async {
+Future<Uint8List> renderToBytes(MirkRenderer renderer, {required MirkPaintContext context, Size size = kTestCanvasSize}) async {
   final recorder = PictureRecorder();
   final canvas = Canvas(recorder);
   // Establish a transparent white-background canvas so that pixels the
   // renderer doesn't touch are deterministic between runs.
-  canvas.drawRect(
-    Rect.fromLTWH(0, 0, size.width, size.height),
-    Paint()..color = const Color(0x00000000),
-  );
+  canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = const Color(0x00000000));
   renderer.paint(canvas, size, context);
   final picture = recorder.endRecording();
   final image = await picture.toImage(size.width.toInt(), size.height.toInt());
@@ -133,11 +119,7 @@ Future<Uint8List> renderToBytes(
 /// Renders a renderer to a `PictureRecorder` and returns the recorded
 /// `Picture` for callers that want lower-level inspection than
 /// `renderToBytes` provides. Caller is responsible for `picture.dispose()`.
-Picture renderToPicture(
-  MirkRenderer renderer, {
-  required MirkPaintContext context,
-  Size size = kTestCanvasSize,
-}) {
+Picture renderToPicture(MirkRenderer renderer, {required MirkPaintContext context, Size size = kTestCanvasSize}) {
   final recorder = PictureRecorder();
   final canvas = Canvas(recorder);
   renderer.paint(canvas, size, context);

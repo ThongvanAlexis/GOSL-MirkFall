@@ -117,8 +117,7 @@ class SimplexNoise2D {
   }
 
   /// Computes the dot product between gradient `g` and offset `(x, y)`.
-  static double _dot2(List<double> g, double x, double y) =>
-      g[0] * x + g[1] * y;
+  static double _dot2(List<double> g, double x, double y) => g[0] * x + g[1] * y;
 
   /// Samples the noise field at coordinates ([xin], [yin]).
   ///

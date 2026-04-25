@@ -13,11 +13,7 @@ import '../../fakes/fake_map_view.dart';
 
 /// Test seam helpers.
 ProviderContainer _makeContainer({MapView? initialView}) {
-  return ProviderContainer(
-    overrides: [
-      mapViewProvider.overrideWith(() => _SeededMapViewHolder(initialView)),
-    ],
-  );
+  return ProviderContainer(overrides: [mapViewProvider.overrideWith(() => _SeededMapViewHolder(initialView))]);
 }
 
 /// Notifier override that returns a pre-seeded [MapView] reference at
@@ -32,12 +28,7 @@ class _SeededMapViewHolder extends MapViewHolder {
   MapView? build() => _initial;
 }
 
-MirkViewportBbox _bbox({
-  double s = -1.0,
-  double w = -2.0,
-  double n = 1.0,
-  double e = 2.0,
-}) {
+MirkViewportBbox _bbox({double s = -1.0, double w = -2.0, double n = 1.0, double e = 2.0}) {
   return MirkViewportBbox(south: s, west: w, north: n, east: e);
 }
 
@@ -94,11 +85,7 @@ void main() {
 
       // Right after the emission no refresh should have fired (debounced).
       await Future<void>.delayed(const Duration(milliseconds: 5));
-      expect(
-        fake.queryViewportBoundsCallCount,
-        1,
-        reason: 'still within debounce window',
-      );
+      expect(fake.queryViewportBoundsCallCount, 1, reason: 'still within debounce window');
 
       // After the debounce window elapses the refresh fires.
       await Future<void>.delayed(const Duration(milliseconds: 80));
@@ -131,26 +118,23 @@ void main() {
       expect(fake.queryViewportBoundsCallCount, seedCalls + 1);
     });
 
-    test(
-      'queryViewportBounds error is silently dropped — provider stays null',
-      () async {
-        final fake = FakeMapView();
-        // viewportBoundsToReturn left null → fake throws on call.
-        final container = _makeContainer(initialView: fake);
-        addTearDown(container.dispose);
+    test('queryViewportBounds error is silently dropped — provider stays null', () async {
+      final fake = FakeMapView();
+      // viewportBoundsToReturn left null → fake throws on call.
+      final container = _makeContainer(initialView: fake);
+      addTearDown(container.dispose);
 
-        container.read(mapViewportProvider);
-        await Future<void>.delayed(Duration.zero);
-        await Future<void>.delayed(Duration.zero);
+      container.read(mapViewportProvider);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
-        // Provider state stays null (seed threw, was caught).
-        expect(container.read(mapViewportProvider), isNull);
-        // The next successful emission recovers.
-        fake.viewportBoundsToReturn = _bbox(s: 4.0, w: 5.0, n: 6.0, e: 7.0);
-        fake.pushViewport(latitude: 5.0, longitude: 6.0, zoom: 10.0);
-        await Future<void>.delayed(const Duration(milliseconds: 80));
-        expect(container.read(mapViewportProvider), isNotNull);
-      },
-    );
+      // Provider state stays null (seed threw, was caught).
+      expect(container.read(mapViewportProvider), isNull);
+      // The next successful emission recovers.
+      fake.viewportBoundsToReturn = _bbox(s: 4.0, w: 5.0, n: 6.0, e: 7.0);
+      fake.pushViewport(latitude: 5.0, longitude: 6.0, zoom: 10.0);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(container.read(mapViewportProvider), isNotNull);
+    });
   });
 }
