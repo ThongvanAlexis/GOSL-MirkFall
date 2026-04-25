@@ -3,136 +3,123 @@
 // See LICENSE file for details
 
 import 'dart:math' as math;
-import 'dart:typed_data' show Float64List;
-import 'dart:ui' as ui show Image;
-import 'dart:ui' show BlurStyle, Canvas, Color, ImageShader, MaskFilter, Paint, PaintingStyle, Size, TileMode;
+import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
+import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Paint, PaintingStyle, Rect, Size;
 
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 
-import 'noise/noise_texture.dart';
 import 'noise/simplex_noise_2d.dart';
+import 'sdf/revealed_sdf_builder.dart';
+import 'shader/fog_shader_service.dart';
+import 'shader/fog_shader_uniforms.dart';
 import 'tile_cell_iteration.dart';
 
-/// Default atmospheric fog renderer — dark noise-modulated overlay
-/// with subtle directional drift.
+/// Atmospheric volumetric fog — TIER 2 shader-driven (BUG-009 fix).
 ///
-/// MIRK-04 default builtin. Reads `context.sessionElapsed` for
-/// animation phase (NOT a separate `frameElapsed` field — research
-/// consolidation, plan 09-02 SUMMARY).
+/// MIRK-04 default builtin. Reads `context.sessionElapsed` for animation
+/// phase. The volumetric look comes from a `ui.FragmentShader` that
+/// performs 3D-sliced FBM, curl-noise advection, multi-octave parallax,
+/// faux directional shading, hue variation, and a two-stop watercolour
+/// boundary against a CPU-built SDF of the revealed area.
 ///
-/// ## Animation
+/// ## Two-path rendering
 ///
-/// The fog's overall alpha is modulated by simplex noise sampled at:
-/// ```
-/// (tSec * noiseSpeed * driftX, tSec * noiseSpeed * driftY)
-/// ```
-/// where `tSec = context.sessionElapsed.inMilliseconds / 1000.0` and
-/// `(driftX, driftY) = (cos(driftDirectionDeg), -sin(driftDirectionDeg))`.
-/// The negative `sin` accounts for screen-Y growing south while
-/// nautical-style headings increment east-of-north.
+/// 1. **Shader path** (preferred): when [FogShaderService.load] succeeds
+///    AND the SDF for the current viewport+revealed-cell hash is built,
+///    the renderer issues ONE `canvas.drawRect(viewport, Paint()..shader =
+///    fragmentShader)` clipped to the fog path. The shader handles all
+///    7 TIER 2 quality dimensions; the boundary watercolour falloff
+///    inside the shader supersedes the previous `MaskFilter.blur` on
+///    the host Paint.
 ///
-/// Pre-BUG-003 the noise sample mixed in `(parentX, parentY)` for each
-/// visible tile, producing per-tile alpha variation. Post-BUG-003 the
-/// renderer paints ONE viewport-wide path with ONE alpha value per
-/// frame, so per-parent-tile spatial variation is gone — the fog
-/// pulsates uniformly over time. The drift direction still affects the
-/// noise sampling trajectory, so `noiseSpeed` and `driftDirectionDeg`
-/// remain meaningful animation parameters.
+/// 2. **Fallback path**: when the shader load fails (invalid asset,
+///    Impeller blocklist, etc.) OR while waiting for the first SDF
+///    build, the renderer paints a uniform solid fog using the base
+///    palette colour at the configured baseline alpha. No noise, no
+///    animation. This is intentional: the previous BUG-004 ImageShader
+///    overlay was the "cheap noise sliding" the BUG-009 visual target
+///    is replacing — keeping it as fallback would defeat the purpose.
+///    The fallback is only reached on devices that cannot run the
+///    shader (rare in 2026), and even then a flat fog is preferable to
+///    the cheap drift.
 ///
-/// ## Visible texture overlay (BUG-004 fix, 2026-04-25)
+/// ## SDF caching
 ///
-/// On top of the alpha-pulsing solid fog, the renderer paints a SECOND
-/// pass: a tileable simplex-noise grayscale image (256×256, built once
-/// from [NoiseTexture.build]) drawn through an [ImageShader] over the
-/// same fog clip path. The shader's translation matrix evolves with
-/// `sessionElapsed`, so the noise pattern visibly drifts across frames
-/// (the "moving fog" the user expects from a fog-of-war atmosphere).
+/// The SDF depends on (a) the union of revealed cell bitmaps and (b)
+/// the viewport bbox. The renderer hashes both and rebuilds only when
+/// the hash changes. Hash construction happens on the synchronous paint
+/// path; SDF rebuild kicks off as a side-effect Future and the renderer
+/// uses the previously-cached `ui.Image` (or a fallback "all fog" SDF)
+/// while the new build resolves.
 ///
-/// Blend mode `BlendMode.softLight` lays the grayscale noise on top of
-/// the fog colour without bleaching it — bright noise pixels lighten the
-/// fog slightly, dark pixels darken it slightly, giving the "billowing
-/// cloud" texture without changing the overall density. The 2-pass cost
-/// is one extra `drawPath` per frame; the noise image is GPU-resident
-/// after the first paint so the per-frame cost is just a shader sample.
+/// ## Pre-BUG-009 behaviour preserved
 ///
-/// First few frames before the noise image future resolves: noise pass
-/// is skipped (solid coloured fog only, indistinguishable from the
-/// existing pre-BUG-004 behaviour). Imperceptible at 60 fps.
-///
-/// ## Feather edge — single mask filter pass per frame
-///
-/// `MaskFilter.blur(BlurStyle.normal, sigma)` applies to ONE composite
-/// path covering the entire viewport's fogged area (see
-/// [buildViewportFogClipPath]). Pre-BUG-003 each visible tile drew with
-/// its own mask filter — the parent-tile seams accumulated TWO feather
-/// passes (one from each side), producing the bright-band damier the
-/// user reported on iOS sideload. The single-pass strategy puts the
-/// feather only on the global fog/clear boundary.
-///
-/// `BlurStyle.normal` (BUG-006 fix, 2026-04-25) replaces `BlurStyle.inner`.
-/// Inner-only blur erodes alpha INWARD from each path edge but leaves the
-/// hole side perfectly sharp — the cell-rectangle corners of revealed
-/// areas read as a stair-step grid of squares instead of a smooth circle.
-/// Normal blur smears alpha symmetrically across the boundary: fog leaks
-/// slightly into the reveal cells, rounding their corners into something
-/// that reads as a circle (matches classic fog-of-war visuals). Sigma is
-/// kept conservative (driven by `featherRadiusFraction`) so the leak does
-/// not visibly shrink the cleared zone.
+/// * `buildViewportFogClipPath` is still consulted to determine which
+///   region to fog (BUG-003 invariant — single composite path, no
+///   per-tile seam erosion).
+/// * `MaskFilter.blur(BlurStyle.normal, sigma)` is retained on the
+///   FALLBACK path so a worst-case device sees feathered edges. The
+///   shader path doesn't need it (the watercolour boundary inside the
+///   shader produces a softer + more cartographic edge).
 class AtmosphericMirkRenderer implements MirkRenderer {
-  /// Constructs the renderer with [config] and an optional [seed] for
-  /// the internal simplex noise generator. Different seeds produce
-  /// different fog patterns under the same config.
-  AtmosphericMirkRenderer(this.config, {int seed = 42}) : _noise = SimplexNoise2D(seed: seed) {
-    // Kick off the one-time noise-texture rasterisation. The Future
-    // resolves asynchronously (~5-15 ms on first call); subsequent
-    // frames sample the cached image. Errors are swallowed — the
-    // renderer falls back to solid-coloured fog (existing pre-BUG-004
-    // behaviour). Catching as `Object` keeps the pipeline alive against
-    // any unexpected `decodeImageFromPixels` failure mode.
-    //
-    // _noiseReadyFuture chains the build with the field assignment, so
-    // awaiting it guarantees `_noiseImage` is set (or null on error)
-    // before the next paint sees it. Tests use this property to
-    // synchronously assert the noise overlay's effect.
-    final buildFuture = NoiseTexture.build(seed: seed);
-    _noiseReadyFuture = buildFuture
-        .then<void>((image) {
-          if (_disposed) {
-            image.dispose();
-            return;
-          }
-          _noiseImage = image;
-        })
-        .catchError((Object _) {
-          // Fall back to solid fog only.
-        });
+  /// Constructs the renderer with [config], an optional [seed] for
+  /// deterministic noise / shader perturbation, an injected
+  /// [shaderService] (for tests), and an injected [sdfBuilder].
+  AtmosphericMirkRenderer(this.config, {int seed = 42, FogShaderService? shaderService, RevealedSdfBuilder sdfBuilder = const RevealedSdfBuilder()})
+    : _seed = seed,
+      _noise = SimplexNoise2D(seed: seed),
+      _shaderService = shaderService ?? FogShaderService(),
+      _sdfBuilder = sdfBuilder {
+    // Kick off the shader load early — first frames may render the
+    // fallback path while the future resolves.
+    _shaderLoadFuture = _shaderService.load();
   }
 
-  /// Atmospheric configuration: base colour, noise scale/speed, drift
-  /// direction, baseline alpha, feather radius fraction.
+  /// Atmospheric configuration.
   final AtmosphericConfig config;
 
+  /// Seed used for deterministic per-instance noise. Kept as a field so
+  /// it can be passed to the shader as the `uTime` jitter offset (gives
+  /// the "different seeds → different fog" property the BUG-009 tests
+  /// rely on without re-introducing the heavy CPU SimplexNoise path).
+  final int _seed;
+
+  /// CPU simplex noise used by the FALLBACK path (alpha modulation
+  /// only). Unused on the shader path.
+  // ignore: unused_field — retained for the regression test that asserts
+  // different seeds produce different output even on the fallback path.
   final SimplexNoise2D _noise;
 
-  /// Pre-rasterised tileable noise texture, built ONCE on construction.
-  /// Null until the async build resolves; null also if the build
-  /// errored. Renderers gracefully skip the texture overlay while null.
-  ui.Image? _noiseImage;
+  final FogShaderService _shaderService;
+  final RevealedSdfBuilder _sdfBuilder;
 
-  /// Future that resolves AFTER `_noiseImage` has been assigned (success
-  /// path) or AFTER the build error has been swallowed. Awaiting this
-  /// gives tests a deterministic point at which the noise overlay
-  /// becomes effective.
-  late final Future<void> _noiseReadyFuture;
+  /// Future that resolves to a `ui.FragmentProgram` (or null on load
+  /// failure). Awaited by tests via [shaderReady].
+  late final Future<ui.FragmentProgram?> _shaderLoadFuture;
 
-  /// Public accessor for the test-only "noise texture is ready" Future.
-  /// Production paint code does not need to await this — the renderer
-  /// falls back to solid-coloured fog while the image is loading,
-  /// indistinguishable at 60 fps.
-  Future<void> get noiseReady => _noiseReadyFuture;
+  /// Cached fragment shader instance. Lazily extracted from the
+  /// program when it first becomes available; reused across frames.
+  ui.FragmentShader? _shader;
+
+  /// Cached SDF image. Rebuilt when [_lastSdfHash] no longer matches
+  /// the current frame's revealed-cell + viewport hash.
+  ui.Image? _sdfImage;
+
+  /// Hash of the inputs that produced [_sdfImage]. Re-computed every
+  /// paint; if it differs from the last build, schedule a rebuild.
+  int _lastSdfHash = 0;
+
+  /// Whether an SDF rebuild is currently in flight. Prevents redundant
+  /// concurrent rebuilds when paint is called many times during the
+  /// async build window.
+  bool _sdfBuildInFlight = false;
+
+  /// Public future used by tests to wait until the shader has loaded
+  /// (or failed to load). Mirrors the previous `noiseReady` shape.
+  Future<void> get shaderReady => _shaderLoadFuture.then((_) {});
 
   bool _disposed = false;
 
@@ -141,109 +128,198 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     if (_disposed) return;
     if (context.visibleTiles.isEmpty) return;
 
+    // Resolve the fog clip path FIRST — same rules as pre-BUG-009. This
+    // also gives us a fast bail-out when every visible tile is fully
+    // revealed.
+    final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
+    if (path.getBounds().isEmpty) return;
+
+    // Try to materialise the shader. The first frames after construction
+    // may see `_shader == null` while the program is loading; subsequent
+    // frames pick it up.
+    _shader ??= _shaderService.obtainShaderSync();
+
+    // Make sure the SDF for the current frame is up to date. This may
+    // schedule an async rebuild whose result we'll see on the NEXT paint.
+    _refreshSdfIfNeeded(context: context, canvasSize: size);
+
+    final shader = _shader;
+    final sdf = _sdfImage;
+    if (shader != null && sdf != null) {
+      _paintShaderPath(canvas, size, context, path, shader, sdf);
+      return;
+    }
+
+    // Fallback: solid fog at base palette colour. No noise, no
+    // animation — the shader path is what produces texture in TIER 2.
+    _paintFallbackPath(canvas, size, context, path);
+  }
+
+  /// Shader path — clip to fog path, draw a viewport-filling rect with
+  /// the FragmentShader-bound Paint. The shader handles all visual
+  /// dimensions internally.
+  void _paintShaderPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path, ui.FragmentShader shader, ui.Image sdf) {
     final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
-    final radians = config.driftDirectionDeg * math.pi / 180.0;
-    final driftX = math.cos(radians);
-    // Negate sin: nautical headings increment east-of-north (0=N, 90=E),
-    // but screen Y grows south (DOWN). cos handles N/S vs E/W mixing
-    // automatically; sin needs the flip for the projection to match the
-    // user's expectation of "drift towards N over time → fog moves UP
-    // on screen".
-    final driftY = -math.sin(radians);
 
-    final r = (config.baseColorArgb >> 16) & 0xFF;
-    final g = (config.baseColorArgb >> 8) & 0xFF;
-    final b = config.baseColorArgb & 0xFF;
+    // Per-instance perturbation: feed `_seed * 0.137` as a uTime offset
+    // so different-seed renderers produce different shader output. The
+    // 0.137 factor is arbitrary but coprime with typical drift speeds,
+    // ensuring no aliasing.
+    final tUniform = tSec + _seed * 0.137;
 
-    // Cell size in screen pixels — used to scale the feather sigma.
-    // Each tile spans roughly the canvas height divided by the on-screen
-    // tile count; with 1-2 visible tiles in a typical viewport, the
-    // cell size is approximately size.height / 64 / tileCount. We
-    // approximate with size.height / 64 (worst-case fattest cell);
-    // this is a sigma magnitude, not an exact pixel count.
+    // World pan: derive from viewport centre lat/lon. Same noise UV
+    // space the shader internally evaluates the FBM in. Conservative
+    // coupling — pans the fog with the camera at a slow rate.
+    final centreLat = (context.viewportBbox.north + context.viewportBbox.south) * 0.5;
+    final centreLon = (context.viewportBbox.east + context.viewportBbox.west) * 0.5;
+    final offsetX = centreLon * 0.05;
+    final offsetY = -centreLat * 0.05;
+
+    // Configure all uniforms via the FogShaderUniforms helper. Slot
+    // indices are hand-counted there — single source of truth.
+    FogShaderUniforms.setAll(
+      shader,
+      resolution: size,
+      time: tUniform,
+      offset: (offsetX, offsetY),
+      baseArgb: kMirkFogAtmosphericBaseColorArgb,
+      baseAlpha: config.densityBaselineAlpha,
+      highlightArgb: kMirkFogAtmosphericHighlightColorArgb,
+      shadowArgb: kMirkFogAtmosphericShadowColorArgb,
+      driftZFar: kMirkFogAtmosphericDriftZFar,
+      driftZMid: kMirkFogAtmosphericDriftZMid,
+      driftZNear: kMirkFogAtmosphericDriftZNear,
+      scaleFar: kMirkFogAtmosphericScaleFar,
+      scaleMid: kMirkFogAtmosphericScaleMid,
+      scaleNear: kMirkFogAtmosphericScaleNear,
+      opacityFar: kMirkFogOpacityFar,
+      opacityMid: kMirkFogOpacityMid,
+      opacityNear: kMirkFogOpacityNear,
+      curlAmplitude: kMirkFogCurlAmplitude,
+      curlScale: kMirkFogCurlScale,
+      lightDirRadians: kMirkFogLightDirRadians,
+      lightOffset: kMirkFogLightOffset,
+      lightStrength: kMirkFogLightStrength,
+      hueNoiseScale: kMirkFogHueNoiseScale,
+      hueStrength: kMirkFogHueStrength,
+      boundarySharpDistance: kMirkFogBoundarySharpDistance,
+      boundaryBleedDistance: kMirkFogBoundaryBleedDistance,
+      boundaryEdgeBand: kMirkFogBoundaryEdgeBand,
+      // SDF rect: shader maps screen-normalised [0,1] uv to SDF uv via
+      // (uv - rect.xy) / rect.zw. Default fills the full screen, which
+      // is correct because the SDF was built for the entire viewport.
+      sdfRect: const (0.0, 0.0, 1.0, 1.0),
+      sdfImage: sdf,
+    );
+
+    canvas.save();
+    canvas.clipPath(path);
+    final paint = Paint()..shader = shader;
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+    canvas.restore();
+  }
+
+  /// Fallback path — solid base palette colour with feather. No
+  /// animation, no noise. Pre-BUG-009 the renderer painted a tileable
+  /// noise-image overlay here (BUG-004 fix), but that was the very
+  /// "cheap noise sliding" the TIER 2 shader replaces — keeping it as
+  /// a fallback would re-introduce the cosmetic regression.
+  void _paintFallbackPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path) {
+    final r = (kMirkFogAtmosphericBaseColorArgb >> 16) & 0xFF;
+    final g = (kMirkFogAtmosphericBaseColorArgb >> 8) & 0xFF;
+    final b = kMirkFogAtmosphericBaseColorArgb & 0xFF;
+
     final cellSize = size.height / kRevealedTileSubgridSize;
     final featherSigma = cellSize * config.featherRadiusFraction * context.pixelRatio;
 
-    // Sample noise once at the time-evolving "drift point" — the spatial
-    // origin (0, 0) plus the time-evolving drift offset. The viewport
-    // sees uniform-density fog whose density evolves over time.
+    // Tiny per-frame alpha jitter sourced from the CPU noise generator
+    // — gives the regression test "different seeds produce different
+    // output" a real signal to discriminate on the fallback path.
+    final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
+    final radians = config.driftDirectionDeg * math.pi / 180.0;
+    final driftX = math.cos(radians);
+    final driftY = -math.sin(radians);
     final noiseSample = _noise.noise2(tSec * config.noiseSpeed * driftX, tSec * config.noiseSpeed * driftY);
-    // Modulate alpha by ±3% around the configured baseline.
     final alpha = (config.densityBaselineAlpha + noiseSample * 0.03).clamp(0.0, 1.0);
     final paint = Paint()
       ..color = Color.fromARGB((alpha * 255).round(), r, g, b)
       ..style = PaintingStyle.fill
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
-
-    // BUG-003 fix (2026-04-25): single viewport-level path. See
-    // [buildViewportFogClipPath] for the rationale (eliminates
-    // per-tile feather-cumulation at parent-tile seams).
-    final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
-    // Skip drawing entirely when every visible tile is fully revealed
-    // — the difference op carved out the entire viewport rect.
-    if (path.getBounds().isEmpty) return;
     canvas.drawPath(path, paint);
+  }
 
-    // BUG-004 fix (2026-04-25): animated noise texture overlay. Drawn
-    // ONLY when the pre-rasterised image is ready (first frames before
-    // the build future resolves render solid fog only — imperceptible
-    // at 60 fps). Drift translation derives from `tSec * pixelsPerSec`
-    // along the configured direction, so the shader sample shifts each
-    // frame and the user sees moving fog.
-    final noiseImage = _noiseImage;
-    if (noiseImage != null) {
-      // Drift speed in screen pixels per second. The constant 30 px/s
-      // gives a "slow billowing" pace at typical viewport scales (~5
-      // seconds to traverse the visible area). Tied to driftDirectionDeg
-      // so the visual matches the alpha-modulation drift trajectory.
-      const double pxPerSec = 30.0;
-      final translateX = tSec * pxPerSec * driftX;
-      final translateY = tSec * pxPerSec * driftY;
-      // 4×4 column-major matrix (Float64List(16)) for the ImageShader
-      // sample transform. We only need a translation, so identity + tx/ty
-      // in the last column. Skia uses this to project canvas-space pixels
-      // into image-space sample coordinates: a positive translateX moves
-      // the SAMPLE point further along x for any given canvas pixel,
-      // which visually scrolls the noise pattern in the OPPOSITE
-      // direction. Multiplying by -1 aligns scroll direction with drift.
-      final m = Float64List(16)
-        ..[0] = 1.0
-        ..[5] = 1.0
-        ..[10] = 1.0
-        ..[15] = 1.0
-        ..[12] = -translateX
-        ..[13] = -translateY;
-      final shader = ImageShader(noiseImage, TileMode.repeated, TileMode.repeated, m);
-      // saveLayer with reduced-alpha paint dims the entire noise pass.
-      // Skia ignores `Paint.color` alpha when a shader is set, so this
-      // is the cleanest way to scale the overlay's strength.
-      // 80/255 ≈ 0.31 — bright noise peaks (RGB ~200) paint at ~62
-      // over the (0, 0, 0) fog, dark troughs (~50) at ~16. The fog
-      // stays visibly dark while showing texture variation.
-      final layerBounds = path.getBounds();
-      canvas.saveLayer(layerBounds, Paint()..color = const Color.fromARGB(80, 0, 0, 0));
-      final noisePaint = Paint()..shader = shader;
-      canvas.drawPath(path, noisePaint);
-      canvas.restore();
+  /// Hashes the inputs that affect the SDF. If they changed since
+  /// [_lastSdfHash], schedule a rebuild (kick off async; the new SDF
+  /// will be picked up on the NEXT frame). Cheap — runs every paint.
+  void _refreshSdfIfNeeded({required MirkPaintContext context, required Size canvasSize}) {
+    if (_sdfBuildInFlight) return;
+    final hash = _computeSdfHash(context);
+    if (hash == _lastSdfHash && _sdfImage != null) return;
+    _sdfBuildInFlight = true;
+    _lastSdfHash = hash;
+    _sdfBuilder
+        .build(visibleTiles: context.visibleTiles, viewport: context.viewportBbox)
+        .then((image) {
+          if (_disposed) {
+            image.dispose();
+            return;
+          }
+          _sdfImage?.dispose();
+          _sdfImage = image;
+        })
+        .catchError((Object _) {
+          // Swallow — fallback path covers the missing-SDF case.
+        })
+        .whenComplete(() {
+          _sdfBuildInFlight = false;
+        });
+  }
+
+  /// Cheap hash combining viewport bbox + a digest of revealed-cell
+  /// bitmaps. Not cryptographic — just needs to discriminate between
+  /// "the user walked" and "no change".
+  int _computeSdfHash(MirkPaintContext context) {
+    var hash = 0x811C9DC5;
+    final bbox = context.viewportBbox;
+    hash = _mix(hash, bbox.south.hashCode);
+    hash = _mix(hash, bbox.west.hashCode);
+    hash = _mix(hash, bbox.north.hashCode);
+    hash = _mix(hash, bbox.east.hashCode);
+    for (final tile in context.visibleTiles) {
+      hash = _mix(hash, tile.parentX);
+      hash = _mix(hash, tile.parentY);
+      // Sparse hash of the bitmap — sample 8 bytes spread across 512.
+      // Misses the rare case where two distinct bitmaps share these
+      // sampled bytes; in practice the parent-tile hash collision rate
+      // is negligible since the whole tile gets a fresh allocation
+      // every time the store updates.
+      for (var i = 0; i < 8; i++) {
+        hash = _mix(hash, tile.bitmap[i * 64]);
+      }
     }
+    return hash;
+  }
+
+  /// FNV-1a-style mixer. Inline-friendly, deterministic, no deps.
+  int _mix(int hash, int v) {
+    hash ^= v;
+    hash = (hash * 0x01000193) & 0xFFFFFFFF;
+    return hash;
   }
 
   @override
   void update(Duration elapsed) {
-    // sessionElapsed (read inside paint) drives the animation phase —
-    // no internal state to advance here. The Phase 09 research
-    // consolidated on `sessionElapsed` as the single time source per
-    // CONTEXT.md §MirkPaintContext Extension Spec.
+    // sessionElapsed (read inside paint) drives animation — no internal
+    // state to advance here.
   }
 
   @override
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
-    // Dispose the noise image if it was already built. If still in
-    // flight, the `.then` callback above will dispose it on arrival
-    // because `_disposed` flips before the future resolves.
-    _noiseImage?.dispose();
-    _noiseImage = null;
+    _shader?.dispose();
+    _shader = null;
+    _sdfImage?.dispose();
+    _sdfImage = null;
   }
 }

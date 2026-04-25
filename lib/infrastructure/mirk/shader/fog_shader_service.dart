@@ -2,7 +2,6 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-import 'dart:async';
 import 'dart:ui' as ui;
 
 /// Loader / cache for the volumetric fog `ui.FragmentProgram`.
@@ -63,7 +62,13 @@ class FogShaderService {
   Future<ui.FragmentProgram?> load() {
     final cached = _programFuture;
     if (cached != null) return cached;
-    final future = _loadInternal();
+    // Chain a side-effect capture so [obtainShaderSync] has a
+    // synchronous handle on the program once the load resolves. The
+    // captured value is null on load failure (matches the contract).
+    final future = _loadInternal().then((program) {
+      _resolvedProgram = program;
+      return program;
+    });
     _programFuture = future;
     return future;
   }
@@ -98,4 +103,27 @@ class FogShaderService {
     final program = await load();
     return program?.fragmentShader();
   }
+
+  /// Synchronous accessor — returns a fresh `ui.FragmentShader` if the
+  /// program has already loaded successfully, or `null` otherwise (load
+  /// not yet started, still in flight, or failed).
+  ///
+  /// This is the hot-path call inside `MirkRenderer.paint`: paint runs
+  /// every frame and cannot block on a Future. The first frames after
+  /// construction may return null while the program is loading; the
+  /// renderer falls back to its CPU path, then picks up the shader on
+  /// a subsequent frame once `_shaderProgramSync` is non-null.
+  ///
+  /// Internally watches the cached Future from [load] and snapshots the
+  /// resolved value to a synchronous field via `.then`. Tests can
+  /// `await load()` first to guarantee a non-null return.
+  ui.FragmentShader? obtainShaderSync() {
+    final program = _resolvedProgram;
+    return program?.fragmentShader();
+  }
+
+  /// Resolved program value — written by the [.then] callback chained
+  /// onto [load]. Null until the future resolves successfully; stays
+  /// null forever on load failure.
+  ui.FragmentProgram? _resolvedProgram;
 }
