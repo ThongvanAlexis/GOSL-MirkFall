@@ -1,0 +1,43 @@
+[
+  {
+    "id": "builtin.atmospheric",
+    "displayName": "Atmospheric (défaut)",
+    "config": {
+      "rendererType": "atmospheric",
+      "baseColorArgb": 4278190080,
+      "noiseScale": 0.5
+    }
+  },
+  {
+    "id": "builtin.solid",
+    "displayName": "Solid",
+    "config": {
+      "rendererType": "solid",
+      "colorArgb": 4279900698
+    }
+  },
+  {
+    "id": "builtin.candlelight",
+    "displayName": "Lueur de bougie",
+    "config": {
+      "rendererType": "candlelight",
+      "centerColorArgb": 4294676330,
+      "peripheryColorArgb": 4290917934,
+      "noiseScale": 0.8,
+      "noiseSpeed": 0.1,
+      "baselineAlpha": 0.85
+    }
+  },
+  {
+    "id": "builtin.heavenly_clouds",
+    "displayName": "Nuages célestes",
+    "config": {
+      "rendererType": "heavenly",
+      "colorArgb": 4293256942,
+      "noiseScale": 0.3,
+      "noiseSpeed": 0.08,
+      "driftDirectionDeg": 45.0,
+      "baselineAlpha": 0.80
+    }
+  }
+]

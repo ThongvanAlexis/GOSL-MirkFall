@@ -1,0 +1,9 @@
+{
+  "id": "user.night_sky",
+  "displayName": "Night sky (user import)",
+  "config": {
+    "rendererType": "atmospheric",
+    "baseColorArgb": 4278224707,
+    "noiseScale": 0.6
+  }
+}

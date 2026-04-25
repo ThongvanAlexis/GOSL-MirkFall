@@ -1,0 +1,8 @@
+{
+  "id": "user.mystery",
+  "displayName": "Mystery renderer",
+  "config": {
+    "rendererType": "ray_marched_volumetric",
+    "fancyParam": 42
+  }
+}

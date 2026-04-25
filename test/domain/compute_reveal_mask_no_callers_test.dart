@@ -19,6 +19,10 @@ void main() {
     // Existing Phase 03 test asserts the `throws UnimplementedError`
     // contract — allowed to reference the symbol until Phase 09 lands.
     const allowedTestSite = 'test/domain/reveal_calculator_test.dart';
+    // Phase 09 Wave 0 (plan 09-01c) scaffolds — comment-only references
+    // describing the Wave 2 (plan 09-02) bodies. Skip-guarded `test()`
+    // blocks contain no actual call to the symbol.
+    const wave0ScaffoldSites = <String>['test/domain/revealed/reveal_calculator_test.dart', 'test/domain/revealed/reveal_calculator_parent_boundary_test.dart'];
 
     final callers = <String>[];
     for (final root in <String>['lib', 'test']) {
@@ -28,6 +32,7 @@ void main() {
         if (normalizedPath.endsWith(definitionSite)) continue;
         if (normalizedPath.endsWith(selfSite)) continue;
         if (normalizedPath.endsWith(allowedTestSite)) continue;
+        if (wave0ScaffoldSites.any(normalizedPath.endsWith)) continue;
         if (entity.readAsStringSync().contains('computeRevealMask')) {
           callers.add(normalizedPath);
         }
