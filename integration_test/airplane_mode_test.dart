@@ -235,7 +235,13 @@ void main() {
       final CountryResolverState seed = CountryResolverState(viewportCountry: CountryCode.parse('deu'));
 
       await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed));
-      await tester.pumpAndSettle();
+      // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
+      // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+      // here: the route bootstrap + post-frame callbacks land in a
+      // handful of frames and we don't need the test to wait for
+      // animations.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
 
       // Pan + zoom: push viewport updates.
       for (int i = 0; i < 10; i++) {
