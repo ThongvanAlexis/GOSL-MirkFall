@@ -102,10 +102,12 @@ class CandlelightMirkRenderer implements MirkRenderer {
     final featherSigma =
         cellSize * config.featherRadiusFraction * context.pixelRatio;
 
-    final shader = Gradient.radial(centre, radius, <Color>[
-      centerColor,
-      peripheryColor,
-    ], <double>[0.0, 1.0]);
+    final shader = Gradient.radial(
+      centre,
+      radius,
+      <Color>[centerColor, peripheryColor],
+      <double>[0.0, 1.0],
+    );
     final paint = Paint()
       ..shader = shader
       ..style = PaintingStyle.fill

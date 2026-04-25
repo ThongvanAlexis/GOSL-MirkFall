@@ -26,10 +26,7 @@ void main() {
         final renderer = AtmosphericMirkRenderer(
           const MirkStyleConfig.atmospheric() as AtmosphericConfig,
         );
-        final bytes0 = await renderToBytes(
-          renderer,
-          context: fakeContext(),
-        );
+        final bytes0 = await renderToBytes(renderer, context: fakeContext());
         final bytes5s = await renderToBytes(
           renderer,
           context: fakeContext(elapsedMs: 5000),
