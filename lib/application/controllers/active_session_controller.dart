@@ -14,6 +14,7 @@ import 'package:mirkfall/application/providers/session_notification_service_prov
 import 'package:mirkfall/application/providers/session_settings_provider.dart';
 import 'package:mirkfall/application/providers/session_store_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/fixes/fix_store.dart';
 import 'package:mirkfall/domain/gps/location_stream.dart';
@@ -107,6 +108,10 @@ class ActiveSessionController extends _$ActiveSessionController {
   /// leaked-active otherwise, and CONTEXT.md §partial-activation lock
   /// forbids that.
   Future<void> start(SessionId id) async {
+    // BUG-009 follow-up diagnostic (2026-04-25) — entry breadcrumb so
+    // a missing log discriminates "Start button never reached the
+    // controller" from "controller called but stream never delivered".
+    _log.info('start(): called for session=${id.value}');
     state = AsyncData(Starting(id));
 
     // Pre-assign the session id BEFORE any DB mutation so the catch
@@ -352,10 +357,21 @@ class ActiveSessionController extends _$ActiveSessionController {
   Future<void> _writeInitialRevealIfReady(Fix fix, {required SessionId sessionId, RevealStreamingController? reveal}) async {
     if (_initialRevealDone) return;
     final controller = reveal ?? ref.read(revealStreamingControllerProvider(sessionId));
-    if (controller == null) return;
+    if (controller == null) {
+      // BUG-009 follow-up diagnostic (2026-04-25) — explain why we
+      // skip the initial reveal so a missing fog around the user can
+      // be traced back to a missing reveal controller (e.g. provider
+      // family slot not yet hydrated for this sessionId).
+      _log.info('_writeInitialRevealIfReady: SKIPPED — revealStreamingController is null for session=${sessionId.value}');
+      return;
+    }
     _initialRevealDone = true;
+    _log.info(
+      'start(): triggering initial ${kInitialRevealRadiusMeters}m reveal at lat=${fix.latitude.toStringAsFixed(6)} lon=${fix.longitude.toStringAsFixed(6)}',
+    );
     try {
       await controller.revealInitial(fix);
+      _log.info('start(): initial reveal done for session=${sessionId.value}');
     } on Object catch (e, st) {
       // Failed initial reveal is best-effort — the per-fix flush
       // pipeline will paint subsequent reveals; a missing seed disc

@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logging/logging.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/providers/active_mirk_renderer_provider.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
@@ -14,6 +15,8 @@ import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
+
+final Logger _log = Logger('presentation.mirk_overlay');
 
 /// Stateful Riverpod overlay that hosts the mirk Ticker + CustomPainter.
 ///
@@ -44,9 +47,16 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
   late final Ticker _ticker;
   Duration _tickerElapsed = Duration.zero;
 
+  /// BUG-009 follow-up diagnostic (2026-04-25) — frame counter used to
+  /// throttle the per-build log to roughly once per second (60 Hz
+  /// Ticker → log every 60th frame). Drops the log volume from
+  /// ~3600/min to ~60/min, well below the FileLogger flush budget.
+  int _buildCallCount = 0;
+
   @override
   void initState() {
     super.initState();
+    _log.info('MirkOverlay: initState — Ticker started');
     _ticker = createTicker(_onTick)..start();
   }
 
@@ -57,6 +67,7 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
 
   @override
   void dispose() {
+    _log.info('MirkOverlay: dispose — Ticker stopped');
     _ticker.dispose();
     super.dispose();
   }
@@ -68,6 +79,18 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
     final viewport = ref.watch(mapViewportProvider);
     final sessionState = ref.watch(activeSessionControllerProvider);
     final double? zoom = ref.watch(mapViewportZoomProvider);
+
+    // BUG-009 follow-up diagnostic (2026-04-25) — confirm the overlay
+    // is actually being built and inspect which prerequisite (if any)
+    // is gating the early bail-out. Throttled to ~1 Hz (every 60th
+    // build at 60 Hz Ticker rebuild) so we don't drown the log file in
+    // heartbeats. Logged at FINE so it only shows when the debug
+    // logger threshold is set to FINE; the renderer's existing
+    // path-transition logs at INFO carry the user-relevant signal.
+    if (_buildCallCount % 60 == 0) {
+      _log.fine('build: rendererAsync=${rendererAsync.runtimeType} tilesAsync=${tilesAsync.runtimeType} viewport=${viewport != null} zoom=$zoom');
+    }
+    _buildCallCount++;
 
     // Bail out cheaply when any prerequisite is not ready. The overlay
     // becomes invisible — the underlying RepaintBoundary keeps the

@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logging/logging.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/session_settings_provider.dart';
@@ -18,6 +19,8 @@ import 'package:mirkfall/domain/gps/gps_errors.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
+
+final Logger _log = Logger('presentation.session_detail');
 
 /// `/sessions/:id` — detail view for a single [Session].
 ///
@@ -219,6 +222,13 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
   }
 
   Future<void> _handleStart(Session session) async {
+    // BUG-009 follow-up diagnostic (2026-04-25) — confirm the Start
+    // button press actually reaches this handler. Pairs with the
+    // ActiveSessionController.start() entry log + the MapScreen mount
+    // log so a missing breadcrumb pinpoints WHICH user action failed
+    // to plumb through.
+    final ActiveSessionState? controllerState = ref.read(activeSessionControllerProvider).value;
+    _log.info('_handleStart: Start button pressed for session=${session.id.value} (current state=${controllerState?.runtimeType ?? "<null>"})');
     // Phase 06 Should #22 (Agent #3 #7) — when invoked from the auto-start
     // path inside _loadSession, an unlucky dispose can fire before we get
     // here. Guard the entry setState so we never setState-after-dispose.

@@ -4,6 +4,7 @@
 
 import 'dart:typed_data';
 
+import 'package:logging/logging.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/providers/map_viewport_provider.dart';
 import 'package:mirkfall/application/providers/revealed_tile_store_provider.dart';
@@ -12,10 +13,13 @@ import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
+import 'package:mirkfall/domain/revealed/reveal_calculator.dart';
 import 'package:mirkfall/domain/revealed/tile_math.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'visible_mirk_tiles_provider.g.dart';
+
+final Logger _log = Logger('application.providers.visible_mirk_tiles');
 
 /// Async provider returning the parent tiles intersecting the current
 /// viewport, hydrated with their bitmap from [`RevealedTileStore`] and
@@ -74,5 +78,15 @@ Future<List<VisibleMirkTile>> visibleMirkTiles(Ref ref) async {
       result.add(VisibleMirkTile(parentX: x, parentY: y, bitmap: bitmap, tileNorthLat: nw.lat, tileWestLon: nw.lon, tileSouthLat: se.lat, tileEastLon: se.lon));
     }
   }
+  // BUG-009 follow-up diagnostic (2026-04-25) — log a one-line summary
+  // of what this provider rebuild produced. Sums the popcount across
+  // every emitted tile so "tiles produced but all empty" is
+  // distinguishable from "tiles produced AND populated". FINE level
+  // because the provider rebuilds on every viewport tick.
+  var totalSetBits = 0;
+  for (final tile in result) {
+    totalSetBits += popcount(tile.bitmap);
+  }
+  _log.fine('visibleMirkTiles: produced ${result.length} tiles · totalSetBits=$totalSetBits (xRange=$xMin..$xMax yRange=$yMin..$yMax)');
   return result;
 }

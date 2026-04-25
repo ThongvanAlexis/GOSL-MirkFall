@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logging/logging.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/controllers/country_resolver_controller.dart';
 import 'package:mirkfall/application/controllers/map_camera_controller.dart';
@@ -25,6 +26,8 @@ import '../widgets/map_follow_me_fab.dart';
 import '../widgets/mirk_initial_reveal_fade.dart';
 import '../widgets/mirk_overlay.dart';
 import '../widgets/session_burger_menu.dart';
+
+final Logger _log = Logger('presentation.map_screen');
 
 /// Builder signature used for injecting a fake map widget in widget tests
 /// without dragging MapLibre into the test runner. Production code always
@@ -68,7 +71,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
+  void initState() {
+    super.initState();
+    // BUG-009 follow-up diagnostic (2026-04-25) — record /map mount so
+    // we can verify the user actually reached the map after pressing
+    // "Carte plein écran" (or after auto-navigation following a
+    // permission grant). Pairs with the dispose / deactivate logs.
+    _log.info('MapScreen.initState: mounted');
+  }
+
+  @override
+  void dispose() {
+    _log.info('MapScreen lifecycle: dispose');
+    super.dispose();
+  }
+
+  @override
   void deactivate() {
+    _log.info('MapScreen lifecycle: deactivate');
     // Phase 08.1-REVIEW §3 row #13 (Could). `deactivate()` fires on
     // two very different events:
     //

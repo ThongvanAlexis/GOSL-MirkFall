@@ -62,6 +62,11 @@ class RevealStreamingController {
   Future<void> onFix(Fix fix) async {
     if (_disposed) return;
     _buffer.add(fix);
+    // BUG-009 follow-up diagnostic (2026-04-25) — FINE-level per-fix
+    // breadcrumb. At kRevealFlushIntervalSeconds + kRevealFlushMaxFixes
+    // cadence the buffer rarely exceeds ~10 entries, so this is far
+    // below the FileLogger flush budget even on long walks.
+    _log.fine('onFix: lat=${fix.latitude.toStringAsFixed(6)} lon=${fix.longitude.toStringAsFixed(6)} bufferLen=${_buffer.length}');
     if (_buffer.length >= flushMaxFixes) {
       await _flush();
       return;
@@ -104,6 +109,22 @@ class RevealStreamingController {
   }
 
   Future<void> _flushBatch(List<Fix> batch) async {
+    // BUG-009 follow-up diagnostic (2026-04-25) — count distinct parent
+    // tiles touched across the batch so a "flush ran but nothing was
+    // written" failure mode is observable in the logs. We sum tile
+    // counts per fix BEFORE the actual mergeMask call so the log
+    // appears even if a downstream write throws.
+    var totalCells = 0;
+    final touchedTileSet = <int>{};
+    for (final fix in batch) {
+      for (final tile in _touchedParentTiles(fix.latitude, fix.longitude, revealRadiusMeters)) {
+        // Pack (x, y) into a 53-bit-safe key for set dedup. parentX/Y
+        // at zoom 14 fit in 14 bits each.
+        touchedTileSet.add((tile.x << 20) ^ tile.y);
+        totalCells++;
+      }
+    }
+    _log.info('flush: writing $totalCells cells across ${touchedTileSet.length} tiles to RevealedTileStore (batch=${batch.length} fixes)');
     for (final fix in batch) {
       await _writeCircleReveal(fix.latitude, fix.longitude, revealRadiusMeters);
     }

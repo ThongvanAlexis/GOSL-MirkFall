@@ -3,6 +3,7 @@
 // See LICENSE file for details
 
 import 'package:drift/drift.dart';
+import 'package:logging/logging.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/ids/id_generator.dart';
 import 'package:mirkfall/domain/ids/revealed_tile_id.dart';
@@ -11,6 +12,8 @@ import 'package:mirkfall/domain/revealed/reveal_calculator.dart';
 import 'package:mirkfall/domain/revealed/revealed_tile.dart';
 import 'package:mirkfall/domain/revealed/revealed_tile_store.dart';
 import 'package:mirkfall/infrastructure/db/app_database.dart';
+
+final Logger _log = Logger('infrastructure.stores.drift_revealed_tile');
 
 /// Drift-backed [RevealedTileStore] — MIRK-03 core implementation.
 ///
@@ -69,6 +72,16 @@ class DriftRevealedTileStore implements RevealedTileStore {
             '($kRevealedTileBitmapBytes)',
       );
     }
+    // BUG-009 follow-up diagnostic (2026-04-25) — log every merge so a
+    // "fog never reveals" failure has a breadcrumb at the persistence
+    // boundary. FINE level so the per-fix-per-tile cadence (~1-4
+    // merges per fix) doesn't drown the log file. Existing bits
+    // count is read pre-transaction; the value can race a concurrent
+    // writer but a stale read is fine for diagnostic purposes.
+    final existingPre = await _findRow(sessionId: sessionId, parentX: parentX, parentY: parentY);
+    final existingBitsCount = existingPre == null ? 0 : popcount(existingPre.bitmap);
+    final newBitsCount = popcount(mask);
+    _log.fine('mergeMask: parentX=$parentX parentY=$parentY newBitsCount=$newBitsCount existingBitsCount=$existingBitsCount');
     await _db.transaction(() async {
       // Findings #20 + #32 (Batch H) — cold-start race guard.
       // The in-transaction SELECT → {INSERT | UPDATE} pattern is atomic
