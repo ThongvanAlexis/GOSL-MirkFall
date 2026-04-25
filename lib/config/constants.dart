@@ -8,6 +8,11 @@ const String kAppName = 'MirkFall';
 /// Bundle / application ID — same on Android and iOS.
 const String kBundleId = 'app.gosl.mirkfall';
 
+/// Git commit SHA baked in at build time via `--dart-define=GIT_COMMIT_SHA=abc123`.
+/// Falls back to `'dev'` for local builds where the define is not passed.
+/// Read at startup by the logger and displayed in the debug menu.
+const String kGitCommitSha = String.fromEnvironment('GIT_COMMIT_SHA', defaultValue: 'dev');
+
 /// Hard cap on total bytes used by `<app_docs>/logs/` after startup prune.
 const int kMaxLogsDirBytes = 10 * 1024 * 1024; // 10 MB
 

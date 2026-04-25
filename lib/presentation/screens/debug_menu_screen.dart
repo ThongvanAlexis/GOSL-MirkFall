@@ -192,6 +192,7 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
       appBar: AppBar(title: const Text('Debug menu')),
       body: ListView(
         children: <Widget>[
+          const ListTile(leading: Icon(Icons.commit), title: Text('Build commit'), subtitle: Text(kGitCommitSha)),
           SwitchListTile(
             title: const Text('Verbose logging'),
             subtitle: Text('--dart-define=DEBUG = $_debugDefine · prefs = $_verbose'),

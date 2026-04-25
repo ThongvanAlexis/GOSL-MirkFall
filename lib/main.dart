@@ -14,6 +14,7 @@ import 'package:logging/logging.dart';
 import 'app.dart';
 import 'application/providers/map_providers.dart';
 import 'application/providers/session_store_provider.dart';
+import 'config/constants.dart';
 import 'infrastructure/logging/file_logger.dart';
 import 'presentation/router.dart';
 
@@ -108,7 +109,7 @@ Future<void> main() async {
         return true;
       };
 
-      log.info('MirkFall starting — logger armed');
+      log.info('MirkFall starting — logger armed — commit: $kGitCommitSha');
 
       // Phase 05 — wire the `flutter_local_notifications` tap callback so
       // the "tap to resume" notification (Plan 05-05 auto-resume path)
