@@ -3,15 +3,467 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
-class $SessionsTable extends Sessions with TableInfo<$SessionsTable, SessionRow> {
+class $MirkStylesTable extends MirkStyles
+    with TableInfo<$MirkStylesTable, MirkStyleRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MirkStylesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rendererTypeMeta = const VerificationMeta(
+    'rendererType',
+  );
+  @override
+  late final GeneratedColumn<String> rendererType = GeneratedColumn<String>(
+    'renderer_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<MirkStyleConfig, String> config =
+      GeneratedColumn<String>(
+        'config',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<MirkStyleConfig>($MirkStylesTable.$converterconfig);
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime, int> createdAtUtc =
+      GeneratedColumn<int>(
+        'created_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($MirkStylesTable.$convertercreatedAtUtc);
+  static const VerificationMeta _createdAtOffsetMinutesMeta =
+      const VerificationMeta('createdAtOffsetMinutes');
+  @override
+  late final GeneratedColumn<int> createdAtOffsetMinutes = GeneratedColumn<int>(
+    'created_at_offset_minutes',
+    aliasedName,
+    false,
+    check: () => ComparableExpr(
+      createdAtOffsetMinutes,
+    ).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    displayName,
+    rendererType,
+    config,
+    createdAtUtc,
+    createdAtOffsetMinutes,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 't_mirk_styles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MirkStyleRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('renderer_type')) {
+      context.handle(
+        _rendererTypeMeta,
+        rendererType.isAcceptableOrUnknown(
+          data['renderer_type']!,
+          _rendererTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_rendererTypeMeta);
+    }
+    if (data.containsKey('created_at_offset_minutes')) {
+      context.handle(
+        _createdAtOffsetMinutesMeta,
+        createdAtOffsetMinutes.isAcceptableOrUnknown(
+          data['created_at_offset_minutes']!,
+          _createdAtOffsetMinutesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtOffsetMinutesMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MirkStyleRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MirkStyleRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      rendererType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}renderer_type'],
+      )!,
+      config: $MirkStylesTable.$converterconfig.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}config'],
+        )!,
+      ),
+      createdAtUtc: $MirkStylesTable.$convertercreatedAtUtc.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}created_at_utc'],
+        )!,
+      ),
+      createdAtOffsetMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_offset_minutes'],
+      )!,
+    );
+  }
+
+  @override
+  $MirkStylesTable createAlias(String alias) {
+    return $MirkStylesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<MirkStyleConfig, String> $converterconfig =
+      const MirkStyleConfigJsonConverter();
+  static TypeConverter<DateTime, int> $convertercreatedAtUtc =
+      const UnixMsToDateTimeConverter();
+}
+
+class MirkStyleRow extends DataClass implements Insertable<MirkStyleRow> {
+  final String id;
+  final String displayName;
+  final String rendererType;
+  final MirkStyleConfig config;
+  final DateTime createdAtUtc;
+  final int createdAtOffsetMinutes;
+  const MirkStyleRow({
+    required this.id,
+    required this.displayName,
+    required this.rendererType,
+    required this.config,
+    required this.createdAtUtc,
+    required this.createdAtOffsetMinutes,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['display_name'] = Variable<String>(displayName);
+    map['renderer_type'] = Variable<String>(rendererType);
+    {
+      map['config'] = Variable<String>(
+        $MirkStylesTable.$converterconfig.toSql(config),
+      );
+    }
+    {
+      map['created_at_utc'] = Variable<int>(
+        $MirkStylesTable.$convertercreatedAtUtc.toSql(createdAtUtc),
+      );
+    }
+    map['created_at_offset_minutes'] = Variable<int>(createdAtOffsetMinutes);
+    return map;
+  }
+
+  MirkStylesCompanion toCompanion(bool nullToAbsent) {
+    return MirkStylesCompanion(
+      id: Value(id),
+      displayName: Value(displayName),
+      rendererType: Value(rendererType),
+      config: Value(config),
+      createdAtUtc: Value(createdAtUtc),
+      createdAtOffsetMinutes: Value(createdAtOffsetMinutes),
+    );
+  }
+
+  factory MirkStyleRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MirkStyleRow(
+      id: serializer.fromJson<String>(json['id']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      rendererType: serializer.fromJson<String>(json['rendererType']),
+      config: serializer.fromJson<MirkStyleConfig>(json['config']),
+      createdAtUtc: serializer.fromJson<DateTime>(json['createdAtUtc']),
+      createdAtOffsetMinutes: serializer.fromJson<int>(
+        json['createdAtOffsetMinutes'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'displayName': serializer.toJson<String>(displayName),
+      'rendererType': serializer.toJson<String>(rendererType),
+      'config': serializer.toJson<MirkStyleConfig>(config),
+      'createdAtUtc': serializer.toJson<DateTime>(createdAtUtc),
+      'createdAtOffsetMinutes': serializer.toJson<int>(createdAtOffsetMinutes),
+    };
+  }
+
+  MirkStyleRow copyWith({
+    String? id,
+    String? displayName,
+    String? rendererType,
+    MirkStyleConfig? config,
+    DateTime? createdAtUtc,
+    int? createdAtOffsetMinutes,
+  }) => MirkStyleRow(
+    id: id ?? this.id,
+    displayName: displayName ?? this.displayName,
+    rendererType: rendererType ?? this.rendererType,
+    config: config ?? this.config,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+    createdAtOffsetMinutes:
+        createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
+  );
+  MirkStyleRow copyWithCompanion(MirkStylesCompanion data) {
+    return MirkStyleRow(
+      id: data.id.present ? data.id.value : this.id,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      rendererType: data.rendererType.present
+          ? data.rendererType.value
+          : this.rendererType,
+      config: data.config.present ? data.config.value : this.config,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+      createdAtOffsetMinutes: data.createdAtOffsetMinutes.present
+          ? data.createdAtOffsetMinutes.value
+          : this.createdAtOffsetMinutes,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MirkStyleRow(')
+          ..write('id: $id, ')
+          ..write('displayName: $displayName, ')
+          ..write('rendererType: $rendererType, ')
+          ..write('config: $config, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('createdAtOffsetMinutes: $createdAtOffsetMinutes')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    displayName,
+    rendererType,
+    config,
+    createdAtUtc,
+    createdAtOffsetMinutes,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MirkStyleRow &&
+          other.id == this.id &&
+          other.displayName == this.displayName &&
+          other.rendererType == this.rendererType &&
+          other.config == this.config &&
+          other.createdAtUtc == this.createdAtUtc &&
+          other.createdAtOffsetMinutes == this.createdAtOffsetMinutes);
+}
+
+class MirkStylesCompanion extends UpdateCompanion<MirkStyleRow> {
+  final Value<String> id;
+  final Value<String> displayName;
+  final Value<String> rendererType;
+  final Value<MirkStyleConfig> config;
+  final Value<DateTime> createdAtUtc;
+  final Value<int> createdAtOffsetMinutes;
+  final Value<int> rowid;
+  const MirkStylesCompanion({
+    this.id = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.rendererType = const Value.absent(),
+    this.config = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.createdAtOffsetMinutes = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MirkStylesCompanion.insert({
+    required String id,
+    required String displayName,
+    required String rendererType,
+    required MirkStyleConfig config,
+    required DateTime createdAtUtc,
+    required int createdAtOffsetMinutes,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       displayName = Value(displayName),
+       rendererType = Value(rendererType),
+       config = Value(config),
+       createdAtUtc = Value(createdAtUtc),
+       createdAtOffsetMinutes = Value(createdAtOffsetMinutes);
+  static Insertable<MirkStyleRow> custom({
+    Expression<String>? id,
+    Expression<String>? displayName,
+    Expression<String>? rendererType,
+    Expression<String>? config,
+    Expression<int>? createdAtUtc,
+    Expression<int>? createdAtOffsetMinutes,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (displayName != null) 'display_name': displayName,
+      if (rendererType != null) 'renderer_type': rendererType,
+      if (config != null) 'config': config,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (createdAtOffsetMinutes != null)
+        'created_at_offset_minutes': createdAtOffsetMinutes,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MirkStylesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? displayName,
+    Value<String>? rendererType,
+    Value<MirkStyleConfig>? config,
+    Value<DateTime>? createdAtUtc,
+    Value<int>? createdAtOffsetMinutes,
+    Value<int>? rowid,
+  }) {
+    return MirkStylesCompanion(
+      id: id ?? this.id,
+      displayName: displayName ?? this.displayName,
+      rendererType: rendererType ?? this.rendererType,
+      config: config ?? this.config,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      createdAtOffsetMinutes:
+          createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (rendererType.present) {
+      map['renderer_type'] = Variable<String>(rendererType.value);
+    }
+    if (config.present) {
+      map['config'] = Variable<String>(
+        $MirkStylesTable.$converterconfig.toSql(config.value),
+      );
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<int>(
+        $MirkStylesTable.$convertercreatedAtUtc.toSql(createdAtUtc.value),
+      );
+    }
+    if (createdAtOffsetMinutes.present) {
+      map['created_at_offset_minutes'] = Variable<int>(
+        createdAtOffsetMinutes.value,
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MirkStylesCompanion(')
+          ..write('id: $id, ')
+          ..write('displayName: $displayName, ')
+          ..write('rendererType: $rendererType, ')
+          ..write('config: $config, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('createdAtOffsetMinutes: $createdAtOffsetMinutes, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SessionsTable extends Sessions
+    with TableInfo<$SessionsTable, SessionRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $SessionsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>('id', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _displayNameMeta = const VerificationMeta('displayName');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
   @override
   late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
     'display_name',
@@ -31,53 +483,94 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, SessionRow>
     requiredDuringInsert: true,
   );
   @override
-  late final GeneratedColumnWithTypeConverter<DateTime, int> startedAtUtc = GeneratedColumn<int>(
-    'started_at_utc',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  ).withConverter<DateTime>($SessionsTable.$converterstartedAtUtc);
-  static const VerificationMeta _startedAtOffsetMinutesMeta = const VerificationMeta('startedAtOffsetMinutes');
+  late final GeneratedColumnWithTypeConverter<DateTime, int> startedAtUtc =
+      GeneratedColumn<int>(
+        'started_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($SessionsTable.$converterstartedAtUtc);
+  static const VerificationMeta _startedAtOffsetMinutesMeta =
+      const VerificationMeta('startedAtOffsetMinutes');
   @override
   late final GeneratedColumn<int> startedAtOffsetMinutes = GeneratedColumn<int>(
     'started_at_offset_minutes',
     aliasedName,
     false,
-    check: () => ComparableExpr(startedAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
+    check: () => ComparableExpr(
+      startedAtOffsetMinutes,
+    ).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
   @override
-  late final GeneratedColumnWithTypeConverter<DateTime?, int> stoppedAtUtc = GeneratedColumn<int>(
-    'stopped_at_utc',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  ).withConverter<DateTime?>($SessionsTable.$converterstoppedAtUtcn);
-  static const VerificationMeta _stoppedAtOffsetMinutesMeta = const VerificationMeta('stoppedAtOffsetMinutes');
+  late final GeneratedColumnWithTypeConverter<DateTime?, int> stoppedAtUtc =
+      GeneratedColumn<int>(
+        'stopped_at_utc',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<DateTime?>($SessionsTable.$converterstoppedAtUtcn);
+  static const VerificationMeta _stoppedAtOffsetMinutesMeta =
+      const VerificationMeta('stoppedAtOffsetMinutes');
   @override
   late final GeneratedColumn<int> stoppedAtOffsetMinutes = GeneratedColumn<int>(
     'stopped_at_offset_minutes',
     aliasedName,
     true,
-    check: () => ComparableExpr(stoppedAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
+    check: () => ComparableExpr(
+      stoppedAtOffsetMinutes,
+    ).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
-  late final GeneratedColumn<String> notes = GeneratedColumn<String>('notes', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _mirkStyleIdMeta = const VerificationMeta(
+    'mirkStyleId',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, displayName, status, startedAtUtc, startedAtOffsetMinutes, stoppedAtUtc, stoppedAtOffsetMinutes, notes];
+  late final GeneratedColumn<String> mirkStyleId = GeneratedColumn<String>(
+    'mirk_style_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES t_mirk_styles (id) ON DELETE SET NULL',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    displayName,
+    status,
+    startedAtUtc,
+    startedAtOffsetMinutes,
+    stoppedAtUtc,
+    stoppedAtOffsetMinutes,
+    notes,
+    mirkStyleId,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 't_sessions';
   @override
-  VerificationContext validateIntegrity(Insertable<SessionRow> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<SessionRow> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -86,19 +579,31 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, SessionRow>
       context.missing(_idMeta);
     }
     if (data.containsKey('display_name')) {
-      context.handle(_displayNameMeta, displayName.isAcceptableOrUnknown(data['display_name']!, _displayNameMeta));
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
     } else if (isInserting) {
       context.missing(_displayNameMeta);
     }
     if (data.containsKey('status')) {
-      context.handle(_statusMeta, status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
     } else if (isInserting) {
       context.missing(_statusMeta);
     }
     if (data.containsKey('started_at_offset_minutes')) {
       context.handle(
         _startedAtOffsetMinutesMeta,
-        startedAtOffsetMinutes.isAcceptableOrUnknown(data['started_at_offset_minutes']!, _startedAtOffsetMinutesMeta),
+        startedAtOffsetMinutes.isAcceptableOrUnknown(
+          data['started_at_offset_minutes']!,
+          _startedAtOffsetMinutesMeta,
+        ),
       );
     } else if (isInserting) {
       context.missing(_startedAtOffsetMinutesMeta);
@@ -106,11 +611,26 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, SessionRow>
     if (data.containsKey('stopped_at_offset_minutes')) {
       context.handle(
         _stoppedAtOffsetMinutesMeta,
-        stoppedAtOffsetMinutes.isAcceptableOrUnknown(data['stopped_at_offset_minutes']!, _stoppedAtOffsetMinutesMeta),
+        stoppedAtOffsetMinutes.isAcceptableOrUnknown(
+          data['stopped_at_offset_minutes']!,
+          _stoppedAtOffsetMinutesMeta,
+        ),
       );
     }
     if (data.containsKey('notes')) {
-      context.handle(_notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('mirk_style_id')) {
+      context.handle(
+        _mirkStyleIdMeta,
+        mirkStyleId.isAcceptableOrUnknown(
+          data['mirk_style_id']!,
+          _mirkStyleIdMeta,
+        ),
+      );
     }
     return context;
   }
@@ -121,18 +641,46 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, SessionRow>
   SessionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return SessionRow(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      displayName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}display_name'])!,
-      status: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
       startedAtUtc: $SessionsTable.$converterstartedAtUtc.fromSql(
-        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}started_at_utc'])!,
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}started_at_utc'],
+        )!,
       ),
-      startedAtOffsetMinutes: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}started_at_offset_minutes'])!,
+      startedAtOffsetMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}started_at_offset_minutes'],
+      )!,
       stoppedAtUtc: $SessionsTable.$converterstoppedAtUtcn.fromSql(
-        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}stopped_at_utc']),
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}stopped_at_utc'],
+        ),
       ),
-      stoppedAtOffsetMinutes: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}stopped_at_offset_minutes']),
-      notes: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}notes']),
+      stoppedAtOffsetMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}stopped_at_offset_minutes'],
+      ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      mirkStyleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mirk_style_id'],
+      ),
     );
   }
 
@@ -141,9 +689,12 @@ class $SessionsTable extends Sessions with TableInfo<$SessionsTable, SessionRow>
     return $SessionsTable(attachedDatabase, alias);
   }
 
-  static TypeConverter<DateTime, int> $converterstartedAtUtc = const UnixMsToDateTimeConverter();
-  static TypeConverter<DateTime, int> $converterstoppedAtUtc = const UnixMsToDateTimeConverter();
-  static TypeConverter<DateTime?, int?> $converterstoppedAtUtcn = NullAwareTypeConverter.wrap($converterstoppedAtUtc);
+  static TypeConverter<DateTime, int> $converterstartedAtUtc =
+      const UnixMsToDateTimeConverter();
+  static TypeConverter<DateTime, int> $converterstoppedAtUtc =
+      const UnixMsToDateTimeConverter();
+  static TypeConverter<DateTime?, int?> $converterstoppedAtUtcn =
+      NullAwareTypeConverter.wrap($converterstoppedAtUtc);
 }
 
 class SessionRow extends DataClass implements Insertable<SessionRow> {
@@ -155,6 +706,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
   final DateTime? stoppedAtUtc;
   final int? stoppedAtOffsetMinutes;
   final String? notes;
+  final String? mirkStyleId;
   const SessionRow({
     required this.id,
     required this.displayName,
@@ -164,6 +716,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     this.stoppedAtUtc,
     this.stoppedAtOffsetMinutes,
     this.notes,
+    this.mirkStyleId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -172,17 +725,24 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     map['display_name'] = Variable<String>(displayName);
     map['status'] = Variable<String>(status);
     {
-      map['started_at_utc'] = Variable<int>($SessionsTable.$converterstartedAtUtc.toSql(startedAtUtc));
+      map['started_at_utc'] = Variable<int>(
+        $SessionsTable.$converterstartedAtUtc.toSql(startedAtUtc),
+      );
     }
     map['started_at_offset_minutes'] = Variable<int>(startedAtOffsetMinutes);
     if (!nullToAbsent || stoppedAtUtc != null) {
-      map['stopped_at_utc'] = Variable<int>($SessionsTable.$converterstoppedAtUtcn.toSql(stoppedAtUtc));
+      map['stopped_at_utc'] = Variable<int>(
+        $SessionsTable.$converterstoppedAtUtcn.toSql(stoppedAtUtc),
+      );
     }
     if (!nullToAbsent || stoppedAtOffsetMinutes != null) {
       map['stopped_at_offset_minutes'] = Variable<int>(stoppedAtOffsetMinutes);
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || mirkStyleId != null) {
+      map['mirk_style_id'] = Variable<String>(mirkStyleId);
     }
     return map;
   }
@@ -194,23 +754,40 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       status: Value(status),
       startedAtUtc: Value(startedAtUtc),
       startedAtOffsetMinutes: Value(startedAtOffsetMinutes),
-      stoppedAtUtc: stoppedAtUtc == null && nullToAbsent ? const Value.absent() : Value(stoppedAtUtc),
-      stoppedAtOffsetMinutes: stoppedAtOffsetMinutes == null && nullToAbsent ? const Value.absent() : Value(stoppedAtOffsetMinutes),
-      notes: notes == null && nullToAbsent ? const Value.absent() : Value(notes),
+      stoppedAtUtc: stoppedAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stoppedAtUtc),
+      stoppedAtOffsetMinutes: stoppedAtOffsetMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stoppedAtOffsetMinutes),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      mirkStyleId: mirkStyleId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mirkStyleId),
     );
   }
 
-  factory SessionRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory SessionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return SessionRow(
       id: serializer.fromJson<String>(json['id']),
       displayName: serializer.fromJson<String>(json['displayName']),
       status: serializer.fromJson<String>(json['status']),
       startedAtUtc: serializer.fromJson<DateTime>(json['startedAtUtc']),
-      startedAtOffsetMinutes: serializer.fromJson<int>(json['startedAtOffsetMinutes']),
+      startedAtOffsetMinutes: serializer.fromJson<int>(
+        json['startedAtOffsetMinutes'],
+      ),
       stoppedAtUtc: serializer.fromJson<DateTime?>(json['stoppedAtUtc']),
-      stoppedAtOffsetMinutes: serializer.fromJson<int?>(json['stoppedAtOffsetMinutes']),
+      stoppedAtOffsetMinutes: serializer.fromJson<int?>(
+        json['stoppedAtOffsetMinutes'],
+      ),
       notes: serializer.fromJson<String?>(json['notes']),
+      mirkStyleId: serializer.fromJson<String?>(json['mirkStyleId']),
     );
   }
   @override
@@ -225,6 +802,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       'stoppedAtUtc': serializer.toJson<DateTime?>(stoppedAtUtc),
       'stoppedAtOffsetMinutes': serializer.toJson<int?>(stoppedAtOffsetMinutes),
       'notes': serializer.toJson<String?>(notes),
+      'mirkStyleId': serializer.toJson<String?>(mirkStyleId),
     };
   }
 
@@ -237,26 +815,44 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     Value<DateTime?> stoppedAtUtc = const Value.absent(),
     Value<int?> stoppedAtOffsetMinutes = const Value.absent(),
     Value<String?> notes = const Value.absent(),
+    Value<String?> mirkStyleId = const Value.absent(),
   }) => SessionRow(
     id: id ?? this.id,
     displayName: displayName ?? this.displayName,
     status: status ?? this.status,
     startedAtUtc: startedAtUtc ?? this.startedAtUtc,
-    startedAtOffsetMinutes: startedAtOffsetMinutes ?? this.startedAtOffsetMinutes,
+    startedAtOffsetMinutes:
+        startedAtOffsetMinutes ?? this.startedAtOffsetMinutes,
     stoppedAtUtc: stoppedAtUtc.present ? stoppedAtUtc.value : this.stoppedAtUtc,
-    stoppedAtOffsetMinutes: stoppedAtOffsetMinutes.present ? stoppedAtOffsetMinutes.value : this.stoppedAtOffsetMinutes,
+    stoppedAtOffsetMinutes: stoppedAtOffsetMinutes.present
+        ? stoppedAtOffsetMinutes.value
+        : this.stoppedAtOffsetMinutes,
     notes: notes.present ? notes.value : this.notes,
+    mirkStyleId: mirkStyleId.present ? mirkStyleId.value : this.mirkStyleId,
   );
   SessionRow copyWithCompanion(SessionsCompanion data) {
     return SessionRow(
       id: data.id.present ? data.id.value : this.id,
-      displayName: data.displayName.present ? data.displayName.value : this.displayName,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
       status: data.status.present ? data.status.value : this.status,
-      startedAtUtc: data.startedAtUtc.present ? data.startedAtUtc.value : this.startedAtUtc,
-      startedAtOffsetMinutes: data.startedAtOffsetMinutes.present ? data.startedAtOffsetMinutes.value : this.startedAtOffsetMinutes,
-      stoppedAtUtc: data.stoppedAtUtc.present ? data.stoppedAtUtc.value : this.stoppedAtUtc,
-      stoppedAtOffsetMinutes: data.stoppedAtOffsetMinutes.present ? data.stoppedAtOffsetMinutes.value : this.stoppedAtOffsetMinutes,
+      startedAtUtc: data.startedAtUtc.present
+          ? data.startedAtUtc.value
+          : this.startedAtUtc,
+      startedAtOffsetMinutes: data.startedAtOffsetMinutes.present
+          ? data.startedAtOffsetMinutes.value
+          : this.startedAtOffsetMinutes,
+      stoppedAtUtc: data.stoppedAtUtc.present
+          ? data.stoppedAtUtc.value
+          : this.stoppedAtUtc,
+      stoppedAtOffsetMinutes: data.stoppedAtOffsetMinutes.present
+          ? data.stoppedAtOffsetMinutes.value
+          : this.stoppedAtOffsetMinutes,
       notes: data.notes.present ? data.notes.value : this.notes,
+      mirkStyleId: data.mirkStyleId.present
+          ? data.mirkStyleId.value
+          : this.mirkStyleId,
     );
   }
 
@@ -270,13 +866,24 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           ..write('startedAtOffsetMinutes: $startedAtOffsetMinutes, ')
           ..write('stoppedAtUtc: $stoppedAtUtc, ')
           ..write('stoppedAtOffsetMinutes: $stoppedAtOffsetMinutes, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('mirkStyleId: $mirkStyleId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, displayName, status, startedAtUtc, startedAtOffsetMinutes, stoppedAtUtc, stoppedAtOffsetMinutes, notes);
+  int get hashCode => Object.hash(
+    id,
+    displayName,
+    status,
+    startedAtUtc,
+    startedAtOffsetMinutes,
+    stoppedAtUtc,
+    stoppedAtOffsetMinutes,
+    notes,
+    mirkStyleId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -288,7 +895,8 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           other.startedAtOffsetMinutes == this.startedAtOffsetMinutes &&
           other.stoppedAtUtc == this.stoppedAtUtc &&
           other.stoppedAtOffsetMinutes == this.stoppedAtOffsetMinutes &&
-          other.notes == this.notes);
+          other.notes == this.notes &&
+          other.mirkStyleId == this.mirkStyleId);
 }
 
 class SessionsCompanion extends UpdateCompanion<SessionRow> {
@@ -300,6 +908,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
   final Value<DateTime?> stoppedAtUtc;
   final Value<int?> stoppedAtOffsetMinutes;
   final Value<String?> notes;
+  final Value<String?> mirkStyleId;
   final Value<int> rowid;
   const SessionsCompanion({
     this.id = const Value.absent(),
@@ -310,6 +919,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     this.stoppedAtUtc = const Value.absent(),
     this.stoppedAtOffsetMinutes = const Value.absent(),
     this.notes = const Value.absent(),
+    this.mirkStyleId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SessionsCompanion.insert({
@@ -321,6 +931,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     this.stoppedAtUtc = const Value.absent(),
     this.stoppedAtOffsetMinutes = const Value.absent(),
     this.notes = const Value.absent(),
+    this.mirkStyleId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        displayName = Value(displayName),
@@ -336,6 +947,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     Expression<int>? stoppedAtUtc,
     Expression<int>? stoppedAtOffsetMinutes,
     Expression<String>? notes,
+    Expression<String>? mirkStyleId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -343,10 +955,13 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
       if (displayName != null) 'display_name': displayName,
       if (status != null) 'status': status,
       if (startedAtUtc != null) 'started_at_utc': startedAtUtc,
-      if (startedAtOffsetMinutes != null) 'started_at_offset_minutes': startedAtOffsetMinutes,
+      if (startedAtOffsetMinutes != null)
+        'started_at_offset_minutes': startedAtOffsetMinutes,
       if (stoppedAtUtc != null) 'stopped_at_utc': stoppedAtUtc,
-      if (stoppedAtOffsetMinutes != null) 'stopped_at_offset_minutes': stoppedAtOffsetMinutes,
+      if (stoppedAtOffsetMinutes != null)
+        'stopped_at_offset_minutes': stoppedAtOffsetMinutes,
       if (notes != null) 'notes': notes,
+      if (mirkStyleId != null) 'mirk_style_id': mirkStyleId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -360,6 +975,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     Value<DateTime?>? stoppedAtUtc,
     Value<int?>? stoppedAtOffsetMinutes,
     Value<String?>? notes,
+    Value<String?>? mirkStyleId,
     Value<int>? rowid,
   }) {
     return SessionsCompanion(
@@ -367,10 +983,13 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
       displayName: displayName ?? this.displayName,
       status: status ?? this.status,
       startedAtUtc: startedAtUtc ?? this.startedAtUtc,
-      startedAtOffsetMinutes: startedAtOffsetMinutes ?? this.startedAtOffsetMinutes,
+      startedAtOffsetMinutes:
+          startedAtOffsetMinutes ?? this.startedAtOffsetMinutes,
       stoppedAtUtc: stoppedAtUtc ?? this.stoppedAtUtc,
-      stoppedAtOffsetMinutes: stoppedAtOffsetMinutes ?? this.stoppedAtOffsetMinutes,
+      stoppedAtOffsetMinutes:
+          stoppedAtOffsetMinutes ?? this.stoppedAtOffsetMinutes,
       notes: notes ?? this.notes,
+      mirkStyleId: mirkStyleId ?? this.mirkStyleId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -388,19 +1007,30 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
       map['status'] = Variable<String>(status.value);
     }
     if (startedAtUtc.present) {
-      map['started_at_utc'] = Variable<int>($SessionsTable.$converterstartedAtUtc.toSql(startedAtUtc.value));
+      map['started_at_utc'] = Variable<int>(
+        $SessionsTable.$converterstartedAtUtc.toSql(startedAtUtc.value),
+      );
     }
     if (startedAtOffsetMinutes.present) {
-      map['started_at_offset_minutes'] = Variable<int>(startedAtOffsetMinutes.value);
+      map['started_at_offset_minutes'] = Variable<int>(
+        startedAtOffsetMinutes.value,
+      );
     }
     if (stoppedAtUtc.present) {
-      map['stopped_at_utc'] = Variable<int>($SessionsTable.$converterstoppedAtUtcn.toSql(stoppedAtUtc.value));
+      map['stopped_at_utc'] = Variable<int>(
+        $SessionsTable.$converterstoppedAtUtcn.toSql(stoppedAtUtc.value),
+      );
     }
     if (stoppedAtOffsetMinutes.present) {
-      map['stopped_at_offset_minutes'] = Variable<int>(stoppedAtOffsetMinutes.value);
+      map['stopped_at_offset_minutes'] = Variable<int>(
+        stoppedAtOffsetMinutes.value,
+      );
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
+    }
+    if (mirkStyleId.present) {
+      map['mirk_style_id'] = Variable<String>(mirkStyleId.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -419,21 +1049,31 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
           ..write('stoppedAtUtc: $stoppedAtUtc, ')
           ..write('stoppedAtOffsetMinutes: $stoppedAtOffsetMinutes, ')
           ..write('notes: $notes, ')
+          ..write('mirkStyleId: $mirkStyleId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
 }
 
-class $MarkerCategoriesTable extends MarkerCategories with TableInfo<$MarkerCategoriesTable, MarkerCategoryRow> {
+class $MarkerCategoriesTable extends MarkerCategories
+    with TableInfo<$MarkerCategoriesTable, MarkerCategoryRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $MarkerCategoriesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>('id', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _displayNameMeta = const VerificationMeta('displayName');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
   @override
   late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
     'display_name',
@@ -442,36 +1082,57 @@ class $MarkerCategoriesTable extends MarkerCategories with TableInfo<$MarkerCate
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _iconNameMeta = const VerificationMeta('iconName');
+  static const VerificationMeta _iconNameMeta = const VerificationMeta(
+    'iconName',
+  );
   @override
-  late final GeneratedColumn<String> iconName = GeneratedColumn<String>('icon_name', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: true);
-  @override
-  late final GeneratedColumnWithTypeConverter<DateTime, int> createdAtUtc = GeneratedColumn<int>(
-    'created_at_utc',
+  late final GeneratedColumn<String> iconName = GeneratedColumn<String>(
+    'icon_name',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
-  ).withConverter<DateTime>($MarkerCategoriesTable.$convertercreatedAtUtc);
-  static const VerificationMeta _createdAtOffsetMinutesMeta = const VerificationMeta('createdAtOffsetMinutes');
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime, int> createdAtUtc =
+      GeneratedColumn<int>(
+        'created_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($MarkerCategoriesTable.$convertercreatedAtUtc);
+  static const VerificationMeta _createdAtOffsetMinutesMeta =
+      const VerificationMeta('createdAtOffsetMinutes');
   @override
   late final GeneratedColumn<int> createdAtOffsetMinutes = GeneratedColumn<int>(
     'created_at_offset_minutes',
     aliasedName,
     false,
-    check: () => ComparableExpr(createdAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
+    check: () => ComparableExpr(
+      createdAtOffsetMinutes,
+    ).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, displayName, iconName, createdAtUtc, createdAtOffsetMinutes];
+  List<GeneratedColumn> get $columns => [
+    id,
+    displayName,
+    iconName,
+    createdAtUtc,
+    createdAtOffsetMinutes,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 't_marker_categories';
   @override
-  VerificationContext validateIntegrity(Insertable<MarkerCategoryRow> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<MarkerCategoryRow> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -480,19 +1141,31 @@ class $MarkerCategoriesTable extends MarkerCategories with TableInfo<$MarkerCate
       context.missing(_idMeta);
     }
     if (data.containsKey('display_name')) {
-      context.handle(_displayNameMeta, displayName.isAcceptableOrUnknown(data['display_name']!, _displayNameMeta));
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
     } else if (isInserting) {
       context.missing(_displayNameMeta);
     }
     if (data.containsKey('icon_name')) {
-      context.handle(_iconNameMeta, iconName.isAcceptableOrUnknown(data['icon_name']!, _iconNameMeta));
+      context.handle(
+        _iconNameMeta,
+        iconName.isAcceptableOrUnknown(data['icon_name']!, _iconNameMeta),
+      );
     } else if (isInserting) {
       context.missing(_iconNameMeta);
     }
     if (data.containsKey('created_at_offset_minutes')) {
       context.handle(
         _createdAtOffsetMinutesMeta,
-        createdAtOffsetMinutes.isAcceptableOrUnknown(data['created_at_offset_minutes']!, _createdAtOffsetMinutesMeta),
+        createdAtOffsetMinutes.isAcceptableOrUnknown(
+          data['created_at_offset_minutes']!,
+          _createdAtOffsetMinutesMeta,
+        ),
       );
     } else if (isInserting) {
       context.missing(_createdAtOffsetMinutesMeta);
@@ -506,13 +1179,28 @@ class $MarkerCategoriesTable extends MarkerCategories with TableInfo<$MarkerCate
   MarkerCategoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return MarkerCategoryRow(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      displayName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}display_name'])!,
-      iconName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}icon_name'])!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      iconName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon_name'],
+      )!,
       createdAtUtc: $MarkerCategoriesTable.$convertercreatedAtUtc.fromSql(
-        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at_utc'])!,
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}created_at_utc'],
+        )!,
       ),
-      createdAtOffsetMinutes: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at_offset_minutes'])!,
+      createdAtOffsetMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_offset_minutes'],
+      )!,
     );
   }
 
@@ -521,10 +1209,12 @@ class $MarkerCategoriesTable extends MarkerCategories with TableInfo<$MarkerCate
     return $MarkerCategoriesTable(attachedDatabase, alias);
   }
 
-  static TypeConverter<DateTime, int> $convertercreatedAtUtc = const UnixMsToDateTimeConverter();
+  static TypeConverter<DateTime, int> $convertercreatedAtUtc =
+      const UnixMsToDateTimeConverter();
 }
 
-class MarkerCategoryRow extends DataClass implements Insertable<MarkerCategoryRow> {
+class MarkerCategoryRow extends DataClass
+    implements Insertable<MarkerCategoryRow> {
   final String id;
   final String displayName;
   final String iconName;
@@ -544,7 +1234,9 @@ class MarkerCategoryRow extends DataClass implements Insertable<MarkerCategoryRo
     map['display_name'] = Variable<String>(displayName);
     map['icon_name'] = Variable<String>(iconName);
     {
-      map['created_at_utc'] = Variable<int>($MarkerCategoriesTable.$convertercreatedAtUtc.toSql(createdAtUtc));
+      map['created_at_utc'] = Variable<int>(
+        $MarkerCategoriesTable.$convertercreatedAtUtc.toSql(createdAtUtc),
+      );
     }
     map['created_at_offset_minutes'] = Variable<int>(createdAtOffsetMinutes);
     return map;
@@ -560,14 +1252,19 @@ class MarkerCategoryRow extends DataClass implements Insertable<MarkerCategoryRo
     );
   }
 
-  factory MarkerCategoryRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory MarkerCategoryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return MarkerCategoryRow(
       id: serializer.fromJson<String>(json['id']),
       displayName: serializer.fromJson<String>(json['displayName']),
       iconName: serializer.fromJson<String>(json['iconName']),
       createdAtUtc: serializer.fromJson<DateTime>(json['createdAtUtc']),
-      createdAtOffsetMinutes: serializer.fromJson<int>(json['createdAtOffsetMinutes']),
+      createdAtOffsetMinutes: serializer.fromJson<int>(
+        json['createdAtOffsetMinutes'],
+      ),
     );
   }
   @override
@@ -582,20 +1279,33 @@ class MarkerCategoryRow extends DataClass implements Insertable<MarkerCategoryRo
     };
   }
 
-  MarkerCategoryRow copyWith({String? id, String? displayName, String? iconName, DateTime? createdAtUtc, int? createdAtOffsetMinutes}) => MarkerCategoryRow(
+  MarkerCategoryRow copyWith({
+    String? id,
+    String? displayName,
+    String? iconName,
+    DateTime? createdAtUtc,
+    int? createdAtOffsetMinutes,
+  }) => MarkerCategoryRow(
     id: id ?? this.id,
     displayName: displayName ?? this.displayName,
     iconName: iconName ?? this.iconName,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
-    createdAtOffsetMinutes: createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
+    createdAtOffsetMinutes:
+        createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
   );
   MarkerCategoryRow copyWithCompanion(MarkerCategoriesCompanion data) {
     return MarkerCategoryRow(
       id: data.id.present ? data.id.value : this.id,
-      displayName: data.displayName.present ? data.displayName.value : this.displayName,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
       iconName: data.iconName.present ? data.iconName.value : this.iconName,
-      createdAtUtc: data.createdAtUtc.present ? data.createdAtUtc.value : this.createdAtUtc,
-      createdAtOffsetMinutes: data.createdAtOffsetMinutes.present ? data.createdAtOffsetMinutes.value : this.createdAtOffsetMinutes,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+      createdAtOffsetMinutes: data.createdAtOffsetMinutes.present
+          ? data.createdAtOffsetMinutes.value
+          : this.createdAtOffsetMinutes,
     );
   }
 
@@ -612,7 +1322,13 @@ class MarkerCategoryRow extends DataClass implements Insertable<MarkerCategoryRo
   }
 
   @override
-  int get hashCode => Object.hash(id, displayName, iconName, createdAtUtc, createdAtOffsetMinutes);
+  int get hashCode => Object.hash(
+    id,
+    displayName,
+    iconName,
+    createdAtUtc,
+    createdAtOffsetMinutes,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -664,7 +1380,8 @@ class MarkerCategoriesCompanion extends UpdateCompanion<MarkerCategoryRow> {
       if (displayName != null) 'display_name': displayName,
       if (iconName != null) 'icon_name': iconName,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
-      if (createdAtOffsetMinutes != null) 'created_at_offset_minutes': createdAtOffsetMinutes,
+      if (createdAtOffsetMinutes != null)
+        'created_at_offset_minutes': createdAtOffsetMinutes,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -682,7 +1399,8 @@ class MarkerCategoriesCompanion extends UpdateCompanion<MarkerCategoryRow> {
       displayName: displayName ?? this.displayName,
       iconName: iconName ?? this.iconName,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
-      createdAtOffsetMinutes: createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
+      createdAtOffsetMinutes:
+          createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -700,10 +1418,14 @@ class MarkerCategoriesCompanion extends UpdateCompanion<MarkerCategoryRow> {
       map['icon_name'] = Variable<String>(iconName.value);
     }
     if (createdAtUtc.present) {
-      map['created_at_utc'] = Variable<int>($MarkerCategoriesTable.$convertercreatedAtUtc.toSql(createdAtUtc.value));
+      map['created_at_utc'] = Variable<int>(
+        $MarkerCategoriesTable.$convertercreatedAtUtc.toSql(createdAtUtc.value),
+      );
     }
     if (createdAtOffsetMinutes.present) {
-      map['created_at_offset_minutes'] = Variable<int>(createdAtOffsetMinutes.value);
+      map['created_at_offset_minutes'] = Variable<int>(
+        createdAtOffsetMinutes.value,
+      );
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -732,8 +1454,16 @@ class $MarkersTable extends Markers with TableInfo<$MarkersTable, MarkerRow> {
   $MarkersTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>('id', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _sessionIdMeta = const VerificationMeta('sessionId');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
   @override
   late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
     'session_id',
@@ -741,9 +1471,13 @@ class $MarkersTable extends Markers with TableInfo<$MarkersTable, MarkerRow> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('REFERENCES t_sessions (id) ON DELETE CASCADE'),
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES t_sessions (id) ON DELETE CASCADE',
+    ),
   );
-  static const VerificationMeta _categoryIdMeta = const VerificationMeta('categoryId');
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
   @override
   late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
     'category_id',
@@ -751,47 +1485,90 @@ class $MarkersTable extends Markers with TableInfo<$MarkersTable, MarkerRow> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('REFERENCES t_marker_categories (id)'),
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES t_marker_categories (id)',
+    ),
   );
   static const VerificationMeta _latMeta = const VerificationMeta('lat');
   @override
-  late final GeneratedColumn<double> lat = GeneratedColumn<double>('lat', aliasedName, false, type: DriftSqlType.double, requiredDuringInsert: true);
-  static const VerificationMeta _lonMeta = const VerificationMeta('lon');
-  @override
-  late final GeneratedColumn<double> lon = GeneratedColumn<double>('lon', aliasedName, false, type: DriftSqlType.double, requiredDuringInsert: true);
-  static const VerificationMeta _titleMeta = const VerificationMeta('title');
-  @override
-  late final GeneratedColumn<String> title = GeneratedColumn<String>('title', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
-  @override
-  late final GeneratedColumn<String> notes = GeneratedColumn<String>('notes', aliasedName, true, type: DriftSqlType.string, requiredDuringInsert: false);
-  @override
-  late final GeneratedColumnWithTypeConverter<DateTime, int> createdAtUtc = GeneratedColumn<int>(
-    'created_at_utc',
+  late final GeneratedColumn<double> lat = GeneratedColumn<double>(
+    'lat',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.double,
     requiredDuringInsert: true,
-  ).withConverter<DateTime>($MarkersTable.$convertercreatedAtUtc);
-  static const VerificationMeta _createdAtOffsetMinutesMeta = const VerificationMeta('createdAtOffsetMinutes');
+  );
+  static const VerificationMeta _lonMeta = const VerificationMeta('lon');
+  @override
+  late final GeneratedColumn<double> lon = GeneratedColumn<double>(
+    'lon',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime, int> createdAtUtc =
+      GeneratedColumn<int>(
+        'created_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($MarkersTable.$convertercreatedAtUtc);
+  static const VerificationMeta _createdAtOffsetMinutesMeta =
+      const VerificationMeta('createdAtOffsetMinutes');
   @override
   late final GeneratedColumn<int> createdAtOffsetMinutes = GeneratedColumn<int>(
     'created_at_offset_minutes',
     aliasedName,
     false,
-    check: () => ComparableExpr(createdAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
+    check: () => ComparableExpr(
+      createdAtOffsetMinutes,
+    ).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, sessionId, categoryId, lat, lon, title, notes, createdAtUtc, createdAtOffsetMinutes];
+  List<GeneratedColumn> get $columns => [
+    id,
+    sessionId,
+    categoryId,
+    lat,
+    lon,
+    title,
+    notes,
+    createdAtUtc,
+    createdAtOffsetMinutes,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 't_markers';
   @override
-  VerificationContext validateIntegrity(Insertable<MarkerRow> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<MarkerRow> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -800,37 +1577,58 @@ class $MarkersTable extends Markers with TableInfo<$MarkersTable, MarkerRow> {
       context.missing(_idMeta);
     }
     if (data.containsKey('session_id')) {
-      context.handle(_sessionIdMeta, sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta));
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_sessionIdMeta);
     }
     if (data.containsKey('category_id')) {
-      context.handle(_categoryIdMeta, categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta));
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_categoryIdMeta);
     }
     if (data.containsKey('lat')) {
-      context.handle(_latMeta, lat.isAcceptableOrUnknown(data['lat']!, _latMeta));
+      context.handle(
+        _latMeta,
+        lat.isAcceptableOrUnknown(data['lat']!, _latMeta),
+      );
     } else if (isInserting) {
       context.missing(_latMeta);
     }
     if (data.containsKey('lon')) {
-      context.handle(_lonMeta, lon.isAcceptableOrUnknown(data['lon']!, _lonMeta));
+      context.handle(
+        _lonMeta,
+        lon.isAcceptableOrUnknown(data['lon']!, _lonMeta),
+      );
     } else if (isInserting) {
       context.missing(_lonMeta);
     }
     if (data.containsKey('title')) {
-      context.handle(_titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
     } else if (isInserting) {
       context.missing(_titleMeta);
     }
     if (data.containsKey('notes')) {
-      context.handle(_notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
     }
     if (data.containsKey('created_at_offset_minutes')) {
       context.handle(
         _createdAtOffsetMinutesMeta,
-        createdAtOffsetMinutes.isAcceptableOrUnknown(data['created_at_offset_minutes']!, _createdAtOffsetMinutesMeta),
+        createdAtOffsetMinutes.isAcceptableOrUnknown(
+          data['created_at_offset_minutes']!,
+          _createdAtOffsetMinutesMeta,
+        ),
       );
     } else if (isInserting) {
       context.missing(_createdAtOffsetMinutesMeta);
@@ -844,17 +1642,44 @@ class $MarkersTable extends Markers with TableInfo<$MarkersTable, MarkerRow> {
   MarkerRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return MarkerRow(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      sessionId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}session_id'])!,
-      categoryId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}category_id'])!,
-      lat: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}lat'])!,
-      lon: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}lon'])!,
-      title: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}title'])!,
-      notes: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}notes']),
-      createdAtUtc: $MarkersTable.$convertercreatedAtUtc.fromSql(
-        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at_utc'])!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      )!,
+      lat: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}lat'],
+      )!,
+      lon: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}lon'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
       ),
-      createdAtOffsetMinutes: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at_offset_minutes'])!,
+      createdAtUtc: $MarkersTable.$convertercreatedAtUtc.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}created_at_utc'],
+        )!,
+      ),
+      createdAtOffsetMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_offset_minutes'],
+      )!,
     );
   }
 
@@ -863,7 +1688,8 @@ class $MarkersTable extends Markers with TableInfo<$MarkersTable, MarkerRow> {
     return $MarkersTable(attachedDatabase, alias);
   }
 
-  static TypeConverter<DateTime, int> $convertercreatedAtUtc = const UnixMsToDateTimeConverter();
+  static TypeConverter<DateTime, int> $convertercreatedAtUtc =
+      const UnixMsToDateTimeConverter();
 }
 
 class MarkerRow extends DataClass implements Insertable<MarkerRow> {
@@ -900,7 +1726,9 @@ class MarkerRow extends DataClass implements Insertable<MarkerRow> {
       map['notes'] = Variable<String>(notes);
     }
     {
-      map['created_at_utc'] = Variable<int>($MarkersTable.$convertercreatedAtUtc.toSql(createdAtUtc));
+      map['created_at_utc'] = Variable<int>(
+        $MarkersTable.$convertercreatedAtUtc.toSql(createdAtUtc),
+      );
     }
     map['created_at_offset_minutes'] = Variable<int>(createdAtOffsetMinutes);
     return map;
@@ -914,13 +1742,18 @@ class MarkerRow extends DataClass implements Insertable<MarkerRow> {
       lat: Value(lat),
       lon: Value(lon),
       title: Value(title),
-      notes: notes == null && nullToAbsent ? const Value.absent() : Value(notes),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
       createdAtUtc: Value(createdAtUtc),
       createdAtOffsetMinutes: Value(createdAtOffsetMinutes),
     );
   }
 
-  factory MarkerRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory MarkerRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return MarkerRow(
       id: serializer.fromJson<String>(json['id']),
@@ -931,7 +1764,9 @@ class MarkerRow extends DataClass implements Insertable<MarkerRow> {
       title: serializer.fromJson<String>(json['title']),
       notes: serializer.fromJson<String?>(json['notes']),
       createdAtUtc: serializer.fromJson<DateTime>(json['createdAtUtc']),
-      createdAtOffsetMinutes: serializer.fromJson<int>(json['createdAtOffsetMinutes']),
+      createdAtOffsetMinutes: serializer.fromJson<int>(
+        json['createdAtOffsetMinutes'],
+      ),
     );
   }
   @override
@@ -969,19 +1804,26 @@ class MarkerRow extends DataClass implements Insertable<MarkerRow> {
     title: title ?? this.title,
     notes: notes.present ? notes.value : this.notes,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
-    createdAtOffsetMinutes: createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
+    createdAtOffsetMinutes:
+        createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
   );
   MarkerRow copyWithCompanion(MarkersCompanion data) {
     return MarkerRow(
       id: data.id.present ? data.id.value : this.id,
       sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
-      categoryId: data.categoryId.present ? data.categoryId.value : this.categoryId,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
       lat: data.lat.present ? data.lat.value : this.lat,
       lon: data.lon.present ? data.lon.value : this.lon,
       title: data.title.present ? data.title.value : this.title,
       notes: data.notes.present ? data.notes.value : this.notes,
-      createdAtUtc: data.createdAtUtc.present ? data.createdAtUtc.value : this.createdAtUtc,
-      createdAtOffsetMinutes: data.createdAtOffsetMinutes.present ? data.createdAtOffsetMinutes.value : this.createdAtOffsetMinutes,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+      createdAtOffsetMinutes: data.createdAtOffsetMinutes.present
+          ? data.createdAtOffsetMinutes.value
+          : this.createdAtOffsetMinutes,
     );
   }
 
@@ -1002,7 +1844,17 @@ class MarkerRow extends DataClass implements Insertable<MarkerRow> {
   }
 
   @override
-  int get hashCode => Object.hash(id, sessionId, categoryId, lat, lon, title, notes, createdAtUtc, createdAtOffsetMinutes);
+  int get hashCode => Object.hash(
+    id,
+    sessionId,
+    categoryId,
+    lat,
+    lon,
+    title,
+    notes,
+    createdAtUtc,
+    createdAtOffsetMinutes,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1081,7 +1933,8 @@ class MarkersCompanion extends UpdateCompanion<MarkerRow> {
       if (title != null) 'title': title,
       if (notes != null) 'notes': notes,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
-      if (createdAtOffsetMinutes != null) 'created_at_offset_minutes': createdAtOffsetMinutes,
+      if (createdAtOffsetMinutes != null)
+        'created_at_offset_minutes': createdAtOffsetMinutes,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1107,7 +1960,8 @@ class MarkersCompanion extends UpdateCompanion<MarkerRow> {
       title: title ?? this.title,
       notes: notes ?? this.notes,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
-      createdAtOffsetMinutes: createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
+      createdAtOffsetMinutes:
+          createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1137,10 +1991,14 @@ class MarkersCompanion extends UpdateCompanion<MarkerRow> {
       map['notes'] = Variable<String>(notes.value);
     }
     if (createdAtUtc.present) {
-      map['created_at_utc'] = Variable<int>($MarkersTable.$convertercreatedAtUtc.toSql(createdAtUtc.value));
+      map['created_at_utc'] = Variable<int>(
+        $MarkersTable.$convertercreatedAtUtc.toSql(createdAtUtc.value),
+      );
     }
     if (createdAtOffsetMinutes.present) {
-      map['created_at_offset_minutes'] = Variable<int>(createdAtOffsetMinutes.value);
+      map['created_at_offset_minutes'] = Variable<int>(
+        createdAtOffsetMinutes.value,
+      );
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -1166,15 +2024,24 @@ class MarkersCompanion extends UpdateCompanion<MarkerRow> {
   }
 }
 
-class $RevealedTilesTable extends RevealedTiles with TableInfo<$RevealedTilesTable, RevealedTileRow> {
+class $RevealedTilesTable extends RevealedTiles
+    with TableInfo<$RevealedTilesTable, RevealedTileRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $RevealedTilesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>('id', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _sessionIdMeta = const VerificationMeta('sessionId');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
   @override
   late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
     'session_id',
@@ -1182,15 +2049,35 @@ class $RevealedTilesTable extends RevealedTiles with TableInfo<$RevealedTilesTab
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('REFERENCES t_sessions (id) ON DELETE CASCADE'),
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES t_sessions (id) ON DELETE CASCADE',
+    ),
   );
-  static const VerificationMeta _parentXMeta = const VerificationMeta('parentX');
+  static const VerificationMeta _parentXMeta = const VerificationMeta(
+    'parentX',
+  );
   @override
-  late final GeneratedColumn<int> parentX = GeneratedColumn<int>('parent_x', aliasedName, false, type: DriftSqlType.int, requiredDuringInsert: true);
-  static const VerificationMeta _parentYMeta = const VerificationMeta('parentY');
+  late final GeneratedColumn<int> parentX = GeneratedColumn<int>(
+    'parent_x',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parentYMeta = const VerificationMeta(
+    'parentY',
+  );
   @override
-  late final GeneratedColumn<int> parentY = GeneratedColumn<int>('parent_y', aliasedName, false, type: DriftSqlType.int, requiredDuringInsert: true);
-  static const VerificationMeta _parentZoomMeta = const VerificationMeta('parentZoom');
+  late final GeneratedColumn<int> parentY = GeneratedColumn<int>(
+    'parent_y',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parentZoomMeta = const VerificationMeta(
+    'parentZoom',
+  );
   @override
   late final GeneratedColumn<int> parentZoom = GeneratedColumn<int>(
     'parent_zoom',
@@ -1210,7 +2097,9 @@ class $RevealedTilesTable extends RevealedTiles with TableInfo<$RevealedTilesTab
     type: DriftSqlType.blob,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _setBitCountMeta = const VerificationMeta('setBitCount');
+  static const VerificationMeta _setBitCountMeta = const VerificationMeta(
+    'setBitCount',
+  );
   @override
   late final GeneratedColumn<int> setBitCount = GeneratedColumn<int>(
     'set_bit_count',
@@ -1221,22 +2110,35 @@ class $RevealedTilesTable extends RevealedTiles with TableInfo<$RevealedTilesTab
     defaultValue: const Constant(0),
   );
   @override
-  late final GeneratedColumnWithTypeConverter<DateTime, int> updatedAtUtc = GeneratedColumn<int>(
-    'updated_at_utc',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  ).withConverter<DateTime>($RevealedTilesTable.$converterupdatedAtUtc);
+  late final GeneratedColumnWithTypeConverter<DateTime, int> updatedAtUtc =
+      GeneratedColumn<int>(
+        'updated_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($RevealedTilesTable.$converterupdatedAtUtc);
   @override
-  List<GeneratedColumn> get $columns => [id, sessionId, parentX, parentY, parentZoom, bitmap, setBitCount, updatedAtUtc];
+  List<GeneratedColumn> get $columns => [
+    id,
+    sessionId,
+    parentX,
+    parentY,
+    parentZoom,
+    bitmap,
+    setBitCount,
+    updatedAtUtc,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 't_revealed_tiles';
   @override
-  VerificationContext validateIntegrity(Insertable<RevealedTileRow> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<RevealedTileRow> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -1245,30 +2147,51 @@ class $RevealedTilesTable extends RevealedTiles with TableInfo<$RevealedTilesTab
       context.missing(_idMeta);
     }
     if (data.containsKey('session_id')) {
-      context.handle(_sessionIdMeta, sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta));
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_sessionIdMeta);
     }
     if (data.containsKey('parent_x')) {
-      context.handle(_parentXMeta, parentX.isAcceptableOrUnknown(data['parent_x']!, _parentXMeta));
+      context.handle(
+        _parentXMeta,
+        parentX.isAcceptableOrUnknown(data['parent_x']!, _parentXMeta),
+      );
     } else if (isInserting) {
       context.missing(_parentXMeta);
     }
     if (data.containsKey('parent_y')) {
-      context.handle(_parentYMeta, parentY.isAcceptableOrUnknown(data['parent_y']!, _parentYMeta));
+      context.handle(
+        _parentYMeta,
+        parentY.isAcceptableOrUnknown(data['parent_y']!, _parentYMeta),
+      );
     } else if (isInserting) {
       context.missing(_parentYMeta);
     }
     if (data.containsKey('parent_zoom')) {
-      context.handle(_parentZoomMeta, parentZoom.isAcceptableOrUnknown(data['parent_zoom']!, _parentZoomMeta));
+      context.handle(
+        _parentZoomMeta,
+        parentZoom.isAcceptableOrUnknown(data['parent_zoom']!, _parentZoomMeta),
+      );
     }
     if (data.containsKey('bitmap')) {
-      context.handle(_bitmapMeta, bitmap.isAcceptableOrUnknown(data['bitmap']!, _bitmapMeta));
+      context.handle(
+        _bitmapMeta,
+        bitmap.isAcceptableOrUnknown(data['bitmap']!, _bitmapMeta),
+      );
     } else if (isInserting) {
       context.missing(_bitmapMeta);
     }
     if (data.containsKey('set_bit_count')) {
-      context.handle(_setBitCountMeta, setBitCount.isAcceptableOrUnknown(data['set_bit_count']!, _setBitCountMeta));
+      context.handle(
+        _setBitCountMeta,
+        setBitCount.isAcceptableOrUnknown(
+          data['set_bit_count']!,
+          _setBitCountMeta,
+        ),
+      );
     }
     return context;
   }
@@ -1283,15 +2206,39 @@ class $RevealedTilesTable extends RevealedTiles with TableInfo<$RevealedTilesTab
   RevealedTileRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return RevealedTileRow(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      sessionId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}session_id'])!,
-      parentX: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}parent_x'])!,
-      parentY: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}parent_y'])!,
-      parentZoom: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}parent_zoom'])!,
-      bitmap: attachedDatabase.typeMapping.read(DriftSqlType.blob, data['${effectivePrefix}bitmap'])!,
-      setBitCount: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}set_bit_count'])!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
+      parentX: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}parent_x'],
+      )!,
+      parentY: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}parent_y'],
+      )!,
+      parentZoom: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}parent_zoom'],
+      )!,
+      bitmap: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}bitmap'],
+      )!,
+      setBitCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}set_bit_count'],
+      )!,
       updatedAtUtc: $RevealedTilesTable.$converterupdatedAtUtc.fromSql(
-        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at_utc'])!,
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}updated_at_utc'],
+        )!,
       ),
     );
   }
@@ -1301,7 +2248,8 @@ class $RevealedTilesTable extends RevealedTiles with TableInfo<$RevealedTilesTab
     return $RevealedTilesTable(attachedDatabase, alias);
   }
 
-  static TypeConverter<DateTime, int> $converterupdatedAtUtc = const UnixMsToDateTimeConverter();
+  static TypeConverter<DateTime, int> $converterupdatedAtUtc =
+      const UnixMsToDateTimeConverter();
 }
 
 class RevealedTileRow extends DataClass implements Insertable<RevealedTileRow> {
@@ -1334,7 +2282,9 @@ class RevealedTileRow extends DataClass implements Insertable<RevealedTileRow> {
     map['bitmap'] = Variable<Uint8List>(bitmap);
     map['set_bit_count'] = Variable<int>(setBitCount);
     {
-      map['updated_at_utc'] = Variable<int>($RevealedTilesTable.$converterupdatedAtUtc.toSql(updatedAtUtc));
+      map['updated_at_utc'] = Variable<int>(
+        $RevealedTilesTable.$converterupdatedAtUtc.toSql(updatedAtUtc),
+      );
     }
     return map;
   }
@@ -1352,7 +2302,10 @@ class RevealedTileRow extends DataClass implements Insertable<RevealedTileRow> {
     );
   }
 
-  factory RevealedTileRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory RevealedTileRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return RevealedTileRow(
       id: serializer.fromJson<String>(json['id']),
@@ -1405,10 +2358,16 @@ class RevealedTileRow extends DataClass implements Insertable<RevealedTileRow> {
       sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
       parentX: data.parentX.present ? data.parentX.value : this.parentX,
       parentY: data.parentY.present ? data.parentY.value : this.parentY,
-      parentZoom: data.parentZoom.present ? data.parentZoom.value : this.parentZoom,
+      parentZoom: data.parentZoom.present
+          ? data.parentZoom.value
+          : this.parentZoom,
       bitmap: data.bitmap.present ? data.bitmap.value : this.bitmap,
-      setBitCount: data.setBitCount.present ? data.setBitCount.value : this.setBitCount,
-      updatedAtUtc: data.updatedAtUtc.present ? data.updatedAtUtc.value : this.updatedAtUtc,
+      setBitCount: data.setBitCount.present
+          ? data.setBitCount.value
+          : this.setBitCount,
+      updatedAtUtc: data.updatedAtUtc.present
+          ? data.updatedAtUtc.value
+          : this.updatedAtUtc,
     );
   }
 
@@ -1428,7 +2387,16 @@ class RevealedTileRow extends DataClass implements Insertable<RevealedTileRow> {
   }
 
   @override
-  int get hashCode => Object.hash(id, sessionId, parentX, parentY, parentZoom, $driftBlobEquality.hash(bitmap), setBitCount, updatedAtUtc);
+  int get hashCode => Object.hash(
+    id,
+    sessionId,
+    parentX,
+    parentY,
+    parentZoom,
+    $driftBlobEquality.hash(bitmap),
+    setBitCount,
+    updatedAtUtc,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1553,7 +2521,9 @@ class RevealedTilesCompanion extends UpdateCompanion<RevealedTileRow> {
       map['set_bit_count'] = Variable<int>(setBitCount.value);
     }
     if (updatedAtUtc.present) {
-      map['updated_at_utc'] = Variable<int>($RevealedTilesTable.$converterupdatedAtUtc.toSql(updatedAtUtc.value));
+      map['updated_at_utc'] = Variable<int>(
+        $RevealedTilesTable.$converterupdatedAtUtc.toSql(updatedAtUtc.value),
+      );
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -1578,353 +2548,6 @@ class RevealedTilesCompanion extends UpdateCompanion<RevealedTileRow> {
   }
 }
 
-class $MirkStylesTable extends MirkStyles with TableInfo<$MirkStylesTable, MirkStyleRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $MirkStylesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>('id', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _displayNameMeta = const VerificationMeta('displayName');
-  @override
-  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
-    'display_name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _rendererTypeMeta = const VerificationMeta('rendererType');
-  @override
-  late final GeneratedColumn<String> rendererType = GeneratedColumn<String>(
-    'renderer_type',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  late final GeneratedColumnWithTypeConverter<MirkStyleConfig, String> config = GeneratedColumn<String>(
-    'config',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  ).withConverter<MirkStyleConfig>($MirkStylesTable.$converterconfig);
-  @override
-  late final GeneratedColumnWithTypeConverter<DateTime, int> createdAtUtc = GeneratedColumn<int>(
-    'created_at_utc',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  ).withConverter<DateTime>($MirkStylesTable.$convertercreatedAtUtc);
-  static const VerificationMeta _createdAtOffsetMinutesMeta = const VerificationMeta('createdAtOffsetMinutes');
-  @override
-  late final GeneratedColumn<int> createdAtOffsetMinutes = GeneratedColumn<int>(
-    'created_at_offset_minutes',
-    aliasedName,
-    false,
-    check: () => ComparableExpr(createdAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, displayName, rendererType, config, createdAtUtc, createdAtOffsetMinutes];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 't_mirk_styles';
-  @override
-  VerificationContext validateIntegrity(Insertable<MirkStyleRow> instance, {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('display_name')) {
-      context.handle(_displayNameMeta, displayName.isAcceptableOrUnknown(data['display_name']!, _displayNameMeta));
-    } else if (isInserting) {
-      context.missing(_displayNameMeta);
-    }
-    if (data.containsKey('renderer_type')) {
-      context.handle(_rendererTypeMeta, rendererType.isAcceptableOrUnknown(data['renderer_type']!, _rendererTypeMeta));
-    } else if (isInserting) {
-      context.missing(_rendererTypeMeta);
-    }
-    if (data.containsKey('created_at_offset_minutes')) {
-      context.handle(
-        _createdAtOffsetMinutesMeta,
-        createdAtOffsetMinutes.isAcceptableOrUnknown(data['created_at_offset_minutes']!, _createdAtOffsetMinutesMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_createdAtOffsetMinutesMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  MirkStyleRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return MirkStyleRow(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      displayName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}display_name'])!,
-      rendererType: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}renderer_type'])!,
-      config: $MirkStylesTable.$converterconfig.fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}config'])!),
-      createdAtUtc: $MirkStylesTable.$convertercreatedAtUtc.fromSql(
-        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at_utc'])!,
-      ),
-      createdAtOffsetMinutes: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at_offset_minutes'])!,
-    );
-  }
-
-  @override
-  $MirkStylesTable createAlias(String alias) {
-    return $MirkStylesTable(attachedDatabase, alias);
-  }
-
-  static TypeConverter<MirkStyleConfig, String> $converterconfig = const MirkStyleConfigJsonConverter();
-  static TypeConverter<DateTime, int> $convertercreatedAtUtc = const UnixMsToDateTimeConverter();
-}
-
-class MirkStyleRow extends DataClass implements Insertable<MirkStyleRow> {
-  final String id;
-  final String displayName;
-  final String rendererType;
-  final MirkStyleConfig config;
-  final DateTime createdAtUtc;
-  final int createdAtOffsetMinutes;
-  const MirkStyleRow({
-    required this.id,
-    required this.displayName,
-    required this.rendererType,
-    required this.config,
-    required this.createdAtUtc,
-    required this.createdAtOffsetMinutes,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['display_name'] = Variable<String>(displayName);
-    map['renderer_type'] = Variable<String>(rendererType);
-    {
-      map['config'] = Variable<String>($MirkStylesTable.$converterconfig.toSql(config));
-    }
-    {
-      map['created_at_utc'] = Variable<int>($MirkStylesTable.$convertercreatedAtUtc.toSql(createdAtUtc));
-    }
-    map['created_at_offset_minutes'] = Variable<int>(createdAtOffsetMinutes);
-    return map;
-  }
-
-  MirkStylesCompanion toCompanion(bool nullToAbsent) {
-    return MirkStylesCompanion(
-      id: Value(id),
-      displayName: Value(displayName),
-      rendererType: Value(rendererType),
-      config: Value(config),
-      createdAtUtc: Value(createdAtUtc),
-      createdAtOffsetMinutes: Value(createdAtOffsetMinutes),
-    );
-  }
-
-  factory MirkStyleRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return MirkStyleRow(
-      id: serializer.fromJson<String>(json['id']),
-      displayName: serializer.fromJson<String>(json['displayName']),
-      rendererType: serializer.fromJson<String>(json['rendererType']),
-      config: serializer.fromJson<MirkStyleConfig>(json['config']),
-      createdAtUtc: serializer.fromJson<DateTime>(json['createdAtUtc']),
-      createdAtOffsetMinutes: serializer.fromJson<int>(json['createdAtOffsetMinutes']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'displayName': serializer.toJson<String>(displayName),
-      'rendererType': serializer.toJson<String>(rendererType),
-      'config': serializer.toJson<MirkStyleConfig>(config),
-      'createdAtUtc': serializer.toJson<DateTime>(createdAtUtc),
-      'createdAtOffsetMinutes': serializer.toJson<int>(createdAtOffsetMinutes),
-    };
-  }
-
-  MirkStyleRow copyWith({
-    String? id,
-    String? displayName,
-    String? rendererType,
-    MirkStyleConfig? config,
-    DateTime? createdAtUtc,
-    int? createdAtOffsetMinutes,
-  }) => MirkStyleRow(
-    id: id ?? this.id,
-    displayName: displayName ?? this.displayName,
-    rendererType: rendererType ?? this.rendererType,
-    config: config ?? this.config,
-    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
-    createdAtOffsetMinutes: createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
-  );
-  MirkStyleRow copyWithCompanion(MirkStylesCompanion data) {
-    return MirkStyleRow(
-      id: data.id.present ? data.id.value : this.id,
-      displayName: data.displayName.present ? data.displayName.value : this.displayName,
-      rendererType: data.rendererType.present ? data.rendererType.value : this.rendererType,
-      config: data.config.present ? data.config.value : this.config,
-      createdAtUtc: data.createdAtUtc.present ? data.createdAtUtc.value : this.createdAtUtc,
-      createdAtOffsetMinutes: data.createdAtOffsetMinutes.present ? data.createdAtOffsetMinutes.value : this.createdAtOffsetMinutes,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('MirkStyleRow(')
-          ..write('id: $id, ')
-          ..write('displayName: $displayName, ')
-          ..write('rendererType: $rendererType, ')
-          ..write('config: $config, ')
-          ..write('createdAtUtc: $createdAtUtc, ')
-          ..write('createdAtOffsetMinutes: $createdAtOffsetMinutes')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, displayName, rendererType, config, createdAtUtc, createdAtOffsetMinutes);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is MirkStyleRow &&
-          other.id == this.id &&
-          other.displayName == this.displayName &&
-          other.rendererType == this.rendererType &&
-          other.config == this.config &&
-          other.createdAtUtc == this.createdAtUtc &&
-          other.createdAtOffsetMinutes == this.createdAtOffsetMinutes);
-}
-
-class MirkStylesCompanion extends UpdateCompanion<MirkStyleRow> {
-  final Value<String> id;
-  final Value<String> displayName;
-  final Value<String> rendererType;
-  final Value<MirkStyleConfig> config;
-  final Value<DateTime> createdAtUtc;
-  final Value<int> createdAtOffsetMinutes;
-  final Value<int> rowid;
-  const MirkStylesCompanion({
-    this.id = const Value.absent(),
-    this.displayName = const Value.absent(),
-    this.rendererType = const Value.absent(),
-    this.config = const Value.absent(),
-    this.createdAtUtc = const Value.absent(),
-    this.createdAtOffsetMinutes = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  MirkStylesCompanion.insert({
-    required String id,
-    required String displayName,
-    required String rendererType,
-    required MirkStyleConfig config,
-    required DateTime createdAtUtc,
-    required int createdAtOffsetMinutes,
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       displayName = Value(displayName),
-       rendererType = Value(rendererType),
-       config = Value(config),
-       createdAtUtc = Value(createdAtUtc),
-       createdAtOffsetMinutes = Value(createdAtOffsetMinutes);
-  static Insertable<MirkStyleRow> custom({
-    Expression<String>? id,
-    Expression<String>? displayName,
-    Expression<String>? rendererType,
-    Expression<String>? config,
-    Expression<int>? createdAtUtc,
-    Expression<int>? createdAtOffsetMinutes,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (displayName != null) 'display_name': displayName,
-      if (rendererType != null) 'renderer_type': rendererType,
-      if (config != null) 'config': config,
-      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
-      if (createdAtOffsetMinutes != null) 'created_at_offset_minutes': createdAtOffsetMinutes,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  MirkStylesCompanion copyWith({
-    Value<String>? id,
-    Value<String>? displayName,
-    Value<String>? rendererType,
-    Value<MirkStyleConfig>? config,
-    Value<DateTime>? createdAtUtc,
-    Value<int>? createdAtOffsetMinutes,
-    Value<int>? rowid,
-  }) {
-    return MirkStylesCompanion(
-      id: id ?? this.id,
-      displayName: displayName ?? this.displayName,
-      rendererType: rendererType ?? this.rendererType,
-      config: config ?? this.config,
-      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
-      createdAtOffsetMinutes: createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (displayName.present) {
-      map['display_name'] = Variable<String>(displayName.value);
-    }
-    if (rendererType.present) {
-      map['renderer_type'] = Variable<String>(rendererType.value);
-    }
-    if (config.present) {
-      map['config'] = Variable<String>($MirkStylesTable.$converterconfig.toSql(config.value));
-    }
-    if (createdAtUtc.present) {
-      map['created_at_utc'] = Variable<int>($MirkStylesTable.$convertercreatedAtUtc.toSql(createdAtUtc.value));
-    }
-    if (createdAtOffsetMinutes.present) {
-      map['created_at_offset_minutes'] = Variable<int>(createdAtOffsetMinutes.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('MirkStylesCompanion(')
-          ..write('id: $id, ')
-          ..write('displayName: $displayName, ')
-          ..write('rendererType: $rendererType, ')
-          ..write('config: $config, ')
-          ..write('createdAtUtc: $createdAtUtc, ')
-          ..write('createdAtOffsetMinutes: $createdAtOffsetMinutes, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $PhotosTable extends Photos with TableInfo<$PhotosTable, PhotoRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -1932,8 +2555,16 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, PhotoRow> {
   $PhotosTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>('id', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _markerIdMeta = const VerificationMeta('markerId');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _markerIdMeta = const VerificationMeta(
+    'markerId',
+  );
   @override
   late final GeneratedColumn<String> markerId = GeneratedColumn<String>(
     'marker_id',
@@ -1941,9 +2572,13 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, PhotoRow> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('REFERENCES t_markers (id) ON DELETE CASCADE'),
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES t_markers (id) ON DELETE CASCADE',
+    ),
   );
-  static const VerificationMeta _relativeBasenameMeta = const VerificationMeta('relativeBasename');
+  static const VerificationMeta _relativeBasenameMeta = const VerificationMeta(
+    'relativeBasename',
+  );
   @override
   late final GeneratedColumn<String> relativeBasename = GeneratedColumn<String>(
     'relative_basename',
@@ -1952,13 +2587,31 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, PhotoRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _widthPxMeta = const VerificationMeta('widthPx');
+  static const VerificationMeta _widthPxMeta = const VerificationMeta(
+    'widthPx',
+  );
   @override
-  late final GeneratedColumn<int> widthPx = GeneratedColumn<int>('width_px', aliasedName, false, type: DriftSqlType.int, requiredDuringInsert: true);
-  static const VerificationMeta _heightPxMeta = const VerificationMeta('heightPx');
+  late final GeneratedColumn<int> widthPx = GeneratedColumn<int>(
+    'width_px',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _heightPxMeta = const VerificationMeta(
+    'heightPx',
+  );
   @override
-  late final GeneratedColumn<int> heightPx = GeneratedColumn<int>('height_px', aliasedName, false, type: DriftSqlType.int, requiredDuringInsert: true);
-  static const VerificationMeta _fileSizeBytesMeta = const VerificationMeta('fileSizeBytes');
+  late final GeneratedColumn<int> heightPx = GeneratedColumn<int>(
+    'height_px',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fileSizeBytesMeta = const VerificationMeta(
+    'fileSizeBytes',
+  );
   @override
   late final GeneratedColumn<int> fileSizeBytes = GeneratedColumn<int>(
     'file_size_bytes',
@@ -1968,32 +2621,48 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, PhotoRow> {
     requiredDuringInsert: true,
   );
   @override
-  late final GeneratedColumnWithTypeConverter<DateTime, int> createdAtUtc = GeneratedColumn<int>(
-    'created_at_utc',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  ).withConverter<DateTime>($PhotosTable.$convertercreatedAtUtc);
-  static const VerificationMeta _createdAtOffsetMinutesMeta = const VerificationMeta('createdAtOffsetMinutes');
+  late final GeneratedColumnWithTypeConverter<DateTime, int> createdAtUtc =
+      GeneratedColumn<int>(
+        'created_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($PhotosTable.$convertercreatedAtUtc);
+  static const VerificationMeta _createdAtOffsetMinutesMeta =
+      const VerificationMeta('createdAtOffsetMinutes');
   @override
   late final GeneratedColumn<int> createdAtOffsetMinutes = GeneratedColumn<int>(
     'created_at_offset_minutes',
     aliasedName,
     false,
-    check: () => ComparableExpr(createdAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
+    check: () => ComparableExpr(
+      createdAtOffsetMinutes,
+    ).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, markerId, relativeBasename, widthPx, heightPx, fileSizeBytes, createdAtUtc, createdAtOffsetMinutes];
+  List<GeneratedColumn> get $columns => [
+    id,
+    markerId,
+    relativeBasename,
+    widthPx,
+    heightPx,
+    fileSizeBytes,
+    createdAtUtc,
+    createdAtOffsetMinutes,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 't_photos';
   @override
-  VerificationContext validateIntegrity(Insertable<PhotoRow> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<PhotoRow> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -2002,34 +2671,58 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, PhotoRow> {
       context.missing(_idMeta);
     }
     if (data.containsKey('marker_id')) {
-      context.handle(_markerIdMeta, markerId.isAcceptableOrUnknown(data['marker_id']!, _markerIdMeta));
+      context.handle(
+        _markerIdMeta,
+        markerId.isAcceptableOrUnknown(data['marker_id']!, _markerIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_markerIdMeta);
     }
     if (data.containsKey('relative_basename')) {
-      context.handle(_relativeBasenameMeta, relativeBasename.isAcceptableOrUnknown(data['relative_basename']!, _relativeBasenameMeta));
+      context.handle(
+        _relativeBasenameMeta,
+        relativeBasename.isAcceptableOrUnknown(
+          data['relative_basename']!,
+          _relativeBasenameMeta,
+        ),
+      );
     } else if (isInserting) {
       context.missing(_relativeBasenameMeta);
     }
     if (data.containsKey('width_px')) {
-      context.handle(_widthPxMeta, widthPx.isAcceptableOrUnknown(data['width_px']!, _widthPxMeta));
+      context.handle(
+        _widthPxMeta,
+        widthPx.isAcceptableOrUnknown(data['width_px']!, _widthPxMeta),
+      );
     } else if (isInserting) {
       context.missing(_widthPxMeta);
     }
     if (data.containsKey('height_px')) {
-      context.handle(_heightPxMeta, heightPx.isAcceptableOrUnknown(data['height_px']!, _heightPxMeta));
+      context.handle(
+        _heightPxMeta,
+        heightPx.isAcceptableOrUnknown(data['height_px']!, _heightPxMeta),
+      );
     } else if (isInserting) {
       context.missing(_heightPxMeta);
     }
     if (data.containsKey('file_size_bytes')) {
-      context.handle(_fileSizeBytesMeta, fileSizeBytes.isAcceptableOrUnknown(data['file_size_bytes']!, _fileSizeBytesMeta));
+      context.handle(
+        _fileSizeBytesMeta,
+        fileSizeBytes.isAcceptableOrUnknown(
+          data['file_size_bytes']!,
+          _fileSizeBytesMeta,
+        ),
+      );
     } else if (isInserting) {
       context.missing(_fileSizeBytesMeta);
     }
     if (data.containsKey('created_at_offset_minutes')) {
       context.handle(
         _createdAtOffsetMinutesMeta,
-        createdAtOffsetMinutes.isAcceptableOrUnknown(data['created_at_offset_minutes']!, _createdAtOffsetMinutesMeta),
+        createdAtOffsetMinutes.isAcceptableOrUnknown(
+          data['created_at_offset_minutes']!,
+          _createdAtOffsetMinutesMeta,
+        ),
       );
     } else if (isInserting) {
       context.missing(_createdAtOffsetMinutesMeta);
@@ -2043,14 +2736,40 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, PhotoRow> {
   PhotoRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return PhotoRow(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      markerId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}marker_id'])!,
-      relativeBasename: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}relative_basename'])!,
-      widthPx: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}width_px'])!,
-      heightPx: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}height_px'])!,
-      fileSizeBytes: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}file_size_bytes'])!,
-      createdAtUtc: $PhotosTable.$convertercreatedAtUtc.fromSql(attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at_utc'])!),
-      createdAtOffsetMinutes: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at_offset_minutes'])!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      markerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}marker_id'],
+      )!,
+      relativeBasename: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relative_basename'],
+      )!,
+      widthPx: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}width_px'],
+      )!,
+      heightPx: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}height_px'],
+      )!,
+      fileSizeBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}file_size_bytes'],
+      )!,
+      createdAtUtc: $PhotosTable.$convertercreatedAtUtc.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}created_at_utc'],
+        )!,
+      ),
+      createdAtOffsetMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_offset_minutes'],
+      )!,
     );
   }
 
@@ -2059,7 +2778,8 @@ class $PhotosTable extends Photos with TableInfo<$PhotosTable, PhotoRow> {
     return $PhotosTable(attachedDatabase, alias);
   }
 
-  static TypeConverter<DateTime, int> $convertercreatedAtUtc = const UnixMsToDateTimeConverter();
+  static TypeConverter<DateTime, int> $convertercreatedAtUtc =
+      const UnixMsToDateTimeConverter();
 }
 
 class PhotoRow extends DataClass implements Insertable<PhotoRow> {
@@ -2091,7 +2811,9 @@ class PhotoRow extends DataClass implements Insertable<PhotoRow> {
     map['height_px'] = Variable<int>(heightPx);
     map['file_size_bytes'] = Variable<int>(fileSizeBytes);
     {
-      map['created_at_utc'] = Variable<int>($PhotosTable.$convertercreatedAtUtc.toSql(createdAtUtc));
+      map['created_at_utc'] = Variable<int>(
+        $PhotosTable.$convertercreatedAtUtc.toSql(createdAtUtc),
+      );
     }
     map['created_at_offset_minutes'] = Variable<int>(createdAtOffsetMinutes);
     return map;
@@ -2110,7 +2832,10 @@ class PhotoRow extends DataClass implements Insertable<PhotoRow> {
     );
   }
 
-  factory PhotoRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory PhotoRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return PhotoRow(
       id: serializer.fromJson<String>(json['id']),
@@ -2120,7 +2845,9 @@ class PhotoRow extends DataClass implements Insertable<PhotoRow> {
       heightPx: serializer.fromJson<int>(json['heightPx']),
       fileSizeBytes: serializer.fromJson<int>(json['fileSizeBytes']),
       createdAtUtc: serializer.fromJson<DateTime>(json['createdAtUtc']),
-      createdAtOffsetMinutes: serializer.fromJson<int>(json['createdAtOffsetMinutes']),
+      createdAtOffsetMinutes: serializer.fromJson<int>(
+        json['createdAtOffsetMinutes'],
+      ),
     );
   }
   @override
@@ -2155,18 +2882,27 @@ class PhotoRow extends DataClass implements Insertable<PhotoRow> {
     heightPx: heightPx ?? this.heightPx,
     fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
     createdAtUtc: createdAtUtc ?? this.createdAtUtc,
-    createdAtOffsetMinutes: createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
+    createdAtOffsetMinutes:
+        createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
   );
   PhotoRow copyWithCompanion(PhotosCompanion data) {
     return PhotoRow(
       id: data.id.present ? data.id.value : this.id,
       markerId: data.markerId.present ? data.markerId.value : this.markerId,
-      relativeBasename: data.relativeBasename.present ? data.relativeBasename.value : this.relativeBasename,
+      relativeBasename: data.relativeBasename.present
+          ? data.relativeBasename.value
+          : this.relativeBasename,
       widthPx: data.widthPx.present ? data.widthPx.value : this.widthPx,
       heightPx: data.heightPx.present ? data.heightPx.value : this.heightPx,
-      fileSizeBytes: data.fileSizeBytes.present ? data.fileSizeBytes.value : this.fileSizeBytes,
-      createdAtUtc: data.createdAtUtc.present ? data.createdAtUtc.value : this.createdAtUtc,
-      createdAtOffsetMinutes: data.createdAtOffsetMinutes.present ? data.createdAtOffsetMinutes.value : this.createdAtOffsetMinutes,
+      fileSizeBytes: data.fileSizeBytes.present
+          ? data.fileSizeBytes.value
+          : this.fileSizeBytes,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+      createdAtOffsetMinutes: data.createdAtOffsetMinutes.present
+          ? data.createdAtOffsetMinutes.value
+          : this.createdAtOffsetMinutes,
     );
   }
 
@@ -2186,7 +2922,16 @@ class PhotoRow extends DataClass implements Insertable<PhotoRow> {
   }
 
   @override
-  int get hashCode => Object.hash(id, markerId, relativeBasename, widthPx, heightPx, fileSizeBytes, createdAtUtc, createdAtOffsetMinutes);
+  int get hashCode => Object.hash(
+    id,
+    markerId,
+    relativeBasename,
+    widthPx,
+    heightPx,
+    fileSizeBytes,
+    createdAtUtc,
+    createdAtOffsetMinutes,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2259,7 +3004,8 @@ class PhotosCompanion extends UpdateCompanion<PhotoRow> {
       if (heightPx != null) 'height_px': heightPx,
       if (fileSizeBytes != null) 'file_size_bytes': fileSizeBytes,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
-      if (createdAtOffsetMinutes != null) 'created_at_offset_minutes': createdAtOffsetMinutes,
+      if (createdAtOffsetMinutes != null)
+        'created_at_offset_minutes': createdAtOffsetMinutes,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2283,7 +3029,8 @@ class PhotosCompanion extends UpdateCompanion<PhotoRow> {
       heightPx: heightPx ?? this.heightPx,
       fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
-      createdAtOffsetMinutes: createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
+      createdAtOffsetMinutes:
+          createdAtOffsetMinutes ?? this.createdAtOffsetMinutes,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2310,10 +3057,14 @@ class PhotosCompanion extends UpdateCompanion<PhotoRow> {
       map['file_size_bytes'] = Variable<int>(fileSizeBytes.value);
     }
     if (createdAtUtc.present) {
-      map['created_at_utc'] = Variable<int>($PhotosTable.$convertercreatedAtUtc.toSql(createdAtUtc.value));
+      map['created_at_utc'] = Variable<int>(
+        $PhotosTable.$convertercreatedAtUtc.toSql(createdAtUtc.value),
+      );
     }
     if (createdAtOffsetMinutes.present) {
-      map['created_at_offset_minutes'] = Variable<int>(createdAtOffsetMinutes.value);
+      map['created_at_offset_minutes'] = Variable<int>(
+        createdAtOffsetMinutes.value,
+      );
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -2345,8 +3096,16 @@ class $FixesTable extends Fixes with TableInfo<$FixesTable, FixRow> {
   $FixesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>('id', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _sessionIdMeta = const VerificationMeta('sessionId');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
   @override
   late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
     'session_id',
@@ -2354,27 +3113,36 @@ class $FixesTable extends Fixes with TableInfo<$FixesTable, FixRow> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('REFERENCES t_sessions (id) ON DELETE CASCADE'),
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES t_sessions (id) ON DELETE CASCADE',
+    ),
   );
   @override
-  late final GeneratedColumnWithTypeConverter<DateTime, int> recordedAtUtc = GeneratedColumn<int>(
-    'recorded_at_utc',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  ).withConverter<DateTime>($FixesTable.$converterrecordedAtUtc);
-  static const VerificationMeta _recordedAtOffsetMinutesMeta = const VerificationMeta('recordedAtOffsetMinutes');
+  late final GeneratedColumnWithTypeConverter<DateTime, int> recordedAtUtc =
+      GeneratedColumn<int>(
+        'recorded_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($FixesTable.$converterrecordedAtUtc);
+  static const VerificationMeta _recordedAtOffsetMinutesMeta =
+      const VerificationMeta('recordedAtOffsetMinutes');
   @override
-  late final GeneratedColumn<int> recordedAtOffsetMinutes = GeneratedColumn<int>(
-    'recorded_at_offset_minutes',
-    aliasedName,
-    false,
-    check: () => ComparableExpr(recordedAtOffsetMinutes).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
+  late final GeneratedColumn<int> recordedAtOffsetMinutes =
+      GeneratedColumn<int>(
+        'recorded_at_offset_minutes',
+        aliasedName,
+        false,
+        check: () => ComparableExpr(
+          recordedAtOffsetMinutes,
+        ).isBetweenValues(kMinUtcOffsetMinutes, kMaxUtcOffsetMinutes),
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
   );
-  static const VerificationMeta _latitudeMeta = const VerificationMeta('latitude');
   @override
   late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
     'latitude',
@@ -2384,7 +3152,9 @@ class $FixesTable extends Fixes with TableInfo<$FixesTable, FixRow> {
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _longitudeMeta = const VerificationMeta('longitude');
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
   @override
   late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
     'longitude',
@@ -2394,7 +3164,9 @@ class $FixesTable extends Fixes with TableInfo<$FixesTable, FixRow> {
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _accuracyMetersMeta = const VerificationMeta('accuracyMeters');
+  static const VerificationMeta _accuracyMetersMeta = const VerificationMeta(
+    'accuracyMeters',
+  );
   @override
   late final GeneratedColumn<double> accuracyMeters = GeneratedColumn<double>(
     'accuracy_meters',
@@ -2404,7 +3176,9 @@ class $FixesTable extends Fixes with TableInfo<$FixesTable, FixRow> {
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _altitudeMetersMeta = const VerificationMeta('altitudeMeters');
+  static const VerificationMeta _altitudeMetersMeta = const VerificationMeta(
+    'altitudeMeters',
+  );
   @override
   late final GeneratedColumn<double> altitudeMeters = GeneratedColumn<double>(
     'altitude_meters',
@@ -2413,10 +3187,20 @@ class $FixesTable extends Fixes with TableInfo<$FixesTable, FixRow> {
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _speedMpsMeta = const VerificationMeta('speedMps');
+  static const VerificationMeta _speedMpsMeta = const VerificationMeta(
+    'speedMps',
+  );
   @override
-  late final GeneratedColumn<double> speedMps = GeneratedColumn<double>('speed_mps', aliasedName, true, type: DriftSqlType.double, requiredDuringInsert: false);
-  static const VerificationMeta _headingDegreesMeta = const VerificationMeta('headingDegrees');
+  late final GeneratedColumn<double> speedMps = GeneratedColumn<double>(
+    'speed_mps',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _headingDegreesMeta = const VerificationMeta(
+    'headingDegrees',
+  );
   @override
   late final GeneratedColumn<double> headingDegrees = GeneratedColumn<double>(
     'heading_degrees',
@@ -2444,7 +3228,10 @@ class $FixesTable extends Fixes with TableInfo<$FixesTable, FixRow> {
   String get actualTableName => $name;
   static const String $name = 't_fixes';
   @override
-  VerificationContext validateIntegrity(Insertable<FixRow> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<FixRow> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -2453,41 +3240,74 @@ class $FixesTable extends Fixes with TableInfo<$FixesTable, FixRow> {
       context.missing(_idMeta);
     }
     if (data.containsKey('session_id')) {
-      context.handle(_sessionIdMeta, sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta));
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_sessionIdMeta);
     }
     if (data.containsKey('recorded_at_offset_minutes')) {
       context.handle(
         _recordedAtOffsetMinutesMeta,
-        recordedAtOffsetMinutes.isAcceptableOrUnknown(data['recorded_at_offset_minutes']!, _recordedAtOffsetMinutesMeta),
+        recordedAtOffsetMinutes.isAcceptableOrUnknown(
+          data['recorded_at_offset_minutes']!,
+          _recordedAtOffsetMinutesMeta,
+        ),
       );
     } else if (isInserting) {
       context.missing(_recordedAtOffsetMinutesMeta);
     }
     if (data.containsKey('latitude')) {
-      context.handle(_latitudeMeta, latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta));
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
     } else if (isInserting) {
       context.missing(_latitudeMeta);
     }
     if (data.containsKey('longitude')) {
-      context.handle(_longitudeMeta, longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta));
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
     } else if (isInserting) {
       context.missing(_longitudeMeta);
     }
     if (data.containsKey('accuracy_meters')) {
-      context.handle(_accuracyMetersMeta, accuracyMeters.isAcceptableOrUnknown(data['accuracy_meters']!, _accuracyMetersMeta));
+      context.handle(
+        _accuracyMetersMeta,
+        accuracyMeters.isAcceptableOrUnknown(
+          data['accuracy_meters']!,
+          _accuracyMetersMeta,
+        ),
+      );
     } else if (isInserting) {
       context.missing(_accuracyMetersMeta);
     }
     if (data.containsKey('altitude_meters')) {
-      context.handle(_altitudeMetersMeta, altitudeMeters.isAcceptableOrUnknown(data['altitude_meters']!, _altitudeMetersMeta));
+      context.handle(
+        _altitudeMetersMeta,
+        altitudeMeters.isAcceptableOrUnknown(
+          data['altitude_meters']!,
+          _altitudeMetersMeta,
+        ),
+      );
     }
     if (data.containsKey('speed_mps')) {
-      context.handle(_speedMpsMeta, speedMps.isAcceptableOrUnknown(data['speed_mps']!, _speedMpsMeta));
+      context.handle(
+        _speedMpsMeta,
+        speedMps.isAcceptableOrUnknown(data['speed_mps']!, _speedMpsMeta),
+      );
     }
     if (data.containsKey('heading_degrees')) {
-      context.handle(_headingDegreesMeta, headingDegrees.isAcceptableOrUnknown(data['heading_degrees']!, _headingDegreesMeta));
+      context.handle(
+        _headingDegreesMeta,
+        headingDegrees.isAcceptableOrUnknown(
+          data['heading_degrees']!,
+          _headingDegreesMeta,
+        ),
+      );
     }
     return context;
   }
@@ -2498,18 +3318,48 @@ class $FixesTable extends Fixes with TableInfo<$FixesTable, FixRow> {
   FixRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return FixRow(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      sessionId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}session_id'])!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
       recordedAtUtc: $FixesTable.$converterrecordedAtUtc.fromSql(
-        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}recorded_at_utc'])!,
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}recorded_at_utc'],
+        )!,
       ),
-      recordedAtOffsetMinutes: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}recorded_at_offset_minutes'])!,
-      latitude: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}latitude'])!,
-      longitude: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}longitude'])!,
-      accuracyMeters: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}accuracy_meters'])!,
-      altitudeMeters: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}altitude_meters']),
-      speedMps: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}speed_mps']),
-      headingDegrees: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}heading_degrees']),
+      recordedAtOffsetMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recorded_at_offset_minutes'],
+      )!,
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      )!,
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      )!,
+      accuracyMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}accuracy_meters'],
+      )!,
+      altitudeMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}altitude_meters'],
+      ),
+      speedMps: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}speed_mps'],
+      ),
+      headingDegrees: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}heading_degrees'],
+      ),
     );
   }
 
@@ -2518,7 +3368,8 @@ class $FixesTable extends Fixes with TableInfo<$FixesTable, FixRow> {
     return $FixesTable(attachedDatabase, alias);
   }
 
-  static TypeConverter<DateTime, int> $converterrecordedAtUtc = const UnixMsToDateTimeConverter();
+  static TypeConverter<DateTime, int> $converterrecordedAtUtc =
+      const UnixMsToDateTimeConverter();
 }
 
 class FixRow extends DataClass implements Insertable<FixRow> {
@@ -2550,7 +3401,9 @@ class FixRow extends DataClass implements Insertable<FixRow> {
     map['id'] = Variable<String>(id);
     map['session_id'] = Variable<String>(sessionId);
     {
-      map['recorded_at_utc'] = Variable<int>($FixesTable.$converterrecordedAtUtc.toSql(recordedAtUtc));
+      map['recorded_at_utc'] = Variable<int>(
+        $FixesTable.$converterrecordedAtUtc.toSql(recordedAtUtc),
+      );
     }
     map['recorded_at_offset_minutes'] = Variable<int>(recordedAtOffsetMinutes);
     map['latitude'] = Variable<double>(latitude);
@@ -2577,19 +3430,30 @@ class FixRow extends DataClass implements Insertable<FixRow> {
       latitude: Value(latitude),
       longitude: Value(longitude),
       accuracyMeters: Value(accuracyMeters),
-      altitudeMeters: altitudeMeters == null && nullToAbsent ? const Value.absent() : Value(altitudeMeters),
-      speedMps: speedMps == null && nullToAbsent ? const Value.absent() : Value(speedMps),
-      headingDegrees: headingDegrees == null && nullToAbsent ? const Value.absent() : Value(headingDegrees),
+      altitudeMeters: altitudeMeters == null && nullToAbsent
+          ? const Value.absent()
+          : Value(altitudeMeters),
+      speedMps: speedMps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(speedMps),
+      headingDegrees: headingDegrees == null && nullToAbsent
+          ? const Value.absent()
+          : Value(headingDegrees),
     );
   }
 
-  factory FixRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory FixRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return FixRow(
       id: serializer.fromJson<String>(json['id']),
       sessionId: serializer.fromJson<String>(json['sessionId']),
       recordedAtUtc: serializer.fromJson<DateTime>(json['recordedAtUtc']),
-      recordedAtOffsetMinutes: serializer.fromJson<int>(json['recordedAtOffsetMinutes']),
+      recordedAtOffsetMinutes: serializer.fromJson<int>(
+        json['recordedAtOffsetMinutes'],
+      ),
       latitude: serializer.fromJson<double>(json['latitude']),
       longitude: serializer.fromJson<double>(json['longitude']),
       accuracyMeters: serializer.fromJson<double>(json['accuracyMeters']),
@@ -2605,7 +3469,9 @@ class FixRow extends DataClass implements Insertable<FixRow> {
       'id': serializer.toJson<String>(id),
       'sessionId': serializer.toJson<String>(sessionId),
       'recordedAtUtc': serializer.toJson<DateTime>(recordedAtUtc),
-      'recordedAtOffsetMinutes': serializer.toJson<int>(recordedAtOffsetMinutes),
+      'recordedAtOffsetMinutes': serializer.toJson<int>(
+        recordedAtOffsetMinutes,
+      ),
       'latitude': serializer.toJson<double>(latitude),
       'longitude': serializer.toJson<double>(longitude),
       'accuracyMeters': serializer.toJson<double>(accuracyMeters),
@@ -2630,26 +3496,41 @@ class FixRow extends DataClass implements Insertable<FixRow> {
     id: id ?? this.id,
     sessionId: sessionId ?? this.sessionId,
     recordedAtUtc: recordedAtUtc ?? this.recordedAtUtc,
-    recordedAtOffsetMinutes: recordedAtOffsetMinutes ?? this.recordedAtOffsetMinutes,
+    recordedAtOffsetMinutes:
+        recordedAtOffsetMinutes ?? this.recordedAtOffsetMinutes,
     latitude: latitude ?? this.latitude,
     longitude: longitude ?? this.longitude,
     accuracyMeters: accuracyMeters ?? this.accuracyMeters,
-    altitudeMeters: altitudeMeters.present ? altitudeMeters.value : this.altitudeMeters,
+    altitudeMeters: altitudeMeters.present
+        ? altitudeMeters.value
+        : this.altitudeMeters,
     speedMps: speedMps.present ? speedMps.value : this.speedMps,
-    headingDegrees: headingDegrees.present ? headingDegrees.value : this.headingDegrees,
+    headingDegrees: headingDegrees.present
+        ? headingDegrees.value
+        : this.headingDegrees,
   );
   FixRow copyWithCompanion(FixesCompanion data) {
     return FixRow(
       id: data.id.present ? data.id.value : this.id,
       sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
-      recordedAtUtc: data.recordedAtUtc.present ? data.recordedAtUtc.value : this.recordedAtUtc,
-      recordedAtOffsetMinutes: data.recordedAtOffsetMinutes.present ? data.recordedAtOffsetMinutes.value : this.recordedAtOffsetMinutes,
+      recordedAtUtc: data.recordedAtUtc.present
+          ? data.recordedAtUtc.value
+          : this.recordedAtUtc,
+      recordedAtOffsetMinutes: data.recordedAtOffsetMinutes.present
+          ? data.recordedAtOffsetMinutes.value
+          : this.recordedAtOffsetMinutes,
       latitude: data.latitude.present ? data.latitude.value : this.latitude,
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
-      accuracyMeters: data.accuracyMeters.present ? data.accuracyMeters.value : this.accuracyMeters,
-      altitudeMeters: data.altitudeMeters.present ? data.altitudeMeters.value : this.altitudeMeters,
+      accuracyMeters: data.accuracyMeters.present
+          ? data.accuracyMeters.value
+          : this.accuracyMeters,
+      altitudeMeters: data.altitudeMeters.present
+          ? data.altitudeMeters.value
+          : this.altitudeMeters,
       speedMps: data.speedMps.present ? data.speedMps.value : this.speedMps,
-      headingDegrees: data.headingDegrees.present ? data.headingDegrees.value : this.headingDegrees,
+      headingDegrees: data.headingDegrees.present
+          ? data.headingDegrees.value
+          : this.headingDegrees,
     );
   }
 
@@ -2671,8 +3552,18 @@ class FixRow extends DataClass implements Insertable<FixRow> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, sessionId, recordedAtUtc, recordedAtOffsetMinutes, latitude, longitude, accuracyMeters, altitudeMeters, speedMps, headingDegrees);
+  int get hashCode => Object.hash(
+    id,
+    sessionId,
+    recordedAtUtc,
+    recordedAtOffsetMinutes,
+    latitude,
+    longitude,
+    accuracyMeters,
+    altitudeMeters,
+    speedMps,
+    headingDegrees,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2750,7 +3641,8 @@ class FixesCompanion extends UpdateCompanion<FixRow> {
       if (id != null) 'id': id,
       if (sessionId != null) 'session_id': sessionId,
       if (recordedAtUtc != null) 'recorded_at_utc': recordedAtUtc,
-      if (recordedAtOffsetMinutes != null) 'recorded_at_offset_minutes': recordedAtOffsetMinutes,
+      if (recordedAtOffsetMinutes != null)
+        'recorded_at_offset_minutes': recordedAtOffsetMinutes,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (accuracyMeters != null) 'accuracy_meters': accuracyMeters,
@@ -2778,7 +3670,8 @@ class FixesCompanion extends UpdateCompanion<FixRow> {
       id: id ?? this.id,
       sessionId: sessionId ?? this.sessionId,
       recordedAtUtc: recordedAtUtc ?? this.recordedAtUtc,
-      recordedAtOffsetMinutes: recordedAtOffsetMinutes ?? this.recordedAtOffsetMinutes,
+      recordedAtOffsetMinutes:
+          recordedAtOffsetMinutes ?? this.recordedAtOffsetMinutes,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       accuracyMeters: accuracyMeters ?? this.accuracyMeters,
@@ -2799,10 +3692,14 @@ class FixesCompanion extends UpdateCompanion<FixRow> {
       map['session_id'] = Variable<String>(sessionId.value);
     }
     if (recordedAtUtc.present) {
-      map['recorded_at_utc'] = Variable<int>($FixesTable.$converterrecordedAtUtc.toSql(recordedAtUtc.value));
+      map['recorded_at_utc'] = Variable<int>(
+        $FixesTable.$converterrecordedAtUtc.toSql(recordedAtUtc.value),
+      );
     }
     if (recordedAtOffsetMinutes.present) {
-      map['recorded_at_offset_minutes'] = Variable<int>(recordedAtOffsetMinutes.value);
+      map['recorded_at_offset_minutes'] = Variable<int>(
+        recordedAtOffsetMinutes.value,
+      );
     }
     if (latitude.present) {
       map['latitude'] = Variable<double>(latitude.value);
@@ -2850,38 +3747,53 @@ class FixesCompanion extends UpdateCompanion<FixRow> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final $MirkStylesTable mirkStyles = $MirkStylesTable(this);
   late final $SessionsTable sessions = $SessionsTable(this);
-  late final $MarkerCategoriesTable markerCategories = $MarkerCategoriesTable(this);
+  late final $MarkerCategoriesTable markerCategories = $MarkerCategoriesTable(
+    this,
+  );
   late final $MarkersTable markers = $MarkersTable(this);
   late final $RevealedTilesTable revealedTiles = $RevealedTilesTable(this);
-  late final $MirkStylesTable mirkStyles = $MirkStylesTable(this);
   late final $PhotosTable photos = $PhotosTable(this);
   late final $FixesTable fixes = $FixesTable(this);
   late final Index idxTSessionsStatusActive = Index(
     'idx_t_sessions_status_active',
     'CREATE UNIQUE INDEX idx_t_sessions_status_active ON t_sessions (status) WHERE status = \'active\'',
   );
-  late final Index idxTMarkersSessionId = Index('idx_t_markers_session_id', 'CREATE INDEX idx_t_markers_session_id ON t_markers (session_id)');
-  late final Index idxTMarkersCategoryId = Index('idx_t_markers_category_id', 'CREATE INDEX idx_t_markers_category_id ON t_markers (category_id)');
+  late final Index idxTMarkersSessionId = Index(
+    'idx_t_markers_session_id',
+    'CREATE INDEX idx_t_markers_session_id ON t_markers (session_id)',
+  );
+  late final Index idxTMarkersCategoryId = Index(
+    'idx_t_markers_category_id',
+    'CREATE INDEX idx_t_markers_category_id ON t_markers (category_id)',
+  );
   late final Index idxTRevealedTilesSessionIdParentKey = Index(
     'idx_t_revealed_tiles_session_id_parent_key',
     'CREATE INDEX idx_t_revealed_tiles_session_id_parent_key ON t_revealed_tiles (session_id, parent_x, parent_y)',
   );
-  late final Index idxTPhotosMarkerId = Index('idx_t_photos_marker_id', 'CREATE INDEX idx_t_photos_marker_id ON t_photos (marker_id)');
-  late final Index idxTFixesSessionId = Index('idx_t_fixes_session_id', 'CREATE INDEX idx_t_fixes_session_id ON t_fixes (session_id)');
+  late final Index idxTPhotosMarkerId = Index(
+    'idx_t_photos_marker_id',
+    'CREATE INDEX idx_t_photos_marker_id ON t_photos (marker_id)',
+  );
+  late final Index idxTFixesSessionId = Index(
+    'idx_t_fixes_session_id',
+    'CREATE INDEX idx_t_fixes_session_id ON t_fixes (session_id)',
+  );
   late final Index idxTFixesSessionRecordedAt = Index(
     'idx_t_fixes_session_recorded_at',
     'CREATE INDEX idx_t_fixes_session_recorded_at ON t_fixes (session_id, recorded_at_utc)',
   );
   @override
-  Iterable<TableInfo<Table, Object?>> get allTables => allSchemaEntities.whereType<TableInfo<Table, Object?>>();
+  Iterable<TableInfo<Table, Object?>> get allTables =>
+      allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    mirkStyles,
     sessions,
     markerCategories,
     markers,
     revealedTiles,
-    mirkStyles,
     photos,
     fixes,
     idxTSessionsStatusActive,
@@ -2895,24 +3807,376 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
     WritePropagation(
-      on: TableUpdateQuery.onTableName('t_sessions', limitUpdateKind: UpdateKind.delete),
+      on: TableUpdateQuery.onTableName(
+        't_mirk_styles',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('t_sessions', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        't_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
       result: [TableUpdate('t_markers', kind: UpdateKind.delete)],
     ),
     WritePropagation(
-      on: TableUpdateQuery.onTableName('t_sessions', limitUpdateKind: UpdateKind.delete),
+      on: TableUpdateQuery.onTableName(
+        't_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
       result: [TableUpdate('t_revealed_tiles', kind: UpdateKind.delete)],
     ),
     WritePropagation(
-      on: TableUpdateQuery.onTableName('t_markers', limitUpdateKind: UpdateKind.delete),
+      on: TableUpdateQuery.onTableName(
+        't_markers',
+        limitUpdateKind: UpdateKind.delete,
+      ),
       result: [TableUpdate('t_photos', kind: UpdateKind.delete)],
     ),
     WritePropagation(
-      on: TableUpdateQuery.onTableName('t_sessions', limitUpdateKind: UpdateKind.delete),
+      on: TableUpdateQuery.onTableName(
+        't_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
       result: [TableUpdate('t_fixes', kind: UpdateKind.delete)],
     ),
   ]);
 }
 
+typedef $$MirkStylesTableCreateCompanionBuilder =
+    MirkStylesCompanion Function({
+      required String id,
+      required String displayName,
+      required String rendererType,
+      required MirkStyleConfig config,
+      required DateTime createdAtUtc,
+      required int createdAtOffsetMinutes,
+      Value<int> rowid,
+    });
+typedef $$MirkStylesTableUpdateCompanionBuilder =
+    MirkStylesCompanion Function({
+      Value<String> id,
+      Value<String> displayName,
+      Value<String> rendererType,
+      Value<MirkStyleConfig> config,
+      Value<DateTime> createdAtUtc,
+      Value<int> createdAtOffsetMinutes,
+      Value<int> rowid,
+    });
+
+final class $$MirkStylesTableReferences
+    extends BaseReferences<_$AppDatabase, $MirkStylesTable, MirkStyleRow> {
+  $$MirkStylesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$SessionsTable, List<SessionRow>>
+  _sessionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.sessions,
+    aliasName: $_aliasNameGenerator(db.mirkStyles.id, db.sessions.mirkStyleId),
+  );
+
+  $$SessionsTableProcessedTableManager get sessionsRefs {
+    final manager = $$SessionsTableTableManager(
+      $_db,
+      $_db.sessions,
+    ).filter((f) => f.mirkStyleId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_sessionsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$MirkStylesTableFilterComposer
+    extends Composer<_$AppDatabase, $MirkStylesTable> {
+  $$MirkStylesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rendererType => $composableBuilder(
+    column: $table.rendererType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<MirkStyleConfig, MirkStyleConfig, String>
+  get config => $composableBuilder(
+    column: $table.config,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DateTime, DateTime, int> get createdAtUtc =>
+      $composableBuilder(
+        column: $table.createdAtUtc,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> sessionsRefs(
+    Expression<bool> Function($$SessionsTableFilterComposer f) f,
+  ) {
+    final $$SessionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.mirkStyleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$MirkStylesTableOrderingComposer
+    extends Composer<_$AppDatabase, $MirkStylesTable> {
+  $$MirkStylesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rendererType => $composableBuilder(
+    column: $table.rendererType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get config => $composableBuilder(
+    column: $table.config,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MirkStylesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MirkStylesTable> {
+  $$MirkStylesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rendererType => $composableBuilder(
+    column: $table.rendererType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<MirkStyleConfig, String> get config =>
+      $composableBuilder(column: $table.config, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DateTime, int> get createdAtUtc =>
+      $composableBuilder(
+        column: $table.createdAtUtc,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => column,
+  );
+
+  Expression<T> sessionsRefs<T extends Object>(
+    Expression<T> Function($$SessionsTableAnnotationComposer a) f,
+  ) {
+    final $$SessionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.sessions,
+      getReferencedColumn: (t) => t.mirkStyleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$MirkStylesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MirkStylesTable,
+          MirkStyleRow,
+          $$MirkStylesTableFilterComposer,
+          $$MirkStylesTableOrderingComposer,
+          $$MirkStylesTableAnnotationComposer,
+          $$MirkStylesTableCreateCompanionBuilder,
+          $$MirkStylesTableUpdateCompanionBuilder,
+          (MirkStyleRow, $$MirkStylesTableReferences),
+          MirkStyleRow,
+          PrefetchHooks Function({bool sessionsRefs})
+        > {
+  $$MirkStylesTableTableManager(_$AppDatabase db, $MirkStylesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MirkStylesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MirkStylesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MirkStylesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String> rendererType = const Value.absent(),
+                Value<MirkStyleConfig> config = const Value.absent(),
+                Value<DateTime> createdAtUtc = const Value.absent(),
+                Value<int> createdAtOffsetMinutes = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MirkStylesCompanion(
+                id: id,
+                displayName: displayName,
+                rendererType: rendererType,
+                config: config,
+                createdAtUtc: createdAtUtc,
+                createdAtOffsetMinutes: createdAtOffsetMinutes,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String displayName,
+                required String rendererType,
+                required MirkStyleConfig config,
+                required DateTime createdAtUtc,
+                required int createdAtOffsetMinutes,
+                Value<int> rowid = const Value.absent(),
+              }) => MirkStylesCompanion.insert(
+                id: id,
+                displayName: displayName,
+                rendererType: rendererType,
+                config: config,
+                createdAtUtc: createdAtUtc,
+                createdAtOffsetMinutes: createdAtOffsetMinutes,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$MirkStylesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({sessionsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (sessionsRefs) db.sessions],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (sessionsRefs)
+                    await $_getPrefetchedData<
+                      MirkStyleRow,
+                      $MirkStylesTable,
+                      SessionRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$MirkStylesTableReferences
+                          ._sessionsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$MirkStylesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).sessionsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.mirkStyleId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$MirkStylesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MirkStylesTable,
+      MirkStyleRow,
+      $$MirkStylesTableFilterComposer,
+      $$MirkStylesTableOrderingComposer,
+      $$MirkStylesTableAnnotationComposer,
+      $$MirkStylesTableCreateCompanionBuilder,
+      $$MirkStylesTableUpdateCompanionBuilder,
+      (MirkStyleRow, $$MirkStylesTableReferences),
+      MirkStyleRow,
+      PrefetchHooks Function({bool sessionsRefs})
+    >;
 typedef $$SessionsTableCreateCompanionBuilder =
     SessionsCompanion Function({
       required String id,
@@ -2923,6 +4187,7 @@ typedef $$SessionsTableCreateCompanionBuilder =
       Value<DateTime?> stoppedAtUtc,
       Value<int?> stoppedAtOffsetMinutes,
       Value<String?> notes,
+      Value<String?> mirkStyleId,
       Value<int> rowid,
     });
 typedef $$SessionsTableUpdateCompanionBuilder =
@@ -2935,44 +4200,92 @@ typedef $$SessionsTableUpdateCompanionBuilder =
       Value<DateTime?> stoppedAtUtc,
       Value<int?> stoppedAtOffsetMinutes,
       Value<String?> notes,
+      Value<String?> mirkStyleId,
       Value<int> rowid,
     });
 
-final class $$SessionsTableReferences extends BaseReferences<_$AppDatabase, $SessionsTable, SessionRow> {
+final class $$SessionsTableReferences
+    extends BaseReferences<_$AppDatabase, $SessionsTable, SessionRow> {
   $$SessionsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static MultiTypedResultKey<$MarkersTable, List<MarkerRow>> _markersRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(db.markers, aliasName: $_aliasNameGenerator(db.sessions.id, db.markers.sessionId));
+  static $MirkStylesTable _mirkStyleIdTable(_$AppDatabase db) =>
+      db.mirkStyles.createAlias(
+        $_aliasNameGenerator(db.sessions.mirkStyleId, db.mirkStyles.id),
+      );
+
+  $$MirkStylesTableProcessedTableManager? get mirkStyleId {
+    final $_column = $_itemColumn<String>('mirk_style_id');
+    if ($_column == null) return null;
+    final manager = $$MirkStylesTableTableManager(
+      $_db,
+      $_db.mirkStyles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_mirkStyleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$MarkersTable, List<MarkerRow>> _markersRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.markers,
+    aliasName: $_aliasNameGenerator(db.sessions.id, db.markers.sessionId),
+  );
 
   $$MarkersTableProcessedTableManager get markersRefs {
-    final manager = $$MarkersTableTableManager($_db, $_db.markers).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
+    final manager = $$MarkersTableTableManager(
+      $_db,
+      $_db.markers,
+    ).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_markersRefsTable($_db));
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
   }
 
-  static MultiTypedResultKey<$RevealedTilesTable, List<RevealedTileRow>> _revealedTilesRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(db.revealedTiles, aliasName: $_aliasNameGenerator(db.sessions.id, db.revealedTiles.sessionId));
+  static MultiTypedResultKey<$RevealedTilesTable, List<RevealedTileRow>>
+  _revealedTilesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.revealedTiles,
+    aliasName: $_aliasNameGenerator(db.sessions.id, db.revealedTiles.sessionId),
+  );
 
   $$RevealedTilesTableProcessedTableManager get revealedTilesRefs {
-    final manager = $$RevealedTilesTableTableManager($_db, $_db.revealedTiles).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
+    final manager = $$RevealedTilesTableTableManager(
+      $_db,
+      $_db.revealedTiles,
+    ).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_revealedTilesRefsTable($_db));
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
   }
 
-  static MultiTypedResultKey<$FixesTable, List<FixRow>> _fixesRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(db.fixes, aliasName: $_aliasNameGenerator(db.sessions.id, db.fixes.sessionId));
+  static MultiTypedResultKey<$FixesTable, List<FixRow>> _fixesRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.fixes,
+    aliasName: $_aliasNameGenerator(db.sessions.id, db.fixes.sessionId),
+  );
 
   $$FixesTableProcessedTableManager get fixesRefs {
-    final manager = $$FixesTableTableManager($_db, $_db.fixes).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
+    final manager = $$FixesTableTableManager(
+      $_db,
+      $_db.fixes,
+    ).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_fixesRefsTable($_db));
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
   }
 }
 
-class $$SessionsTableFilterComposer extends Composer<_$AppDatabase, $SessionsTable> {
+class $$SessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $SessionsTable> {
   $$SessionsTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -2980,77 +4293,149 @@ class $$SessionsTableFilterComposer extends Composer<_$AppDatabase, $SessionsTab
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get displayName => $composableBuilder(column: $table.displayName, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get status => $composableBuilder(column: $table.status, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnWithTypeConverterFilters<DateTime, DateTime, int> get startedAtUtc =>
-      $composableBuilder(column: $table.startedAtUtc, builder: (column) => ColumnWithTypeConverterFilters(column));
+      $composableBuilder(
+        column: $table.startedAtUtc,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
-  ColumnFilters<int> get startedAtOffsetMinutes => $composableBuilder(column: $table.startedAtOffsetMinutes, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get startedAtOffsetMinutes => $composableBuilder(
+    column: $table.startedAtOffsetMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnWithTypeConverterFilters<DateTime?, DateTime, int> get stoppedAtUtc =>
-      $composableBuilder(column: $table.stoppedAtUtc, builder: (column) => ColumnWithTypeConverterFilters(column));
+      $composableBuilder(
+        column: $table.stoppedAtUtc,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
-  ColumnFilters<int> get stoppedAtOffsetMinutes => $composableBuilder(column: $table.stoppedAtOffsetMinutes, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get stoppedAtOffsetMinutes => $composableBuilder(
+    column: $table.stoppedAtOffsetMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get notes => $composableBuilder(column: $table.notes, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  Expression<bool> markersRefs(Expression<bool> Function($$MarkersTableFilterComposer f) f) {
+  $$MirkStylesTableFilterComposer get mirkStyleId {
+    final $$MirkStylesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mirkStyleId,
+      referencedTable: $db.mirkStyles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MirkStylesTableFilterComposer(
+            $db: $db,
+            $table: $db.mirkStyles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> markersRefs(
+    Expression<bool> Function($$MarkersTableFilterComposer f) f,
+  ) {
     final $$MarkersTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.markers,
       getReferencedColumn: (t) => t.sessionId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$MarkersTableFilterComposer(
-        $db: $db,
-        $table: $db.markers,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarkersTableFilterComposer(
+            $db: $db,
+            $table: $db.markers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return f(composer);
   }
 
-  Expression<bool> revealedTilesRefs(Expression<bool> Function($$RevealedTilesTableFilterComposer f) f) {
+  Expression<bool> revealedTilesRefs(
+    Expression<bool> Function($$RevealedTilesTableFilterComposer f) f,
+  ) {
     final $$RevealedTilesTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.revealedTiles,
       getReferencedColumn: (t) => t.sessionId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$RevealedTilesTableFilterComposer(
-        $db: $db,
-        $table: $db.revealedTiles,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RevealedTilesTableFilterComposer(
+            $db: $db,
+            $table: $db.revealedTiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return f(composer);
   }
 
-  Expression<bool> fixesRefs(Expression<bool> Function($$FixesTableFilterComposer f) f) {
+  Expression<bool> fixesRefs(
+    Expression<bool> Function($$FixesTableFilterComposer f) f,
+  ) {
     final $$FixesTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.fixes,
       getReferencedColumn: (t) => t.sessionId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$FixesTableFilterComposer(
-        $db: $db,
-        $table: $db.fixes,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FixesTableFilterComposer(
+            $db: $db,
+            $table: $db.fixes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return f(composer);
   }
 }
 
-class $$SessionsTableOrderingComposer extends Composer<_$AppDatabase, $SessionsTable> {
+class $$SessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SessionsTable> {
   $$SessionsTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -3058,24 +4443,72 @@ class $$SessionsTableOrderingComposer extends Composer<_$AppDatabase, $SessionsT
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get displayName => $composableBuilder(column: $table.displayName, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get status => $composableBuilder(column: $table.status, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get startedAtUtc => $composableBuilder(column: $table.startedAtUtc, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get startedAtUtc => $composableBuilder(
+    column: $table.startedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get startedAtOffsetMinutes => $composableBuilder(column: $table.startedAtOffsetMinutes, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get startedAtOffsetMinutes => $composableBuilder(
+    column: $table.startedAtOffsetMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get stoppedAtUtc => $composableBuilder(column: $table.stoppedAtUtc, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get stoppedAtUtc => $composableBuilder(
+    column: $table.stoppedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get stoppedAtOffsetMinutes => $composableBuilder(column: $table.stoppedAtOffsetMinutes, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get stoppedAtOffsetMinutes => $composableBuilder(
+    column: $table.stoppedAtOffsetMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get notes => $composableBuilder(column: $table.notes, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$MirkStylesTableOrderingComposer get mirkStyleId {
+    final $$MirkStylesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mirkStyleId,
+      referencedTable: $db.mirkStyles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MirkStylesTableOrderingComposer(
+            $db: $db,
+            $table: $db.mirkStyles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
-class $$SessionsTableAnnotationComposer extends Composer<_$AppDatabase, $SessionsTable> {
+class $$SessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SessionsTable> {
   $$SessionsTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -3083,69 +4516,136 @@ class $$SessionsTableAnnotationComposer extends Composer<_$AppDatabase, $Session
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get displayName => $composableBuilder(column: $table.displayName, builder: (column) => column);
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<String> get status => $composableBuilder(column: $table.status, builder: (column) => column);
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<DateTime, int> get startedAtUtc => $composableBuilder(column: $table.startedAtUtc, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<DateTime, int> get startedAtUtc =>
+      $composableBuilder(
+        column: $table.startedAtUtc,
+        builder: (column) => column,
+      );
 
-  GeneratedColumn<int> get startedAtOffsetMinutes => $composableBuilder(column: $table.startedAtOffsetMinutes, builder: (column) => column);
+  GeneratedColumn<int> get startedAtOffsetMinutes => $composableBuilder(
+    column: $table.startedAtOffsetMinutes,
+    builder: (column) => column,
+  );
 
-  GeneratedColumnWithTypeConverter<DateTime?, int> get stoppedAtUtc => $composableBuilder(column: $table.stoppedAtUtc, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<DateTime?, int> get stoppedAtUtc =>
+      $composableBuilder(
+        column: $table.stoppedAtUtc,
+        builder: (column) => column,
+      );
 
-  GeneratedColumn<int> get stoppedAtOffsetMinutes => $composableBuilder(column: $table.stoppedAtOffsetMinutes, builder: (column) => column);
+  GeneratedColumn<int> get stoppedAtOffsetMinutes => $composableBuilder(
+    column: $table.stoppedAtOffsetMinutes,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<String> get notes => $composableBuilder(column: $table.notes, builder: (column) => column);
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
 
-  Expression<T> markersRefs<T extends Object>(Expression<T> Function($$MarkersTableAnnotationComposer a) f) {
+  $$MirkStylesTableAnnotationComposer get mirkStyleId {
+    final $$MirkStylesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mirkStyleId,
+      referencedTable: $db.mirkStyles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MirkStylesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mirkStyles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> markersRefs<T extends Object>(
+    Expression<T> Function($$MarkersTableAnnotationComposer a) f,
+  ) {
     final $$MarkersTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.markers,
       getReferencedColumn: (t) => t.sessionId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$MarkersTableAnnotationComposer(
-        $db: $db,
-        $table: $db.markers,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarkersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.markers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return f(composer);
   }
 
-  Expression<T> revealedTilesRefs<T extends Object>(Expression<T> Function($$RevealedTilesTableAnnotationComposer a) f) {
+  Expression<T> revealedTilesRefs<T extends Object>(
+    Expression<T> Function($$RevealedTilesTableAnnotationComposer a) f,
+  ) {
     final $$RevealedTilesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.revealedTiles,
       getReferencedColumn: (t) => t.sessionId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$RevealedTilesTableAnnotationComposer(
-        $db: $db,
-        $table: $db.revealedTiles,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RevealedTilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.revealedTiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return f(composer);
   }
 
-  Expression<T> fixesRefs<T extends Object>(Expression<T> Function($$FixesTableAnnotationComposer a) f) {
+  Expression<T> fixesRefs<T extends Object>(
+    Expression<T> Function($$FixesTableAnnotationComposer a) f,
+  ) {
     final $$FixesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.fixes,
       getReferencedColumn: (t) => t.sessionId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$FixesTableAnnotationComposer(
-        $db: $db,
-        $table: $db.fixes,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FixesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.fixes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return f(composer);
   }
@@ -3164,16 +4664,24 @@ class $$SessionsTableTableManager
           $$SessionsTableUpdateCompanionBuilder,
           (SessionRow, $$SessionsTableReferences),
           SessionRow,
-          PrefetchHooks Function({bool markersRefs, bool revealedTilesRefs, bool fixesRefs})
+          PrefetchHooks Function({
+            bool mirkStyleId,
+            bool markersRefs,
+            bool revealedTilesRefs,
+            bool fixesRefs,
+          })
         > {
   $$SessionsTableTableManager(_$AppDatabase db, $SessionsTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$SessionsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$SessionsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$SessionsTableAnnotationComposer($db: db, $table: table),
+          createFilteringComposer: () =>
+              $$SessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SessionsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
@@ -3184,6 +4692,7 @@ class $$SessionsTableTableManager
                 Value<DateTime?> stoppedAtUtc = const Value.absent(),
                 Value<int?> stoppedAtOffsetMinutes = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> mirkStyleId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion(
                 id: id,
@@ -3194,6 +4703,7 @@ class $$SessionsTableTableManager
                 stoppedAtUtc: stoppedAtUtc,
                 stoppedAtOffsetMinutes: stoppedAtOffsetMinutes,
                 notes: notes,
+                mirkStyleId: mirkStyleId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3206,6 +4716,7 @@ class $$SessionsTableTableManager
                 Value<DateTime?> stoppedAtUtc = const Value.absent(),
                 Value<int?> stoppedAtOffsetMinutes = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> mirkStyleId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionsCompanion.insert(
                 id: id,
@@ -3216,44 +4727,132 @@ class $$SessionsTableTableManager
                 stoppedAtUtc: stoppedAtUtc,
                 stoppedAtOffsetMinutes: stoppedAtOffsetMinutes,
                 notes: notes,
+                mirkStyleId: mirkStyleId,
                 rowid: rowid,
               ),
-          withReferenceMapper: (p0) => p0.map((e) => (e.readTable(table), $$SessionsTableReferences(db, table, e))).toList(),
-          prefetchHooksCallback: ({markersRefs = false, revealedTilesRefs = false, fixesRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (markersRefs) db.markers, if (revealedTilesRefs) db.revealedTiles, if (fixesRefs) db.fixes],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (markersRefs)
-                    await $_getPrefetchedData<SessionRow, $SessionsTable, MarkerRow>(
-                      currentTable: table,
-                      referencedTable: $$SessionsTableReferences._markersRefsTable(db),
-                      managerFromTypedResult: (p0) => $$SessionsTableReferences(db, table, p0).markersRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) => referencedItems.where((e) => e.sessionId == item.id),
-                      typedResults: items,
-                    ),
-                  if (revealedTilesRefs)
-                    await $_getPrefetchedData<SessionRow, $SessionsTable, RevealedTileRow>(
-                      currentTable: table,
-                      referencedTable: $$SessionsTableReferences._revealedTilesRefsTable(db),
-                      managerFromTypedResult: (p0) => $$SessionsTableReferences(db, table, p0).revealedTilesRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) => referencedItems.where((e) => e.sessionId == item.id),
-                      typedResults: items,
-                    ),
-                  if (fixesRefs)
-                    await $_getPrefetchedData<SessionRow, $SessionsTable, FixRow>(
-                      currentTable: table,
-                      referencedTable: $$SessionsTableReferences._fixesRefsTable(db),
-                      managerFromTypedResult: (p0) => $$SessionsTableReferences(db, table, p0).fixesRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) => referencedItems.where((e) => e.sessionId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SessionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                mirkStyleId = false,
+                markersRefs = false,
+                revealedTilesRefs = false,
+                fixesRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (markersRefs) db.markers,
+                    if (revealedTilesRefs) db.revealedTiles,
+                    if (fixesRefs) db.fixes,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (mirkStyleId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.mirkStyleId,
+                                    referencedTable: $$SessionsTableReferences
+                                        ._mirkStyleIdTable(db),
+                                    referencedColumn: $$SessionsTableReferences
+                                        ._mirkStyleIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (markersRefs)
+                        await $_getPrefetchedData<
+                          SessionRow,
+                          $SessionsTable,
+                          MarkerRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SessionsTableReferences
+                              ._markersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SessionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).markersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sessionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (revealedTilesRefs)
+                        await $_getPrefetchedData<
+                          SessionRow,
+                          $SessionsTable,
+                          RevealedTileRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SessionsTableReferences
+                              ._revealedTilesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SessionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).revealedTilesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sessionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (fixesRefs)
+                        await $_getPrefetchedData<
+                          SessionRow,
+                          $SessionsTable,
+                          FixRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SessionsTableReferences
+                              ._fixesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SessionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).fixesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sessionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -3270,7 +4869,12 @@ typedef $$SessionsTableProcessedTableManager =
       $$SessionsTableUpdateCompanionBuilder,
       (SessionRow, $$SessionsTableReferences),
       SessionRow,
-      PrefetchHooks Function({bool markersRefs, bool revealedTilesRefs, bool fixesRefs})
+      PrefetchHooks Function({
+        bool mirkStyleId,
+        bool markersRefs,
+        bool revealedTilesRefs,
+        bool fixesRefs,
+      })
     >;
 typedef $$MarkerCategoriesTableCreateCompanionBuilder =
     MarkerCategoriesCompanion Function({
@@ -3291,21 +4895,44 @@ typedef $$MarkerCategoriesTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-final class $$MarkerCategoriesTableReferences extends BaseReferences<_$AppDatabase, $MarkerCategoriesTable, MarkerCategoryRow> {
-  $$MarkerCategoriesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+final class $$MarkerCategoriesTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $MarkerCategoriesTable,
+          MarkerCategoryRow
+        > {
+  $$MarkerCategoriesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
 
-  static MultiTypedResultKey<$MarkersTable, List<MarkerRow>> _markersRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(db.markers, aliasName: $_aliasNameGenerator(db.markerCategories.id, db.markers.categoryId));
+  static MultiTypedResultKey<$MarkersTable, List<MarkerRow>> _markersRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.markers,
+    aliasName: $_aliasNameGenerator(
+      db.markerCategories.id,
+      db.markers.categoryId,
+    ),
+  );
 
   $$MarkersTableProcessedTableManager get markersRefs {
-    final manager = $$MarkersTableTableManager($_db, $_db.markers).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<String>('id')!));
+    final manager = $$MarkersTableTableManager(
+      $_db,
+      $_db.markers,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_markersRefsTable($_db));
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
   }
 }
 
-class $$MarkerCategoriesTableFilterComposer extends Composer<_$AppDatabase, $MarkerCategoriesTable> {
+class $$MarkerCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $MarkerCategoriesTable> {
   $$MarkerCategoriesTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -3313,36 +4940,60 @@ class $$MarkerCategoriesTableFilterComposer extends Composer<_$AppDatabase, $Mar
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get displayName => $composableBuilder(column: $table.displayName, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get iconName => $composableBuilder(column: $table.iconName, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get iconName => $composableBuilder(
+    column: $table.iconName,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnWithTypeConverterFilters<DateTime, DateTime, int> get createdAtUtc =>
-      $composableBuilder(column: $table.createdAtUtc, builder: (column) => ColumnWithTypeConverterFilters(column));
+      $composableBuilder(
+        column: $table.createdAtUtc,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
-  ColumnFilters<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  Expression<bool> markersRefs(Expression<bool> Function($$MarkersTableFilterComposer f) f) {
+  Expression<bool> markersRefs(
+    Expression<bool> Function($$MarkersTableFilterComposer f) f,
+  ) {
     final $$MarkersTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.markers,
       getReferencedColumn: (t) => t.categoryId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$MarkersTableFilterComposer(
-        $db: $db,
-        $table: $db.markers,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarkersTableFilterComposer(
+            $db: $db,
+            $table: $db.markers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return f(composer);
   }
 }
 
-class $$MarkerCategoriesTableOrderingComposer extends Composer<_$AppDatabase, $MarkerCategoriesTable> {
+class $$MarkerCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $MarkerCategoriesTable> {
   $$MarkerCategoriesTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -3350,18 +5001,34 @@ class $$MarkerCategoriesTableOrderingComposer extends Composer<_$AppDatabase, $M
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get displayName => $composableBuilder(column: $table.displayName, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get iconName => $composableBuilder(column: $table.iconName, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get iconName => $composableBuilder(
+    column: $table.iconName,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get createdAtUtc => $composableBuilder(column: $table.createdAtUtc, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
-class $$MarkerCategoriesTableAnnotationComposer extends Composer<_$AppDatabase, $MarkerCategoriesTable> {
+class $$MarkerCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MarkerCategoriesTable> {
   $$MarkerCategoriesTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -3369,29 +5036,49 @@ class $$MarkerCategoriesTableAnnotationComposer extends Composer<_$AppDatabase, 
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get displayName => $composableBuilder(column: $table.displayName, builder: (column) => column);
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<String> get iconName => $composableBuilder(column: $table.iconName, builder: (column) => column);
+  GeneratedColumn<String> get iconName =>
+      $composableBuilder(column: $table.iconName, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<DateTime, int> get createdAtUtc => $composableBuilder(column: $table.createdAtUtc, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<DateTime, int> get createdAtUtc =>
+      $composableBuilder(
+        column: $table.createdAtUtc,
+        builder: (column) => column,
+      );
 
-  GeneratedColumn<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => column);
+  GeneratedColumn<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => column,
+  );
 
-  Expression<T> markersRefs<T extends Object>(Expression<T> Function($$MarkersTableAnnotationComposer a) f) {
+  Expression<T> markersRefs<T extends Object>(
+    Expression<T> Function($$MarkersTableAnnotationComposer a) f,
+  ) {
     final $$MarkersTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.markers,
       getReferencedColumn: (t) => t.categoryId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$MarkersTableAnnotationComposer(
-        $db: $db,
-        $table: $db.markers,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarkersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.markers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return f(composer);
   }
@@ -3412,14 +5099,19 @@ class $$MarkerCategoriesTableTableManager
           MarkerCategoryRow,
           PrefetchHooks Function({bool markersRefs})
         > {
-  $$MarkerCategoriesTableTableManager(_$AppDatabase db, $MarkerCategoriesTable table)
-    : super(
+  $$MarkerCategoriesTableTableManager(
+    _$AppDatabase db,
+    $MarkerCategoriesTable table,
+  ) : super(
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$MarkerCategoriesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$MarkerCategoriesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$MarkerCategoriesTableAnnotationComposer($db: db, $table: table),
+          createFilteringComposer: () =>
+              $$MarkerCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MarkerCategoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MarkerCategoriesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
@@ -3452,7 +5144,14 @@ class $$MarkerCategoriesTableTableManager
                 createdAtOffsetMinutes: createdAtOffsetMinutes,
                 rowid: rowid,
               ),
-          withReferenceMapper: (p0) => p0.map((e) => (e.readTable(table), $$MarkerCategoriesTableReferences(db, table, e))).toList(),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$MarkerCategoriesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
           prefetchHooksCallback: ({markersRefs = false}) {
             return PrefetchHooks(
               db: db,
@@ -3461,11 +5160,22 @@ class $$MarkerCategoriesTableTableManager
               getPrefetchedDataCallback: (items) async {
                 return [
                   if (markersRefs)
-                    await $_getPrefetchedData<MarkerCategoryRow, $MarkerCategoriesTable, MarkerRow>(
+                    await $_getPrefetchedData<
+                      MarkerCategoryRow,
+                      $MarkerCategoriesTable,
+                      MarkerRow
+                    >(
                       currentTable: table,
-                      referencedTable: $$MarkerCategoriesTableReferences._markersRefsTable(db),
-                      managerFromTypedResult: (p0) => $$MarkerCategoriesTableReferences(db, table, p0).markersRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) => referencedItems.where((e) => e.categoryId == item.id),
+                      referencedTable: $$MarkerCategoriesTableReferences
+                          ._markersRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$MarkerCategoriesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).markersRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.categoryId == item.id),
                       typedResults: items,
                     ),
                 ];
@@ -3517,44 +5227,68 @@ typedef $$MarkersTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-final class $$MarkersTableReferences extends BaseReferences<_$AppDatabase, $MarkersTable, MarkerRow> {
+final class $$MarkersTableReferences
+    extends BaseReferences<_$AppDatabase, $MarkersTable, MarkerRow> {
   $$MarkersTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $SessionsTable _sessionIdTable(_$AppDatabase db) => db.sessions.createAlias($_aliasNameGenerator(db.markers.sessionId, db.sessions.id));
+  static $SessionsTable _sessionIdTable(_$AppDatabase db) => db.sessions
+      .createAlias($_aliasNameGenerator(db.markers.sessionId, db.sessions.id));
 
   $$SessionsTableProcessedTableManager get sessionId {
     final $_column = $_itemColumn<String>('session_id')!;
 
-    final manager = $$SessionsTableTableManager($_db, $_db.sessions).filter((f) => f.id.sqlEquals($_column));
+    final manager = $$SessionsTableTableManager(
+      $_db,
+      $_db.sessions,
+    ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_sessionIdTable($_db));
     if (item == null) return manager;
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
   }
 
   static $MarkerCategoriesTable _categoryIdTable(_$AppDatabase db) =>
-      db.markerCategories.createAlias($_aliasNameGenerator(db.markers.categoryId, db.markerCategories.id));
+      db.markerCategories.createAlias(
+        $_aliasNameGenerator(db.markers.categoryId, db.markerCategories.id),
+      );
 
   $$MarkerCategoriesTableProcessedTableManager get categoryId {
     final $_column = $_itemColumn<String>('category_id')!;
 
-    final manager = $$MarkerCategoriesTableTableManager($_db, $_db.markerCategories).filter((f) => f.id.sqlEquals($_column));
+    final manager = $$MarkerCategoriesTableTableManager(
+      $_db,
+      $_db.markerCategories,
+    ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
     if (item == null) return manager;
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
   }
 
-  static MultiTypedResultKey<$PhotosTable, List<PhotoRow>> _photosRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(db.photos, aliasName: $_aliasNameGenerator(db.markers.id, db.photos.markerId));
+  static MultiTypedResultKey<$PhotosTable, List<PhotoRow>> _photosRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.photos,
+    aliasName: $_aliasNameGenerator(db.markers.id, db.photos.markerId),
+  );
 
   $$PhotosTableProcessedTableManager get photosRefs {
-    final manager = $$PhotosTableTableManager($_db, $_db.photos).filter((f) => f.markerId.id.sqlEquals($_itemColumn<String>('id')!));
+    final manager = $$PhotosTableTableManager(
+      $_db,
+      $_db.photos,
+    ).filter((f) => f.markerId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_photosRefsTable($_db));
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
   }
 }
 
-class $$MarkersTableFilterComposer extends Composer<_$AppDatabase, $MarkersTable> {
+class $$MarkersTableFilterComposer
+    extends Composer<_$AppDatabase, $MarkersTable> {
   $$MarkersTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -3562,20 +5296,41 @@ class $$MarkersTableFilterComposer extends Composer<_$AppDatabase, $MarkersTable
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<double> get lat => $composableBuilder(column: $table.lat, builder: (column) => ColumnFilters(column));
+  ColumnFilters<double> get lat => $composableBuilder(
+    column: $table.lat,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<double> get lon => $composableBuilder(column: $table.lon, builder: (column) => ColumnFilters(column));
+  ColumnFilters<double> get lon => $composableBuilder(
+    column: $table.lon,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get title => $composableBuilder(column: $table.title, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get notes => $composableBuilder(column: $table.notes, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnWithTypeConverterFilters<DateTime, DateTime, int> get createdAtUtc =>
-      $composableBuilder(column: $table.createdAtUtc, builder: (column) => ColumnWithTypeConverterFilters(column));
+      $composableBuilder(
+        column: $table.createdAtUtc,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
-  ColumnFilters<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
 
   $$SessionsTableFilterComposer get sessionId {
     final $$SessionsTableFilterComposer composer = $composerBuilder(
@@ -3583,13 +5338,19 @@ class $$MarkersTableFilterComposer extends Composer<_$AppDatabase, $MarkersTable
       getCurrentColumn: (t) => t.sessionId,
       referencedTable: $db.sessions,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableFilterComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
@@ -3600,36 +5361,51 @@ class $$MarkersTableFilterComposer extends Composer<_$AppDatabase, $MarkersTable
       getCurrentColumn: (t) => t.categoryId,
       referencedTable: $db.markerCategories,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$MarkerCategoriesTableFilterComposer(
-        $db: $db,
-        $table: $db.markerCategories,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarkerCategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.markerCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
 
-  Expression<bool> photosRefs(Expression<bool> Function($$PhotosTableFilterComposer f) f) {
+  Expression<bool> photosRefs(
+    Expression<bool> Function($$PhotosTableFilterComposer f) f,
+  ) {
     final $$PhotosTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.photos,
       getReferencedColumn: (t) => t.markerId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$PhotosTableFilterComposer(
-        $db: $db,
-        $table: $db.photos,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhotosTableFilterComposer(
+            $db: $db,
+            $table: $db.photos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return f(composer);
   }
 }
 
-class $$MarkersTableOrderingComposer extends Composer<_$AppDatabase, $MarkersTable> {
+class $$MarkersTableOrderingComposer
+    extends Composer<_$AppDatabase, $MarkersTable> {
   $$MarkersTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -3637,19 +5413,40 @@ class $$MarkersTableOrderingComposer extends Composer<_$AppDatabase, $MarkersTab
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<double> get lat => $composableBuilder(column: $table.lat, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<double> get lat => $composableBuilder(
+    column: $table.lat,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<double> get lon => $composableBuilder(column: $table.lon, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<double> get lon => $composableBuilder(
+    column: $table.lon,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get title => $composableBuilder(column: $table.title, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get notes => $composableBuilder(column: $table.notes, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get createdAtUtc => $composableBuilder(column: $table.createdAtUtc, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   $$SessionsTableOrderingComposer get sessionId {
     final $$SessionsTableOrderingComposer composer = $composerBuilder(
@@ -3657,13 +5454,19 @@ class $$MarkersTableOrderingComposer extends Composer<_$AppDatabase, $MarkersTab
       getCurrentColumn: (t) => t.sessionId,
       referencedTable: $db.sessions,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableOrderingComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
@@ -3674,19 +5477,26 @@ class $$MarkersTableOrderingComposer extends Composer<_$AppDatabase, $MarkersTab
       getCurrentColumn: (t) => t.categoryId,
       referencedTable: $db.markerCategories,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$MarkerCategoriesTableOrderingComposer(
-        $db: $db,
-        $table: $db.markerCategories,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarkerCategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.markerCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
 }
 
-class $$MarkersTableAnnotationComposer extends Composer<_$AppDatabase, $MarkersTable> {
+class $$MarkersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MarkersTable> {
   $$MarkersTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -3694,19 +5504,31 @@ class $$MarkersTableAnnotationComposer extends Composer<_$AppDatabase, $MarkersT
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<double> get lat => $composableBuilder(column: $table.lat, builder: (column) => column);
+  GeneratedColumn<double> get lat =>
+      $composableBuilder(column: $table.lat, builder: (column) => column);
 
-  GeneratedColumn<double> get lon => $composableBuilder(column: $table.lon, builder: (column) => column);
+  GeneratedColumn<double> get lon =>
+      $composableBuilder(column: $table.lon, builder: (column) => column);
 
-  GeneratedColumn<String> get title => $composableBuilder(column: $table.title, builder: (column) => column);
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
 
-  GeneratedColumn<String> get notes => $composableBuilder(column: $table.notes, builder: (column) => column);
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<DateTime, int> get createdAtUtc => $composableBuilder(column: $table.createdAtUtc, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<DateTime, int> get createdAtUtc =>
+      $composableBuilder(
+        column: $table.createdAtUtc,
+        builder: (column) => column,
+      );
 
-  GeneratedColumn<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => column);
+  GeneratedColumn<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => column,
+  );
 
   $$SessionsTableAnnotationComposer get sessionId {
     final $$SessionsTableAnnotationComposer composer = $composerBuilder(
@@ -3714,13 +5536,19 @@ class $$MarkersTableAnnotationComposer extends Composer<_$AppDatabase, $MarkersT
       getCurrentColumn: (t) => t.sessionId,
       referencedTable: $db.sessions,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableAnnotationComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
@@ -3731,30 +5559,44 @@ class $$MarkersTableAnnotationComposer extends Composer<_$AppDatabase, $MarkersT
       getCurrentColumn: (t) => t.categoryId,
       referencedTable: $db.markerCategories,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$MarkerCategoriesTableAnnotationComposer(
-        $db: $db,
-        $table: $db.markerCategories,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarkerCategoriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.markerCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
 
-  Expression<T> photosRefs<T extends Object>(Expression<T> Function($$PhotosTableAnnotationComposer a) f) {
+  Expression<T> photosRefs<T extends Object>(
+    Expression<T> Function($$PhotosTableAnnotationComposer a) f,
+  ) {
     final $$PhotosTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
       referencedTable: $db.photos,
       getReferencedColumn: (t) => t.markerId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$PhotosTableAnnotationComposer(
-        $db: $db,
-        $table: $db.photos,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhotosTableAnnotationComposer(
+            $db: $db,
+            $table: $db.photos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return f(composer);
   }
@@ -3773,16 +5615,23 @@ class $$MarkersTableTableManager
           $$MarkersTableUpdateCompanionBuilder,
           (MarkerRow, $$MarkersTableReferences),
           MarkerRow,
-          PrefetchHooks Function({bool sessionId, bool categoryId, bool photosRefs})
+          PrefetchHooks Function({
+            bool sessionId,
+            bool categoryId,
+            bool photosRefs,
+          })
         > {
   $$MarkersTableTableManager(_$AppDatabase db, $MarkersTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$MarkersTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$MarkersTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$MarkersTableAnnotationComposer($db: db, $table: table),
+          createFilteringComposer: () =>
+              $$MarkersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MarkersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MarkersTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
@@ -3831,50 +5680,91 @@ class $$MarkersTableTableManager
                 createdAtOffsetMinutes: createdAtOffsetMinutes,
                 rowid: rowid,
               ),
-          withReferenceMapper: (p0) => p0.map((e) => (e.readTable(table), $$MarkersTableReferences(db, table, e))).toList(),
-          prefetchHooksCallback: ({sessionId = false, categoryId = false, photosRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (photosRefs) db.photos],
-              addJoins:
-                  <T extends TableManagerState<dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic>>(state) {
-                    if (sessionId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.sessionId,
-                                referencedTable: $$MarkersTableReferences._sessionIdTable(db),
-                                referencedColumn: $$MarkersTableReferences._sessionIdTable(db).id,
-                              )
-                              as T;
-                    }
-                    if (categoryId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.categoryId,
-                                referencedTable: $$MarkersTableReferences._categoryIdTable(db),
-                                referencedColumn: $$MarkersTableReferences._categoryIdTable(db).id,
-                              )
-                              as T;
-                    }
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$MarkersTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({sessionId = false, categoryId = false, photosRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [if (photosRefs) db.photos],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (sessionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.sessionId,
+                                    referencedTable: $$MarkersTableReferences
+                                        ._sessionIdTable(db),
+                                    referencedColumn: $$MarkersTableReferences
+                                        ._sessionIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (categoryId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.categoryId,
+                                    referencedTable: $$MarkersTableReferences
+                                        ._categoryIdTable(db),
+                                    referencedColumn: $$MarkersTableReferences
+                                        ._categoryIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (photosRefs)
+                        await $_getPrefetchedData<
+                          MarkerRow,
+                          $MarkersTable,
+                          PhotoRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$MarkersTableReferences
+                              ._photosRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$MarkersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).photosRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.markerId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (photosRefs)
-                    await $_getPrefetchedData<MarkerRow, $MarkersTable, PhotoRow>(
-                      currentTable: table,
-                      referencedTable: $$MarkersTableReferences._photosRefsTable(db),
-                      managerFromTypedResult: (p0) => $$MarkersTableReferences(db, table, p0).photosRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) => referencedItems.where((e) => e.markerId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -3918,22 +5808,37 @@ typedef $$RevealedTilesTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-final class $$RevealedTilesTableReferences extends BaseReferences<_$AppDatabase, $RevealedTilesTable, RevealedTileRow> {
-  $$RevealedTilesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+final class $$RevealedTilesTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $RevealedTilesTable, RevealedTileRow> {
+  $$RevealedTilesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
 
-  static $SessionsTable _sessionIdTable(_$AppDatabase db) => db.sessions.createAlias($_aliasNameGenerator(db.revealedTiles.sessionId, db.sessions.id));
+  static $SessionsTable _sessionIdTable(_$AppDatabase db) =>
+      db.sessions.createAlias(
+        $_aliasNameGenerator(db.revealedTiles.sessionId, db.sessions.id),
+      );
 
   $$SessionsTableProcessedTableManager get sessionId {
     final $_column = $_itemColumn<String>('session_id')!;
 
-    final manager = $$SessionsTableTableManager($_db, $_db.sessions).filter((f) => f.id.sqlEquals($_column));
+    final manager = $$SessionsTableTableManager(
+      $_db,
+      $_db.sessions,
+    ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_sessionIdTable($_db));
     if (item == null) return manager;
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
   }
 }
 
-class $$RevealedTilesTableFilterComposer extends Composer<_$AppDatabase, $RevealedTilesTable> {
+class $$RevealedTilesTableFilterComposer
+    extends Composer<_$AppDatabase, $RevealedTilesTable> {
   $$RevealedTilesTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -3941,20 +5846,41 @@ class $$RevealedTilesTableFilterComposer extends Composer<_$AppDatabase, $Reveal
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get parentX => $composableBuilder(column: $table.parentX, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get parentX => $composableBuilder(
+    column: $table.parentX,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get parentY => $composableBuilder(column: $table.parentY, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get parentY => $composableBuilder(
+    column: $table.parentY,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get parentZoom => $composableBuilder(column: $table.parentZoom, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get parentZoom => $composableBuilder(
+    column: $table.parentZoom,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<Uint8List> get bitmap => $composableBuilder(column: $table.bitmap, builder: (column) => ColumnFilters(column));
+  ColumnFilters<Uint8List> get bitmap => $composableBuilder(
+    column: $table.bitmap,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get setBitCount => $composableBuilder(column: $table.setBitCount, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get setBitCount => $composableBuilder(
+    column: $table.setBitCount,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnWithTypeConverterFilters<DateTime, DateTime, int> get updatedAtUtc =>
-      $composableBuilder(column: $table.updatedAtUtc, builder: (column) => ColumnWithTypeConverterFilters(column));
+      $composableBuilder(
+        column: $table.updatedAtUtc,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
   $$SessionsTableFilterComposer get sessionId {
     final $$SessionsTableFilterComposer composer = $composerBuilder(
@@ -3962,19 +5888,26 @@ class $$RevealedTilesTableFilterComposer extends Composer<_$AppDatabase, $Reveal
       getCurrentColumn: (t) => t.sessionId,
       referencedTable: $db.sessions,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableFilterComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
 }
 
-class $$RevealedTilesTableOrderingComposer extends Composer<_$AppDatabase, $RevealedTilesTable> {
+class $$RevealedTilesTableOrderingComposer
+    extends Composer<_$AppDatabase, $RevealedTilesTable> {
   $$RevealedTilesTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -3982,19 +5915,40 @@ class $$RevealedTilesTableOrderingComposer extends Composer<_$AppDatabase, $Reve
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get parentX => $composableBuilder(column: $table.parentX, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get parentX => $composableBuilder(
+    column: $table.parentX,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get parentY => $composableBuilder(column: $table.parentY, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get parentY => $composableBuilder(
+    column: $table.parentY,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get parentZoom => $composableBuilder(column: $table.parentZoom, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get parentZoom => $composableBuilder(
+    column: $table.parentZoom,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<Uint8List> get bitmap => $composableBuilder(column: $table.bitmap, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<Uint8List> get bitmap => $composableBuilder(
+    column: $table.bitmap,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get setBitCount => $composableBuilder(column: $table.setBitCount, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get setBitCount => $composableBuilder(
+    column: $table.setBitCount,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get updatedAtUtc => $composableBuilder(column: $table.updatedAtUtc, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   $$SessionsTableOrderingComposer get sessionId {
     final $$SessionsTableOrderingComposer composer = $composerBuilder(
@@ -4002,19 +5956,26 @@ class $$RevealedTilesTableOrderingComposer extends Composer<_$AppDatabase, $Reve
       getCurrentColumn: (t) => t.sessionId,
       referencedTable: $db.sessions,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableOrderingComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
 }
 
-class $$RevealedTilesTableAnnotationComposer extends Composer<_$AppDatabase, $RevealedTilesTable> {
+class $$RevealedTilesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RevealedTilesTable> {
   $$RevealedTilesTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -4022,19 +5983,33 @@ class $$RevealedTilesTableAnnotationComposer extends Composer<_$AppDatabase, $Re
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<int> get parentX => $composableBuilder(column: $table.parentX, builder: (column) => column);
+  GeneratedColumn<int> get parentX =>
+      $composableBuilder(column: $table.parentX, builder: (column) => column);
 
-  GeneratedColumn<int> get parentY => $composableBuilder(column: $table.parentY, builder: (column) => column);
+  GeneratedColumn<int> get parentY =>
+      $composableBuilder(column: $table.parentY, builder: (column) => column);
 
-  GeneratedColumn<int> get parentZoom => $composableBuilder(column: $table.parentZoom, builder: (column) => column);
+  GeneratedColumn<int> get parentZoom => $composableBuilder(
+    column: $table.parentZoom,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<Uint8List> get bitmap => $composableBuilder(column: $table.bitmap, builder: (column) => column);
+  GeneratedColumn<Uint8List> get bitmap =>
+      $composableBuilder(column: $table.bitmap, builder: (column) => column);
 
-  GeneratedColumn<int> get setBitCount => $composableBuilder(column: $table.setBitCount, builder: (column) => column);
+  GeneratedColumn<int> get setBitCount => $composableBuilder(
+    column: $table.setBitCount,
+    builder: (column) => column,
+  );
 
-  GeneratedColumnWithTypeConverter<DateTime, int> get updatedAtUtc => $composableBuilder(column: $table.updatedAtUtc, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<DateTime, int> get updatedAtUtc =>
+      $composableBuilder(
+        column: $table.updatedAtUtc,
+        builder: (column) => column,
+      );
 
   $$SessionsTableAnnotationComposer get sessionId {
     final $$SessionsTableAnnotationComposer composer = $composerBuilder(
@@ -4042,13 +6017,19 @@ class $$RevealedTilesTableAnnotationComposer extends Composer<_$AppDatabase, $Re
       getCurrentColumn: (t) => t.sessionId,
       referencedTable: $db.sessions,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableAnnotationComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
@@ -4074,9 +6055,12 @@ class $$RevealedTilesTableTableManager
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$RevealedTilesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$RevealedTilesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$RevealedTilesTableAnnotationComposer($db: db, $table: table),
+          createFilteringComposer: () =>
+              $$RevealedTilesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RevealedTilesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RevealedTilesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
@@ -4121,20 +6105,44 @@ class $$RevealedTilesTableTableManager
                 updatedAtUtc: updatedAtUtc,
                 rowid: rowid,
               ),
-          withReferenceMapper: (p0) => p0.map((e) => (e.readTable(table), $$RevealedTilesTableReferences(db, table, e))).toList(),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$RevealedTilesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
           prefetchHooksCallback: ({sessionId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
               addJoins:
-                  <T extends TableManagerState<dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic>>(state) {
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
                     if (sessionId) {
                       state =
                           state.withJoin(
                                 currentTable: table,
                                 currentColumn: table.sessionId,
-                                referencedTable: $$RevealedTilesTableReferences._sessionIdTable(db),
-                                referencedColumn: $$RevealedTilesTableReferences._sessionIdTable(db).id,
+                                referencedTable: $$RevealedTilesTableReferences
+                                    ._sessionIdTable(db),
+                                referencedColumn: $$RevealedTilesTableReferences
+                                    ._sessionIdTable(db)
+                                    .id,
                               )
                               as T;
                     }
@@ -4164,171 +6172,6 @@ typedef $$RevealedTilesTableProcessedTableManager =
       RevealedTileRow,
       PrefetchHooks Function({bool sessionId})
     >;
-typedef $$MirkStylesTableCreateCompanionBuilder =
-    MirkStylesCompanion Function({
-      required String id,
-      required String displayName,
-      required String rendererType,
-      required MirkStyleConfig config,
-      required DateTime createdAtUtc,
-      required int createdAtOffsetMinutes,
-      Value<int> rowid,
-    });
-typedef $$MirkStylesTableUpdateCompanionBuilder =
-    MirkStylesCompanion Function({
-      Value<String> id,
-      Value<String> displayName,
-      Value<String> rendererType,
-      Value<MirkStyleConfig> config,
-      Value<DateTime> createdAtUtc,
-      Value<int> createdAtOffsetMinutes,
-      Value<int> rowid,
-    });
-
-class $$MirkStylesTableFilterComposer extends Composer<_$AppDatabase, $MirkStylesTable> {
-  $$MirkStylesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get displayName => $composableBuilder(column: $table.displayName, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get rendererType => $composableBuilder(column: $table.rendererType, builder: (column) => ColumnFilters(column));
-
-  ColumnWithTypeConverterFilters<MirkStyleConfig, MirkStyleConfig, String> get config =>
-      $composableBuilder(column: $table.config, builder: (column) => ColumnWithTypeConverterFilters(column));
-
-  ColumnWithTypeConverterFilters<DateTime, DateTime, int> get createdAtUtc =>
-      $composableBuilder(column: $table.createdAtUtc, builder: (column) => ColumnWithTypeConverterFilters(column));
-
-  ColumnFilters<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => ColumnFilters(column));
-}
-
-class $$MirkStylesTableOrderingComposer extends Composer<_$AppDatabase, $MirkStylesTable> {
-  $$MirkStylesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get displayName => $composableBuilder(column: $table.displayName, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get rendererType => $composableBuilder(column: $table.rendererType, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get config => $composableBuilder(column: $table.config, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get createdAtUtc => $composableBuilder(column: $table.createdAtUtc, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => ColumnOrderings(column));
-}
-
-class $$MirkStylesTableAnnotationComposer extends Composer<_$AppDatabase, $MirkStylesTable> {
-  $$MirkStylesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get displayName => $composableBuilder(column: $table.displayName, builder: (column) => column);
-
-  GeneratedColumn<String> get rendererType => $composableBuilder(column: $table.rendererType, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<MirkStyleConfig, String> get config => $composableBuilder(column: $table.config, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<DateTime, int> get createdAtUtc => $composableBuilder(column: $table.createdAtUtc, builder: (column) => column);
-
-  GeneratedColumn<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => column);
-}
-
-class $$MirkStylesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $MirkStylesTable,
-          MirkStyleRow,
-          $$MirkStylesTableFilterComposer,
-          $$MirkStylesTableOrderingComposer,
-          $$MirkStylesTableAnnotationComposer,
-          $$MirkStylesTableCreateCompanionBuilder,
-          $$MirkStylesTableUpdateCompanionBuilder,
-          (MirkStyleRow, BaseReferences<_$AppDatabase, $MirkStylesTable, MirkStyleRow>),
-          MirkStyleRow,
-          PrefetchHooks Function()
-        > {
-  $$MirkStylesTableTableManager(_$AppDatabase db, $MirkStylesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () => $$MirkStylesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$MirkStylesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$MirkStylesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> displayName = const Value.absent(),
-                Value<String> rendererType = const Value.absent(),
-                Value<MirkStyleConfig> config = const Value.absent(),
-                Value<DateTime> createdAtUtc = const Value.absent(),
-                Value<int> createdAtOffsetMinutes = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => MirkStylesCompanion(
-                id: id,
-                displayName: displayName,
-                rendererType: rendererType,
-                config: config,
-                createdAtUtc: createdAtUtc,
-                createdAtOffsetMinutes: createdAtOffsetMinutes,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String displayName,
-                required String rendererType,
-                required MirkStyleConfig config,
-                required DateTime createdAtUtc,
-                required int createdAtOffsetMinutes,
-                Value<int> rowid = const Value.absent(),
-              }) => MirkStylesCompanion.insert(
-                id: id,
-                displayName: displayName,
-                rendererType: rendererType,
-                config: config,
-                createdAtUtc: createdAtUtc,
-                createdAtOffsetMinutes: createdAtOffsetMinutes,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0.map((e) => (e.readTable(table), BaseReferences(db, table, e))).toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$MirkStylesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $MirkStylesTable,
-      MirkStyleRow,
-      $$MirkStylesTableFilterComposer,
-      $$MirkStylesTableOrderingComposer,
-      $$MirkStylesTableAnnotationComposer,
-      $$MirkStylesTableCreateCompanionBuilder,
-      $$MirkStylesTableUpdateCompanionBuilder,
-      (MirkStyleRow, BaseReferences<_$AppDatabase, $MirkStylesTable, MirkStyleRow>),
-      MirkStyleRow,
-      PrefetchHooks Function()
-    >;
 typedef $$PhotosTableCreateCompanionBuilder =
     PhotosCompanion Function({
       required String id,
@@ -4354,22 +6197,30 @@ typedef $$PhotosTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-final class $$PhotosTableReferences extends BaseReferences<_$AppDatabase, $PhotosTable, PhotoRow> {
+final class $$PhotosTableReferences
+    extends BaseReferences<_$AppDatabase, $PhotosTable, PhotoRow> {
   $$PhotosTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $MarkersTable _markerIdTable(_$AppDatabase db) => db.markers.createAlias($_aliasNameGenerator(db.photos.markerId, db.markers.id));
+  static $MarkersTable _markerIdTable(_$AppDatabase db) => db.markers
+      .createAlias($_aliasNameGenerator(db.photos.markerId, db.markers.id));
 
   $$MarkersTableProcessedTableManager get markerId {
     final $_column = $_itemColumn<String>('marker_id')!;
 
-    final manager = $$MarkersTableTableManager($_db, $_db.markers).filter((f) => f.id.sqlEquals($_column));
+    final manager = $$MarkersTableTableManager(
+      $_db,
+      $_db.markers,
+    ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_markerIdTable($_db));
     if (item == null) return manager;
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
   }
 }
 
-class $$PhotosTableFilterComposer extends Composer<_$AppDatabase, $PhotosTable> {
+class $$PhotosTableFilterComposer
+    extends Composer<_$AppDatabase, $PhotosTable> {
   $$PhotosTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -4377,20 +6228,41 @@ class $$PhotosTableFilterComposer extends Composer<_$AppDatabase, $PhotosTable> 
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get relativeBasename => $composableBuilder(column: $table.relativeBasename, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get relativeBasename => $composableBuilder(
+    column: $table.relativeBasename,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get widthPx => $composableBuilder(column: $table.widthPx, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get widthPx => $composableBuilder(
+    column: $table.widthPx,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get heightPx => $composableBuilder(column: $table.heightPx, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get heightPx => $composableBuilder(
+    column: $table.heightPx,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get fileSizeBytes => $composableBuilder(column: $table.fileSizeBytes, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get fileSizeBytes => $composableBuilder(
+    column: $table.fileSizeBytes,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnWithTypeConverterFilters<DateTime, DateTime, int> get createdAtUtc =>
-      $composableBuilder(column: $table.createdAtUtc, builder: (column) => ColumnWithTypeConverterFilters(column));
+      $composableBuilder(
+        column: $table.createdAtUtc,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
-  ColumnFilters<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
 
   $$MarkersTableFilterComposer get markerId {
     final $$MarkersTableFilterComposer composer = $composerBuilder(
@@ -4398,19 +6270,26 @@ class $$PhotosTableFilterComposer extends Composer<_$AppDatabase, $PhotosTable> 
       getCurrentColumn: (t) => t.markerId,
       referencedTable: $db.markers,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$MarkersTableFilterComposer(
-        $db: $db,
-        $table: $db.markers,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarkersTableFilterComposer(
+            $db: $db,
+            $table: $db.markers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
 }
 
-class $$PhotosTableOrderingComposer extends Composer<_$AppDatabase, $PhotosTable> {
+class $$PhotosTableOrderingComposer
+    extends Composer<_$AppDatabase, $PhotosTable> {
   $$PhotosTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -4418,19 +6297,40 @@ class $$PhotosTableOrderingComposer extends Composer<_$AppDatabase, $PhotosTable
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get relativeBasename => $composableBuilder(column: $table.relativeBasename, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get relativeBasename => $composableBuilder(
+    column: $table.relativeBasename,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get widthPx => $composableBuilder(column: $table.widthPx, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get widthPx => $composableBuilder(
+    column: $table.widthPx,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get heightPx => $composableBuilder(column: $table.heightPx, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get heightPx => $composableBuilder(
+    column: $table.heightPx,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get fileSizeBytes => $composableBuilder(column: $table.fileSizeBytes, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get fileSizeBytes => $composableBuilder(
+    column: $table.fileSizeBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get createdAtUtc => $composableBuilder(column: $table.createdAtUtc, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   $$MarkersTableOrderingComposer get markerId {
     final $$MarkersTableOrderingComposer composer = $composerBuilder(
@@ -4438,19 +6338,26 @@ class $$PhotosTableOrderingComposer extends Composer<_$AppDatabase, $PhotosTable
       getCurrentColumn: (t) => t.markerId,
       referencedTable: $db.markers,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$MarkersTableOrderingComposer(
-        $db: $db,
-        $table: $db.markers,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarkersTableOrderingComposer(
+            $db: $db,
+            $table: $db.markers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
 }
 
-class $$PhotosTableAnnotationComposer extends Composer<_$AppDatabase, $PhotosTable> {
+class $$PhotosTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PhotosTable> {
   $$PhotosTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -4458,19 +6365,35 @@ class $$PhotosTableAnnotationComposer extends Composer<_$AppDatabase, $PhotosTab
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get relativeBasename => $composableBuilder(column: $table.relativeBasename, builder: (column) => column);
+  GeneratedColumn<String> get relativeBasename => $composableBuilder(
+    column: $table.relativeBasename,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<int> get widthPx => $composableBuilder(column: $table.widthPx, builder: (column) => column);
+  GeneratedColumn<int> get widthPx =>
+      $composableBuilder(column: $table.widthPx, builder: (column) => column);
 
-  GeneratedColumn<int> get heightPx => $composableBuilder(column: $table.heightPx, builder: (column) => column);
+  GeneratedColumn<int> get heightPx =>
+      $composableBuilder(column: $table.heightPx, builder: (column) => column);
 
-  GeneratedColumn<int> get fileSizeBytes => $composableBuilder(column: $table.fileSizeBytes, builder: (column) => column);
+  GeneratedColumn<int> get fileSizeBytes => $composableBuilder(
+    column: $table.fileSizeBytes,
+    builder: (column) => column,
+  );
 
-  GeneratedColumnWithTypeConverter<DateTime, int> get createdAtUtc => $composableBuilder(column: $table.createdAtUtc, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<DateTime, int> get createdAtUtc =>
+      $composableBuilder(
+        column: $table.createdAtUtc,
+        builder: (column) => column,
+      );
 
-  GeneratedColumn<int> get createdAtOffsetMinutes => $composableBuilder(column: $table.createdAtOffsetMinutes, builder: (column) => column);
+  GeneratedColumn<int> get createdAtOffsetMinutes => $composableBuilder(
+    column: $table.createdAtOffsetMinutes,
+    builder: (column) => column,
+  );
 
   $$MarkersTableAnnotationComposer get markerId {
     final $$MarkersTableAnnotationComposer composer = $composerBuilder(
@@ -4478,13 +6401,19 @@ class $$PhotosTableAnnotationComposer extends Composer<_$AppDatabase, $PhotosTab
       getCurrentColumn: (t) => t.markerId,
       referencedTable: $db.markers,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$MarkersTableAnnotationComposer(
-        $db: $db,
-        $table: $db.markers,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MarkersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.markers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
@@ -4510,9 +6439,12 @@ class $$PhotosTableTableManager
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$PhotosTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$PhotosTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$PhotosTableAnnotationComposer($db: db, $table: table),
+          createFilteringComposer: () =>
+              $$PhotosTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PhotosTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PhotosTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
@@ -4557,20 +6489,42 @@ class $$PhotosTableTableManager
                 createdAtOffsetMinutes: createdAtOffsetMinutes,
                 rowid: rowid,
               ),
-          withReferenceMapper: (p0) => p0.map((e) => (e.readTable(table), $$PhotosTableReferences(db, table, e))).toList(),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) =>
+                    (e.readTable(table), $$PhotosTableReferences(db, table, e)),
+              )
+              .toList(),
           prefetchHooksCallback: ({markerId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
               addJoins:
-                  <T extends TableManagerState<dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic>>(state) {
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
                     if (markerId) {
                       state =
                           state.withJoin(
                                 currentTable: table,
                                 currentColumn: table.markerId,
-                                referencedTable: $$PhotosTableReferences._markerIdTable(db),
-                                referencedColumn: $$PhotosTableReferences._markerIdTable(db).id,
+                                referencedTable: $$PhotosTableReferences
+                                    ._markerIdTable(db),
+                                referencedColumn: $$PhotosTableReferences
+                                    ._markerIdTable(db)
+                                    .id,
                               )
                               as T;
                     }
@@ -4629,18 +6583,25 @@ typedef $$FixesTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-final class $$FixesTableReferences extends BaseReferences<_$AppDatabase, $FixesTable, FixRow> {
+final class $$FixesTableReferences
+    extends BaseReferences<_$AppDatabase, $FixesTable, FixRow> {
   $$FixesTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $SessionsTable _sessionIdTable(_$AppDatabase db) => db.sessions.createAlias($_aliasNameGenerator(db.fixes.sessionId, db.sessions.id));
+  static $SessionsTable _sessionIdTable(_$AppDatabase db) => db.sessions
+      .createAlias($_aliasNameGenerator(db.fixes.sessionId, db.sessions.id));
 
   $$SessionsTableProcessedTableManager get sessionId {
     final $_column = $_itemColumn<String>('session_id')!;
 
-    final manager = $$SessionsTableTableManager($_db, $_db.sessions).filter((f) => f.id.sqlEquals($_column));
+    final manager = $$SessionsTableTableManager(
+      $_db,
+      $_db.sessions,
+    ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_sessionIdTable($_db));
     if (item == null) return manager;
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
   }
 }
 
@@ -4652,24 +6613,51 @@ class $$FixesTableFilterComposer extends Composer<_$AppDatabase, $FixesTable> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnWithTypeConverterFilters<DateTime, DateTime, int> get recordedAtUtc =>
-      $composableBuilder(column: $table.recordedAtUtc, builder: (column) => ColumnWithTypeConverterFilters(column));
+      $composableBuilder(
+        column: $table.recordedAtUtc,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
-  ColumnFilters<int> get recordedAtOffsetMinutes => $composableBuilder(column: $table.recordedAtOffsetMinutes, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get recordedAtOffsetMinutes => $composableBuilder(
+    column: $table.recordedAtOffsetMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<double> get latitude => $composableBuilder(column: $table.latitude, builder: (column) => ColumnFilters(column));
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<double> get longitude => $composableBuilder(column: $table.longitude, builder: (column) => ColumnFilters(column));
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<double> get accuracyMeters => $composableBuilder(column: $table.accuracyMeters, builder: (column) => ColumnFilters(column));
+  ColumnFilters<double> get accuracyMeters => $composableBuilder(
+    column: $table.accuracyMeters,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<double> get altitudeMeters => $composableBuilder(column: $table.altitudeMeters, builder: (column) => ColumnFilters(column));
+  ColumnFilters<double> get altitudeMeters => $composableBuilder(
+    column: $table.altitudeMeters,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<double> get speedMps => $composableBuilder(column: $table.speedMps, builder: (column) => ColumnFilters(column));
+  ColumnFilters<double> get speedMps => $composableBuilder(
+    column: $table.speedMps,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<double> get headingDegrees => $composableBuilder(column: $table.headingDegrees, builder: (column) => ColumnFilters(column));
+  ColumnFilters<double> get headingDegrees => $composableBuilder(
+    column: $table.headingDegrees,
+    builder: (column) => ColumnFilters(column),
+  );
 
   $$SessionsTableFilterComposer get sessionId {
     final $$SessionsTableFilterComposer composer = $composerBuilder(
@@ -4677,19 +6665,26 @@ class $$FixesTableFilterComposer extends Composer<_$AppDatabase, $FixesTable> {
       getCurrentColumn: (t) => t.sessionId,
       referencedTable: $db.sessions,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableFilterComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
 }
 
-class $$FixesTableOrderingComposer extends Composer<_$AppDatabase, $FixesTable> {
+class $$FixesTableOrderingComposer
+    extends Composer<_$AppDatabase, $FixesTable> {
   $$FixesTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -4697,23 +6692,50 @@ class $$FixesTableOrderingComposer extends Composer<_$AppDatabase, $FixesTable> 
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get recordedAtUtc => $composableBuilder(column: $table.recordedAtUtc, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get recordedAtUtc => $composableBuilder(
+    column: $table.recordedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get recordedAtOffsetMinutes => $composableBuilder(column: $table.recordedAtOffsetMinutes, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get recordedAtOffsetMinutes => $composableBuilder(
+    column: $table.recordedAtOffsetMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<double> get latitude => $composableBuilder(column: $table.latitude, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<double> get longitude => $composableBuilder(column: $table.longitude, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<double> get accuracyMeters => $composableBuilder(column: $table.accuracyMeters, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<double> get accuracyMeters => $composableBuilder(
+    column: $table.accuracyMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<double> get altitudeMeters => $composableBuilder(column: $table.altitudeMeters, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<double> get altitudeMeters => $composableBuilder(
+    column: $table.altitudeMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<double> get speedMps => $composableBuilder(column: $table.speedMps, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<double> get speedMps => $composableBuilder(
+    column: $table.speedMps,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<double> get headingDegrees => $composableBuilder(column: $table.headingDegrees, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<double> get headingDegrees => $composableBuilder(
+    column: $table.headingDegrees,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   $$SessionsTableOrderingComposer get sessionId {
     final $$SessionsTableOrderingComposer composer = $composerBuilder(
@@ -4721,19 +6743,26 @@ class $$FixesTableOrderingComposer extends Composer<_$AppDatabase, $FixesTable> 
       getCurrentColumn: (t) => t.sessionId,
       referencedTable: $db.sessions,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableOrderingComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
 }
 
-class $$FixesTableAnnotationComposer extends Composer<_$AppDatabase, $FixesTable> {
+class $$FixesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FixesTable> {
   $$FixesTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -4741,23 +6770,43 @@ class $$FixesTableAnnotationComposer extends Composer<_$AppDatabase, $FixesTable
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<DateTime, int> get recordedAtUtc => $composableBuilder(column: $table.recordedAtUtc, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<DateTime, int> get recordedAtUtc =>
+      $composableBuilder(
+        column: $table.recordedAtUtc,
+        builder: (column) => column,
+      );
 
-  GeneratedColumn<int> get recordedAtOffsetMinutes => $composableBuilder(column: $table.recordedAtOffsetMinutes, builder: (column) => column);
+  GeneratedColumn<int> get recordedAtOffsetMinutes => $composableBuilder(
+    column: $table.recordedAtOffsetMinutes,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<double> get latitude => $composableBuilder(column: $table.latitude, builder: (column) => column);
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
 
-  GeneratedColumn<double> get longitude => $composableBuilder(column: $table.longitude, builder: (column) => column);
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
 
-  GeneratedColumn<double> get accuracyMeters => $composableBuilder(column: $table.accuracyMeters, builder: (column) => column);
+  GeneratedColumn<double> get accuracyMeters => $composableBuilder(
+    column: $table.accuracyMeters,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<double> get altitudeMeters => $composableBuilder(column: $table.altitudeMeters, builder: (column) => column);
+  GeneratedColumn<double> get altitudeMeters => $composableBuilder(
+    column: $table.altitudeMeters,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<double> get speedMps => $composableBuilder(column: $table.speedMps, builder: (column) => column);
+  GeneratedColumn<double> get speedMps =>
+      $composableBuilder(column: $table.speedMps, builder: (column) => column);
 
-  GeneratedColumn<double> get headingDegrees => $composableBuilder(column: $table.headingDegrees, builder: (column) => column);
+  GeneratedColumn<double> get headingDegrees => $composableBuilder(
+    column: $table.headingDegrees,
+    builder: (column) => column,
+  );
 
   $$SessionsTableAnnotationComposer get sessionId {
     final $$SessionsTableAnnotationComposer composer = $composerBuilder(
@@ -4765,13 +6814,19 @@ class $$FixesTableAnnotationComposer extends Composer<_$AppDatabase, $FixesTable
       getCurrentColumn: (t) => t.sessionId,
       referencedTable: $db.sessions,
       getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableAnnotationComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SessionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.sessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
     );
     return composer;
   }
@@ -4797,9 +6852,12 @@ class $$FixesTableTableManager
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$FixesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$FixesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$FixesTableAnnotationComposer($db: db, $table: table),
+          createFilteringComposer: () =>
+              $$FixesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FixesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FixesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
@@ -4852,20 +6910,42 @@ class $$FixesTableTableManager
                 headingDegrees: headingDegrees,
                 rowid: rowid,
               ),
-          withReferenceMapper: (p0) => p0.map((e) => (e.readTable(table), $$FixesTableReferences(db, table, e))).toList(),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) =>
+                    (e.readTable(table), $$FixesTableReferences(db, table, e)),
+              )
+              .toList(),
           prefetchHooksCallback: ({sessionId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
               addJoins:
-                  <T extends TableManagerState<dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic>>(state) {
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
                     if (sessionId) {
                       state =
                           state.withJoin(
                                 currentTable: table,
                                 currentColumn: table.sessionId,
-                                referencedTable: $$FixesTableReferences._sessionIdTable(db),
-                                referencedColumn: $$FixesTableReferences._sessionIdTable(db).id,
+                                referencedTable: $$FixesTableReferences
+                                    ._sessionIdTable(db),
+                                referencedColumn: $$FixesTableReferences
+                                    ._sessionIdTable(db)
+                                    .id,
                               )
                               as T;
                     }
@@ -4899,11 +6979,18 @@ typedef $$FixesTableProcessedTableManager =
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
-  $$SessionsTableTableManager get sessions => $$SessionsTableTableManager(_db, _db.sessions);
-  $$MarkerCategoriesTableTableManager get markerCategories => $$MarkerCategoriesTableTableManager(_db, _db.markerCategories);
-  $$MarkersTableTableManager get markers => $$MarkersTableTableManager(_db, _db.markers);
-  $$RevealedTilesTableTableManager get revealedTiles => $$RevealedTilesTableTableManager(_db, _db.revealedTiles);
-  $$MirkStylesTableTableManager get mirkStyles => $$MirkStylesTableTableManager(_db, _db.mirkStyles);
-  $$PhotosTableTableManager get photos => $$PhotosTableTableManager(_db, _db.photos);
-  $$FixesTableTableManager get fixes => $$FixesTableTableManager(_db, _db.fixes);
+  $$MirkStylesTableTableManager get mirkStyles =>
+      $$MirkStylesTableTableManager(_db, _db.mirkStyles);
+  $$SessionsTableTableManager get sessions =>
+      $$SessionsTableTableManager(_db, _db.sessions);
+  $$MarkerCategoriesTableTableManager get markerCategories =>
+      $$MarkerCategoriesTableTableManager(_db, _db.markerCategories);
+  $$MarkersTableTableManager get markers =>
+      $$MarkersTableTableManager(_db, _db.markers);
+  $$RevealedTilesTableTableManager get revealedTiles =>
+      $$RevealedTilesTableTableManager(_db, _db.revealedTiles);
+  $$PhotosTableTableManager get photos =>
+      $$PhotosTableTableManager(_db, _db.photos);
+  $$FixesTableTableManager get fixes =>
+      $$FixesTableTableManager(_db, _db.fixes);
 }

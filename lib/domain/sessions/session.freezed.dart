@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Session {
 
-@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) SessionId get id; String get displayName; SessionStatus get status; DateTime get startedAtUtc; int get startedAtOffsetMinutes; DateTime? get stoppedAtUtc; int? get stoppedAtOffsetMinutes; String? get notes;
+@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) SessionId get id; String get displayName; SessionStatus get status; DateTime get startedAtUtc; int get startedAtOffsetMinutes; DateTime? get stoppedAtUtc; int? get stoppedAtOffsetMinutes; String? get notes;@JsonKey(fromJson: _mirkStyleIdFromJsonNullable, toJson: _mirkStyleIdToJsonNullable) MirkStyleId? get mirkStyleId;
 /// Create a copy of Session
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $SessionCopyWith<Session> get copyWith => _$SessionCopyWithImpl<Session>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Session&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.status, status) || other.status == status)&&(identical(other.startedAtUtc, startedAtUtc) || other.startedAtUtc == startedAtUtc)&&(identical(other.startedAtOffsetMinutes, startedAtOffsetMinutes) || other.startedAtOffsetMinutes == startedAtOffsetMinutes)&&(identical(other.stoppedAtUtc, stoppedAtUtc) || other.stoppedAtUtc == stoppedAtUtc)&&(identical(other.stoppedAtOffsetMinutes, stoppedAtOffsetMinutes) || other.stoppedAtOffsetMinutes == stoppedAtOffsetMinutes)&&(identical(other.notes, notes) || other.notes == notes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Session&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.status, status) || other.status == status)&&(identical(other.startedAtUtc, startedAtUtc) || other.startedAtUtc == startedAtUtc)&&(identical(other.startedAtOffsetMinutes, startedAtOffsetMinutes) || other.startedAtOffsetMinutes == startedAtOffsetMinutes)&&(identical(other.stoppedAtUtc, stoppedAtUtc) || other.stoppedAtUtc == stoppedAtUtc)&&(identical(other.stoppedAtOffsetMinutes, stoppedAtOffsetMinutes) || other.stoppedAtOffsetMinutes == stoppedAtOffsetMinutes)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.mirkStyleId, mirkStyleId) || other.mirkStyleId == mirkStyleId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,displayName,status,startedAtUtc,startedAtOffsetMinutes,stoppedAtUtc,stoppedAtOffsetMinutes,notes);
+int get hashCode => Object.hash(runtimeType,id,displayName,status,startedAtUtc,startedAtOffsetMinutes,stoppedAtUtc,stoppedAtOffsetMinutes,notes,mirkStyleId);
 
 @override
 String toString() {
-  return 'Session(id: $id, displayName: $displayName, status: $status, startedAtUtc: $startedAtUtc, startedAtOffsetMinutes: $startedAtOffsetMinutes, stoppedAtUtc: $stoppedAtUtc, stoppedAtOffsetMinutes: $stoppedAtOffsetMinutes, notes: $notes)';
+  return 'Session(id: $id, displayName: $displayName, status: $status, startedAtUtc: $startedAtUtc, startedAtOffsetMinutes: $startedAtOffsetMinutes, stoppedAtUtc: $stoppedAtUtc, stoppedAtOffsetMinutes: $stoppedAtOffsetMinutes, notes: $notes, mirkStyleId: $mirkStyleId)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $SessionCopyWith<$Res>  {
   factory $SessionCopyWith(Session value, $Res Function(Session) _then) = _$SessionCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) SessionId id, String displayName, SessionStatus status, DateTime startedAtUtc, int startedAtOffsetMinutes, DateTime? stoppedAtUtc, int? stoppedAtOffsetMinutes, String? notes
+@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) SessionId id, String displayName, SessionStatus status, DateTime startedAtUtc, int startedAtOffsetMinutes, DateTime? stoppedAtUtc, int? stoppedAtOffsetMinutes, String? notes,@JsonKey(fromJson: _mirkStyleIdFromJsonNullable, toJson: _mirkStyleIdToJsonNullable) MirkStyleId? mirkStyleId
 });
 
 
@@ -65,7 +65,7 @@ class _$SessionCopyWithImpl<$Res>
 
 /// Create a copy of Session
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? status = null,Object? startedAtUtc = null,Object? startedAtOffsetMinutes = null,Object? stoppedAtUtc = freezed,Object? stoppedAtOffsetMinutes = freezed,Object? notes = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? status = null,Object? startedAtUtc = null,Object? startedAtOffsetMinutes = null,Object? stoppedAtUtc = freezed,Object? stoppedAtOffsetMinutes = freezed,Object? notes = freezed,Object? mirkStyleId = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as SessionId,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -75,7 +75,8 @@ as DateTime,startedAtOffsetMinutes: null == startedAtOffsetMinutes ? _self.start
 as int,stoppedAtUtc: freezed == stoppedAtUtc ? _self.stoppedAtUtc : stoppedAtUtc // ignore: cast_nullable_to_non_nullable
 as DateTime?,stoppedAtOffsetMinutes: freezed == stoppedAtOffsetMinutes ? _self.stoppedAtOffsetMinutes : stoppedAtOffsetMinutes // ignore: cast_nullable_to_non_nullable
 as int?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,mirkStyleId: freezed == mirkStyleId ? _self.mirkStyleId : mirkStyleId // ignore: cast_nullable_to_non_nullable
+as MirkStyleId?,
   ));
 }
 
@@ -160,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson)  SessionId id,  String displayName,  SessionStatus status,  DateTime startedAtUtc,  int startedAtOffsetMinutes,  DateTime? stoppedAtUtc,  int? stoppedAtOffsetMinutes,  String? notes)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson)  SessionId id,  String displayName,  SessionStatus status,  DateTime startedAtUtc,  int startedAtOffsetMinutes,  DateTime? stoppedAtUtc,  int? stoppedAtOffsetMinutes,  String? notes, @JsonKey(fromJson: _mirkStyleIdFromJsonNullable, toJson: _mirkStyleIdToJsonNullable)  MirkStyleId? mirkStyleId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Session() when $default != null:
-return $default(_that.id,_that.displayName,_that.status,_that.startedAtUtc,_that.startedAtOffsetMinutes,_that.stoppedAtUtc,_that.stoppedAtOffsetMinutes,_that.notes);case _:
+return $default(_that.id,_that.displayName,_that.status,_that.startedAtUtc,_that.startedAtOffsetMinutes,_that.stoppedAtUtc,_that.stoppedAtOffsetMinutes,_that.notes,_that.mirkStyleId);case _:
   return orElse();
 
 }
@@ -181,10 +182,10 @@ return $default(_that.id,_that.displayName,_that.status,_that.startedAtUtc,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson)  SessionId id,  String displayName,  SessionStatus status,  DateTime startedAtUtc,  int startedAtOffsetMinutes,  DateTime? stoppedAtUtc,  int? stoppedAtOffsetMinutes,  String? notes)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson)  SessionId id,  String displayName,  SessionStatus status,  DateTime startedAtUtc,  int startedAtOffsetMinutes,  DateTime? stoppedAtUtc,  int? stoppedAtOffsetMinutes,  String? notes, @JsonKey(fromJson: _mirkStyleIdFromJsonNullable, toJson: _mirkStyleIdToJsonNullable)  MirkStyleId? mirkStyleId)  $default,) {final _that = this;
 switch (_that) {
 case _Session():
-return $default(_that.id,_that.displayName,_that.status,_that.startedAtUtc,_that.startedAtOffsetMinutes,_that.stoppedAtUtc,_that.stoppedAtOffsetMinutes,_that.notes);case _:
+return $default(_that.id,_that.displayName,_that.status,_that.startedAtUtc,_that.startedAtOffsetMinutes,_that.stoppedAtUtc,_that.stoppedAtOffsetMinutes,_that.notes,_that.mirkStyleId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +202,10 @@ return $default(_that.id,_that.displayName,_that.status,_that.startedAtUtc,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson)  SessionId id,  String displayName,  SessionStatus status,  DateTime startedAtUtc,  int startedAtOffsetMinutes,  DateTime? stoppedAtUtc,  int? stoppedAtOffsetMinutes,  String? notes)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson)  SessionId id,  String displayName,  SessionStatus status,  DateTime startedAtUtc,  int startedAtOffsetMinutes,  DateTime? stoppedAtUtc,  int? stoppedAtOffsetMinutes,  String? notes, @JsonKey(fromJson: _mirkStyleIdFromJsonNullable, toJson: _mirkStyleIdToJsonNullable)  MirkStyleId? mirkStyleId)?  $default,) {final _that = this;
 switch (_that) {
 case _Session() when $default != null:
-return $default(_that.id,_that.displayName,_that.status,_that.startedAtUtc,_that.startedAtOffsetMinutes,_that.stoppedAtUtc,_that.stoppedAtOffsetMinutes,_that.notes);case _:
+return $default(_that.id,_that.displayName,_that.status,_that.startedAtUtc,_that.startedAtOffsetMinutes,_that.stoppedAtUtc,_that.stoppedAtOffsetMinutes,_that.notes,_that.mirkStyleId);case _:
   return null;
 
 }
@@ -216,7 +217,7 @@ return $default(_that.id,_that.displayName,_that.status,_that.startedAtUtc,_that
 @JsonSerializable()
 
 class _Session implements Session {
-   _Session({@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required this.id, required this.displayName, required this.status, required this.startedAtUtc, required this.startedAtOffsetMinutes, this.stoppedAtUtc, this.stoppedAtOffsetMinutes, this.notes}): assert(displayName.trim().isNotEmpty, 'Session.displayName must be non-empty'),assert(startedAtOffsetMinutes >= -720 && startedAtOffsetMinutes <= 840, 'Session.startedAtOffsetMinutes out of range (UTC-12 to UTC+14)'),assert(stoppedAtOffsetMinutes == null || (stoppedAtOffsetMinutes >= -720 && stoppedAtOffsetMinutes <= 840), 'Session.stoppedAtOffsetMinutes out of range (UTC-12 to UTC+14)');
+   _Session({@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) required this.id, required this.displayName, required this.status, required this.startedAtUtc, required this.startedAtOffsetMinutes, this.stoppedAtUtc, this.stoppedAtOffsetMinutes, this.notes, @JsonKey(fromJson: _mirkStyleIdFromJsonNullable, toJson: _mirkStyleIdToJsonNullable) this.mirkStyleId}): assert(displayName.trim().isNotEmpty, 'Session.displayName must be non-empty'),assert(startedAtOffsetMinutes >= -720 && startedAtOffsetMinutes <= 840, 'Session.startedAtOffsetMinutes out of range (UTC-12 to UTC+14)'),assert(stoppedAtOffsetMinutes == null || (stoppedAtOffsetMinutes >= -720 && stoppedAtOffsetMinutes <= 840), 'Session.stoppedAtOffsetMinutes out of range (UTC-12 to UTC+14)');
   factory _Session.fromJson(Map<String, dynamic> json) => _$SessionFromJson(json);
 
 @override@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) final  SessionId id;
@@ -227,6 +228,7 @@ class _Session implements Session {
 @override final  DateTime? stoppedAtUtc;
 @override final  int? stoppedAtOffsetMinutes;
 @override final  String? notes;
+@override@JsonKey(fromJson: _mirkStyleIdFromJsonNullable, toJson: _mirkStyleIdToJsonNullable) final  MirkStyleId? mirkStyleId;
 
 /// Create a copy of Session
 /// with the given fields replaced by the non-null parameter values.
@@ -241,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Session&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.status, status) || other.status == status)&&(identical(other.startedAtUtc, startedAtUtc) || other.startedAtUtc == startedAtUtc)&&(identical(other.startedAtOffsetMinutes, startedAtOffsetMinutes) || other.startedAtOffsetMinutes == startedAtOffsetMinutes)&&(identical(other.stoppedAtUtc, stoppedAtUtc) || other.stoppedAtUtc == stoppedAtUtc)&&(identical(other.stoppedAtOffsetMinutes, stoppedAtOffsetMinutes) || other.stoppedAtOffsetMinutes == stoppedAtOffsetMinutes)&&(identical(other.notes, notes) || other.notes == notes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Session&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.status, status) || other.status == status)&&(identical(other.startedAtUtc, startedAtUtc) || other.startedAtUtc == startedAtUtc)&&(identical(other.startedAtOffsetMinutes, startedAtOffsetMinutes) || other.startedAtOffsetMinutes == startedAtOffsetMinutes)&&(identical(other.stoppedAtUtc, stoppedAtUtc) || other.stoppedAtUtc == stoppedAtUtc)&&(identical(other.stoppedAtOffsetMinutes, stoppedAtOffsetMinutes) || other.stoppedAtOffsetMinutes == stoppedAtOffsetMinutes)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.mirkStyleId, mirkStyleId) || other.mirkStyleId == mirkStyleId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,displayName,status,startedAtUtc,startedAtOffsetMinutes,stoppedAtUtc,stoppedAtOffsetMinutes,notes);
+int get hashCode => Object.hash(runtimeType,id,displayName,status,startedAtUtc,startedAtOffsetMinutes,stoppedAtUtc,stoppedAtOffsetMinutes,notes,mirkStyleId);
 
 @override
 String toString() {
-  return 'Session(id: $id, displayName: $displayName, status: $status, startedAtUtc: $startedAtUtc, startedAtOffsetMinutes: $startedAtOffsetMinutes, stoppedAtUtc: $stoppedAtUtc, stoppedAtOffsetMinutes: $stoppedAtOffsetMinutes, notes: $notes)';
+  return 'Session(id: $id, displayName: $displayName, status: $status, startedAtUtc: $startedAtUtc, startedAtOffsetMinutes: $startedAtOffsetMinutes, stoppedAtUtc: $stoppedAtUtc, stoppedAtOffsetMinutes: $stoppedAtOffsetMinutes, notes: $notes, mirkStyleId: $mirkStyleId)';
 }
 
 
@@ -261,7 +263,7 @@ abstract mixin class _$SessionCopyWith<$Res> implements $SessionCopyWith<$Res> {
   factory _$SessionCopyWith(_Session value, $Res Function(_Session) _then) = __$SessionCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) SessionId id, String displayName, SessionStatus status, DateTime startedAtUtc, int startedAtOffsetMinutes, DateTime? stoppedAtUtc, int? stoppedAtOffsetMinutes, String? notes
+@JsonKey(fromJson: sessionIdFromJson, toJson: sessionIdToJson) SessionId id, String displayName, SessionStatus status, DateTime startedAtUtc, int startedAtOffsetMinutes, DateTime? stoppedAtUtc, int? stoppedAtOffsetMinutes, String? notes,@JsonKey(fromJson: _mirkStyleIdFromJsonNullable, toJson: _mirkStyleIdToJsonNullable) MirkStyleId? mirkStyleId
 });
 
 
@@ -278,7 +280,7 @@ class __$SessionCopyWithImpl<$Res>
 
 /// Create a copy of Session
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? status = null,Object? startedAtUtc = null,Object? startedAtOffsetMinutes = null,Object? stoppedAtUtc = freezed,Object? stoppedAtOffsetMinutes = freezed,Object? notes = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? status = null,Object? startedAtUtc = null,Object? startedAtOffsetMinutes = null,Object? stoppedAtUtc = freezed,Object? stoppedAtOffsetMinutes = freezed,Object? notes = freezed,Object? mirkStyleId = freezed,}) {
   return _then(_Session(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as SessionId,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -288,7 +290,8 @@ as DateTime,startedAtOffsetMinutes: null == startedAtOffsetMinutes ? _self.start
 as int,stoppedAtUtc: freezed == stoppedAtUtc ? _self.stoppedAtUtc : stoppedAtUtc // ignore: cast_nullable_to_non_nullable
 as DateTime?,stoppedAtOffsetMinutes: freezed == stoppedAtOffsetMinutes ? _self.stoppedAtOffsetMinutes : stoppedAtOffsetMinutes // ignore: cast_nullable_to_non_nullable
 as int?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,mirkStyleId: freezed == mirkStyleId ? _self.mirkStyleId : mirkStyleId // ignore: cast_nullable_to_non_nullable
+as MirkStyleId?,
   ));
 }
 

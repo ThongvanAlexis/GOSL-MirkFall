@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart' show SqliteException;
 import 'package:mirkfall/domain/errors/concurrent_errors.dart';
 import 'package:mirkfall/domain/errors/session_errors.dart';
+import 'package:mirkfall/domain/ids/mirk_style_id.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
@@ -33,23 +34,39 @@ class DriftSessionStore implements SessionStore {
 
   final AppDatabase _db;
 
-  static const SessionStatusStringConverter _statusConv = SessionStatusStringConverter();
+  static const SessionStatusStringConverter _statusConv =
+      SessionStatusStringConverter();
 
   @override
   Future<List<Session>> listAll() async {
-    final rows = await (_db.select(_db.sessions)..orderBy([(t) => OrderingTerm(expression: t.startedAtUtc, mode: OrderingMode.desc)])).get();
+    final rows =
+        await (_db.select(_db.sessions)..orderBy([
+              (t) => OrderingTerm(
+                expression: t.startedAtUtc,
+                mode: OrderingMode.desc,
+              ),
+            ]))
+            .get();
     return rows.map(_hydrate).toList(growable: false);
   }
 
   @override
   Stream<List<Session>> watchAll() {
-    final query = _db.select(_db.sessions)..orderBy([(t) => OrderingTerm(expression: t.startedAtUtc, mode: OrderingMode.desc)]);
-    return query.watch().map((rows) => rows.map(_hydrate).toList(growable: false));
+    final query = _db.select(_db.sessions)
+      ..orderBy([
+        (t) =>
+            OrderingTerm(expression: t.startedAtUtc, mode: OrderingMode.desc),
+      ]);
+    return query.watch().map(
+      (rows) => rows.map(_hydrate).toList(growable: false),
+    );
   }
 
   @override
   Future<Session?> findById(SessionId id) async {
-    final row = await (_db.select(_db.sessions)..where((t) => t.id.equals(id.value))).getSingleOrNull();
+    final row = await (_db.select(
+      _db.sessions,
+    )..where((t) => t.id.equals(id.value))).getSingleOrNull();
     return row == null ? null : _hydrate(row);
   }
 
@@ -64,7 +81,11 @@ class DriftSessionStore implements SessionStore {
 
   @override
   Future<Session?> findActive() async {
-    final row = await (_db.select(_db.sessions)..where((t) => t.status.equals(_statusConv.toSql(SessionStatus.active)))).getSingleOrNull();
+    final row =
+        await (_db.select(_db.sessions)..where(
+              (t) => t.status.equals(_statusConv.toSql(SessionStatus.active)),
+            ))
+            .getSingleOrNull();
     return row == null ? null : _hydrate(row);
   }
 
@@ -127,7 +148,11 @@ class DriftSessionStore implements SessionStore {
     try {
       return await (_db.update(
         _db.sessions,
-      )..where((t) => t.id.equals(id.value))).write(SessionsCompanion(status: Value(_statusConv.toSql(SessionStatus.active))));
+      )..where((t) => t.id.equals(id.value))).write(
+        SessionsCompanion(
+          status: Value(_statusConv.toSql(SessionStatus.active)),
+        ),
+      );
     } on SqliteException catch (e) {
       if (e.extendedResultCode == kSqliteConstraintUnique) {
         throw ConcurrentActivationException(attemptedId: id);
@@ -140,9 +165,14 @@ class DriftSessionStore implements SessionStore {
   Future<void> deactivate(SessionId id) async {
     // Finding #3 + #25 (Batch G) — symmetric throw-on-0-rows with activate.
     // Finding #24 — use the converter instead of raw 'stopped'.
-    final rowsAffected = await (_db.update(
-      _db.sessions,
-    )..where((t) => t.id.equals(id.value))).write(SessionsCompanion(status: Value(_statusConv.toSql(SessionStatus.stopped))));
+    final rowsAffected =
+        await (_db.update(
+          _db.sessions,
+        )..where((t) => t.id.equals(id.value))).write(
+          SessionsCompanion(
+            status: Value(_statusConv.toSql(SessionStatus.stopped)),
+          ),
+        );
     if (rowsAffected == 0) {
       throw SessionNotFoundException(id: id);
     }
@@ -159,6 +189,10 @@ class DriftSessionStore implements SessionStore {
     stoppedAtUtc: row.stoppedAtUtc,
     stoppedAtOffsetMinutes: row.stoppedAtOffsetMinutes,
     notes: row.notes,
+    // V4 (Phase 09 plan 09-05): hydrate the per-session mirk-style FK.
+    // `null` row values stay null and degrade to the renderer-side default
+    // at `activeMirkRendererProvider` resolution time.
+    mirkStyleId: row.mirkStyleId == null ? null : MirkStyleId(row.mirkStyleId!),
   );
 
   SessionsCompanion _toInsertCompanion(Session s) => SessionsCompanion.insert(
@@ -170,5 +204,6 @@ class DriftSessionStore implements SessionStore {
     stoppedAtUtc: Value(s.stoppedAtUtc),
     stoppedAtOffsetMinutes: Value(s.stoppedAtOffsetMinutes),
     notes: Value(s.notes),
+    mirkStyleId: Value(s.mirkStyleId?.value),
   );
 }
