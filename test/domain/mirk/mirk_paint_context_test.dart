@@ -15,7 +15,7 @@
 
 import 'dart:typed_data';
 
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/ids/fix_id.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
