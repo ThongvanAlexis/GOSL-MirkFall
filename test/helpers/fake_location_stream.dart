@@ -21,6 +21,7 @@ class FakeLocationStream implements LocationStream {
   int? _distanceFilter;
   String? _displayName;
   bool _disposed = false;
+  Fix? _lastKnownFix;
 
   /// When non-null, [positions] throws this error synchronously before
   /// returning a stream. Lets controller tests exercise the
@@ -29,7 +30,11 @@ class FakeLocationStream implements LocationStream {
   Object? throwGpsOnPositions;
 
   @override
-  Stream<Fix> positions({required SessionId sessionId, required int distanceFilterMeters, required String sessionDisplayName}) {
+  Stream<Fix> positions({
+    required SessionId sessionId,
+    required int distanceFilterMeters,
+    required String sessionDisplayName,
+  }) {
     _sessionId = sessionId;
     _distanceFilter = distanceFilterMeters;
     _displayName = sessionDisplayName;
@@ -39,6 +44,9 @@ class FakeLocationStream implements LocationStream {
   }
 
   @override
+  Fix? get lastKnownFix => _lastKnownFix;
+
+  @override
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
@@ -46,11 +54,23 @@ class FakeLocationStream implements LocationStream {
   }
 
   /// Injects a Fix into the stream. Downstream subscribers receive it
-  /// synchronously on the next microtask.
-  void emit(Fix fix) => _controller.add(fix);
+  /// synchronously on the next microtask. Also updates [lastKnownFix]
+  /// so consumers (Phase 09 plan 09-06 `ActiveSessionController.start`
+  /// fast path) read a coherent value.
+  void emit(Fix fix) {
+    _lastKnownFix = fix;
+    _controller.add(fix);
+  }
 
   /// Injects a stream error.
-  void emitError(Object error, [StackTrace? stackTrace]) => _controller.addError(error, stackTrace);
+  void emitError(Object error, [StackTrace? stackTrace]) =>
+      _controller.addError(error, stackTrace);
+
+  /// Pre-seeds [lastKnownFix] without emitting on the stream — used by
+  /// Plan 09-06 Task 4 to test the fast-path branch of
+  /// `ActiveSessionController.start` (reveal seeded from a cached fix
+  /// before any new emission lands).
+  void setLastKnownFix(Fix? fix) => _lastKnownFix = fix;
 
   SessionId? get capturedSessionId => _sessionId;
   int? get capturedDistanceFilter => _distanceFilter;

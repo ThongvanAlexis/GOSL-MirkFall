@@ -30,7 +30,25 @@ abstract class LocationStream {
   /// Platform-level errors are propagated as stream errors typed via
   /// `lib/domain/gps/gps_errors.dart` — subscribers pattern-match over the
   /// sealed [`GpsError`] hierarchy.
-  Stream<Fix> positions({required SessionId sessionId, required int distanceFilterMeters, required String sessionDisplayName});
+  Stream<Fix> positions({
+    required SessionId sessionId,
+    required int distanceFilterMeters,
+    required String sessionDisplayName,
+  });
+
+  /// The most recently emitted [Fix] from the current or last [positions]
+  /// subscription, or `null` if no fix has been emitted yet.
+  ///
+  /// Populated on every stream emission. Consumed by Phase 09
+  /// [`ActiveSessionController.start`] to write an immediate initial 20 m
+  /// reveal without waiting for the next GPS fix.
+  ///
+  /// Returns `null` after a fresh session start before the platform GPS
+  /// has yielded any position. Implementations MAY cache across
+  /// [dispose] for short-reconnect scenarios — the production
+  /// `GeolocatorLocationStream` does so. Consumers MUST still null-check
+  /// before use; the cache may be empty on first launch.
+  Fix? get lastKnownFix;
 
   /// Cancels the stream cleanly. Safe to call more than once.
   Future<void> dispose();
