@@ -27,7 +27,7 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 - [x] **Phase 08: Review Gate — Map** - Audit phase 07 (zéro trafic réseau pour les tuiles en airplane mode, robustesse pipeline téléchargement par pays, seam `PmtilesSource` local-only) (5/5 plans — 08-REVIEW status=closed, CI green on 254b5d2, 49 fix+refactor commits via Strategy A per-finding across 5 session relays, 6 over-state-machine + 3 fix-on-fix smell refactors landed, first review-gate encoding of CLAUDE.md 2026-04-23 smell heuristics delta, Phase 09 unblocked)
  (completed 2026-04-24)
 - [x] **Phase 09: Fog Rendering** - MirkRenderer interface + style atmosphérique animé par défaut + viewport filtering + RevealedAreaController (completed 2026-04-25)
-- [ ] **Phase 10: Review Gate — Fog** - Audit phase 09 (perf 50k-tile fixture, RepaintBoundary isolation, seam stable)
+- [x] **Phase 10: Review Gate — Fog** - Audit phase 09 (perf 50k-tile fixture, RepaintBoundary isolation, seam stable) (completed 2026-04-25)
 - [ ] **Phase 11: Markers & Categories** - MarkerIconPack + default RPG pack + markers CRUD + photos + catégories CRUD + under-mirk visibility
 - [ ] **Phase 12: Review Gate — Markers** - Audit phase 11 (pas d'orphan photos, paths relatifs, EXIF strip, icons pack seam)
 - [ ] **Phase 13: Import/Export, Mirk Styles & Options** - Envelope JSON versionné + ZIP archive + transactional import + style JSON import + écran options global
@@ -313,7 +313,7 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 | 07. Map Integration | 7/7 | Complete    | 2026-04-23 |
 | 08. Review Gate — Map | 5/5 | Complete    | 2026-04-24 |
 | 08.1 Re-Review — Post-Walk Audit (INSERTED) | 5/5 | Complete    | 2026-04-24 |
-| 09. Fog Rendering | 10/10 | Complete   | 2026-04-25 |
+| 09. Fog Rendering | 10/10 | Complete    | 2026-04-25 |
 | 10. Review Gate — Fog | 0/TBD | Not started | - |
 | 11. Markers & Categories | 0/TBD | Not started | - |
 | 12. Review Gate — Markers | 0/TBD | Not started | - |
