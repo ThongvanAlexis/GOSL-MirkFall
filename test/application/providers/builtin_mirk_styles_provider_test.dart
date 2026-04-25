@@ -28,9 +28,7 @@ import '../../fakes/fake_mirk_style_store.dart';
 /// * `mirkRendererFactoryProvider` is a stable singleton.
 ProviderContainer _buildContainer({required FakeMirkStyleStore styleStore}) {
   return ProviderContainer(
-    overrides: [
-      mirkStyleStoreProvider.overrideWith((ref) async => styleStore),
-    ],
+    overrides: [mirkStyleStoreProvider.overrideWith((ref) async => styleStore)],
   );
 }
 
