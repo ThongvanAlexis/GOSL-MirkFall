@@ -82,7 +82,8 @@ const int kRevealedTileSubgridSize = 64;
 /// Convenience: bytes per stored bitmap, derived from [kRevealedTileSubgridSize].
 /// 64 * 64 / 8 = 512. Hoisted as a constant so callers (DB schema, perf
 /// budgets, fixture seeders) reference the same number without re-deriving.
-const int kRevealedTileBitmapBytes = (kRevealedTileSubgridSize * kRevealedTileSubgridSize) ~/ 8;
+const int kRevealedTileBitmapBytes =
+    (kRevealedTileSubgridSize * kRevealedTileSubgridSize) ~/ 8;
 
 /// Lower bound on UTC-offset-minutes for Session + timestamp columns.
 /// -720 min = UTC-12 (Baker Island / US Minor Outlying — the westernmost
@@ -326,3 +327,93 @@ const String kDownloadQueueStorePath = 'maps/download_queue.json';
 /// CLAUDE.md §Timeouts: "Valeurs dans `lib/config/constants.dart`,
 /// pas hardcodées dans le code d'appel".
 const Duration kDiskSpaceCheckTimeout = Duration(seconds: 5);
+
+// ---------------------------------------------------------------------------
+// Phase 09 — Fog Rendering (reveal geometry + flush cadence + atmospheric +
+// candlelight + heavenly-clouds + solid defaults). Consumed by
+// `RevealStreamingController`, `ActiveSessionController.startSession`, the
+// 4 built-in `MirkRenderer` implementations (atmospheric / candlelight /
+// heavenly_clouds / solid) and the Wave 7 50k-tile perf probe. See
+// 09-CONTEXT.md §Géométrie du reveal + 09-RESEARCH.md.
+//
+// NOTE: `kRevealedTileParentZoom` is declared in the Phase 03 block above
+// (line ~75) — Phase 09 reuses that constant rather than duplicating it.
+// ---------------------------------------------------------------------------
+
+/// Default reveal radius in metres around the user position. Consumed by
+/// `RevealStreamingController` and `ActiveSessionController.startSession`.
+/// Decided Phase 09 CONTEXT (user choice 25 m over the 25–50 m ROADMAP
+/// range). Kept distinct from [kInitialRevealRadiusMeters] = 20 (Phase 07
+/// session-open value) — both are intentional per CONTEXT.md §Géométrie
+/// du reveal.
+const double kDefaultRevealRadiusMeters = 25.0;
+
+/// DB flush cadence — time bound. First of [kRevealFlushIntervalSeconds]
+/// OR [kRevealFlushMaxFixes] triggers a batched `mergeMask` write.
+/// Tuneable in dev per user decision Phase 09 CONTEXT (amended from
+/// ROADMAP's 5 s / 50 fixes).
+const int kRevealFlushIntervalSeconds = 2;
+
+/// DB flush cadence — fix-count bound. See [kRevealFlushIntervalSeconds].
+const int kRevealFlushMaxFixes = 20;
+
+/// Baseline opacity of the atmospheric fog before noise modulation. User
+/// tunes in dev — 0.99 leaves 1 % of the basemap barely visible, which
+/// anticipates Phase 11's MARK-07 under-mirk marker alpha 30 % composite.
+const double kDefaultMirkBaselineAlpha = 0.99;
+
+/// Fade-in duration for the initial 20 m reveal at `startSession()`.
+/// Dedicated AnimationController (NOT the main mirk Ticker) per
+/// 09-RESEARCH §In-Session Style Swap Lifecycle. Consumed by the
+/// `MirkInitialRevealFade` widget introduced in plan 09-07 Task 4.
+const int kInitialRevealFadeInMs = 500;
+
+/// Fraction of the reveal radius over which the feather edge fades from
+/// 100 % opaque to 0 %. Rendered via `MaskFilter.blur(BlurStyle.inner)`
+/// at paint time — the stored bitmap remains binary (MIRK-03 invariant).
+const double kFeatherRadiusFraction = 0.1;
+
+/// Simplex noise spatial frequency default for `AtmosphericMirkRenderer`.
+/// User tunes in dev.
+const double kMirkNoiseScaleDefault = 0.5;
+
+/// Simplex noise time speed default for `AtmosphericMirkRenderer` (lower
+/// = slower drift).
+const double kMirkNoiseSpeedDefault = 0.05;
+
+/// Drift direction of atmospheric noise in degrees (0 = north, 90 = east).
+const double kMirkDriftDirectionDegDefault = 0.0;
+
+/// Candlelight warm-glow centre colour (ARGB). Start value — tune in dev.
+const int kMirkCandlelightCenterColorArgb = 0xFFFF8F6A;
+
+/// Candlelight periphery colour (ARGB, darker orange).
+const int kMirkCandlelightPeripheryColorArgb = 0xFFC2542E;
+
+/// Candlelight noise scale — finer than atmospheric (flicker feel).
+const double kMirkCandlelightNoiseScale = 0.8;
+
+/// Candlelight noise speed — faster flicker.
+const double kMirkCandlelightNoiseSpeed = 0.1;
+
+/// Candlelight baseline alpha — lower than atmospheric (ambient lit feel).
+const double kMirkCandlelightBaselineAlpha = 0.85;
+
+/// Heavenly clouds baseline colour (ARGB, light grey-lavender).
+const int kMirkHeavenlyCloudsColorArgb = 0xFFE8E8EE;
+
+/// Heavenly clouds noise scale — very coarse (cloud blobs).
+const double kMirkHeavenlyCloudsNoiseScale = 0.3;
+
+/// Heavenly clouds noise speed — medium drift.
+const double kMirkHeavenlyCloudsNoiseSpeed = 0.08;
+
+/// Heavenly clouds drift direction in degrees (45° = NE, airy feel).
+const double kMirkHeavenlyCloudsDriftDirectionDeg = 45.0;
+
+/// Heavenly clouds baseline alpha — lighter than atmospheric.
+const double kMirkHeavenlyCloudsBaselineAlpha = 0.80;
+
+/// Solid variant colour (ARGB, very dark grey — distinguishable from
+/// atmospheric yet neutral).
+const int kMirkSolidColorArgb = 0xFF1A1A1A;
