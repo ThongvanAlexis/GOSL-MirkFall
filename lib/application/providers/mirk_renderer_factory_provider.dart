@@ -2,14 +2,17 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-// TODO(09-05): rewrite as @Riverpod(keepAlive: true) generator target.
-//
-// Wave 0 emits this non-Riverpod stub so downstream scaffolds can
-// reference `mirkRendererFactoryProvider` as a compiling symbol. Wave 4
-// replaces this file with a @riverpod-annotated function + regenerated
-// `.g.dart`.
+import 'package:mirkfall/infrastructure/mirk/mirk_renderer_factory.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-/// Provider stub — exposes the [MirkRendererFactory] to the widget tree.
+part 'mirk_renderer_factory_provider.g.dart';
+
+/// Production [MirkRendererFactory] — pure singleton (no DB / no IO).
 ///
-/// Wave 4 (plan 09-05) promotes this to a `@riverpod` keepAlive function.
-void mirkRendererFactoryProvider() => throw UnimplementedError('Wave 4 — plan 09-05');
+/// `keepAlive: true` matches the rest of the Phase 03/05 provider
+/// graph: the factory has zero state and replacing it on widget-tree
+/// changes would needlessly churn `activeMirkRendererProvider` (which
+/// watches it). Tests override with a stub by passing
+/// `mirkRendererFactoryProvider.overrideWithValue(otherFactory)`.
+@Riverpod(keepAlive: true)
+MirkRendererFactory mirkRendererFactory(Ref ref) => const MirkRendererFactory();
