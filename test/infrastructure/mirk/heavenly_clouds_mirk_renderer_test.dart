@@ -25,10 +25,7 @@ void main() {
         final renderer = HeavenlyCloudsMirkRenderer(
           const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig,
         );
-        final bytes0 = await renderToBytes(
-          renderer,
-          context: fakeContext(),
-        );
+        final bytes0 = await renderToBytes(renderer, context: fakeContext());
         final bytes5s = await renderToBytes(
           renderer,
           context: fakeContext(elapsedMs: 5000),
@@ -68,23 +65,20 @@ void main() {
       },
     );
 
-    test(
-      'paint() with empty visibleTiles list issues no draw calls',
-      () async {
-        final renderer = HeavenlyCloudsMirkRenderer(
-          const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig,
-        );
-        final ctx = fakeContext(tiles: const []);
-        final pic = renderToPicture(renderer, context: ctx);
-        expect(
-          pic.approximateBytesUsed,
-          lessThan(500),
-          reason: 'Empty visibleTiles should produce a near-empty picture',
-        );
-        pic.dispose();
-        await renderer.dispose();
-      },
-    );
+    test('paint() with empty visibleTiles list issues no draw calls', () async {
+      final renderer = HeavenlyCloudsMirkRenderer(
+        const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig,
+      );
+      final ctx = fakeContext(tiles: const []);
+      final pic = renderToPicture(renderer, context: ctx);
+      expect(
+        pic.approximateBytesUsed,
+        lessThan(500),
+        reason: 'Empty visibleTiles should produce a near-empty picture',
+      );
+      pic.dispose();
+      await renderer.dispose();
+    });
 
     test(
       'paint() with all-revealed bitmap draws no fog (smaller picture than all-unrevealed)',

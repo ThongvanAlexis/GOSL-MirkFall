@@ -22,12 +22,12 @@ import '_render_helpers.dart';
 
 Fix _testFix({double lat = 43.6, double lon = 5.5}) {
   return Fix(
-    id: FixId('fix_test'),
-    sessionId: SessionId('sess_test'),
+    id: const FixId('fix_test'),
+    sessionId: const SessionId('sess_test'),
     latitude: lat,
     longitude: lon,
     accuracyMeters: 10.0,
-    recordedAtUtc: DateTime.utc(2026, 4, 25, 10, 0, 0),
+    recordedAtUtc: DateTime.utc(2026, 4, 25, 10),
     recordedAtOffsetMinutes: 0,
   );
 }
@@ -90,7 +90,10 @@ void main() {
         );
         final bytesWithFix = await renderToBytes(
           renderer,
-          context: fakeContext(elapsedMs: 1000, currentFix: _testFix(lat: 43.55, lon: 5.55)),
+          context: fakeContext(
+            elapsedMs: 1000,
+            currentFix: _testFix(lat: 43.55, lon: 5.55),
+          ),
         );
         // The fix is offset from the viewport centre (43.5, 5.5), so
         // the gradient centres differ → outputs must differ.
@@ -125,22 +128,19 @@ void main() {
       );
     });
 
-    test(
-      'paint() with empty visibleTiles list issues no draw calls',
-      () async {
-        final renderer = CandlelightMirkRenderer(
-          const MirkStyleConfig.candlelight() as CandlelightConfig,
-        );
-        final ctx = fakeContext(tiles: const []);
-        final pic = renderToPicture(renderer, context: ctx);
-        expect(
-          pic.approximateBytesUsed,
-          lessThan(500),
-          reason: 'Empty visibleTiles should produce a near-empty picture',
-        );
-        pic.dispose();
-        await renderer.dispose();
-      },
-    );
+    test('paint() with empty visibleTiles list issues no draw calls', () async {
+      final renderer = CandlelightMirkRenderer(
+        const MirkStyleConfig.candlelight() as CandlelightConfig,
+      );
+      final ctx = fakeContext(tiles: const []);
+      final pic = renderToPicture(renderer, context: ctx);
+      expect(
+        pic.approximateBytesUsed,
+        lessThan(500),
+        reason: 'Empty visibleTiles should produce a near-empty picture',
+      );
+      pic.dispose();
+      await renderer.dispose();
+    });
   });
 }
