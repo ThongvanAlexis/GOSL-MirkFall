@@ -2,29 +2,145 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-import 'package:flutter_test/flutter_test.dart';
+// Phase 09 plan 09-04 Task 3 RED test suite for `CandlelightMirkRenderer`
+// (MIRK-06 builtin).
+//
+// Candlelight is a slow warm flicker — radial gradient centred on the
+// current GPS fix (or viewport centre when no fix yet). Tests cover:
+// - Animation proof (output differs across frames at fixed sessionElapsed delta).
+// - currentFix-null path falls back to viewport centre.
+// - dispose idempotence + post-dispose paint guard.
 
-/// Wave 0 scaffold for `CandlelightMirkRenderer` (MIRK-06 builtin).
-///
-/// Bodies land in plan 09-04. Candlelight is a slow warm flicker —
-/// noise drives subtle alpha + warm-hue oscillations around the
-/// configured baseline.
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mirkfall/domain/fixes/fix.dart';
+import 'package:mirkfall/domain/ids/fix_id.dart';
+import 'package:mirkfall/domain/ids/session_id.dart';
+import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
+import 'package:mirkfall/infrastructure/mirk/candlelight_mirk_renderer.dart';
+
+import '_render_helpers.dart';
+
+Fix _testFix({double lat = 43.6, double lon = 5.5}) {
+  return Fix(
+    id: FixId('fix_test'),
+    sessionId: SessionId('sess_test'),
+    latitude: lat,
+    longitude: lon,
+    accuracyMeters: 10.0,
+    recordedAtUtc: DateTime.utc(2026, 4, 25, 10, 0, 0),
+    recordedAtOffsetMinutes: 0,
+  );
+}
+
 void main() {
   group('09-04 — CandlelightMirkRenderer (MIRK-06)', () {
-    testWidgets('paint() output differs across frames (slow flicker animation proof)', (tester) async {
-      // Wave 3 body: two-frame difference assertion.
-      // Wave 3 — plan 09-04
-    }, skip: true);
+    test(
+      'paint() output differs between two frames at sessionElapsed apart (flicker animation proof)',
+      () async {
+        final renderer = CandlelightMirkRenderer(
+          const MirkStyleConfig.candlelight() as CandlelightConfig,
+        );
+        final bytes0 = await renderToBytes(
+          renderer,
+          context: fakeContext(currentFix: _testFix()),
+        );
+        // 100ms apart for flicker (fast oscillation).
+        final bytes100 = await renderToBytes(
+          renderer,
+          context: fakeContext(elapsedMs: 100, currentFix: _testFix()),
+        );
+        expect(
+          bytes0,
+          isNot(equals(bytes100)),
+          reason:
+              'Candlelight must flicker — sessionElapsed delta of 100ms '
+              'must produce visually distinct output',
+        );
+        await renderer.dispose();
+      },
+    );
 
-    testWidgets('warm hue range stays inside [centerColorArgb, peripheryColorArgb]', (tester) async {
-      // Wave 3 body: sample rendered pixels, assert the colour
-      // distribution falls inside the configured warm-tone band.
-      // Wave 3 — plan 09-04
-    }, skip: true);
+    test(
+      'paint() with null currentFix falls back to viewport centre (does not throw)',
+      () async {
+        final renderer = CandlelightMirkRenderer(
+          const MirkStyleConfig.candlelight() as CandlelightConfig,
+        );
+        // No currentFix passed — the radial gradient must default to the
+        // viewport centre and paint must succeed without throwing.
+        final ctx = fakeContext();
+        expect(ctx.currentFix, isNull);
+        expect(
+          () => renderToPicture(renderer, context: ctx).dispose(),
+          returnsNormally,
+        );
+        await renderer.dispose();
+      },
+    );
 
-    testWidgets('dispose() is idempotent', (tester) async {
-      // Wave 3 body: dispose twice, assert no throw.
-      // Wave 3 — plan 09-04
-    }, skip: true);
+    test(
+      'paint() output differs between currentFix=null and currentFix=present',
+      () async {
+        final renderer = CandlelightMirkRenderer(
+          const MirkStyleConfig.candlelight() as CandlelightConfig,
+        );
+        final bytesNoFix = await renderToBytes(
+          renderer,
+          context: fakeContext(elapsedMs: 1000),
+        );
+        final bytesWithFix = await renderToBytes(
+          renderer,
+          context: fakeContext(elapsedMs: 1000, currentFix: _testFix(lat: 43.55, lon: 5.55)),
+        );
+        // The fix is offset from the viewport centre (43.5, 5.5), so
+        // the gradient centres differ → outputs must differ.
+        expect(
+          bytesNoFix,
+          isNot(equals(bytesWithFix)),
+          reason:
+              'Gradient centre changes when currentFix moves from null '
+              'to off-centre — outputs must differ',
+        );
+        await renderer.dispose();
+      },
+    );
+
+    test('dispose() is idempotent (calling twice does not throw)', () async {
+      final renderer = CandlelightMirkRenderer(
+        const MirkStyleConfig.candlelight() as CandlelightConfig,
+      );
+      await renderer.dispose();
+      await renderer.dispose(); // Must not throw.
+    });
+
+    test('paint() after dispose() is a no-op (does not throw)', () async {
+      final renderer = CandlelightMirkRenderer(
+        const MirkStyleConfig.candlelight() as CandlelightConfig,
+      );
+      await renderer.dispose();
+      final ctx = fakeContext();
+      expect(
+        () => renderToPicture(renderer, context: ctx).dispose(),
+        returnsNormally,
+      );
+    });
+
+    test(
+      'paint() with empty visibleTiles list issues no draw calls',
+      () async {
+        final renderer = CandlelightMirkRenderer(
+          const MirkStyleConfig.candlelight() as CandlelightConfig,
+        );
+        final ctx = fakeContext(tiles: const []);
+        final pic = renderToPicture(renderer, context: ctx);
+        expect(
+          pic.approximateBytesUsed,
+          lessThan(500),
+          reason: 'Empty visibleTiles should produce a near-empty picture',
+        );
+        pic.dispose();
+        await renderer.dispose();
+      },
+    );
   });
 }
