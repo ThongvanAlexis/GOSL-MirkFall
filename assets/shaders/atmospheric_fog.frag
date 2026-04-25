@@ -2,54 +2,269 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-// Phase 09 BUG-009 (TIER 2) — placeholder atmospheric fog fragment shader.
+// Phase 09 BUG-009 (TIER 2) — volumetric fog fragment shader.
 //
-// Stage 1 of the BUG-009 commit sequence: pipeline scaffold only. This
-// shader emits a uniform fog colour modulated by alpha. The actual
-// volumetric body (3D-sliced FBM + curl + parallax + faux shading +
-// hue + watercolour boundary + curl-rotated edge field) lands in
-// later commits as we extend this file.
+// All seven TIER 2 quality dimensions:
+//   1. 3D-sliced FBM      — base density via `fbm3(vec3(uv, t * driftZ))`.
+//                           Noise BOILS in place over time, doesn't slide.
+//   2. Curl-noise advect  — UVs warped by curl of a scalar potential field.
+//                           Eddies and swirls (divergence-free).
+//   3. Multi-octave parallax — 3 octaves at 3 scales / 3 drift speeds /
+//                              3 opacities. Reads as depth on a 2D plane.
+//   4. Faux directional shading — sample density twice (at pixel + at
+//                                 pixel + lightDir * offset). Delta
+//                                 modulates brightness. Free 3D look.
+//   5. Sub-grey hue variation — second cheap noise channel modulates a
+//                               tint shift between shadow and highlight.
+//   6. Two-stop watercolour boundary — sharp inner gradient (0→0.7) +
+//                                      long-tail bleed (0.7→1.0). Reads
+//                                      cartographic, not engineered.
+//   7. Curl-rotated edge field — near the boundary, rotate curl-noise
+//                                sample ~90° so wisps spiral outward.
 //
 // Constraints honoured (per .planning/research/bug-009-fog-visual/
 // flutter-shader-constraints.md):
-//   - No mat3 / mat4 / int / bool uniforms.
+//   - No mat3/4 / int / bool uniforms.
 //   - No texelFetch / textureLod / dFdx / structs / GLSL array literals.
-//   - Use FlutterFragCoord(), not gl_FragCoord.
+//   - FlutterFragCoord(), not gl_FragCoord.
+//   - Sampler always TileMode.clamp.
 //   - No unused uniforms (Impeller startup fail).
+//   - Instructions ≤ ~400 ALU per fragment (60 fps mid-range mobile).
 
 #version 460 core
 #include <flutter/runtime_effect.glsl>
 
 precision mediump float;
 
-// Viewport size in screen pixels. Used to normalise FlutterFragCoord
-// into [0, 1] UV space. Slot 0..1.
-uniform vec2 uResolution;
+// ---------- Uniforms (vec2/vec3/vec4/float only — no int/bool/mat3/mat4) ----------
 
-// Time in seconds since session start. Single scalar — no vec2(sin,cos)
-// trick needed (research §Time uniform). Slot 2.
+// Viewport size in screen pixels. Slot 0..1.
+uniform vec2  uResolution;
+
+// Time in seconds since session start. Slot 2.
 uniform float uTime;
 
-// Fog tint as straight RGBA (premultiplication is done Skia-side after
-// the shader returns). Slot 3..6.
-uniform vec4 uFogColor;
+// World pan offset (in noise UV units). Lets the fog drift with the
+// MapLibre camera so static fixtures don't appear to move when the user
+// only pans. Slot 3..4.
+uniform vec2  uOffset;
+
+// Fog colour palette: base / highlight / shadow as RGBA. Alpha
+// component of uBase carries the overall fog opacity. Slot 5..16.
+uniform vec4  uBase;
+uniform vec4  uHighlight;
+uniform vec4  uShadow;
+
+// 3D-FBM drift speeds for the three octaves (far / mid / near).
+// Slot 17..19.
+uniform float uDriftZFar;
+uniform float uDriftZMid;
+uniform float uDriftZNear;
+
+// Spatial scales for the three octaves. Slot 20..22.
+uniform float uScaleFar;
+uniform float uScaleMid;
+uniform float uScaleNear;
+
+// Octave weights — sum to ~1.0. Slot 23..25.
+uniform float uOpacityFar;
+uniform float uOpacityMid;
+uniform float uOpacityNear;
+
+// Curl-noise tunables. Slot 26..27.
+uniform float uCurlAmplitude;
+uniform float uCurlScale;
+
+// Faux directional shading. Slot 28..30.
+uniform float uLightDirRadians;
+uniform float uLightOffset;
+uniform float uLightStrength;
+
+// Hue variation. Slot 31..32.
+uniform float uHueNoiseScale;
+uniform float uHueStrength;
+
+// Two-stop watercolour boundary. Slot 33..35.
+uniform float uBoundarySharpDistance;
+uniform float uBoundaryBleedDistance;
+uniform float uBoundaryEdgeBand;
+
+// SDF sampler — R channel encodes signed distance via midpoint-128.
+uniform sampler2D uSdf;
+
+// SDF rectangle on screen — uv mapped from FlutterFragCoord/uResolution
+// to SDF space via this rect. (xy = origin, zw = size). Slot 36..39.
+uniform vec4  uSdfRect;
 
 out vec4 fragColor;
+
+// ---------- Noise primitives ----------
+
+// Hash & value noise — cheap, no dependencies, deterministic per
+// `vec3(p, z)` input. Avoids `texelFetch` / array constants per
+// Impeller foot-gun list.
+
+float hash3(vec3 p) {
+    p = fract(p * 0.1031);
+    p += dot(p, p.yxz + 19.19);
+    return fract((p.x + p.y) * p.z);
+}
+
+// 3D value noise — trilinear interp of hash3 at the 8 unit-cube corners.
+float noise3(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    vec3 u = f * f * (3.0 - 2.0 * f); // smoothstep
+    float n000 = hash3(i + vec3(0.0, 0.0, 0.0));
+    float n100 = hash3(i + vec3(1.0, 0.0, 0.0));
+    float n010 = hash3(i + vec3(0.0, 1.0, 0.0));
+    float n110 = hash3(i + vec3(1.0, 1.0, 0.0));
+    float n001 = hash3(i + vec3(0.0, 0.0, 1.0));
+    float n101 = hash3(i + vec3(1.0, 0.0, 1.0));
+    float n011 = hash3(i + vec3(0.0, 1.0, 1.0));
+    float n111 = hash3(i + vec3(1.0, 1.0, 1.0));
+    float nx00 = mix(n000, n100, u.x);
+    float nx10 = mix(n010, n110, u.x);
+    float nx01 = mix(n001, n101, u.x);
+    float nx11 = mix(n011, n111, u.x);
+    float nxy0 = mix(nx00, nx10, u.y);
+    float nxy1 = mix(nx01, nx11, u.y);
+    return mix(nxy0, nxy1, u.z);
+}
+
+// 2D value noise — used for the curl potential and the hue field. No
+// time slice, evaluated as `noise3(vec3(p, 0.0))` to share machinery.
+float noise2(vec2 p) {
+    return noise3(vec3(p, 0.0));
+}
+
+// 3-octave 3D FBM. Conservative rotation between octaves to avoid
+// axial alignment. Cost ~3 noise3 calls.
+float fbm3(vec3 p) {
+    float a = 0.5;
+    float t = 0.0;
+    // Octave 1
+    t += a * noise3(p);
+    p = p * 2.03 + vec3(13.7, 7.3, 5.1);
+    a *= 0.5;
+    // Octave 2
+    t += a * noise3(p);
+    p = p * 2.05 + vec3(-11.1, 17.9, 3.3);
+    a *= 0.5;
+    // Octave 3
+    t += a * noise3(p);
+    return t;
+}
+
+// Curl of a scalar 2D noise potential — gives a divergence-free vector
+// field. 4 noise2 taps for central differences.
+vec2 curl2(vec2 p) {
+    const float e = 0.05;
+    float n1 = noise2(p + vec2(0.0,  e));
+    float n2 = noise2(p + vec2(0.0, -e));
+    float n3 = noise2(p + vec2( e, 0.0));
+    float n4 = noise2(p + vec2(-e, 0.0));
+    return vec2(n1 - n2, -(n3 - n4)) / (2.0 * e);
+}
+
+// Returns the signed distance encoded in the SDF sampler at sdfUv.
+// Decoded from midpoint-128: `texture.r` is in [0, 1] with 0.5 at
+// the boundary; map to [-1, 1].
+float sampleSdf(vec2 fragUv) {
+    // fragUv is in screen-normalised [0, 1] space. Map to SDF UV via
+    // uSdfRect (origin + size in screen-normalised coords).
+    vec2 sdfUv = (fragUv - uSdfRect.xy) / uSdfRect.zw;
+    sdfUv = clamp(sdfUv, 0.0, 1.0);
+    float r = texture(uSdf, sdfUv).r;
+    return r * 2.0 - 1.0;
+}
+
+// ---------- Density assembly ----------
+
+// Produces a single octave's density at uv with the given scale, drift
+// speed, and curl-warped UVs. All octaves share the same curl field so
+// the eddies are consistent across scales.
+float octaveDensity(vec2 uv, vec2 curlVec, float scale, float driftZ) {
+    vec2 warped = uv * scale + curlVec * uCurlAmplitude;
+    return fbm3(vec3(warped, uTime * driftZ));
+}
 
 void main() {
     vec2 fragUv = FlutterFragCoord().xy / uResolution;
 
-    // Stage 1 placeholder body: emit the configured fog colour with a
-    // tiny per-frame ripple so a structural test that compares two
-    // frames at different uTime can see a difference. The ripple is
-    // imperceptible at the pixel level — kept solely so the animation
-    // proof test in stages 2+ has a stable signal as we add real noise.
-    //
-    // The `0.999 + 0.001 * sin(uTime + fragUv.x * 6.28)` factor stays
-    // within numerical noise (alpha varies over [0.998, 1.000]) so the
-    // user never sees ripples while the shader pipeline is being
-    // wired. Once stage 4+ replaces this with 3D-FBM the placeholder
-    // disappears.
-    float ripple = 0.999 + 0.001 * sin(uTime + fragUv.x * 6.2831853);
-    fragColor = vec4(uFogColor.rgb, uFogColor.a * ripple);
+    // OpenGLES Y-flip guard — Android API <29 path can flip Y under
+    // OpenGLES backend. Impeller+Vulkan / Impeller+Metal pass through
+    // unchanged.
+    #ifdef IMPELLER_TARGET_OPENGLES
+        fragUv.y = 1.0 - fragUv.y;
+    #endif
+
+    // Apply world pan to the noise UV space (NOT to fragUv — fragUv is
+    // screen-local for SDF sampling).
+    vec2 noiseUv = fragUv + uOffset;
+
+    // ---------- 7. Curl-rotated edge field ----------
+    // Sample the SDF; near the boundary, locally rotate the curl-noise
+    // sample by ~90° so the eddies appear to spiral OUT of the boundary
+    // rather than through it. The rotation amount tapers smoothly
+    // within `uBoundaryEdgeBand` of the boundary.
+    float sdf = sampleSdf(fragUv);
+
+    // Base curl vector at this UV.
+    vec2 curlVec = curl2(noiseUv * uCurlScale);
+
+    // Edge gating: smooth weight that is 1 right at the boundary and
+    // 0 outside the band. abs(sdf) so it acts on both sides.
+    float edgeGate = 1.0 - smoothstep(0.0, uBoundaryEdgeBand, abs(sdf));
+    // Rotate curlVec by ~90° (perpendicular) when fully inside the
+    // edge band.
+    vec2 curlRot = vec2(-curlVec.y, curlVec.x);
+    curlVec = mix(curlVec, curlRot, edgeGate * 0.7);
+
+    // ---------- 1+2+3. 3D-sliced FBM × multi-octave parallax × curl ----------
+    float dFar  = octaveDensity(noiseUv, curlVec, uScaleFar,  uDriftZFar);
+    float dMid  = octaveDensity(noiseUv, curlVec, uScaleMid,  uDriftZMid);
+    float dNear = octaveDensity(noiseUv, curlVec, uScaleNear, uDriftZNear);
+    float density = dFar * uOpacityFar + dMid * uOpacityMid + dNear * uOpacityNear;
+
+    // ---------- 4. Faux directional shading ----------
+    // Sample density a second time at uv + lightDir * uLightOffset, take
+    // the delta, use it to modulate brightness. Cheap fake-3D.
+    vec2 lightDir = vec2(cos(uLightDirRadians), sin(uLightDirRadians));
+    vec2 noiseUvLit = noiseUv + lightDir * uLightOffset;
+    float dFarLit = octaveDensity(noiseUvLit, curlVec, uScaleFar, uDriftZFar);
+    float densityLit = dFarLit * uOpacityFar + dMid * uOpacityMid + dNear * uOpacityNear;
+    float shadeDelta = (densityLit - density) * uLightStrength;
+
+    // ---------- 5. Sub-grey hue variation ----------
+    // Cheap second noise channel — modulates the tint shift between
+    // shadow and highlight palette (NOT density).
+    float hueField = noise2(noiseUv * uHueNoiseScale + vec2(91.7, 33.1));
+    // Map [0, 1] → [-1, 1] then scale by uHueStrength.
+    float hueShift = (hueField - 0.5) * 2.0 * uHueStrength;
+
+    // ---------- Colour mix ----------
+    // Base palette mixed by the (density × hueShift × shadeDelta) signals.
+    // hueShift > 0 → tilt toward highlight; hueShift < 0 → toward shadow.
+    vec3 highlightTint = mix(uBase.rgb, uHighlight.rgb, max(hueShift, 0.0) + max(shadeDelta, 0.0));
+    vec3 shadowTint    = mix(uBase.rgb, uShadow.rgb,    max(-hueShift, 0.0) + max(-shadeDelta, 0.0));
+    vec3 fogColor = mix(highlightTint, shadowTint, 0.5);
+
+    // ---------- 6. Two-stop watercolour boundary ----------
+    // Sharp inner gradient: 0 → 0.7 alpha over uBoundarySharpDistance.
+    // Long-tail bleed:    0.7 → 1.0 alpha over uBoundaryBleedDistance.
+    // The two ramps run from sdf = 0 (boundary) outward into fog.
+    float sharp = smoothstep(0.0, uBoundarySharpDistance, sdf) * 0.7;
+    float bleed = smoothstep(uBoundarySharpDistance, uBoundarySharpDistance + uBoundaryBleedDistance, sdf) * 0.3;
+    float boundaryAlpha = sharp + bleed;
+    // Inside revealed area (sdf < 0): force alpha 0 (clear).
+    boundaryAlpha *= step(0.0, sdf);
+
+    // Final alpha: configured base alpha × density density-modulation ×
+    // boundary alpha. Density modulation is gentle (0.85 → 1.0) so the
+    // fog never disappears in low-density zones.
+    float densityAlpha = mix(0.85, 1.0, density);
+    float finalAlpha = uBase.a * densityAlpha * boundaryAlpha;
+
+    fragColor = vec4(fogColor, finalAlpha);
 }
