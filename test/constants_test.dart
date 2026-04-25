@@ -28,6 +28,20 @@ void main() {
     expect(kAboutTapWindowMilliseconds, equals(3000));
   });
 
+  // Logging reliability constants — lowered + added 2026-04-25 to fix
+  // UAT-walk log truncation (records < threshold sat in buffer until
+  // OS suspended the process). See lib/config/constants.dart docstrings
+  // for the rationale.
+  test('kFileLoggerFlushEveryNRecords is 5 (lowered from 20 — UAT-walk reliability fix)', () {
+    expect(kFileLoggerFlushEveryNRecords, equals(5));
+    expect(kFileLoggerFlushEveryNRecords, isA<int>());
+  });
+
+  test('kFileLoggerFlushPeriodSeconds is 2 (backstop timer interval)', () {
+    expect(kFileLoggerFlushPeriodSeconds, equals(2));
+    expect(kFileLoggerFlushPeriodSeconds, isA<int>());
+  });
+
   // Phase 07 (Map Integration) — every new Phase 07 slot gets a value +
   // type guard here so a silent rename/retype is caught at test time.
   group('Phase 07 constants', () {

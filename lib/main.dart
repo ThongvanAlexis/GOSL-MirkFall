@@ -16,6 +16,7 @@ import 'application/providers/map_providers.dart';
 import 'application/providers/session_store_provider.dart';
 import 'config/constants.dart';
 import 'infrastructure/logging/file_logger.dart';
+import 'infrastructure/logging/file_logger_lifecycle_observer.dart';
 import 'presentation/router.dart';
 
 /// Application entry point — bootstraps logging, error handling, and UI.
@@ -81,6 +82,15 @@ Future<void> main() async {
       // level from `--dart-define=DEBUG` or the SharedPreferences flag.
       // Phase 01 did a debugPrint listener; Phase 02 replaces it with this.
       await FileLogger.bootstrap();
+
+      // Force-flush the FileLogger whenever the app transitions out of
+      // `resumed` (paused / inactive / hidden / detached). Without this,
+      // a UAT walk that ends with `< kFileLoggerFlushEveryNRecords`
+      // unflushed records loses those records to OS suspend / kill before
+      // they reach disk — the exact failure mode that motivated the
+      // 2026-04-25 logger reliability fix. The observer registers against
+      // `WidgetsBinding.instance` which is now valid post-`ensureInitialized`.
+      WidgetsBinding.instance.addObserver(FileLoggerLifecycleObserver());
 
       final log = Logger('main');
 

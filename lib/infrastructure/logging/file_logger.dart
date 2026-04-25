@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -25,6 +26,10 @@ class FileLogger {
   // Counter for the hybrid flush policy (flush-every-N) to amortize the
   // per-record flush cost at high log rates.
   static int _unflushedRecordCount = 0;
+  // Backstop periodic flush timer — guarantees `<= kFileLoggerFlushPeriodSeconds`
+  // data-loss window even when activity is too sparse to trip the
+  // record-count threshold. Cancelled in [clearAll] / re-armed in [bootstrap].
+  static Timer? _periodicFlushTimer;
 
   /// Shared-prefs key for the verbose-logging toggle. Value lives across
   /// launches; `--dart-define=DEBUG=true` overrides to verbose regardless.
@@ -67,10 +72,31 @@ class FileLogger {
     await _sink?.flush();
     await _sink?.close();
     await _subscription?.cancel();
+    _periodicFlushTimer?.cancel();
 
     _sink = file.openWrite(mode: FileMode.append);
     _subscription = Logger.root.onRecord.listen(_onRecord);
     _unflushedRecordCount = 0;
+    // Backstop timer — bounds the worst-case loss window at
+    // kFileLoggerFlushPeriodSeconds even when no record-count threshold
+    // and no lifecycle transition fires. Started AFTER the sink so the
+    // first tick has a sink to flush against.
+    _periodicFlushTimer = startPeriodicFlushTimer(flush);
+  }
+
+  /// Creates the backstop [Timer.periodic] that drives a periodic flush
+  /// every [kFileLoggerFlushPeriodSeconds] seconds. Extracted from
+  /// [bootstrap] so the timer wiring can be exercised under `fakeAsync`
+  /// without standing up the real I/O sink — tests inject a counting
+  /// callback and advance fake time to assert the cadence.
+  ///
+  /// The callback is fire-and-forget: `Timer.periodic` does not observe
+  /// the returned `Future`, but [IOSink] serialises its own
+  /// write-after-flush ordering internally, so a still-pending flush at
+  /// the next tick is benign.
+  @visibleForTesting
+  static Timer startPeriodicFlushTimer(Future<void> Function() flushCallback) {
+    return Timer.periodic(const Duration(seconds: kFileLoggerFlushPeriodSeconds), (_) => unawaited(flushCallback()));
   }
 
   /// Toggles the SharedPreferences flag that controls logging verbosity when
@@ -145,8 +171,10 @@ class FileLogger {
     await _sink?.flush();
     await _sink?.close();
     await _subscription?.cancel();
+    _periodicFlushTimer?.cancel();
     _sink = null;
     _subscription = null;
+    _periodicFlushTimer = null;
 
     final files = await listLogFiles();
     for (final f in files) {

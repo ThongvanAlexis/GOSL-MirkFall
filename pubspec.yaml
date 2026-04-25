@@ -127,6 +127,14 @@ dev_dependencies:
   # imports pass `depend_on_referenced_packages`.
   test: 1.30.0
 
+  # `package:fake_async` — already transitive via `flutter_test`, promoted
+  # to a direct dev_dependency so the FileLogger periodic-flush test can
+  # `import 'package:fake_async/fake_async.dart'` without tripping
+  # `depend_on_referenced_packages`. Used by
+  # `test/file_logger_periodic_flush_test.dart` to advance simulated
+  # time without the flake of a real `await Future.delayed(2s)`.
+  fake_async: 1.3.3
+
   # Phase 07 (Map Integration) — `shelf` is already transitive via `test`
   # (1.4.2, BSD-3-Clause, Dart-team). Promoted to a direct dev_dependency
   # so Phase 07 download soak tests that spin up a MockHTTPServer can

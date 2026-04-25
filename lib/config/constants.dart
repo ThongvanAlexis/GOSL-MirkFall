@@ -32,9 +32,35 @@ const int kShareCallTimeoutMilliseconds = 30000;
 
 /// Hybrid flush cadence for the FileLogger sink. A flush is forced every
 /// [kFileLoggerFlushEveryNRecords] records OR whenever a Logger.shout is
-/// emitted (errors always flush immediately). Balances the per-record fsync
-/// cost against acceptable data-loss window on abrupt process termination.
-const int kFileLoggerFlushEveryNRecords = 20;
+/// emitted (errors always flush immediately) OR every
+/// [kFileLoggerFlushPeriodSeconds] seconds via the sink's backstop timer
+/// OR on any [AppLifecycleState] transition out of `resumed` (paused /
+/// inactive / hidden / detached) handled by the top-level lifecycle
+/// observer in `main.dart`. Balances the per-record fsync cost against
+/// acceptable data-loss window on abrupt process termination.
+///
+/// Lowered 2026-04-25 from 20 to 5 after a UAT walk produced a log file
+/// that ended mid-session because the post-install activity emitted
+/// fewer than 20 INFO records and no SHOUT, so the buffer never flushed
+/// before the user grabbed the file. 5 quadruples the worst-case fsync
+/// frequency in exchange for a tighter loss window — acceptable on a
+/// single-user, single-window personal app where reliable debug logs
+/// outrank ~µs of extra disk syncs per record.
+///
+/// FOLLOW-UP: this cadence-based bound is a pragmatic patch. The proper
+/// fix is the periodic timed flush controlled by
+/// [kFileLoggerFlushPeriodSeconds] (already in place); a future cleanup
+/// can drop the cadence-based bound entirely and rely on
+/// timer + lifecycle + shout, removing the per-record counter.
+const int kFileLoggerFlushEveryNRecords = 5;
+
+/// Periodic backstop flush interval (seconds) for the FileLogger sink.
+/// Guarantees a maximum data-loss window of this many seconds regardless
+/// of record cadence — covers the scenario where activity is too sparse
+/// to trip [kFileLoggerFlushEveryNRecords] but the user still expects
+/// recent records to land on disk if they pull the file or the OS
+/// suspends the process between lifecycle callbacks.
+const int kFileLoggerFlushPeriodSeconds = 2;
 
 /// Default screen-body padding for placeholder / full-bleed content screens
 /// (logical pixels). Named so the intent ("breathing room around centered
