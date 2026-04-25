@@ -248,8 +248,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         // RepaintBoundary isolates the noise tick from the rest of the
         // Stack — the map's display list is never invalidated by the
         // mirk Ticker.
+        // IgnorePointer: the mirk overlay is purely visual — pan, pinch
+        // and zoom must reach the MapLibre platform view underneath.
+        // Without this wrapper, CustomPaint's default opaque hit-test
+        // (when a painter is supplied) swallows every gesture, freezing
+        // the map. Caught during BUG-003 UAT walk on 2026-04-25.
         const Positioned.fill(
-          child: RepaintBoundary(child: MirkInitialRevealFade(child: MirkOverlay())),
+          child: IgnorePointer(
+            child: RepaintBoundary(child: MirkInitialRevealFade(child: MirkOverlay())),
+          ),
         ),
         // Top-left controls: back button (when poppable) + burger menu.
         // Back stays left-most so the iOS pattern "back = top-left" is

@@ -69,8 +69,8 @@ void main() {
       expect(kStyleJsonAssetPath, equals('assets/maps/style.json'));
     });
 
-    test('kInitialSessionMapZoom is 13 (neighborhood/city view showing 20m reveal)', () {
-      expect(kInitialSessionMapZoom, equals(13));
+    test('kInitialSessionMapZoom is 15 (close enough for atmospheric noise to resolve)', () {
+      expect(kInitialSessionMapZoom, equals(15));
       expect(kInitialSessionMapZoom, isA<int>());
     });
 

@@ -230,9 +230,12 @@ const String kCountryPolygonsAssetPath = 'assets/maps/polygons';
 const String kStyleJsonAssetPath = 'assets/maps/style.json';
 
 /// Initial camera zoom level when opening the map screen from an active
-/// session. Z=13 shows a ~2 km square — enough context for the 20 m
-/// reveal radius to be visible but not so zoomed out that features blur.
-const int kInitialSessionMapZoom = 13;
+/// session. Z=15 shows a ~500 m square — close enough that the 20 m
+/// reveal radius is clearly visible AND the atmospheric fog's animated
+/// noise effect resolves at a usable scale (z=13 was too far out: noise
+/// was indistinguishable from a flat fill, and the user couldn't see what
+/// they were revealing). Bumped during BUG-003 fix on 2026-04-25.
+const int kInitialSessionMapZoom = 15;
 
 /// Radius (meters) of the data-only reveal seeded around the user's
 /// position at session open. Phase 07 captures the intent in the DB but
