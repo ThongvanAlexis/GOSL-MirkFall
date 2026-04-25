@@ -202,8 +202,8 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
   4. Avec une fixture de 50k sub-tiles révélées chargée en DB, le DevTools confirme que l'animation du mirk ne fait rebuild aucun autre layer (`RepaintBoundary` isolation effective) et que la frame reste ≤ 16 ms sur un device milieu de gamme Android
   5. Le viewport filtering est en place : seuls les parent-tiles intersectant la viewport courante sont peints ; un test de régression prévient la dégradation future
 **Plans** (10 plans, 7 waves):
-- [ ] 09-fog-rendering/09-01-PLAN.md — Wave 1: Scaffolding Part 1/3 — constants + dart_test.yaml mirk-perf tag + style_layer_order.dart docstring + test/constants_test.dart (revision B5 split)
-- [ ] 09-fog-rendering/09-01b-PLAN.md — Wave 1: Scaffolding Part 2/3 — lib/ source scaffolds (renderers, factory, registry, noise, controllers, providers, widgets incl. MirkInitialRevealFade)
+- [x] 09-fog-rendering/09-01-PLAN.md — Wave 1: Scaffolding Part 1/3 — constants + dart_test.yaml mirk-perf tag + style_layer_order.dart docstring + test/constants_test.dart (revision B5 split) (completed 2026-04-25)
+- [x] 09-fog-rendering/09-01b-PLAN.md — Wave 1: Scaffolding Part 2/3 — lib/ source scaffolds (renderers, factory, registry, noise, controllers, providers, widgets incl. MirkInitialRevealFade) (completed 2026-04-25)
 - [ ] 09-fog-rendering/09-01c-PLAN.md — Wave 1: Scaffolding Part 3/3 — test/ + tool/ scaffolds (22 test files + 3 fixtures + 3 fakes + 3 tool scripts + CI gate wiring)
 - [ ] 09-fog-rendering/09-02-PLAN.md — Wave 2: MirkPaintContext + VisibleMirkTile + MirkStyleConfig (6 variants) Freezed extensions + SimplexNoise2D (single MirkPaintContext extension event)
 - [ ] 09-fog-rendering/09-03-PLAN.md — Wave 2: computeRevealMask body (TDD with explicit RED / GREEN / REFACTOR tasks — bbox prune + Haversine per-cell intersect)

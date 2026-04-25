@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 08.1 of 16.x (Re-Review — Post-Walk Audit) — CLOSED 2026-04-24 — 5 / 5 plans done
-Current Plan: none (Phase 08.1 closed; next integer phase is Phase 09 Fog Rendering, unblocked)
-Total Plans in Phase 08.1: 5 / 5 done
-Status: Phase 08.1 closed 2026-04-24; Phase 09 Fog Rendering unblocked
-Last Activity: 2026-04-24
+Phase: 09 of 16.x (Fog Rendering) — IN PROGRESS — 2 / 10 plans closed (09-01 + 09-01b)
+Current Plan: 09-01b (closed); 09-01c may be running concurrently in Wave 1
+Total Plans in Phase 09: 2 / 10 done (Wave 1 has 3 parallel plans: 09-01 closed, 09-01b closed, 09-01c TBD)
+Status: Phase 09 Wave 1 in progress; 09-01b lib/ scaffold layer landed
+Last Activity: 2026-04-25
 
-Progress: [██████████] 100% — 47 / 47 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5). Phase 09+ TBD adds new plans; 100% reflects the current planned-plan universe.
+Progress: [█████████░] 88% — 50 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 2/10 — 09-01 + 09-01b).
 
 ## Performance Metrics
 
@@ -94,6 +94,7 @@ Progress: [██████████] 100% — 47 / 47 plans executed (Phas
 | Phase 08.1-rereview-post-walk P02 | ~3min | 1 tasks | 2 files |
 | Phase 08.1-rereview-post-walk P04 | ~12 min | 4 tasks (2 verification-only + 1 decision-flow N=0 + 1 §4 populate) | 1 file (08.1-REVIEW.md §4) + SUMMARY.md |
 | Phase 09 P01 | 6 min | 3 tasks | 4 files |
+| Phase 09-fog-rendering P01b | ~12 min | 3 tasks | 21 files (lib/ scaffolds: 2 domain + 8 infrastructure + 8 application + 3 presentation) |
 
 ## Accumulated Context
 
@@ -321,6 +322,12 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09-fog-rendering]: kRevealedTileParentZoom NOT duplicated for Phase 09 — symbol already declared in Phase 03 D3 block at lib/config/constants.dart:75; Phase 09 block contains a NOTE pointing readers to that single source of truth — single-source-of-truth invariant from Phase 03 D3 (zoom-14 parent tiles + 64x64 sub-grid) preserved; avoids dual-declaration shadowing risk
 - [Phase 09-fog-rendering]: kDefaultRevealRadiusMeters (25.0) co-exists with kInitialRevealRadiusMeters (20) — both intentional per 09-CONTEXT.md §Géométrie du reveal — 25 m default for in-session reveal (user choice 25 m over 25-50 m ROADMAP range); 20 m initial pop-in at startSession() for the 500ms fade-in lifecycle (09-RESEARCH §In-Session Style Swap Lifecycle)
 - [Phase 09-fog-rendering]: DB flush cadence 2s/20fixes (amended from ROADMAP 5s/50fixes) — first-of timer-or-count rule; Phase 11 markers append-only (NEVER reorder kStyleLayerOrder); 30%-alpha-under-mirk composite via MapLibre annotations (addCircle/addSymbol), not by interleaving a markers layer below mirk_fog — user decision in 09-CONTEXT.md tunable in dev; 09-RESEARCH §Rendering Strategy Decision rationale for compositing trick
+- [Phase 09-fog-rendering Plan 09-01b]: Wave 0 forward-declaration pattern locked — every file Wave N+ writes to exists as a compiling, GOSL-headed scaffold at Wave 0 close. 21 lib/ scaffolds across 4 layers committed in 3 atomic commits (a3bf2bc domain / 68cfd54 infrastructure / 921d6ec application+presentation). Eliminates "file does not exist" friction across the whole phase. Bodies use `throw UnimplementedError('Wave N — plan 09-NN')` so a casual `git grep 'Wave [0-9]'` enumerates all open scaffolding work.
+- [Phase 09-fog-rendering Plan 09-01b]: Provider scaffolds emitted as plain Dart `void f() => throw UnimplementedError(...)` (NOT pretend-Riverpod stubs) — keeps Wave 4 plan 09-05 free to choose the right `@riverpod` shape per provider (KeepAlive vs scoped, AsyncNotifier vs Provider, family vs simple) without a retrofit. 6 providers scaffolded this way: mirkRendererFactory / activeMirkRenderer / revealStreamingController / builtinMirkStyles / visibleMirkTiles / mapViewport.
+- [Phase 09-fog-rendering Plan 09-01b]: builtin_mirk_styles.dart kept as comment-only placeholder (header + `// TODO(09-05)` line, no symbol exported) because `BuiltinMirkStyleDescriptor` is itself a Wave 4 type — exporting a stub of an unknown shape would force premature design. `//` (line) comments instead of `///` (doc) to avoid `dangling_library_doc_comments` analyzer info on declaration-less files.
+- [Phase 09-fog-rendering Plan 09-01b]: AtmosphericMirkRenderer accepts `AtmosphericConfig` in constructor (Phase 03 type already exists), but SolidFillMirkRenderer / CandlelightMirkRenderer / HeavenlyCloudsMirkRenderer take no config arg — their `*Config` sealed variants don't exist until Wave 2 plan 09-02 extends MirkStyleConfig. ShaderMirkRenderer also takes no config (Phase 13 supplies signature change). TODO markers in each renderer call out the Wave 2/4 promotion.
+- [Phase 09-fog-rendering Plan 09-01b]: VisibleMirkTile uses `Uint8List` (dart:typed_data, Dart stdlib) — `check_domain_purity` allows it (gate forbids only `package:flutter/*` and `package:drift/*`), no fallback to `List<int>` needed. Pre-emptive fallback was speculatively allowed in plan but not triggered.
+- [Phase 09-fog-rendering Plan 09-01b]: Wave 1 cross-plan independence proven empirically — 09-01b's `flutter analyze lib` is green even while 09-01c's untracked test scaffolds carry their own pre-existing analyzer error (testWidgets `skip:` parameter type mismatch). 09-01 and 09-01b independently logged the same observation in `.planning/phases/09-fog-rendering/deferred-items.md`. Confirms the three Wave 1 plans (09-01, 09-01b, 09-01c) consume nothing from each other and can run in parallel.
 
 ### Roadmap Evolution
 
