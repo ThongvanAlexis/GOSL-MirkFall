@@ -170,11 +170,11 @@ void _writeHeader(IOSink sink) {
 }
 
 void _writeSessionInsert(IOSink sink) {
-  // Match the V4 t_sessions schema (lib/infrastructure/db/app_database.dart):
-  //   id, displayName, status, startedAtUtc, startedAtOffsetMinutes,
-  //   stoppedAtUtc, stoppedAtOffsetMinutes, notes, mirkStyleId
+  // Match the V4 t_sessions schema (Drift snake_case columns):
+  //   id, display_name, status, started_at_utc, started_at_offset_minutes,
+  //   stopped_at_utc, stopped_at_offset_minutes, notes, mirk_style_id
   sink.writeln(
-    "INSERT INTO t_sessions (id, displayName, status, startedAtUtc, startedAtOffsetMinutes, stoppedAtUtc, stoppedAtOffsetMinutes, notes, mirkStyleId) "
+    "INSERT INTO t_sessions (id, display_name, status, started_at_utc, started_at_offset_minutes, stopped_at_utc, stopped_at_offset_minutes, notes, mirk_style_id) "
     "VALUES ('$kFiftyKSessionId', 'Fifty-K Perf Fixture', 'stopped', $kFiftyKUtcInstantMs, 0, $kFiftyKUtcInstantMs, 0, NULL, NULL);",
   );
   sink.writeln();
@@ -214,7 +214,7 @@ void _writeRevealedTileInserts(IOSink sink) {
     final String rowId = _formatRowId(idx);
 
     sink.writeln(
-      "INSERT INTO t_revealed_tiles (id, sessionId, parentX, parentY, parentZoom, bitmap, setBitCount, updatedAtUtc) "
+      "INSERT INTO t_revealed_tiles (id, session_id, parent_x, parent_y, parent_zoom, bitmap, set_bit_count, updated_at_utc) "
       "VALUES ('$rowId', '$kFiftyKSessionId', $parentX, $parentY, $kFiftyKParentZoom, X'$hex', $popcount, $kFiftyKUtcInstantMs);",
     );
   }
