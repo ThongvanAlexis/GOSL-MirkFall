@@ -298,6 +298,47 @@ class MirkRuntimeTunables extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Serialises every tunable field as a JSON-friendly map keyed by the
+  /// public field name. Keys are emitted in alphabetical order so the
+  /// output is diff-friendly when the user pastes successive exports
+  /// back into a chat for the agent to bake into `constants.dart`.
+  ///
+  /// Returns plain `Object?` values (doubles, bools) — the caller is
+  /// expected to `jsonEncode` the result.
+  Map<String, Object?> toJson() {
+    // SplayTreeMap would also work, but we want an explicit alphabetical
+    // listing so a missed field is obvious during code review. Keep this
+    // list in sync with the field declarations above + reset() below.
+    return <String, Object?>{
+      'atmosphericDriftZFar': _atmosphericDriftZFar,
+      'atmosphericDriftZMid': _atmosphericDriftZMid,
+      'atmosphericDriftZNear': _atmosphericDriftZNear,
+      'atmosphericScaleFar': _atmosphericScaleFar,
+      'atmosphericScaleMid': _atmosphericScaleMid,
+      'atmosphericScaleNear': _atmosphericScaleNear,
+      'boundaryBleedDistance': _boundaryBleedDistance,
+      'boundaryEdgeBand': _boundaryEdgeBand,
+      'boundarySharpDistance': _boundarySharpDistance,
+      'curlAmplitude': _curlAmplitude,
+      'curlScale': _curlScale,
+      'debugOutputDensity': _debugOutputDensity,
+      'heavenlyDriftZFar': _heavenlyDriftZFar,
+      'heavenlyDriftZMid': _heavenlyDriftZMid,
+      'heavenlyDriftZNear': _heavenlyDriftZNear,
+      'heavenlyScaleFar': _heavenlyScaleFar,
+      'heavenlyScaleMid': _heavenlyScaleMid,
+      'heavenlyScaleNear': _heavenlyScaleNear,
+      'hueNoiseScale': _hueNoiseScale,
+      'hueStrength': _hueStrength,
+      'lightDirRadians': _lightDirRadians,
+      'lightOffset': _lightOffset,
+      'lightStrength': _lightStrength,
+      'opacityFar': _opacityFar,
+      'opacityMid': _opacityMid,
+      'opacityNear': _opacityNear,
+    };
+  }
+
   /// Resets every tunable to its `kMirkFog*` default. Called by the
   /// "Reset all" button in the tuner sheet AND by tests that want a
   /// clean per-test state.

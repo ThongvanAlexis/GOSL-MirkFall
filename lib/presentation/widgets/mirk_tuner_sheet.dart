@@ -2,9 +2,17 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
 import 'package:mirkfall/config/constants.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Default initial size (fraction of screen height) for the tuner sheet.
 /// Slightly under [_kMaxSheetSize] so the user has a visible drag affordance
@@ -298,12 +306,62 @@ class _MirkTunerSheetContentState extends State<_MirkTunerSheetContent> {
                 value: MirkRuntimeTunables.instance.debugOutputDensity,
                 onChanged: (bool v) => MirkRuntimeTunables.instance.debugOutputDensity = v,
               ),
+              const Divider(height: 32.0),
+              FilledButton.tonalIcon(onPressed: _onExportJson, icon: const Icon(Icons.ios_share), label: const Text('Exporter JSON')),
               const SizedBox(height: 24.0),
             ],
           );
         },
       ),
     );
+  }
+
+  /// Serialises the current [MirkRuntimeTunables] state to a pretty JSON
+  /// file in the temp dir and opens the native share sheet so the user
+  /// can email / message the values back to themselves (and paste them
+  /// to the agent for baking into `constants.dart`).
+  ///
+  /// File-based share (rather than text-based) so messaging apps treat
+  /// the payload as a `.json` attachment — preserves indentation and
+  /// avoids body reflow by clients that strip whitespace.
+  Future<void> _onExportJson() async {
+    try {
+      final Map<String, Object?> payload = <String, Object?>{
+        '_meta': <String, Object?>{'exported_at': DateTime.now().toUtc().toIso8601String(), 'git_commit': kGitCommitSha},
+        'tunables': MirkRuntimeTunables.instance.toJson(),
+      };
+      const JsonEncoder encoder = JsonEncoder.withIndent('  ');
+      final String jsonText = encoder.convert(payload);
+
+      final Directory tmpDir = await getTemporaryDirectory();
+      final DateTime now = DateTime.now();
+      // Filename includes a sortable timestamp so successive exports do
+      // not overwrite each other in the share-sheet preview cache.
+      final String timestamp =
+          '${now.year.toString().padLeft(4, '0')}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}'
+          '_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+      final String exportBasename = 'mirkfall_tunables_$timestamp.json';
+      final File exportFile = File(p.join(tmpDir.path, exportBasename));
+      await exportFile.writeAsString(jsonText, flush: true);
+
+      final String dateLabel = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      await SharePlus.instance
+          .share(
+            ShareParams(
+              files: <XFile>[XFile(exportFile.path, mimeType: 'application/json')],
+              subject: 'MirkFall mirk tunables — $dateLabel',
+            ),
+          )
+          .timeout(const Duration(milliseconds: kShareCallTimeoutMilliseconds));
+    } on TimeoutException catch (e, st) {
+      Logger('mirk_tuner_sheet').warning('_onExportJson timeout', e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Partage annulé (timeout)')));
+    } on Exception catch (e, st) {
+      Logger('mirk_tuner_sheet').warning('_onExportJson failed', e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export échoué : $e')));
+    }
   }
 
   Widget _buildGrip(ColorScheme cs) => Center(

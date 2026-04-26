@@ -122,4 +122,59 @@ void main() {
       expect(notifyCount, 1);
     });
   });
+
+  group('MirkRuntimeTunables.toJson', () {
+    test('default state produces every kMirkFog* default keyed by camelCase field name', () {
+      final Map<String, Object?> json = MirkRuntimeTunables.instance.toJson();
+      expect(json['atmosphericDriftZFar'], kMirkFogAtmosphericDriftZFar);
+      expect(json['atmosphericDriftZMid'], kMirkFogAtmosphericDriftZMid);
+      expect(json['atmosphericDriftZNear'], kMirkFogAtmosphericDriftZNear);
+      expect(json['atmosphericScaleFar'], kMirkFogAtmosphericScaleFar);
+      expect(json['atmosphericScaleMid'], kMirkFogAtmosphericScaleMid);
+      expect(json['atmosphericScaleNear'], kMirkFogAtmosphericScaleNear);
+      expect(json['heavenlyDriftZFar'], kMirkFogHeavenlyDriftZFar);
+      expect(json['heavenlyDriftZMid'], kMirkFogHeavenlyDriftZMid);
+      expect(json['heavenlyDriftZNear'], kMirkFogHeavenlyDriftZNear);
+      expect(json['heavenlyScaleFar'], kMirkFogHeavenlyScaleFar);
+      expect(json['heavenlyScaleMid'], kMirkFogHeavenlyScaleMid);
+      expect(json['heavenlyScaleNear'], kMirkFogHeavenlyScaleNear);
+      expect(json['opacityFar'], kMirkFogOpacityFar);
+      expect(json['opacityMid'], kMirkFogOpacityMid);
+      expect(json['opacityNear'], kMirkFogOpacityNear);
+      expect(json['curlAmplitude'], kMirkFogCurlAmplitude);
+      expect(json['curlScale'], kMirkFogCurlScale);
+      expect(json['lightDirRadians'], kMirkFogLightDirRadians);
+      expect(json['lightOffset'], kMirkFogLightOffset);
+      expect(json['lightStrength'], kMirkFogLightStrength);
+      expect(json['hueNoiseScale'], kMirkFogHueNoiseScale);
+      expect(json['hueStrength'], kMirkFogHueStrength);
+      expect(json['boundarySharpDistance'], kMirkFogBoundarySharpDistance);
+      expect(json['boundaryBleedDistance'], kMirkFogBoundaryBleedDistance);
+      expect(json['boundaryEdgeBand'], kMirkFogBoundaryEdgeBand);
+      expect(json['debugOutputDensity'], kMirkFogDebugOutputDensity);
+    });
+
+    test('mutating a field is reflected in toJson output', () {
+      final t = MirkRuntimeTunables.instance;
+      t.atmosphericDriftZFar = 0.42;
+      t.curlAmplitude = 1.337;
+      t.debugOutputDensity = !kMirkFogDebugOutputDensity;
+
+      final Map<String, Object?> json = t.toJson();
+      expect(json['atmosphericDriftZFar'], 0.42);
+      expect(json['curlAmplitude'], 1.337);
+      expect(json['debugOutputDensity'], !kMirkFogDebugOutputDensity);
+    });
+
+    test('emits at least 20 keys (covers the full ~25-field tunable surface)', () {
+      final Map<String, Object?> json = MirkRuntimeTunables.instance.toJson();
+      expect(json.length, greaterThanOrEqualTo(20));
+    });
+
+    test('keys are emitted in alphabetical order for diff-friendly exports', () {
+      final List<String> keys = MirkRuntimeTunables.instance.toJson().keys.toList();
+      final List<String> sortedKeys = <String>[...keys]..sort();
+      expect(keys, equals(sortedKeys));
+    });
+  });
 }
