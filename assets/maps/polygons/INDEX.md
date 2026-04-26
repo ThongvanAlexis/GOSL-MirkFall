@@ -12,3 +12,12 @@ Each `<alpha3>.geo.json` is a single-polygon GeoJSON FeatureCollection
 carrying the axis-aligned bounding box of the source country.
 
 **249** files processed, **1** failed, **176.2 KB** total.
+
+Hand-authored additions (not produced by `simplify_polygons.dart`):
+
+- `frm.geo.json` — sub-country bbox covering Melun (Île-de-France).
+  Added 2026-04-26 to support a tight ~4 MB UAT bundle that lives inside
+  the larger 5.5 GB FRA bundle. The country resolver sorts polygons by
+  ascending area at controller-rebuild time, so this smaller bbox wins
+  the point-in-polygon match over FRA when the user's GPS is inside it.
+  Outside the bbox, the resolver falls through to FRA as before.

@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "alpha3": "frm",
+        "generator": "hand-authored sub-country bbox (Melun region for UAT)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              2.55,
+              48.45
+            ],
+            [
+              2.80,
+              48.45
+            ],
+            [
+              2.80,
+              48.62
+            ],
+            [
+              2.55,
+              48.62
+            ],
+            [
+              2.55,
+              48.45
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

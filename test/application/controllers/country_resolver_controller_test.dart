@@ -275,4 +275,118 @@ void main() {
       expect(state.viewportInInstalled, isTrue);
     });
   });
+
+  group('CountryResolverController — sub-country bundle overlaps containing country', () {
+    /// Installs FRA + FRM polygons. FRM is a small Melun bbox sitting
+    /// inside FRA. The controller's resolver-rebuild sorts polygons by
+    /// ascending area so FRM (smaller) is iterated before FRA in the
+    /// first-match loop. Outside the FRM bbox, FRA still wins.
+    Future<ProviderContainer> buildContainerWithFrm({required Set<String> installed}) async {
+      final Map<String, String> polygons = <String, String>{
+        // FRA: simplified hexagon bbox covering metropolitan France.
+        'fra': _buildRectPolygon(code: 'fra', minLat: 41.36, maxLat: 51.09, minLon: -5.13, maxLon: 9.56),
+        // FRM: matches the bbox shipped in assets/maps/polygons/frm.geo.json
+        // (Melun region — `--bbox=2.55,48.45,2.80,48.62`).
+        'frm': _buildRectPolygon(code: 'frm', minLat: 48.45, maxLat: 48.62, minLon: 2.55, maxLon: 2.80),
+      };
+
+      final CountryCatalog syntheticCatalog = CountryCatalog(
+        countries: [
+          for (final String code in <String>['fra', 'frm'])
+            CountryEntry(
+              alpha3: CountryCode.parse(code),
+              name: code.toUpperCase(),
+              parts: [ChunkPart(sha256: 'a' * 64, size: 1024, url: 'https://github.com/example/mirkfall/releases/download/v20260419/$code.part01')],
+              reassembled: ReassembledMeta(sha256: 'b' * 64, size: 1024),
+            ),
+        ],
+      );
+
+      final container = ProviderContainer(overrides: [countryCatalogProvider.overrideWith((ref) async => syntheticCatalog)]);
+      addTearDown(container.dispose);
+
+      await container.read(countryCatalogProvider.future);
+
+      final repo = await container.read(installedManifestRepositoryProvider.future);
+      InstalledManifest manifest = InstalledManifest.empty();
+      for (final String code in installed) {
+        manifest = manifest.copyWithInsert(_mkInstalled(code));
+      }
+      await repo.write(manifest);
+
+      final loader = CountryPolygonLoaderTestSeam.withAssetLoader((String assetPath) async {
+        final String basename = assetPath.split('/').last;
+        final String code = basename.replaceAll('.geo.json', '');
+        final String? json = polygons[code];
+        if (json == null) throw StateError('no polygon for $code');
+        return json;
+      });
+
+      container.read(countryResolverControllerProvider);
+      container.read(countryResolverControllerProvider.notifier).setPolygonLoaderForTest(loader);
+      await container.read(countryResolverControllerProvider.notifier).rebuildNowForTest();
+
+      return container;
+    }
+
+    test('GPS inside Melun bbox + FRM installed → activeCountry = FRM (smaller bundle wins)', () async {
+      final container = await buildContainerWithFrm(installed: <String>{'fra', 'frm'});
+      final FakeMapView fakeMapView = FakeMapView();
+      container.read(mapViewProvider.notifier).set(fakeMapView);
+      container.read(countryResolverControllerProvider.notifier);
+
+      // Melun town centre: 48.5400 N, 2.6600 E — inside the FRM bbox AND
+      // inside the FRA bbox. Smaller-area-wins → FRM.
+      fakeMapView.pushViewport(latitude: 48.5400, longitude: 2.6600, zoom: 13.0);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+
+      final state = container.read(countryResolverControllerProvider);
+      expect(state.activeCountry?.value, equals('frm'));
+      expect(state.viewportCountry?.value, equals('frm'));
+      expect(state.viewportInInstalled, isTrue);
+    });
+
+    test('GPS inside Melun bbox + FRM NOT installed → falls through to FRA (containing-country fallback)', () async {
+      // Only FRA is installed. FRM polygon is loaded by the resolver
+      // (catalog includes it) but maps to an uninstalled country, so the
+      // controller surfaces the "download FRM?" banner instead of switching
+      // the visible map. That is OK — and walking-elsewhere-in-France
+      // case still resolves to the installed FRA bundle.
+      final container = await buildContainerWithFrm(installed: <String>{'fra'});
+      final FakeMapView fakeMapView = FakeMapView();
+      container.read(mapViewProvider.notifier).set(fakeMapView);
+      container.read(countryResolverControllerProvider.notifier);
+
+      // Inside Melun bbox: smaller polygon FRM matches first → not installed
+      // → banner data path, activeCountry stays null.
+      fakeMapView.pushViewport(latitude: 48.5400, longitude: 2.6600, zoom: 13.0);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      final stateInsideMelun = container.read(countryResolverControllerProvider);
+      expect(stateInsideMelun.viewportCountry?.value, equals('frm'));
+      expect(stateInsideMelun.viewportInInstalled, isFalse);
+
+      // Pan elsewhere in France (Paris): outside the FRM bbox so FRA wins.
+      fakeMapView.pushViewport(latitude: 48.8566, longitude: 2.3522, zoom: 13.0);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      final stateInParis = container.read(countryResolverControllerProvider);
+      expect(stateInParis.activeCountry?.value, equals('fra'));
+      expect(stateInParis.viewportInInstalled, isTrue);
+    });
+
+    test('GPS elsewhere in France (Lyon) + both FRA and FRM installed → FRA wins (FRM bbox does not contain Lyon)', () async {
+      final container = await buildContainerWithFrm(installed: <String>{'fra', 'frm'});
+      final FakeMapView fakeMapView = FakeMapView();
+      container.read(mapViewProvider.notifier).set(fakeMapView);
+      container.read(countryResolverControllerProvider.notifier);
+
+      // Lyon: 45.7640 N, 4.8357 E — well outside the Melun bbox.
+      fakeMapView.pushViewport(latitude: 45.7640, longitude: 4.8357, zoom: 13.0);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+
+      final state = container.read(countryResolverControllerProvider);
+      expect(state.activeCountry?.value, equals('fra'));
+      expect(state.viewportCountry?.value, equals('fra'));
+      expect(state.viewportInInstalled, isTrue);
+    });
+  });
 }

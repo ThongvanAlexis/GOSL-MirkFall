@@ -266,8 +266,27 @@ class CountryResolverController extends _$CountryResolverController {
         codesToLoadSet.add(CountryCode.parse(key));
       }
       final Map<CountryCode, List<CountryPolygonRing>> polygons = await _polygonLoader.loadPolygonsForInstalled(codesToLoadSet);
-      _resolver = CountryResolver(installedPolygons: polygons);
-      _log.fine('rebuilt CountryResolver with ${polygons.length} polygon set(s) (requested ${codesToLoadSet.length})');
+      // Sort by ascending total ring-bbox area so smaller bundles win on
+      // overlap. Concretely: sub-country bbox bundles like `frm` (Melun,
+      // ~0.04 deg²) are iterated BEFORE their containing country `fra`
+      // (~140 deg²) by `CountryResolver`'s first-match loop. Outside the
+      // small bbox, the lookup falls through to the larger one as before.
+      // Tie-break is alphabetical alpha3 so the order stays deterministic
+      // when two countries have identical computed area (rare in practice
+      // but ensures repeatable behaviour across runs).
+      final List<MapEntry<CountryCode, List<CountryPolygonRing>>> sorted = polygons.entries.toList()
+        ..sort((MapEntry<CountryCode, List<CountryPolygonRing>> a, MapEntry<CountryCode, List<CountryPolygonRing>> b) {
+          final double areaA = _totalRingBboxArea(a.value);
+          final double areaB = _totalRingBboxArea(b.value);
+          final int byArea = areaA.compareTo(areaB);
+          if (byArea != 0) return byArea;
+          return a.key.value.compareTo(b.key.value);
+        });
+      final Map<CountryCode, List<CountryPolygonRing>> orderedPolygons = <CountryCode, List<CountryPolygonRing>>{
+        for (final MapEntry<CountryCode, List<CountryPolygonRing>> entry in sorted) entry.key: entry.value,
+      };
+      _resolver = CountryResolver(installedPolygons: orderedPolygons);
+      _log.fine('rebuilt CountryResolver with ${orderedPolygons.length} polygon set(s) (requested ${codesToLoadSet.length})');
     } on Object catch (e, st) {
       _log.warning('failed to rebuild CountryResolver', e, st);
     }
@@ -350,4 +369,34 @@ class CountryResolverController extends _$CountryResolverController {
     _manifestSub = null;
     _mapView = null;
   }
+}
+
+/// Sum of axis-aligned bounding-box areas across all rings in a country.
+///
+/// Used as the sort key by `_rebuildResolver` so smaller bundles iterate
+/// first inside `CountryResolver`'s first-match loop. Per Phase 07 Wave 0
+/// every shipped polygon is already an axis-aligned bbox (`simplify_polygons.dart`
+/// emits 5-point rectangles), so the bbox area equals the actual polygon
+/// area for the production set. For the rare hand-authored multi-ring
+/// country, summing per-ring bboxes is a pessimistic but monotone proxy
+/// that preserves the smaller-wins ordering. Returns 0 for empty input —
+/// such an entry would also fail every point-in-polygon check, so its
+/// position is irrelevant.
+double _totalRingBboxArea(List<CountryPolygonRing> rings) {
+  double total = 0.0;
+  for (final CountryPolygonRing ring in rings) {
+    if (ring.isEmpty) continue;
+    double minLat = ring.first.lat;
+    double maxLat = ring.first.lat;
+    double minLon = ring.first.lon;
+    double maxLon = ring.first.lon;
+    for (final ({double lat, double lon}) p in ring) {
+      if (p.lat < minLat) minLat = p.lat;
+      if (p.lat > maxLat) maxLat = p.lat;
+      if (p.lon < minLon) minLon = p.lon;
+      if (p.lon > maxLon) maxLon = p.lon;
+    }
+    total += (maxLat - minLat) * (maxLon - minLon);
+  }
+  return total;
 }
