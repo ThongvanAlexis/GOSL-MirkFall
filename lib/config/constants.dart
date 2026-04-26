@@ -592,11 +592,12 @@ const double kMirkFogCurlScale = 0.8;
 /// fall back to the static [kMirkFogCurlScale] when needed.
 const bool kMirkFogCurlScaleAnimationDefaultEnabled = true;
 
-/// Full period (seconds) of the curlScale triangle-wave animation. 40 s
-/// = `0 → 4 → 0` once every 40 seconds (20 s up, 20 s down). UAT walk
-/// 2026-04-26 (N+1) preferred this slower cadence with a tighter
-/// amplitude — feels less frantic than the original 20 s / 0..10 sweep.
-const double kMirkFogCurlScaleAnimationPeriodSec = 40.0;
+/// Full period (seconds) of the curlScale triangle-wave animation. 60 s
+/// = `0 → 4 → 0` once every 60 seconds (30 s up, 30 s down). UAT walk
+/// 2026-04-26 (N+2) preferred an even slower cadence than the prior
+/// 40 s — the 60 s period reads as ambient breathing rather than active
+/// motion, which is the desired "alive but calm" volumetric feel.
+const double kMirkFogCurlScaleAnimationPeriodSec = 60.0;
 
 /// Minimum value of the curlScale triangle-wave animation. 0.0 is the
 /// "no curl noise warp at all" extremum — paired with
