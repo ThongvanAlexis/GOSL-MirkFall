@@ -2,6 +2,7 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'dart:async' show Timer;
 import 'dart:math' as math;
 import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
 import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Rect, Size;
@@ -95,8 +96,25 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   late final Future<ui.FragmentProgram?> _shaderLoadFuture;
   ui.FragmentShader? _shader;
   ui.Image? _sdfImage;
-  int _lastSdfHash = 0;
   bool _sdfBuildInFlight = false;
+
+  /// Hash of the disc list that produced [_sdfImage]. Disc-list changes
+  /// trigger IMMEDIATE rebuilds (BUG-012 fix).
+  int _lastDiscHash = 0;
+
+  /// Hash of the viewport bbox that produced [_sdfImage]. Viewport-only
+  /// changes are debounced to avoid strobe (BUG-012 fix).
+  int _lastViewportHash = 0;
+
+  /// Debounce timer for viewport-only SDF rebuilds (BUG-012 fix).
+  Timer? _viewportDebounceTimer;
+
+  /// Pending rebuild inputs captured when the viewport debounce timer is
+  /// active. On timer fire these feed [_triggerSdfRebuild].
+  List<RevealDisc>? _pendingRebuildDiscs;
+
+  /// Pending viewport captured alongside [_pendingRebuildDiscs].
+  MirkViewportBbox? _pendingRebuildViewport;
 
   /// Public future used by tests to wait until the shader has loaded
   /// (or failed to load).
@@ -301,46 +319,85 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     canvas.drawPath(path, paint);
   }
 
+  /// Checks whether the SDF needs rebuilding — debounces viewport-only
+  /// changes to prevent the strobe described in BUG-012. See
+  /// [AtmosphericMirkRenderer._refreshSdfIfNeeded] for the full rationale.
   void _refreshSdfIfNeeded({required MirkPaintContext context, required Size canvasSize}) {
     if (_sdfBuildInFlight) return;
-    final hash = _computeSdfHash(context);
-    if (hash == _lastSdfHash && _sdfImage != null) return;
+
+    final discHash = _hashDiscList(context.discs);
+    final viewportHash = _hashViewport(context.viewportBbox);
+
+    if (discHash != _lastDiscHash) {
+      // Disc list changed → rebuild immediately.
+      _lastDiscHash = discHash;
+      _lastViewportHash = viewportHash;
+      _viewportDebounceTimer?.cancel();
+      _pendingRebuildDiscs = null;
+      _pendingRebuildViewport = null;
+      _triggerSdfRebuild(context.discs, context.viewportBbox);
+    } else if (viewportHash != _lastViewportHash) {
+      // Only viewport changed → debounce.
+      _lastViewportHash = viewportHash;
+      _pendingRebuildDiscs = context.discs;
+      _pendingRebuildViewport = context.viewportBbox;
+      _viewportDebounceTimer?.cancel();
+      _viewportDebounceTimer = Timer(const Duration(milliseconds: kMirkFogSdfViewportDebounceMs), () {
+        if (!_disposed && !_sdfBuildInFlight && _pendingRebuildDiscs != null && _pendingRebuildViewport != null) {
+          _triggerSdfRebuild(_pendingRebuildDiscs!, _pendingRebuildViewport!);
+          _pendingRebuildDiscs = null;
+          _pendingRebuildViewport = null;
+        }
+      });
+    } else if (_sdfImage == null) {
+      // Same inputs but no SDF yet (first frame) → build now.
+      _triggerSdfRebuild(context.discs, context.viewportBbox);
+    }
+  }
+
+  /// Kicks off an async SDF build for [discs] at [viewport].
+  void _triggerSdfRebuild(List<RevealDisc> discs, MirkViewportBbox viewport) {
     _sdfBuildInFlight = true;
-    _lastSdfHash = hash;
-    _log.fine('_refreshSdfIfNeeded: scheduling rebuild (hash=$hash discs=${context.discs.length})');
+    _log.fine('_triggerSdfRebuild: scheduling rebuild (discs=${discs.length})');
     _sdfBuilder
-        .buildFromDiscs(discs: context.discs, viewport: context.viewportBbox)
-        .then((image) {
+        .buildFromDiscs(discs: discs, viewport: viewport)
+        .then((ui.Image image) {
           if (_disposed) {
             image.dispose();
             return;
           }
           _sdfImage?.dispose();
           _sdfImage = image;
-          _log.fine('_refreshSdfIfNeeded: rebuild complete — _sdfImage now set (${image.width}x${image.height})');
+          _log.fine('_triggerSdfRebuild: rebuild complete — _sdfImage now set (${image.width}x${image.height})');
         })
         .catchError((Object e, StackTrace st) {
-          _log.severe('_refreshSdfIfNeeded: build FAILED — fallback path will activate', e, st);
+          _log.severe('_triggerSdfRebuild: build FAILED — fallback path will activate', e, st);
         })
         .whenComplete(() {
           _sdfBuildInFlight = false;
         });
   }
 
-  int _computeSdfHash(MirkPaintContext context) {
+  /// FNV-1a hash of the disc list.
+  int _hashDiscList(List<RevealDisc> discs) {
     var hash = 0x811C9DC5;
-    final bbox = context.viewportBbox;
-    hash = _mix(hash, bbox.south.hashCode);
-    hash = _mix(hash, bbox.west.hashCode);
-    hash = _mix(hash, bbox.north.hashCode);
-    hash = _mix(hash, bbox.east.hashCode);
-    hash = _mix(hash, context.discs.length);
-    for (final disc in context.discs) {
+    hash = _mix(hash, discs.length);
+    for (final disc in discs) {
       hash = _mix(hash, disc.id.hashCode);
       hash = _mix(hash, disc.lat.hashCode);
       hash = _mix(hash, disc.lon.hashCode);
       hash = _mix(hash, disc.radiusMeters.hashCode);
     }
+    return hash;
+  }
+
+  /// FNV-1a hash of the viewport bbox edges.
+  int _hashViewport(MirkViewportBbox bbox) {
+    var hash = 0x811C9DC5;
+    hash = _mix(hash, bbox.south.hashCode);
+    hash = _mix(hash, bbox.west.hashCode);
+    hash = _mix(hash, bbox.north.hashCode);
+    hash = _mix(hash, bbox.east.hashCode);
     return hash;
   }
 
@@ -357,6 +414,10 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    _viewportDebounceTimer?.cancel();
+    _viewportDebounceTimer = null;
+    _pendingRebuildDiscs = null;
+    _pendingRebuildViewport = null;
     _shader?.dispose();
     _shader = null;
     _sdfImage?.dispose();

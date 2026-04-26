@@ -824,3 +824,15 @@ const double kMirkFogOpacityMax = 1.0;
 /// end-user UX (the dev tuner exposes per-octave continuous sliders
 /// for fine adjustment).
 const int kMirkFogOpacitySliderDivisions = 16;
+
+/// Debounce delay (milliseconds) for SDF rebuilds triggered by
+/// viewport-only changes (pan/zoom gesture without new disc emergence).
+/// During the debounce window the old SDF is reused — slightly
+/// misaligned but visually stable. Once the gesture settles, one
+/// rebuild aligns the SDF to the final viewport position.
+///
+/// BUG-012 fix: without this debounce, every viewport change triggered
+/// a 200+ ms async SDF rebuild whose completion frame showed the SDF at
+/// a stale viewport position — the fog boundary "strobed" between old
+/// and new positions on every build-completion.
+const int kMirkFogSdfViewportDebounceMs = 200;
