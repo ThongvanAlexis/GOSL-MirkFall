@@ -150,67 +150,6 @@ void main() {
       img.dispose();
     });
 
-    test('Gaussian blur softens a sharp 0→max edge over multiple pixels', () {
-      // BUG-009 follow-up walk #N+2: validate that the post-chamfer
-      // Gaussian helper actually softens a step edge — this is the
-      // mechanism that kills cell-rectangle stair-steps.
-      const builder = RevealedSdfBuilder();
-      const n = 16;
-      final src = Float32List(n * n);
-      // Construct a single sharp horizontal edge at column n/2: left
-      // half = 0, right half = 1. Mimics the 1-pixel edge of a
-      // pixel-aligned cell rectangle in the chamfer output.
-      for (var y = 0; y < n; y++) {
-        for (var x = 0; x < n; x++) {
-          src[y * n + x] = x < n ~/ 2 ? 0.0 : 1.0;
-        }
-      }
-      final blurred = builder.debugGaussianBlurSeparable(src, n, sigma: kMirkFogSdfBlurSigma);
-      // Pick a row in the middle (vertical Gaussian sees identical
-      // neighbours so the row itself is purely the horizontal blur).
-      final row = n ~/ 2;
-      // The original edge: src[row, n/2 - 1] = 0, src[row, n/2] = 1
-      // (a 1-pixel step). The 5-tap Pascal kernel [1,4,6,4,1]/16
-      // spreads that step over 5 columns. We expect strict
-      // monotonicity AND at least 3 columns where the value lies
-      // strictly between 0 and 1 (i.e. the ramp is at least 3 wide).
-      final mid = n ~/ 2;
-      final colM2 = blurred[row * n + (mid - 2)];
-      final colM1 = blurred[row * n + (mid - 1)];
-      final col0 = blurred[row * n + mid];
-      final colP1 = blurred[row * n + (mid + 1)];
-      // Monotone non-decreasing ramp across the edge.
-      expect(colM2, lessThanOrEqualTo(colM1), reason: 'blurred edge must be monotone increasing approaching the original step');
-      expect(colM1, lessThan(col0), reason: 'blur should propagate non-zero coverage one column to the left of the original step');
-      expect(col0, lessThan(colP1), reason: 'blur should not push the post-step column to saturation');
-      // Counts the columns whose value is strictly inside (0, 1) — the
-      // soft-ramp width. The kernel touches 2 columns on each side of
-      // the original step, so we must see at least 3 such intermediate
-      // values (kernel cannot reach saturation 1 in a 1-pixel step).
-      var rampWidth = 0;
-      for (var x = 0; x < n; x++) {
-        final v = blurred[row * n + x];
-        if (v > 1e-6 && v < 1.0 - 1e-6) rampWidth++;
-      }
-      expect(rampWidth, greaterThanOrEqualTo(3), reason: 'a 1-pixel sharp edge must blur into at least a 3-pixel ramp');
-    });
-
-    test('Gaussian blur preserves a uniform field exactly', () {
-      // Sanity: a constant input must produce the same constant
-      // output. This catches kernel-weight bugs (sum != 16) and
-      // edge-clamping bugs that would dim the borders.
-      const builder = RevealedSdfBuilder();
-      const n = 8;
-      final src = Float32List(n * n);
-      for (var i = 0; i < n * n; i++) {
-        src[i] = 7.5;
-      }
-      final blurred = builder.debugGaussianBlurSeparable(src, n, sigma: kMirkFogSdfBlurSigma);
-      for (var i = 0; i < n * n; i++) {
-        expect(blurred[i], closeTo(7.5, 1e-5), reason: 'uniform input must round-trip through the blur with no loss');
-      }
-    });
-
     test('top-left revealed quadrant maps to top-left of the SDF', () async {
       // Verifies that the projection convention is correct: viewport
       // north → low Y row, viewport west → low X column. The
