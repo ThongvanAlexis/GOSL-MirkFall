@@ -162,6 +162,6 @@ void main() {
       final medianMs = _median(samples);
       // ignore: avoid_print — perf logging into the CI capture stream.
       print('[perf] buildFromDiscs 10000 discs: median=${medianMs.toStringAsFixed(1)}ms samples=$samples');
-    });
+    }, timeout: const Timeout(Duration(minutes: 2)));
   });
 }
