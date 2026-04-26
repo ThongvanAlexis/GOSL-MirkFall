@@ -5,7 +5,6 @@
 @Tags(<String>['soak'])
 library;
 
-import 'dart:async';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -578,28 +577,23 @@ void main() {
           chunkUrls: <String>[server.base.resolve('/nzl/part01').toString()],
         );
 
-        // Flip to ServeHappy after the first request lands on the wire
-        // — we need a little latency between the record and the flip so
-        // the first retry sees the new behaviour. A lightweight
-        // microtask polling loop keeps the test deterministic.
-        final Completer<void> flippedCompleter = Completer<void>();
-        Future<void>.microtask(() async {
-          while (!flippedCompleter.isCompleted) {
-            if (server.recordedRequests.isNotEmpty) {
-              server.behaviour = const ServeHappy();
-              flippedCompleter.complete();
-              return;
-            }
-            await Future<void>.delayed(const Duration(milliseconds: 20));
-          }
-        });
+        // Flip to ServeHappy SYNCHRONOUSLY the moment the first request
+        // is recorded. FakeHttpServer snapshots [behaviour] BEFORE firing
+        // this hook, so request #1 still observes
+        // ServeDropConnectionAfterBytes (drops mid-stream); request #2+
+        // see the freshly-set ServeHappy and complete normally. The
+        // previous post-hoc 20 ms polling microtask was racing the
+        // Duration.zero retry on slow CI runners and timing out at 60 s.
+        bool firstRequestSeen = false;
+        server.onRequestRecorded = (RecordedRequest _) {
+          if (firstRequestSeen) return;
+          firstRequestSeen = true;
+          server.behaviour = const ServeHappy();
+        };
 
         final Future<DownloadState> done = h.controller.stateStream.firstWhere((DownloadState s) => s is DownloadCompleted);
         await h.controller.enqueueCountry(entry);
         await done;
-        if (!flippedCompleter.isCompleted) {
-          flippedCompleter.complete();
-        }
 
         // At least two server hits: the dropped one + the retry.
         expect(server.recordedRequests.length, greaterThanOrEqualTo(2), reason: 'retry path must have produced a second request after the mid-stream drop');

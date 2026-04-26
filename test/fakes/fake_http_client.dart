@@ -62,6 +62,15 @@ class FakeHttpServer {
   /// to assert on retry + resume semantics.
   final List<RecordedRequest> recordedRequests = <RecordedRequest>[];
 
+  /// Synchronous hook fired immediately after a request is recorded and
+  /// BEFORE the current [behaviour] is read for response shaping. Tests
+  /// use this to flip [behaviour] deterministically as a side-effect of
+  /// the very first request landing — eliminates timer-based polling
+  /// races (Plan 08-rev row #33 drop_then_retry was flaking on slow CI
+  /// runners because the post-hoc 20 ms polling microtask sometimes lost
+  /// against the immediate Duration.zero retry).
+  void Function(RecordedRequest record)? onRequestRecorded;
+
   /// The base URL the HTTP client should target.
   Uri get base => Uri.parse('http://${_inner.address.host}:${_inner.port}');
 
@@ -76,9 +85,15 @@ class FakeHttpServer {
 
   Future<shelf.Response> _handle(shelf.Request req) async {
     final String? rangeHeader = req.headers['range'];
-    recordedRequests.add(RecordedRequest(method: req.method, path: req.requestedUri.path, rangeHeader: rangeHeader));
-
+    final RecordedRequest record = RecordedRequest(method: req.method, path: req.requestedUri.path, rangeHeader: rangeHeader);
+    recordedRequests.add(record);
+    // Snapshot the behaviour BEFORE firing the hook so the current
+    // request still sees the pre-hook behaviour. Hooks may mutate
+    // [behaviour] for subsequent requests; this ordering lets tests
+    // implement a clean "drop on first request, serve happy from
+    // request #2 onward" pattern without timer polling.
     final FakeServerBehaviour current = behaviour;
+    onRequestRecorded?.call(record);
     switch (current) {
       case ServeHappy():
         return _serveHappy(rangeHeader);
