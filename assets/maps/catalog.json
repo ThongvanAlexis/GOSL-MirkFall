@@ -1261,6 +1261,21 @@
       }
     },
     {
+      "alpha3": "frm",
+      "name": "France-melun",
+      "parts": [
+        {
+          "sha256": "6bc39c03501d99dadc5c08994663fd07cdb18f6149fb5425c2aa933c7b09ddf1",
+          "size": 4176302,
+          "url": "https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/frm.part01"
+        }
+      ],
+      "reassembled": {
+        "sha256": "6bc39c03501d99dadc5c08994663fd07cdb18f6149fb5425c2aa933c7b09ddf1",
+        "size": 4176302
+      }
+    },
+    {
       "alpha3": "fro",
       "name": "Faroe Islands",
       "parts": [
@@ -3996,7 +4011,7 @@
       }
     }
   ],
-  "generated_at": "2026-04-20T18:35:13Z",
+  "generated_at": "2026-04-26T08:17:41Z",
   "max_zoom": 15,
   "release_tag": "v20260419",
   "source_pmtiles": "20260419.pmtiles"
