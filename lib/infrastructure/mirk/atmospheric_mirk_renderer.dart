@@ -140,6 +140,12 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// Cached SDF image. Rebuilt when disc-list or viewport hash changes.
   ui.Image? _sdfImage;
 
+  /// The viewport the current [_sdfImage] was built for. Used by
+  /// [_computeSdfRect] to map the SDF onto the current viewport each
+  /// frame so the reveal stays pinned at its true lat/lon position
+  /// during pan/zoom instead of sliding with the viewport.
+  MirkViewportBbox? _sdfViewport;
+
   /// Whether an SDF rebuild is currently in flight. Prevents redundant
   /// concurrent rebuilds when paint is called many times during the
   /// async build window.
@@ -397,9 +403,9 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       boundaryEdgeBand: t.boundaryEdgeBand,
       boundaryDensityBoost: t.boundaryDensityBoost,
       // SDF rect: shader maps screen-normalised [0,1] uv to SDF uv via
-      // (uv - rect.xy) / rect.zw. Default fills the full screen, which
-      // is correct because the SDF was built for the entire viewport.
-      sdfRect: const (0.0, 0.0, 1.0, 1.0),
+      // (uv - rect.xy) / rect.zw. Dynamically computed to pin the SDF
+      // at its true lat/lon position during pan/zoom (BUG-012 follow-up).
+      sdfRect: _computeSdfRect(context.viewportBbox),
       sdfImage: sdf,
     );
 
@@ -497,6 +503,9 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// picks it up on the shader path.
   void _triggerSdfRebuild(List<RevealDisc> discs, MirkViewportBbox viewport) {
     _sdfBuildInFlight = true;
+    // Capture the viewport at trigger time so we can pin the SDF to its
+    // true lat/lon position when the build completes (BUG-012 follow-up).
+    final viewportForThisBuild = viewport;
     _log.fine('_triggerSdfRebuild: scheduling rebuild (discs=${discs.length})');
     _sdfBuilder
         .buildFromDiscs(discs: discs, viewport: viewport)
@@ -507,6 +516,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
           }
           _sdfImage?.dispose();
           _sdfImage = image;
+          _sdfViewport = viewportForThisBuild;
           _log.fine('_triggerSdfRebuild: rebuild complete — _sdfImage now set (${image.width}x${image.height})');
         })
         .catchError((Object e, StackTrace st) {
@@ -515,6 +525,30 @@ class AtmosphericMirkRenderer implements MirkRenderer {
         .whenComplete(() {
           _sdfBuildInFlight = false;
         });
+  }
+
+  /// Maps the SDF's reference viewport onto the current viewport's
+  /// screen-normalised [0,1] space. Returns `(originX, originY, sizeX,
+  /// sizeY)` for `uSdfRect`.
+  ///
+  /// When the viewport hasn't moved since the SDF was built, returns
+  /// `(0, 0, 1, 1)` — the existing behaviour. When the viewport pans,
+  /// the origin shifts. When the viewport zooms, the size scales. The
+  /// shader's `clamp(sdfUv, 0.0, 1.0)` ensures pixels outside the
+  /// SDF's coverage read as all-fog.
+  (double, double, double, double) _computeSdfRect(MirkViewportBbox currentViewport) {
+    final sdfVp = _sdfViewport;
+    if (sdfVp == null) return (0.0, 0.0, 1.0, 1.0);
+    final dLon = currentViewport.east - currentViewport.west;
+    final dLat = currentViewport.north - currentViewport.south;
+    if (dLon == 0 || dLat == 0) return (0.0, 0.0, 1.0, 1.0);
+    // X axis: longitude. SDF west edge -> screen UV.x, SDF east edge -> screen UV.x.
+    final x0 = (sdfVp.west - currentViewport.west) / dLon;
+    final xSize = (sdfVp.east - sdfVp.west) / dLon;
+    // Y axis: latitude. North -> top (y=0), south -> bottom (y=1).
+    final y0 = (currentViewport.north - sdfVp.north) / dLat;
+    final ySize = (sdfVp.north - sdfVp.south) / dLat;
+    return (x0, y0, xSize, ySize);
   }
 
   /// FNV-1a hash of the disc list (id + lat + lon + radius per entry).
@@ -566,6 +600,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     _shader = null;
     _sdfImage?.dispose();
     _sdfImage = null;
+    _sdfViewport = null;
     _wispSystem.clear();
     _previousDiscIdSet = <String>{};
   }

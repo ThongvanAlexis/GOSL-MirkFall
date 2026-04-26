@@ -21,3 +21,5 @@ Applied to both `atmospheric_mirk_renderer.dart` and `heavenly_clouds_mirk_rende
 ## Trade-off
 
 During a pan gesture, the revealed area "slides" slightly because the old SDF was built for the pre-gesture viewport. This is cosmetically imperfect but dramatically better than the strobe. A future spatial-index optimisation (TODO at `revealed_sdf_builder.dart:103`) that brings build time to sub-16 ms would allow per-frame rebuilds and eliminate both the strobe and the slide.
+
+**Follow-up fix:** Added dynamic `sdfRect` computation — track which viewport the SDF was built for (`_sdfViewport`) and map it onto the current viewport each frame. The reveal now stays pinned at its true lat/lon position during pan/zoom instead of sliding with the viewport.
