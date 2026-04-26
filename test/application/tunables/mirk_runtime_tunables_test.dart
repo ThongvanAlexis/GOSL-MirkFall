@@ -42,6 +42,17 @@ void main() {
       expect(t.boundaryBleedDistance, kMirkFogBoundaryBleedDistance);
       expect(t.boundaryEdgeBand, kMirkFogBoundaryEdgeBand);
       expect(t.debugOutputDensity, kMirkFogDebugOutputDensity);
+      expect(t.curlScaleAnimationEnabled, kMirkFogCurlScaleAnimationDefaultEnabled);
+      expect(t.curlScaleAnimationPeriodSec, kMirkFogCurlScaleAnimationPeriodSec);
+      expect(t.curlScaleAnimationMin, kMirkFogCurlScaleAnimationMin);
+      expect(t.curlScaleAnimationMax, kMirkFogCurlScaleAnimationMax);
+    });
+
+    test('curlScaleAnimationEnabled defaults to true (UAT 2026-04-26 — animation on by default)', () {
+      // Explicit assertion that the user-visible default flips animation
+      // ON without any prefs/migration. The default flowing through the
+      // tunables is the contract the renderers depend on.
+      expect(MirkRuntimeTunables.instance.curlScaleAnimationEnabled, isTrue);
     });
   });
 
@@ -94,6 +105,21 @@ void main() {
       MirkRuntimeTunables.instance.debugOutputDensity = true; // no-op
       expect(MirkRuntimeTunables.instance.debugOutputDensity, true);
       expect(notifyCount, 1);
+    });
+
+    test('curlScaleAnimationEnabled bool setter toggles + notifies', () {
+      var notifyCount = 0;
+      void listener() => notifyCount++;
+      MirkRuntimeTunables.instance.addListener(listener);
+      addTearDown(() => MirkRuntimeTunables.instance.removeListener(listener));
+
+      // Default is true (kMirkFogCurlScaleAnimationDefaultEnabled). Flip
+      // to false → notify; flip back → notify; same-value write → no-op.
+      MirkRuntimeTunables.instance.curlScaleAnimationEnabled = false;
+      MirkRuntimeTunables.instance.curlScaleAnimationEnabled = true;
+      MirkRuntimeTunables.instance.curlScaleAnimationEnabled = true; // no-op
+      expect(MirkRuntimeTunables.instance.curlScaleAnimationEnabled, isTrue);
+      expect(notifyCount, 2);
     });
   });
 
@@ -156,6 +182,10 @@ void main() {
       expect(json['boundaryBleedDistance'], kMirkFogBoundaryBleedDistance);
       expect(json['boundaryEdgeBand'], kMirkFogBoundaryEdgeBand);
       expect(json['debugOutputDensity'], kMirkFogDebugOutputDensity);
+      expect(json['curlScaleAnimationEnabled'], kMirkFogCurlScaleAnimationDefaultEnabled);
+      expect(json['curlScaleAnimationPeriodSec'], kMirkFogCurlScaleAnimationPeriodSec);
+      expect(json['curlScaleAnimationMin'], kMirkFogCurlScaleAnimationMin);
+      expect(json['curlScaleAnimationMax'], kMirkFogCurlScaleAnimationMax);
     });
 
     test('mutating a field is reflected in toJson output', () {

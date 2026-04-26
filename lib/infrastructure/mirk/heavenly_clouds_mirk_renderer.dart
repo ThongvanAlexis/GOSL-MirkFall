@@ -16,6 +16,7 @@ import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 
+import 'animation_helpers.dart';
 import 'mirk_projection.dart';
 import 'noise/simplex_noise_2d.dart';
 import 'sdf/revealed_sdf_builder.dart';
@@ -241,6 +242,11 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     // Read every shader uniform from [MirkRuntimeTunables.instance] (see
     // atmospheric renderer for rationale).
     final t = MirkRuntimeTunables.instance;
+    // Effective curlScale: triangle-wave animation by default — same
+    // helper as atmospheric so both palettes breathe in lockstep.
+    final double effectiveCurlScale = t.curlScaleAnimationEnabled
+        ? triangleWave(tSec: tSec, period: t.curlScaleAnimationPeriodSec, minV: t.curlScaleAnimationMin, maxV: t.curlScaleAnimationMax)
+        : t.curlScale;
     FogShaderUniforms.setAll(
       shader,
       resolution: size,
@@ -265,7 +271,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
       opacityMid: t.opacityMid,
       opacityNear: t.opacityNear,
       curlAmplitude: t.curlAmplitude,
-      curlScale: t.curlScale,
+      curlScale: effectiveCurlScale,
       lightDirRadians: t.lightDirRadians,
       lightOffset: t.lightOffset,
       lightStrength: t.lightStrength,

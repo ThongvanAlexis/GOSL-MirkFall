@@ -585,6 +585,28 @@ const double kMirkFogCurlAmplitude = 1.0;
 // 2026-04-26: baked from live tuner walk N+M
 const double kMirkFogCurlScale = 0.8;
 
+/// Default state of the curlScale auto-animation. The 2026-04-26 UAT
+/// walk concluded that the slowly varying curlScale produces a
+/// significantly more "alive" volumetric look than any static value, so
+/// the animation is on by default. The dev tuner exposes a toggle to
+/// fall back to the static [kMirkFogCurlScale] when needed.
+const bool kMirkFogCurlScaleAnimationDefaultEnabled = true;
+
+/// Full period (seconds) of the curlScale triangle-wave animation. 20 s
+/// = `0 → 10 → 0` once every 20 seconds (rate ±1.0/sec). Slow enough that
+/// the eye reads it as a living mass rather than flickering noise.
+const double kMirkFogCurlScaleAnimationPeriodSec = 20.0;
+
+/// Minimum value of the curlScale triangle-wave animation. 0.0 is the
+/// "no curl noise warp at all" extremum — paired with
+/// [kMirkFogCurlAmplitude] the fog momentarily flattens into pure
+/// FBM-density before swelling back into the fully-warped state.
+const double kMirkFogCurlScaleAnimationMin = 0.0;
+
+/// Maximum value of the curlScale triangle-wave animation. 10.0 is the
+/// upper extremum where the curl-warp reads as fully active eddy field.
+const double kMirkFogCurlScaleAnimationMax = 10.0;
+
 // Faux directional shading — the single highest-leverage trick for
 // "feels volumetric" (Reference 6 + 10). Sample density at the pixel
 // AND at `pixel + lightDir * offset`. The delta modulates brightness.

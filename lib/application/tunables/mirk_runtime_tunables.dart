@@ -205,6 +205,46 @@ class MirkRuntimeTunables extends ChangeNotifier {
   }
 
   // -----------------------------------------------------------------
+  // Curl-scale auto-animation. The 2026-04-26 UAT walk discovered that
+  // slowly varying curlScale produces a "really alive" volumetric look,
+  // so a triangle-wave oscillation [animMin..animMax] over [animPeriod]
+  // seconds is on by default. The static [curlScale] above acts as the
+  // fallback when [curlScaleAnimationEnabled] is false.
+  // -----------------------------------------------------------------
+
+  bool _curlScaleAnimationEnabled = kMirkFogCurlScaleAnimationDefaultEnabled;
+  bool get curlScaleAnimationEnabled => _curlScaleAnimationEnabled;
+  set curlScaleAnimationEnabled(bool v) {
+    if (_curlScaleAnimationEnabled == v) return;
+    _curlScaleAnimationEnabled = v;
+    notifyListeners();
+  }
+
+  double _curlScaleAnimationPeriodSec = kMirkFogCurlScaleAnimationPeriodSec;
+  double get curlScaleAnimationPeriodSec => _curlScaleAnimationPeriodSec;
+  set curlScaleAnimationPeriodSec(double v) {
+    if (_curlScaleAnimationPeriodSec == v) return;
+    _curlScaleAnimationPeriodSec = v;
+    notifyListeners();
+  }
+
+  double _curlScaleAnimationMin = kMirkFogCurlScaleAnimationMin;
+  double get curlScaleAnimationMin => _curlScaleAnimationMin;
+  set curlScaleAnimationMin(double v) {
+    if (_curlScaleAnimationMin == v) return;
+    _curlScaleAnimationMin = v;
+    notifyListeners();
+  }
+
+  double _curlScaleAnimationMax = kMirkFogCurlScaleAnimationMax;
+  double get curlScaleAnimationMax => _curlScaleAnimationMax;
+  set curlScaleAnimationMax(double v) {
+    if (_curlScaleAnimationMax == v) return;
+    _curlScaleAnimationMax = v;
+    notifyListeners();
+  }
+
+  // -----------------------------------------------------------------
   // Faux directional shading.
   // -----------------------------------------------------------------
 
@@ -321,6 +361,10 @@ class MirkRuntimeTunables extends ChangeNotifier {
       'boundarySharpDistance': _boundarySharpDistance,
       'curlAmplitude': _curlAmplitude,
       'curlScale': _curlScale,
+      'curlScaleAnimationEnabled': _curlScaleAnimationEnabled,
+      'curlScaleAnimationMax': _curlScaleAnimationMax,
+      'curlScaleAnimationMin': _curlScaleAnimationMin,
+      'curlScaleAnimationPeriodSec': _curlScaleAnimationPeriodSec,
       'debugOutputDensity': _debugOutputDensity,
       'heavenlyDriftZFar': _heavenlyDriftZFar,
       'heavenlyDriftZMid': _heavenlyDriftZMid,
@@ -360,6 +404,10 @@ class MirkRuntimeTunables extends ChangeNotifier {
     _opacityNear = kMirkFogOpacityNear;
     _curlAmplitude = kMirkFogCurlAmplitude;
     _curlScale = kMirkFogCurlScale;
+    _curlScaleAnimationEnabled = kMirkFogCurlScaleAnimationDefaultEnabled;
+    _curlScaleAnimationPeriodSec = kMirkFogCurlScaleAnimationPeriodSec;
+    _curlScaleAnimationMin = kMirkFogCurlScaleAnimationMin;
+    _curlScaleAnimationMax = kMirkFogCurlScaleAnimationMax;
     _lightDirRadians = kMirkFogLightDirRadians;
     _lightOffset = kMirkFogLightOffset;
     _lightStrength = kMirkFogLightStrength;

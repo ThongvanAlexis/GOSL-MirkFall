@@ -16,6 +16,7 @@ import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 
+import 'animation_helpers.dart';
 import 'mirk_projection.dart';
 import 'noise/simplex_noise_2d.dart';
 import 'sdf/revealed_sdf_builder.dart';
@@ -365,6 +366,13 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     // defaults; production builds with the tuner closed see byte-identical
     // output.
     final t = MirkRuntimeTunables.instance;
+    // Effective curlScale: triangle-wave animation by default (UAT
+    // 2026-04-26 — slowly varying curlScale gives the fog a "really
+    // alive" volumetric feel). Falls back to the static t.curlScale
+    // when the dev tuner toggles the animation off.
+    final double effectiveCurlScale = t.curlScaleAnimationEnabled
+        ? triangleWave(tSec: tSec, period: t.curlScaleAnimationPeriodSec, minV: t.curlScaleAnimationMin, maxV: t.curlScaleAnimationMax)
+        : t.curlScale;
     FogShaderUniforms.setAll(
       shader,
       resolution: size,
@@ -384,7 +392,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       opacityMid: t.opacityMid,
       opacityNear: t.opacityNear,
       curlAmplitude: t.curlAmplitude,
-      curlScale: t.curlScale,
+      curlScale: effectiveCurlScale,
       lightDirRadians: t.lightDirRadians,
       lightOffset: t.lightOffset,
       lightStrength: t.lightStrength,
