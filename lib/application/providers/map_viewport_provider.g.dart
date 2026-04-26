@@ -86,8 +86,7 @@ final mapViewportProvider = MapViewportProvider._();
 /// `keepAlive: true` — bbox is a long-lived observable; tearing down the
 /// subscription when the drawer closes would drop events during the gap
 /// (same discipline as [`MapViewportZoom`]).
-final class MapViewportProvider
-    extends $NotifierProvider<MapViewport, MirkViewportBbox?> {
+final class MapViewportProvider extends $NotifierProvider<MapViewport, MirkViewportBbox?> {
   /// Current MapLibre viewport bounds as a [MirkViewportBbox], or null
   /// until the MapView is ready and the first viewport bounds settle.
   ///
@@ -126,15 +125,7 @@ final class MapViewportProvider
   /// subscription when the drawer closes would drop events during the gap
   /// (same discipline as [`MapViewportZoom`]).
   MapViewportProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'mapViewportProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+    : super(from: null, argument: null, retry: null, name: r'mapViewportProvider', isAutoDispose: false, dependencies: null, $allTransitiveDependencies: null);
 
   @override
   String debugGetCreateSourceHash() => _$mapViewportHash();
@@ -145,10 +136,7 @@ final class MapViewportProvider
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(MirkViewportBbox? value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<MirkViewportBbox?>(value),
-    );
+    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<MirkViewportBbox?>(value));
   }
 }
 
@@ -198,14 +186,7 @@ abstract class _$MapViewport extends $Notifier<MirkViewportBbox?> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<MirkViewportBbox?, MirkViewportBbox?>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<MirkViewportBbox?, MirkViewportBbox?>,
-              MirkViewportBbox?,
-              Object?,
-              Object?
-            >;
+    final element = ref.element as $ClassProviderElement<AnyNotifier<MirkViewportBbox?, MirkViewportBbox?>, MirkViewportBbox?, Object?, Object?>;
     element.handleCreate(ref, build);
   }
 }

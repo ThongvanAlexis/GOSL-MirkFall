@@ -48,10 +48,7 @@ void main() {
         )
         .get();
     final names = rows.map((r) => r.read<String>('name')).toList();
-    expect(
-      names,
-      containsAll(<String>['t_marker_categories', 't_markers', 't_mirk_styles', 't_photos', 't_revealed_disc', 't_revealed_tiles', 't_sessions']),
-    );
+    expect(names, containsAll(<String>['t_marker_categories', 't_markers', 't_mirk_styles', 't_photos', 't_revealed_disc', 't_revealed_tiles', 't_sessions']));
   });
 
   test('SESS-06: idx_t_sessions_status_active partial unique index exists', () async {

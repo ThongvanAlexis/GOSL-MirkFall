@@ -159,12 +159,6 @@ class DriftRevealedDiscStore implements RevealedDiscStore {
     return false;
   }
 
-  RevealDisc _hydrate(RevealedDiscRow row) => RevealDisc(
-    id: row.id,
-    sessionId: row.sessionId,
-    lat: row.lat,
-    lon: row.lon,
-    radiusMeters: row.radiusMeters,
-    fixedAtUtc: row.fixedAtUtc,
-  );
+  RevealDisc _hydrate(RevealedDiscRow row) =>
+      RevealDisc(id: row.id, sessionId: row.sessionId, lat: row.lat, lon: row.lon, radiusMeters: row.radiusMeters, fixedAtUtc: row.fixedAtUtc);
 }

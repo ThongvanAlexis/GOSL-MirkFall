@@ -17,8 +17,7 @@ part of 'session_notification_service_provider.dart';
 /// subscription would be wasted work with no observable benefit.
 
 @ProviderFor(sessionNotificationService)
-final sessionNotificationServiceProvider =
-    SessionNotificationServiceProvider._();
+final sessionNotificationServiceProvider = SessionNotificationServiceProvider._();
 
 /// Production [SessionNotificationService] — wraps a
 /// [`FlutterLocalNotificationsAdapter`] around the
@@ -28,13 +27,7 @@ final sessionNotificationServiceProvider =
 /// process-long singleton; re-creating the service on every consumer
 /// subscription would be wasted work with no observable benefit.
 
-final class SessionNotificationServiceProvider
-    extends
-        $FunctionalProvider<
-          SessionNotificationService,
-          SessionNotificationService,
-          SessionNotificationService
-        >
+final class SessionNotificationServiceProvider extends $FunctionalProvider<SessionNotificationService, SessionNotificationService, SessionNotificationService>
     with $Provider<SessionNotificationService> {
   /// Production [SessionNotificationService] — wraps a
   /// [`FlutterLocalNotificationsAdapter`] around the
@@ -59,9 +52,7 @@ final class SessionNotificationServiceProvider
 
   @$internal
   @override
-  $ProviderElement<SessionNotificationService> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
+  $ProviderElement<SessionNotificationService> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
 
   @override
   SessionNotificationService create(Ref ref) {
@@ -70,12 +61,8 @@ final class SessionNotificationServiceProvider
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(SessionNotificationService value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<SessionNotificationService>(value),
-    );
+    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<SessionNotificationService>(value));
   }
 }
 
-String _$sessionNotificationServiceHash() =>
-    r'fa2ae76b5de9f57b9892608baef6c4a9aa073269';
+String _$sessionNotificationServiceHash() => r'fa2ae76b5de9f57b9892608baef6c4a9aa073269';

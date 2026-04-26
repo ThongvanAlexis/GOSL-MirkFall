@@ -24,8 +24,7 @@ part of 'mirk_style_session_controller_provider.dart';
 /// store-wrapping providers in the Phase 03/05 graph.
 
 @ProviderFor(mirkStyleSessionController)
-final mirkStyleSessionControllerProvider =
-    MirkStyleSessionControllerProvider._();
+final mirkStyleSessionControllerProvider = MirkStyleSessionControllerProvider._();
 
 /// Production [MirkStyleSessionController] — wires the controller with
 /// [`sessionStoreProvider`], [`mirkStyleStoreProvider`], and an
@@ -43,15 +42,8 @@ final mirkStyleSessionControllerProvider =
 /// store-wrapping providers in the Phase 03/05 graph.
 
 final class MirkStyleSessionControllerProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<MirkStyleSessionController>,
-          MirkStyleSessionController,
-          FutureOr<MirkStyleSessionController>
-        >
-    with
-        $FutureModifier<MirkStyleSessionController>,
-        $FutureProvider<MirkStyleSessionController> {
+    extends $FunctionalProvider<AsyncValue<MirkStyleSessionController>, MirkStyleSessionController, FutureOr<MirkStyleSessionController>>
+    with $FutureModifier<MirkStyleSessionController>, $FutureProvider<MirkStyleSessionController> {
   /// Production [MirkStyleSessionController] — wires the controller with
   /// [`sessionStoreProvider`], [`mirkStyleStoreProvider`], and an
   /// `invalidateRenderer` callback that invalidates
@@ -82,9 +74,7 @@ final class MirkStyleSessionControllerProvider
 
   @$internal
   @override
-  $FutureProviderElement<MirkStyleSessionController> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $FutureProviderElement<MirkStyleSessionController> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<MirkStyleSessionController> create(Ref ref) {
@@ -92,5 +82,4 @@ final class MirkStyleSessionControllerProvider
   }
 }
 
-String _$mirkStyleSessionControllerHash() =>
-    r'9985b6dbf61c0336f0b31457bc03727443bb97aa';
+String _$mirkStyleSessionControllerHash() => r'9985b6dbf61c0336f0b31457bc03727443bb97aa';

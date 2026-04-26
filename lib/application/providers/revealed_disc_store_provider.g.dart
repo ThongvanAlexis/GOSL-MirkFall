@@ -31,16 +31,8 @@ final revealedDiscStoreProvider = RevealedDiscStoreProvider._();
 /// `keepAlive: true` matches `revealedTileStoreProvider` — the store is a
 /// process singleton riding on top of the singleton `appDatabaseProvider`.
 
-final class RevealedDiscStoreProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<RevealedDiscStore>,
-          RevealedDiscStore,
-          FutureOr<RevealedDiscStore>
-        >
-    with
-        $FutureModifier<RevealedDiscStore>,
-        $FutureProvider<RevealedDiscStore> {
+final class RevealedDiscStoreProvider extends $FunctionalProvider<AsyncValue<RevealedDiscStore>, RevealedDiscStore, FutureOr<RevealedDiscStore>>
+    with $FutureModifier<RevealedDiscStore>, $FutureProvider<RevealedDiscStore> {
   /// Production [RevealedDiscStore] — wraps [DriftRevealedDiscStore] around
   /// the app database. No id generator dependency: every reveal disc id is
   /// minted at the call site (typically the GPS pipeline, BUG-010 Commit 4)
@@ -66,9 +58,7 @@ final class RevealedDiscStoreProvider
 
   @$internal
   @override
-  $FutureProviderElement<RevealedDiscStore> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $FutureProviderElement<RevealedDiscStore> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<RevealedDiscStore> create(Ref ref) {

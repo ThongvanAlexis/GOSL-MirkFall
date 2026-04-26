@@ -35,14 +35,7 @@ RevealDisc _disc({
   double lon = 2.3522,
   double radiusMeters = 25.0,
   DateTime? fixedAtUtc,
-}) => RevealDisc(
-  id: id,
-  sessionId: sessionId,
-  lat: lat,
-  lon: lon,
-  radiusMeters: radiusMeters,
-  fixedAtUtc: fixedAtUtc ?? DateTime.utc(2026, 4, 26, 12),
-);
+}) => RevealDisc(id: id, sessionId: sessionId, lat: lat, lon: lon, radiusMeters: radiusMeters, fixedAtUtc: fixedAtUtc ?? DateTime.utc(2026, 4, 26, 12));
 
 void main() {
   late AppDatabase db;
@@ -95,11 +88,7 @@ void main() {
       await store.addDisc(_disc(id: 'rvd_01HRDISCORDERC00000000000A', sessionId: sessionId, fixedAtUtc: DateTime.utc(2026, 4, 26, 12, 1)));
 
       final rows = await store.discsForSession(sessionId);
-      expect(rows.map((d) => d.id).toList(), <String>[
-        'rvd_01HRDISCORDERA00000000000A',
-        'rvd_01HRDISCORDERB00000000000A',
-        'rvd_01HRDISCORDERC00000000000A',
-      ]);
+      expect(rows.map((d) => d.id).toList(), <String>['rvd_01HRDISCORDERA00000000000A', 'rvd_01HRDISCORDERB00000000000A', 'rvd_01HRDISCORDERC00000000000A']);
     });
   });
 
@@ -138,9 +127,7 @@ void main() {
       // Centre is just south of the bbox south edge, but a 200 m radius
       // bleeds inside the bbox — `intersectsBbox` is centre±radius, so
       // this counts as a hit even though the centre itself is outside.
-      await store.addDisc(
-        _disc(id: 'rvd_01HRDISCBBOXSTRADDLE000AA', sessionId: sessionId, lat: 48.799, lon: 2.36, radiusMeters: 200.0),
-      );
+      await store.addDisc(_disc(id: 'rvd_01HRDISCBBOXSTRADDLE000AA', sessionId: sessionId, lat: 48.799, lon: 2.36, radiusMeters: 200.0));
 
       final hits = await store.discsInBbox(sessionId: sessionId, bbox: parisBbox);
       expect(hits, hasLength(1));
@@ -180,14 +167,7 @@ void main() {
       // contained in any other.
       const double lonStepDeg = 30.0 / 73225.0; // ≈ 0.000410°
       for (int i = 0; i < 5; i++) {
-        await store.addDisc(
-          _disc(
-            id: 'rvd_01HRDISCWALK${i.toString().padLeft(13, '0')}A',
-            sessionId: sessionId,
-            lat: 48.86,
-            lon: 2.36 + i * lonStepDeg,
-          ),
-        );
+        await store.addDisc(_disc(id: 'rvd_01HRDISCWALK${i.toString().padLeft(13, '0')}A', sessionId: sessionId, lat: 48.86, lon: 2.36 + i * lonStepDeg));
       }
 
       final dropped = await store.compactSession(sessionId);

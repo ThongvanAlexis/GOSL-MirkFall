@@ -67,13 +67,7 @@ final activeMirkRendererProvider = ActiveMirkRendererProvider._();
 ///   `ref.invalidate(activeMirkRendererProvider)` to force a swap when
 ///   the user picks a new style mid-session.
 
-final class ActiveMirkRendererProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<MirkRenderer>,
-          MirkRenderer,
-          FutureOr<MirkRenderer>
-        >
+final class ActiveMirkRendererProvider extends $FunctionalProvider<AsyncValue<MirkRenderer>, MirkRenderer, FutureOr<MirkRenderer>>
     with $FutureModifier<MirkRenderer>, $FutureProvider<MirkRenderer> {
   /// Resolves the currently-active [MirkRenderer] for the active session.
   ///
@@ -118,9 +112,7 @@ final class ActiveMirkRendererProvider
 
   @$internal
   @override
-  $FutureProviderElement<MirkRenderer> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $FutureProviderElement<MirkRenderer> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<MirkRenderer> create(Ref ref) {
@@ -128,5 +120,4 @@ final class ActiveMirkRendererProvider
   }
 }
 
-String _$activeMirkRendererHash() =>
-    r'43292ee205f809e3a4827182ec1c20600001a047';
+String _$activeMirkRendererHash() => r'43292ee205f809e3a4827182ec1c20600001a047';

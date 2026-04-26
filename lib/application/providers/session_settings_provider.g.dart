@@ -40,8 +40,7 @@ final sessionSettingsProvider = SessionSettingsProvider._();
 /// persists to SharedPreferences and updates `state` in the same
 /// transaction so subscribers see the new value synchronously on the
 /// next frame.
-final class SessionSettingsProvider
-    extends $AsyncNotifierProvider<SessionSettings, SessionSettingsSnapshot> {
+final class SessionSettingsProvider extends $AsyncNotifierProvider<SessionSettings, SessionSettingsSnapshot> {
   /// Riverpod Notifier backing the SharedPreferences-persisted tracking
   /// settings: distanceFilter + one-shot flags (permission flow completed,
   /// OEM guidance seen).
@@ -92,25 +91,16 @@ String _$sessionSettingsHash() => r'19e1ef2c6275a26b1f7da8889d2d26cb98fa0ffd';
 /// transaction so subscribers see the new value synchronously on the
 /// next frame.
 
-abstract class _$SessionSettings
-    extends $AsyncNotifier<SessionSettingsSnapshot> {
+abstract class _$SessionSettings extends $AsyncNotifier<SessionSettingsSnapshot> {
   FutureOr<SessionSettingsSnapshot> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref
-            as $Ref<
-              AsyncValue<SessionSettingsSnapshot>,
-              SessionSettingsSnapshot
-            >;
+    final ref = this.ref as $Ref<AsyncValue<SessionSettingsSnapshot>, SessionSettingsSnapshot>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<SessionSettingsSnapshot>,
-                SessionSettingsSnapshot
-              >,
+              AnyNotifier<AsyncValue<SessionSettingsSnapshot>, SessionSettingsSnapshot>,
               AsyncValue<SessionSettingsSnapshot>,
               Object?,
               Object?

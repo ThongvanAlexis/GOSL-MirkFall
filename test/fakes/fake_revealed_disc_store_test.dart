@@ -15,14 +15,7 @@ RevealDisc _disc({
   double lon = 2.3522,
   double radiusMeters = 25.0,
   DateTime? fixedAtUtc,
-}) => RevealDisc(
-  id: id,
-  sessionId: sessionId,
-  lat: lat,
-  lon: lon,
-  radiusMeters: radiusMeters,
-  fixedAtUtc: fixedAtUtc ?? DateTime.utc(2026, 4, 26, 12),
-);
+}) => RevealDisc(id: id, sessionId: sessionId, lat: lat, lon: lon, radiusMeters: radiusMeters, fixedAtUtc: fixedAtUtc ?? DateTime.utc(2026, 4, 26, 12));
 
 void main() {
   late FakeRevealedDiscStore store;
@@ -73,9 +66,7 @@ void main() {
     // 2 walking discs (30 m east) at a different latitude.
     const double lonStepDeg = 30.0 / 73225.0;
     for (int i = 0; i < 2; i++) {
-      await store.addDisc(
-        _disc(id: 'rvd_01HRFAKECOMPACTWALK${i.toString().padLeft(5, '0')}', sessionId: sessionId, lat: 48.87, lon: 2.36 + i * lonStepDeg),
-      );
+      await store.addDisc(_disc(id: 'rvd_01HRFAKECOMPACTWALK${i.toString().padLeft(5, '0')}', sessionId: sessionId, lat: 48.87, lon: 2.36 + i * lonStepDeg));
     }
 
     final dropped = await store.compactSession(sessionId);

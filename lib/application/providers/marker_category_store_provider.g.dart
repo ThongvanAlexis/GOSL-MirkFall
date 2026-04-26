@@ -19,16 +19,8 @@ final markerCategoryStoreProvider = MarkerCategoryStoreProvider._();
 /// [`DriftMarkerCategoryStore`] around the app database. Carries the
 /// non-CASCADE reassign-to-default transactional policy.
 
-final class MarkerCategoryStoreProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<MarkerCategoryStore>,
-          MarkerCategoryStore,
-          FutureOr<MarkerCategoryStore>
-        >
-    with
-        $FutureModifier<MarkerCategoryStore>,
-        $FutureProvider<MarkerCategoryStore> {
+final class MarkerCategoryStoreProvider extends $FunctionalProvider<AsyncValue<MarkerCategoryStore>, MarkerCategoryStore, FutureOr<MarkerCategoryStore>>
+    with $FutureModifier<MarkerCategoryStore>, $FutureProvider<MarkerCategoryStore> {
   /// Production [MarkerCategoryStore] — wraps
   /// [`DriftMarkerCategoryStore`] around the app database. Carries the
   /// non-CASCADE reassign-to-default transactional policy.
@@ -48,9 +40,7 @@ final class MarkerCategoryStoreProvider
 
   @$internal
   @override
-  $FutureProviderElement<MarkerCategoryStore> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $FutureProviderElement<MarkerCategoryStore> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<MarkerCategoryStore> create(Ref ref) {
@@ -58,5 +48,4 @@ final class MarkerCategoryStoreProvider
   }
 }
 
-String _$markerCategoryStoreHash() =>
-    r'94ca7d9c8d399a22e79689d1c32442fc84e67120';
+String _$markerCategoryStoreHash() => r'94ca7d9c8d399a22e79689d1c32442fc84e67120';

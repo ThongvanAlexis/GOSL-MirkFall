@@ -46,14 +46,7 @@ void main() {
     String id = defaultId,
     String sessionId = defaultSessionId,
   }) {
-    return RevealDisc(
-      id: id,
-      sessionId: sessionId,
-      lat: lat,
-      lon: lon,
-      radiusMeters: radiusMeters,
-      fixedAtUtc: fixedAtUtc,
-    );
+    return RevealDisc(id: id, sessionId: sessionId, lat: lat, lon: lon, radiusMeters: radiusMeters, fixedAtUtc: fixedAtUtc);
   }
 
   // Convenience builder for the equality suite (where a vanilla canonical
@@ -248,13 +241,7 @@ void main() {
       final cos45 = math.cos(lat * math.pi / 180.0);
       final lonOffsetMetersToDeg = 1.0 / (111320.0 * cos45);
       final a = disc(lat: lat, lon: 0.0, radiusMeters: 25.0, fixedAtUtc: tEarly, id: 'rvd_AAA');
-      final b = disc(
-        lat: lat,
-        lon: 50.0 * lonOffsetMetersToDeg,
-        radiusMeters: 25.0,
-        fixedAtUtc: tLate,
-        id: 'rvd_BBB',
-      );
+      final b = disc(lat: lat, lon: 50.0 * lonOffsetMetersToDeg, radiusMeters: 25.0, fixedAtUtc: tLate, id: 'rvd_BBB');
       final d = a.distanceMetersTo(b.lat, b.lon);
       final merged = a.mergeWith(b);
       final expectedRadius = (d + 50.0) / 2.0;

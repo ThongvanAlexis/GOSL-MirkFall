@@ -48,14 +48,7 @@ class RevealDisc {
   /// the input order).
   final DateTime fixedAtUtc;
 
-  const RevealDisc({
-    required this.id,
-    required this.sessionId,
-    required this.lat,
-    required this.lon,
-    required this.radiusMeters,
-    required this.fixedAtUtc,
-  });
+  const RevealDisc({required this.id, required this.sessionId, required this.lat, required this.lon, required this.radiusMeters, required this.fixedAtUtc});
 
   /// Great-circle distance in metres between this disc's centre and the
   /// `(otherLat, otherLon)` point. Same Haversine formula used by
@@ -140,10 +133,7 @@ class RevealDisc {
   ///      assumption is asserted in the test suite via a known-fixture
   ///      check.
   RevealDisc mergeWith(RevealDisc other) {
-    assert(
-      sessionId == other.sessionId,
-      'RevealDisc.mergeWith: sessionId mismatch (this=$sessionId, other=${other.sessionId})',
-    );
+    assert(sessionId == other.sessionId, 'RevealDisc.mergeWith: sessionId mismatch (this=$sessionId, other=${other.sessionId})');
 
     final d = distanceMetersTo(other.lat, other.lon);
 
@@ -175,14 +165,7 @@ class RevealDisc {
     final earlier = _earlierOf(this, other);
     final mergedFixedAtUtc = fixedAtUtc.isBefore(other.fixedAtUtc) ? fixedAtUtc : other.fixedAtUtc;
 
-    return RevealDisc(
-      id: earlier.id,
-      sessionId: sessionId,
-      lat: newLat,
-      lon: newLon,
-      radiusMeters: newRadius,
-      fixedAtUtc: mergedFixedAtUtc,
-    );
+    return RevealDisc(id: earlier.id, sessionId: sessionId, lat: newLat, lon: newLon, radiusMeters: newRadius, fixedAtUtc: mergedFixedAtUtc);
   }
 
   @override
@@ -201,7 +184,8 @@ class RevealDisc {
   int get hashCode => Object.hash(id, sessionId, lat, lon, radiusMeters, fixedAtUtc);
 
   @override
-  String toString() => 'RevealDisc(id: $id, sessionId: $sessionId, lat: $lat, lon: $lon, '
+  String toString() =>
+      'RevealDisc(id: $id, sessionId: $sessionId, lat: $lat, lon: $lon, '
       'radiusMeters: $radiusMeters, fixedAtUtc: $fixedAtUtc)';
 }
 
