@@ -7,13 +7,15 @@ import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
 import 'package:mirkfall/config/constants.dart';
 
 /// Default initial size (fraction of screen height) for the tuner sheet.
-/// 0.55 leaves enough of the map visible above the sheet for the user to
-/// read changes without dismissing.
-const double _kInitialSheetSize = 0.55;
+/// Slightly under [_kMaxSheetSize] so the user has a visible drag affordance
+/// upward; the cap keeps the map readable above the sheet while scrubbing.
+const double _kInitialSheetSize = 0.45;
 
-/// Hard cap on sheet height — leaves a thin map strip even when fully
-/// expanded.
-const double _kMaxSheetSize = 0.92;
+/// Hard cap on sheet height — capped at half so the user always has a
+/// readable map area above the sheet. Sliders that don't fit scroll
+/// inside the sheet (the sheet's [DraggableScrollableSheet] gives its
+/// scroll controller to the inner ListView).
+const double _kMaxSheetSize = 0.50;
 
 /// Floor on sheet height. Below this the sheet should auto-dismiss; we
 /// keep it slightly above zero so the user can collapse the sheet to a
@@ -109,7 +111,7 @@ class _MirkTunerSheetContentState extends State<_MirkTunerSheetContent> {
                 value: MirkRuntimeTunables.instance.atmosphericScaleFar,
                 defaultValue: kMirkFogAtmosphericScaleFar,
                 min: 0.1,
-                max: 3.0,
+                max: 6.0,
                 onChanged: (v) => MirkRuntimeTunables.instance.atmosphericScaleFar = v,
               ),
               _slider(
@@ -117,7 +119,7 @@ class _MirkTunerSheetContentState extends State<_MirkTunerSheetContent> {
                 value: MirkRuntimeTunables.instance.atmosphericScaleMid,
                 defaultValue: kMirkFogAtmosphericScaleMid,
                 min: 0.1,
-                max: 5.0,
+                max: 10.0,
                 onChanged: (v) => MirkRuntimeTunables.instance.atmosphericScaleMid = v,
               ),
               _slider(
@@ -125,7 +127,7 @@ class _MirkTunerSheetContentState extends State<_MirkTunerSheetContent> {
                 value: MirkRuntimeTunables.instance.atmosphericScaleNear,
                 defaultValue: kMirkFogAtmosphericScaleNear,
                 min: 0.1,
-                max: 10.0,
+                max: 20.0,
                 onChanged: (v) => MirkRuntimeTunables.instance.atmosphericScaleNear = v,
               ),
               _section('Heavenly — Drift Z'),
@@ -159,7 +161,7 @@ class _MirkTunerSheetContentState extends State<_MirkTunerSheetContent> {
                 value: MirkRuntimeTunables.instance.heavenlyScaleFar,
                 defaultValue: kMirkFogHeavenlyScaleFar,
                 min: 0.1,
-                max: 3.0,
+                max: 6.0,
                 onChanged: (v) => MirkRuntimeTunables.instance.heavenlyScaleFar = v,
               ),
               _slider(
@@ -167,7 +169,7 @@ class _MirkTunerSheetContentState extends State<_MirkTunerSheetContent> {
                 value: MirkRuntimeTunables.instance.heavenlyScaleMid,
                 defaultValue: kMirkFogHeavenlyScaleMid,
                 min: 0.1,
-                max: 5.0,
+                max: 10.0,
                 onChanged: (v) => MirkRuntimeTunables.instance.heavenlyScaleMid = v,
               ),
               _slider(
@@ -175,7 +177,7 @@ class _MirkTunerSheetContentState extends State<_MirkTunerSheetContent> {
                 value: MirkRuntimeTunables.instance.heavenlyScaleNear,
                 defaultValue: kMirkFogHeavenlyScaleNear,
                 min: 0.1,
-                max: 10.0,
+                max: 20.0,
                 onChanged: (v) => MirkRuntimeTunables.instance.heavenlyScaleNear = v,
               ),
               _section('Opacités (poids des octaves)'),
