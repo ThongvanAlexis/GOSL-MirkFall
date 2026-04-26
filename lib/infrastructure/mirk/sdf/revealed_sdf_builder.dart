@@ -3,6 +3,7 @@
 // See LICENSE file for details
 
 import 'dart:async' show Completer;
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -10,6 +11,7 @@ import 'package:logging/logging.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
 final Logger _log = Logger('infrastructure.mirk.sdf');
 
@@ -158,6 +160,140 @@ class RevealedSdfBuilder {
     ui.decodeImageFromPixels(pixels, n, n, ui.PixelFormat.rgba8888, completer.complete);
     final image = await completer.future;
     _log.fine('build(): done in ${stopwatch.elapsedMilliseconds}ms — ui.Image ${image.width}x${image.height}');
+    return image;
+  }
+
+  /// Builds an SDF `ui.Image` directly from a list of [RevealDisc]s — the
+  /// continuous-geometry replacement for the chamfer/bitmap path used by
+  /// [build]. The returned image follows the SAME byte encoding as [build]
+  /// (R-channel, midpoint-128, distance scaled to `[0..255]` via
+  /// `distMaxPixels = resolution * 0.5`) so the consuming shader needs no
+  /// change.
+  ///
+  /// Algorithm (analytic, no chamfer):
+  ///
+  ///   1. Empty `discs` → return all-fog SDF (`_emptySdfImage()`).
+  ///   2. For each disc whose extent intersects [viewport]:
+  ///       a. Project its centre to seed-grid coordinates.
+  ///       b. Convert its `radiusMeters` to seed-grid pixels via the
+  ///          viewport's average `metresPerPixel` (geometric mean of the
+  ///          lat- and lon-direction conversion factors at viewport-mean
+  ///          latitude).
+  ///       c. Iterate the padded bounding box `[cx ± (rPx + distMaxPixels)]`
+  ///          and update `signed[i] = min(signed[i], pixelDistance - rPx)`.
+  ///   3. Encode `signed` to bytes using the same midpoint-128 mapping as
+  ///      [build].
+  ///
+  /// Cost: per disc ≈ `(2·(rPx + distMaxPixels))²` pixel updates. For
+  /// typical viewport scales (city-wide to building-scale), `rPx` is a few
+  /// pixels and `distMaxPixels = 128`, so ~67 k updates per disc. A 4-hour
+  /// session post-compaction holds < 1 k discs in viewport → ~67 M ops,
+  /// well under 16 ms on Flutter's 2026 hardware. A spatial index would
+  /// help for very large sessions; tagged in a TODO below for follow-up.
+  ///
+  /// [discs] iteration order does not affect the output (commutative `min`).
+  // TODO(perf): for sessions with > a few thousand viewport-resident discs,
+  // index discs in a uniform grid keyed by seed-grid pixel and only update
+  // pixels in cells the disc actually touches. The current padded-bbox loop
+  // is already cheap enough for the 4-hour-session budget but will dominate
+  // once compaction is loosened or sessions span hours.
+  Future<ui.Image> buildFromDiscs({required Iterable<RevealDisc> discs, required MirkViewportBbox viewport}) async {
+    final discList = discs.toList(growable: false);
+    final stopwatch = Stopwatch()..start();
+    _log.fine(
+      'buildFromDiscs(): start — ${discList.length} discs · viewport=[${viewport.south.toStringAsFixed(4)}, ${viewport.west.toStringAsFixed(4)} → ${viewport.north.toStringAsFixed(4)}, ${viewport.east.toStringAsFixed(4)}]',
+    );
+    if (discList.isEmpty) {
+      _log.fine('buildFromDiscs(): empty disc list → all-fog SDF');
+      return _emptySdfImage();
+    }
+    final n = resolution;
+    final dLat = viewport.north - viewport.south;
+    final dLon = viewport.east - viewport.west;
+    if (dLat == 0 || dLon == 0) {
+      _log.warning('buildFromDiscs(): degenerate viewport (dLat=$dLat dLon=$dLon) → all-fog SDF');
+      return _emptySdfImage();
+    }
+
+    // Metres-per-pixel along each axis at the viewport's mean latitude.
+    // Using the mean latitude (not the disc's own latitude) keeps the
+    // metres-to-pixel mapping consistent across all discs in this build —
+    // the SDF is rendered in viewport-normalised pixel space, so the
+    // pixel cost of a metre is a property of the viewport, not the disc.
+    final meanLatRad = (viewport.south + viewport.north) * 0.5 * math.pi / 180.0;
+    final metersPerDegreeLon = kMetersPerDegreeLat * math.cos(meanLatRad);
+    final metersPerPixelY = (dLat * kMetersPerDegreeLat) / n;
+    final metersPerPixelX = (dLon * metersPerDegreeLon) / n;
+    // Geometric mean: preserves disc area at the cost of a small
+    // aspect-ratio compromise far from the equator. At MirkFall's
+    // city-scale viewports (dLat ≪ 1°) the two axes agree to within a
+    // fraction of a percent at any latitude north of the polar clamp.
+    final metersPerPixel = math.sqrt(metersPerPixelX * metersPerPixelY);
+
+    final distMaxPixels = n * 0.5;
+    // Far-init to 1e9 so the first disc whose padded bbox touches a pixel
+    // always wins the `min`. After the loop, any pixel still at 1e9 means
+    // no disc reached it → encoded as max-fog (byte = 255).
+    final signed = Float32List(n * n);
+    for (var i = 0; i < n * n; i++) {
+      signed[i] = 1e9;
+    }
+
+    var intersectingDiscCount = 0;
+    for (final disc in discList) {
+      if (!disc.intersectsBbox(viewport)) continue;
+      intersectingDiscCount++;
+
+      // Project disc centre to seed-grid pixel coordinates. North → row 0.
+      final cx = (disc.lon - viewport.west) / dLon * n;
+      final cy = (viewport.north - disc.lat) / dLat * n;
+      final rPx = disc.radiusMeters / metersPerPixel;
+
+      final padded = rPx + distMaxPixels;
+      final xMin = math.max(0, (cx - padded).floor());
+      final xMax = math.min(n, (cx + padded).ceil());
+      final yMin = math.max(0, (cy - padded).floor());
+      final yMax = math.min(n, (cy + padded).ceil());
+      if (xMin >= xMax || yMin >= yMax) continue;
+
+      for (var y = yMin; y < yMax; y++) {
+        // Pixel-centre sampling.
+        final dy = (y + 0.5) - cy;
+        final rowOffset = y * n;
+        for (var x = xMin; x < xMax; x++) {
+          final dx = (x + 0.5) - cx;
+          final pixelDistance = math.sqrt(dx * dx + dy * dy);
+          final candidate = pixelDistance - rPx;
+          if (candidate < signed[rowOffset + x]) {
+            signed[rowOffset + x] = candidate;
+          }
+        }
+      }
+    }
+
+    // Encode to bytes: same midpoint-128 mapping as `build`.
+    final pixels = Uint8List(n * n * 4);
+    var insideCount = 0;
+    for (var i = 0; i < n * n; i++) {
+      final clamped = signed[i].clamp(-distMaxPixels, distMaxPixels);
+      final byte = (128.0 + (clamped / distMaxPixels) * 127.0).clamp(0.0, 255.0).toInt();
+      if (signed[i] < 0) insideCount++;
+      final idx = i * 4;
+      pixels[idx] = byte;
+      pixels[idx + 1] = byte;
+      pixels[idx + 2] = byte;
+      pixels[idx + 3] = 255;
+    }
+
+    final completer = Completer<ui.Image>();
+    ui.decodeImageFromPixels(pixels, n, n, ui.PixelFormat.rgba8888, completer.complete);
+    final image = await completer.future;
+    final insidePct = (100.0 * insideCount / (n * n)).toStringAsFixed(1);
+    _log.fine(
+      'buildFromDiscs(): done in ${stopwatch.elapsedMilliseconds}ms — '
+      '${discList.length} discs · $intersectingDiscCount intersected · '
+      'inside=$insidePct% · ui.Image ${image.width}x${image.height}',
+    );
     return image;
   }
 

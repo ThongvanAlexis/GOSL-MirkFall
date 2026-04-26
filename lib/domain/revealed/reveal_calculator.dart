@@ -56,7 +56,7 @@ int popcount(Uint8List bytes) {
 /// 1. Defensive early-exit on `radiusMeters <= 0`.
 /// 2. Parent-tile bbox via [TileMath.tileToLatLon] (NW + SE corners).
 /// 3. Circle bbox via crude Mercator expansion
-///    (1° lat ≈ [_metersPerDegreeLat] m; 1° lon scaled by `cos(lat)`).
+///    (1° lat ≈ [kMetersPerDegreeLat] m; 1° lon scaled by `cos(lat)`).
 /// 4. Bbox-first prune — if circle bbox does not overlap parent-tile
 ///    bbox, return an all-zero 512-byte mask without entering the cell
 ///    loop.
@@ -87,12 +87,12 @@ Uint8List computeRevealMask({
   // the latitude of the circle centre because we only need the bbox
   // estimate accurate enough to skip clearly-outside tiles — the
   // per-cell Haversine inside the loop is what actually decides reveal.
-  final latDegPerMeter = 1.0 / _metersPerDegreeLat;
+  final latDegPerMeter = 1.0 / kMetersPerDegreeLat;
   // Guard the cosine against the polar Mercator clamp (cos(85.0511°) ≈
   // 0.087 ≠ 0; cos(±90°) would zero-divide). Latitudes outside
   // ±[TileMath.maxLatMercator] are projected back into-range here.
   final clampedCosLat = math.cos(_toRad(centerLat.clamp(-TileMath.maxLatMercator, TileMath.maxLatMercator)));
-  final lonDegPerMeter = 1.0 / (_metersPerDegreeLat * clampedCosLat);
+  final lonDegPerMeter = 1.0 / (kMetersPerDegreeLat * clampedCosLat);
 
   final circleMinLat = centerLat - radiusMeters * latDegPerMeter;
   final circleMaxLat = centerLat + radiusMeters * latDegPerMeter;
@@ -149,16 +149,12 @@ Uint8List computeRevealMask({
 
 // ---------------------------------------------------------------------------
 // Helpers (private, top-level).
+//
+// `kMetersPerDegreeLat` and `kEarthRadiusMeters` live in
+// `lib/config/constants.dart` — three call sites across the revealed-domain
+// code (this file, `reveal_disc.dart`, `revealed_sdf_builder.dart`) share
+// them, promoted out of file-private duplication.
 // ---------------------------------------------------------------------------
-
-/// Approximate metres per degree of latitude. Good to ~0.5 % globally.
-/// Per WGS-84, the meridional circumference is `2 * pi * R`, divided by
-/// 360° gives ≈ 111 320 m / °. Used by both the bbox prune and the
-/// degrees-per-metre conversions for circle-bbox expansion.
-const double _metersPerDegreeLat = 111320.0;
-
-/// WGS-84 mean Earth radius (metres) per IUGG. Drives [_haversineMeters].
-const double _earthRadiusMeters = 6371008.8;
 
 /// Degrees → radians.
 double _toRad(double deg) => deg * math.pi / 180.0;
@@ -183,5 +179,5 @@ double _haversineMeters(double lat1, double lon1, double lat2, double lon2) {
   final l2 = _toRad(lat2);
   final a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.sin(dLon / 2) * math.sin(dLon / 2) * math.cos(l1) * math.cos(l2);
   final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-  return _earthRadiusMeters * c;
+  return kEarthRadiusMeters * c;
 }

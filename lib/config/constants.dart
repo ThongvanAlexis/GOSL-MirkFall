@@ -364,6 +364,25 @@ const Duration kDiskSpaceCheckTimeout = Duration(seconds: 5);
 /// du reveal.
 const double kDefaultRevealRadiusMeters = 25.0;
 
+/// WGS-84 mean Earth radius in metres (per IUGG). Single source of truth
+/// for great-circle distance maths across the revealed-domain code
+/// (`reveal_calculator.dart`, `reveal_disc.dart`,
+/// `revealed_sdf_builder.dart`). Promoted to a public constant when the
+/// SDF builder became the third call site — at three callers the
+/// file-private duplication started to feel like a "watch out, did anyone
+/// nudge one of the three" hazard. Anything that wants Haversine over
+/// short ground distances should reuse this value rather than re-deriving.
+const double kEarthRadiusMeters = 6371008.8;
+
+/// Approximate metres per degree of latitude (WGS-84, equator-aligned).
+/// Constant globally because a meridian is a great circle — accurate to
+/// ~0.5 % at any latitude. Used both by the cell-rasterisation
+/// `computeRevealMask` (`reveal_calculator.dart`) and by the analytic
+/// `RevealedSdfBuilder.buildFromDiscs` to convert metres ↔ degrees ↔
+/// pixel space. Promoted at the same time as [kEarthRadiusMeters] for
+/// the same "third call site" reason.
+const double kMetersPerDegreeLat = 111320.0;
+
 /// Tolerance (fraction of the larger disc's radius) applied by the
 /// offline `RevealedDiscStore.compactSession` containment check. A disc
 /// `A` is dropped when another disc `B` of the same session satisfies

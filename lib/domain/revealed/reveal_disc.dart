@@ -4,6 +4,7 @@
 
 import 'dart:math' as math;
 
+import '../../config/constants.dart';
 import '../mirk/mirk_viewport_bbox.dart';
 
 /// Immutable continuous-geometry reveal — the BUG-010 Option B replacement
@@ -60,8 +61,8 @@ class RevealDisc {
 
   /// True iff the disc's bounding box (centre lat/lon ± radius converted to
   /// degrees) overlaps [bbox]. Conservative — the lat/lon expansion uses a
-  /// crude equirectangular conversion (`1° lat ≈ [_metersPerDegreeLat] m`,
-  /// `1° lon ≈ [_metersPerDegreeLat] · cos(lat) m`) so a disc whose true
+  /// crude equirectangular conversion (`1° lat ≈ [kMetersPerDegreeLat] m`,
+  /// `1° lon ≈ [kMetersPerDegreeLat] · cos(lat) m`) so a disc whose true
   /// circular footprint just brushes the bbox may report `true` even when
   /// the analytic disc-rectangle distance would say "outside" by a few
   /// metres. False positives are explicitly accepted: the SDF builder
@@ -71,13 +72,13 @@ class RevealDisc {
   /// Antimeridian wrap (bbox `east < west`) is handled by widening the
   /// longitude predicate into an OR over the two contiguous halves.
   bool intersectsBbox(MirkViewportBbox bbox) {
-    final latDegPerMeter = 1.0 / _metersPerDegreeLat;
+    final latDegPerMeter = 1.0 / kMetersPerDegreeLat;
     // Polar guard: `cos(±90°)` would zero-divide. At |lat| ≥ 89° the
     // longitude expansion is meaningless anyway (a metre-scale disc spans
     // most of the longitude axis), so we floor `cos` at the same Mercator
     // clamp used by `reveal_calculator.dart`.
     final clampedLatRad = _toRad(_clampDouble(lat, -_polarLatClampDeg, _polarLatClampDeg));
-    final lonDegPerMeter = 1.0 / (_metersPerDegreeLat * math.cos(clampedLatRad));
+    final lonDegPerMeter = 1.0 / (kMetersPerDegreeLat * math.cos(clampedLatRad));
 
     final minLat = lat - radiusMeters * latDegPerMeter;
     final maxLat = lat + radiusMeters * latDegPerMeter;
@@ -155,12 +156,12 @@ class RevealDisc {
     // along that vector, then convert back. Equivalent to a geodesic
     // midpoint at the < 100 m scales used by compaction.
     final clampedCosLat = math.cos(_toRad(_clampDouble(lat, -_polarLatClampDeg, _polarLatClampDeg)));
-    final dLatMeters = (other.lat - lat) * _metersPerDegreeLat;
-    final dLonMeters = (other.lon - lon) * _metersPerDegreeLat * clampedCosLat;
+    final dLatMeters = (other.lat - lat) * kMetersPerDegreeLat;
+    final dLonMeters = (other.lon - lon) * kMetersPerDegreeLat * clampedCosLat;
     final newLatMetersFromThis = dLatMeters * tFromThis;
     final newLonMetersFromThis = dLonMeters * tFromThis;
-    final newLat = lat + newLatMetersFromThis / _metersPerDegreeLat;
-    final newLon = lon + newLonMetersFromThis / (_metersPerDegreeLat * clampedCosLat);
+    final newLat = lat + newLatMetersFromThis / kMetersPerDegreeLat;
+    final newLon = lon + newLonMetersFromThis / (kMetersPerDegreeLat * clampedCosLat);
 
     final earlier = _earlierOf(this, other);
     final mergedFixedAtUtc = fixedAtUtc.isBefore(other.fixedAtUtc) ? fixedAtUtc : other.fixedAtUtc;
@@ -190,24 +191,10 @@ class RevealDisc {
 }
 
 // ---------------------------------------------------------------------------
-// File-private helpers. Mirror the conventions used by `reveal_calculator.dart`
-// — Haversine + WGS-84 mean Earth radius — kept private to this file rather
-// than promoted to `lib/config/constants.dart` because no other call site
-// outside the revealed-domain references them today; promoting prematurely
-// would create an unused public surface and a second source of truth for the
-// same constant.
+// File-private helpers. `kMetersPerDegreeLat` and `kEarthRadiusMeters` live in
+// `lib/config/constants.dart` — promoted out of this file when the SDF
+// builder became the third caller; see those constants' docstrings.
 // ---------------------------------------------------------------------------
-
-/// WGS-84 mean Earth radius (metres) per IUGG. Same value carried by
-/// `reveal_calculator.dart` (intentional — the two files compute the same
-/// great-circle distance and must agree to the last digit so a disc and the
-/// pre-Option-B mask it would replace land on the same metric).
-const double _earthRadiusMeters = 6371008.8;
-
-/// Approximate metres per degree of latitude. Good to ~0.5 % globally.
-/// Same value used by `reveal_calculator.dart` for the same reason as
-/// [_earthRadiusMeters].
-const double _metersPerDegreeLat = 111320.0;
 
 /// Latitude clamp at which the longitude-scaling cosine bottoms out. Mirrors
 /// the Mercator clamp used elsewhere in the project (`TileMath.maxLatMercator`
@@ -258,5 +245,5 @@ double _haversineMeters(double lat1, double lon1, double lat2, double lon2) {
   final l2 = _toRad(lat2);
   final a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.sin(dLon / 2) * math.sin(dLon / 2) * math.cos(l1) * math.cos(l2);
   final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-  return _earthRadiusMeters * c;
+  return kEarthRadiusMeters * c;
 }
