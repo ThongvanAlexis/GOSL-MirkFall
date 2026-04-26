@@ -47,19 +47,17 @@ const int _kTimedIterations = 10;
 /// Generous ceiling for the median build time at 5 k discs.
 ///
 /// Calibration (2026-04-26, Commit 6 dev box, Windows 10): local median
-/// at 5 k discs landed near 430 ms — the SDF builder's per-pixel cost is
-/// `(2·(rPx + distMaxPixels))²` ≈ 67 k ops per disc, and with 5 k discs
-/// in viewport the resulting ~335 M ops dominate. Shared CI Windows
-/// hosts are typically 1.5–3× slower than the dev box, so the threshold
-/// is set at 2000 ms — high enough to absorb CI variance, low enough to
-/// catch a 10× regression (which would push the build past 4000 ms).
+/// at 5 k discs landed near 430 ms with the original pixel-space distance,
+/// ~550 ms after the BUG-011 metre-space fix (extra per-pixel multiply).
+/// Shared CI Ubuntu hosts are typically 1.5–3× slower, so the threshold
+/// is set at 3000 ms — high enough to absorb CI variance + the BUG-011
+/// overhead, low enough to catch a 10× regression.
 ///
 /// The point of this test is regression detection, not device readiness;
 /// per-frame paints would never accept this latency, but the SDF rebuild
 /// only fires on session-disc-list changes (≤ once per second from GPS
-/// fix cadence) and on viewport changes (throttled). See the
-/// `RevealedSdfBuilder.buildFromDiscs` docstring "When to rebuild".
-const int _kMedianBudgetMs5000Discs = 2000;
+/// fix cadence) and on viewport changes (debounced 200 ms per BUG-012).
+const int _kMedianBudgetMs5000Discs = 3000;
 
 /// Builds a list of [count] reveal discs uniformly distributed inside
 /// the perf viewport. Deterministic via a seeded [math.Random] so the
