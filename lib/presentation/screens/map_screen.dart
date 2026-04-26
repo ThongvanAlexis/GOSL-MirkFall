@@ -4,7 +4,6 @@
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -296,13 +295,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ],
           ),
         ),
-        // BUG-009 follow-up — top-right live-tuner icon. Gated by
-        // [kDebugMode] so production iOS sideloads carry the binary but
-        // never expose the affordance. Tapping opens the
-        // [showMirkTunerSheet] non-blocking bottom sheet on top of the
-        // map, so each slider movement is immediately visible on the
-        // running shader.
-        if (kDebugMode) Positioned(top: MediaQuery.of(context).padding.top + 8.0, right: 8.0, child: _MirkTunerButton()),
+        // BUG-009 follow-up — top-right live-tuner icon. Always
+        // visible: this is solo-dev with iOS sideload as the only
+        // distribution channel, and `kDebugMode` is false in the
+        // release builds SideStore installs. If the app later goes
+        // to non-dev users, gate this on a runtime toggle instead.
+        Positioned(top: MediaQuery.of(context).padding.top + 8.0, right: 8.0, child: _MirkTunerButton()),
         // Bottom-right: follow-me FAB + attribution icon.
         Positioned(
           right: 16.0,
@@ -434,8 +432,10 @@ class _BackButton extends StatelessWidget {
   }
 }
 
-/// Top-right tuner-icon button — only visible in debug builds (the
-/// Positioned wrapping it is gated by [kDebugMode]).
+/// Top-right tuner-icon button. Always visible in this binary —
+/// solo-dev sideload distribution means `kDebugMode` is false in
+/// the actual install, so we cannot gate on it. If/when the app
+/// ships to non-dev users a runtime toggle should gate the button.
 ///
 /// Opens [showMirkTunerSheet] on tap. The sheet is a non-blocking
 /// DraggableScrollableSheet so the user can scrub a slider, watch the
