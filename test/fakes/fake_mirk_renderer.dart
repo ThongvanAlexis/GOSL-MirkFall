@@ -12,9 +12,8 @@ import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 /// (and with what context) without exercising real GPU paths.
 ///
 /// Wave 0 deliberately keeps the surface minimal — counters + the last
-/// observed context — to avoid coupling against Wave 2+ Freezed types
-/// (e.g. `VisibleMirkTile`). Downstream waves extend with whatever new
-/// observable callers need.
+/// observed context — to avoid coupling against Wave 2+ Freezed types.
+/// Downstream waves extend with whatever new observable callers need.
 ///
 /// Example:
 /// ```dart

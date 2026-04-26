@@ -4,13 +4,14 @@
 
 // Phase 09 plan 09-04 Task 2 RED test suite for `SolidFillMirkRenderer`.
 //
-// Solid is the simplest variant — uniform colour fill, no animation,
-// no noise. Tests verify single-frame correctness, frame-to-frame
-// invariance (the proof-of-static for MIRK-06 contrast against the
-// 3 animated variants), and dispose idempotence.
+// BUG-010 Option B Commit 5 — fixture surface migrated from cell-bitmap
+// to continuous-geometry discs (see atmospheric renderer test for the
+// "all-revealed" → "viewport-spanning disc" rationale).
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/solid_fill_mirk_renderer.dart';
 
 import '_render_helpers.dart';
@@ -33,52 +34,44 @@ void main() {
       await renderer.dispose();
     });
 
-    test('paint() with empty visibleTiles list issues no draw calls (no-op)', () async {
+    test('paint() with empty discs list issues no draw calls (no-op)', () async {
       final renderer = SolidFillMirkRenderer(const MirkStyleConfig.solid() as SolidConfig);
-      // Override tiles with an empty list — paint should early-return.
-      final ctx = fakeContext(tiles: const []);
+      // Override discs with an empty list — paint should early-return.
+      final ctx = fakeContext(discs: const <RevealDisc>[]);
       // Use renderToPicture so we can ask the picture for an
       // approximate byte size; an empty picture is < 200 bytes
       // (recorder header only).
       final pic = renderToPicture(renderer, context: ctx);
       // ApproximateBytesUsed reflects native command-buffer size.
-      expect(pic.approximateBytesUsed, lessThan(500), reason: 'Empty visibleTiles should produce a near-empty picture');
+      expect(pic.approximateBytesUsed, lessThan(500), reason: 'Empty discs list should produce a near-empty picture');
       pic.dispose();
       await renderer.dispose();
     });
 
-    test('paint() with all-revealed bitmap draws nothing (every cell skipped)', () async {
+    test('paint() with a viewport-spanning disc draws nothing (every region revealed)', () async {
       final renderer = SolidFillMirkRenderer(const MirkStyleConfig.solid() as SolidConfig);
-      // All-unrevealed tiles drive maximum draw work; all-revealed tiles
-      // drive zero draw work. Compare picture sizes as a coarse signal.
-      final ctxAllRevealed = fakeContext(
-        tiles: [
-          // Fully revealed tile — every bit = 1, no fog drawn.
-          (() {
-            final t = fakeContext().visibleTiles.first;
-            return t.copyWith(bitmap: makeAllRevealedBitmap());
-          })(),
-        ],
+      final bbox = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+      final swallowingDisc = RevealDisc(
+        id: 'rvd_test_swallow_s',
+        sessionId: 'sess_test',
+        lat: 43.5,
+        lon: 5.5,
+        radiusMeters: 200000.0,
+        fixedAtUtc: DateTime.utc(2026, 4, 26),
       );
-      final ctxAllUnrevealed = fakeContext(
-        tiles: [
-          (() {
-            final t = fakeContext().visibleTiles.first;
-            return t.copyWith(bitmap: makeAllUnrevealedBitmap());
-          })(),
-        ],
-      );
+      final ctxAllRevealed = fakeContext(viewport: bbox, discs: [swallowingDisc]);
+      final ctxLocalised = fakeContext(viewport: bbox);
       final picRevealed = renderToPicture(renderer, context: ctxAllRevealed);
-      final picUnrevealed = renderToPicture(renderer, context: ctxAllUnrevealed);
+      final picLocalised = renderToPicture(renderer, context: ctxLocalised);
       expect(
         picRevealed.approximateBytesUsed,
-        lessThan(picUnrevealed.approximateBytesUsed),
+        lessThan(picLocalised.approximateBytesUsed),
         reason:
-            'All-revealed tile must produce a smaller picture than '
-            'all-unrevealed (no cells drawn vs all cells drawn)',
+            'Viewport-spanning disc must produce a smaller picture than '
+            'a localised disc (clip path empty vs disc-shaped fog hole)',
       );
       picRevealed.dispose();
-      picUnrevealed.dispose();
+      picLocalised.dispose();
       await renderer.dispose();
     });
 

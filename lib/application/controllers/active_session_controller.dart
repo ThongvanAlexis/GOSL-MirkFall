@@ -357,7 +357,7 @@ class ActiveSessionController extends _$ActiveSessionController {
     final reveal = ref.read(revealStreamingControllerProvider(activeId));
     if (reveal == null) {
       // BUG-009 follow-up (2026-04-25) — defensive log. start() now
-      // pre-resolves `revealedTileStoreProvider.future`, so this branch
+      // pre-resolves `revealedDiscStoreProvider.future`, so this branch
       // should be unreachable in production. Surfacing it as `warning`
       // guarantees a regression (e.g. someone removes the await in
       // start(), or a new family slot recomputes without the store) is

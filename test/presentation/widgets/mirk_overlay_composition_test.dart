@@ -2,8 +2,6 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-import 'dart:typed_data';
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,18 +10,13 @@ import 'package:mirkfall/application/providers/active_mirk_renderer_provider.dar
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/providers/map_viewport_provider.dart';
 import 'package:mirkfall/application/providers/discs_in_viewport_provider.dart';
-import 'package:mirkfall/application/providers/visible_mirk_tiles_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
-import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 
 import '../../fakes/fake_mirk_renderer.dart';
-
-VisibleMirkTile _allUnrevealedTile() =>
-    VisibleMirkTile(parentX: 8456, parentY: 5959, bitmap: Uint8List(512), tileNorthLat: 43.7, tileWestLon: 5.3, tileSouthLat: 43.5, tileEastLon: 5.5);
 
 class _FakeActiveSessionController extends ActiveSessionController {
   _FakeActiveSessionController(this._initial);
@@ -60,7 +53,6 @@ void main() {
           overrides: [
             activeSessionControllerProvider.overrideWith(() => _FakeActiveSessionController(const Idle())),
             activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
-            visibleMirkTilesProvider.overrideWith((ref) async => const []),
             discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(null)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(null)),
@@ -89,7 +81,6 @@ void main() {
               ),
             ),
             activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
-            visibleMirkTilesProvider.overrideWith((ref) async => [_allUnrevealedTile()]),
             discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(null)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
@@ -124,7 +115,7 @@ void main() {
       expect(find.byType(MirkOverlay), findsOneWidget);
     });
 
-    testWidgets('paints with all-zero bitmap tile (entire tile = fog)', (tester) async {
+    testWidgets('paints with empty disc list (entire viewport = fog)', (tester) async {
       final fakeRenderer = FakeMirkRenderer();
       final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
       await tester.pumpWidget(
@@ -136,7 +127,6 @@ void main() {
               ),
             ),
             activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
-            visibleMirkTilesProvider.overrideWith((ref) async => [_allUnrevealedTile()]),
             discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
@@ -150,13 +140,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 16));
 
-      // Renderer was invoked. BUG-010 Option B Commit 4: the overlay
-      // now feeds the disc list through `MirkPaintContext.discs`. The
-      // override seeds an empty list, so the rendered fog covers the
-      // entire viewport rect — exactly the "entire tile = fog" semantic
-      // this test asserts on the legacy bitmap path. The bitmap-byte
-      // assertion is dropped because the disc surface no longer carries
-      // a 512-byte bitmap analogue.
+      // Renderer was invoked. BUG-010 Option B Commit 5: the overlay
+      // feeds the disc list through `MirkPaintContext.discs`. The
+      // override seeds an empty list, so fog logically covers the entire
+      // viewport rect — the disc-path canonical "nothing revealed yet"
+      // shape replaced the legacy "all-zero bitmap" fixture.
       expect(fakeRenderer.paintCallCount, greaterThan(0));
       final ctx = fakeRenderer.paintContexts.last;
       expect(ctx.discs, isEmpty, reason: 'override seeds an empty disc list — fog covers the whole viewport rect');

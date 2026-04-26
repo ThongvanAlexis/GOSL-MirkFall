@@ -8,12 +8,19 @@
 // Tests cover:
 // - Animation proof: two frames at different `sessionElapsed` differ.
 // - Determinism: same `sessionElapsed` rendered twice → byte-identical.
-// - Empty visibleTiles → no-op (near-empty picture).
-// - All-revealed bitmap → no fog drawn (smaller picture than all-unrevealed).
+// - Empty discs → no-op (near-empty picture).
+// - All-viewport-covered (one giant disc swallowing the viewport) → no fog.
 // - dispose() idempotence + post-dispose paint guarded.
+//
+// BUG-010 Option B Commit 5 — fixture surface migrated from cell-bitmap
+// to continuous-geometry discs. The "all-revealed bitmap" assertion of
+// pre-Commit-5 is preserved by feeding a single disc large enough to
+// cover the entire viewport.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/atmospheric_mirk_renderer.dart';
 
 import '_render_helpers.dart';
@@ -52,42 +59,47 @@ void main() {
       await r2.dispose();
     });
 
-    test('paint() with empty visibleTiles list issues no draw calls', () async {
+    test('paint() with empty discs list issues no draw calls', () async {
       final renderer = AtmosphericMirkRenderer(const MirkStyleConfig.atmospheric() as AtmosphericConfig);
-      final ctx = fakeContext(tiles: const []);
+      final ctx = fakeContext(discs: const <RevealDisc>[]);
       final pic = renderToPicture(renderer, context: ctx);
-      expect(pic.approximateBytesUsed, lessThan(500), reason: 'Empty visibleTiles should produce a near-empty picture');
+      expect(pic.approximateBytesUsed, lessThan(500), reason: 'Empty discs list should produce a near-empty picture');
       pic.dispose();
       await renderer.dispose();
     });
 
-    test('paint() with all-revealed bitmap draws no fog (smaller picture than all-unrevealed)', () async {
+    test('paint() with a viewport-spanning disc draws no fog (smaller picture than localised disc)', () async {
+      // Pre-Commit-5 this asserted "all-revealed bitmap → no draw" against
+      // an all-bits-set 64×64 mask. With continuous geometry the
+      // equivalent setup is "one disc whose radius covers the entire
+      // viewport". The clip path then degenerates to "viewport rect minus
+      // a giant circle that contains the rect" → empty bounds → renderer
+      // early-returns. The localised-disc context produces a non-empty
+      // path, and therefore a larger picture.
       final renderer = AtmosphericMirkRenderer(const MirkStyleConfig.atmospheric() as AtmosphericConfig);
-      final ctxAllRevealed = fakeContext(
-        tiles: [
-          (() {
-            final t = fakeContext().visibleTiles.first;
-            return t.copyWith(bitmap: makeAllRevealedBitmap());
-          })(),
-        ],
+      final bbox = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+      // 1° lat × 1° lon viewport ≈ 110 km × 80 km at 43° lat → 200 km
+      // disc radius covers the entire viewport with margin.
+      const swallowingRadiusMeters = 200000.0;
+      final swallowingDisc = RevealDisc(
+        id: 'rvd_test_swallow',
+        sessionId: 'sess_test',
+        lat: 43.5,
+        lon: 5.5,
+        radiusMeters: swallowingRadiusMeters,
+        fixedAtUtc: DateTime.utc(2026, 4, 26),
       );
-      final ctxAllUnrevealed = fakeContext(
-        tiles: [
-          (() {
-            final t = fakeContext().visibleTiles.first;
-            return t.copyWith(bitmap: makeAllUnrevealedBitmap());
-          })(),
-        ],
-      );
+      final ctxAllRevealed = fakeContext(viewport: bbox, discs: [swallowingDisc]);
+      final ctxLocalised = fakeContext(viewport: bbox);
       final picRevealed = renderToPicture(renderer, context: ctxAllRevealed);
-      final picUnrevealed = renderToPicture(renderer, context: ctxAllUnrevealed);
+      final picLocalised = renderToPicture(renderer, context: ctxLocalised);
       expect(
         picRevealed.approximateBytesUsed,
-        lessThan(picUnrevealed.approximateBytesUsed),
-        reason: 'All-revealed tile must draw less than all-unrevealed tile',
+        lessThan(picLocalised.approximateBytesUsed),
+        reason: 'Viewport-spanning disc must draw less than a localised reveal',
       );
       picRevealed.dispose();
-      picUnrevealed.dispose();
+      picLocalised.dispose();
       await renderer.dispose();
     });
 

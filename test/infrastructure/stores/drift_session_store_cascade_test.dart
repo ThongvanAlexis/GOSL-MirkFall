@@ -60,13 +60,12 @@ void main() {
       );
     }
 
-    // Seed 3 revealed tiles belonging to the session.
+    // Seed 3 revealed discs belonging to the session (BUG-010 Option B
+    // Commit 5 — bitmap surface retired, discs are the cascade target).
     for (var i = 0; i < 3; i++) {
       await db.customStatement(
-        "INSERT INTO t_revealed_tiles (id, session_id, parent_x, parent_y, "
-        "parent_zoom, bitmap, set_bit_count, updated_at_utc) "
-        "VALUES ('rvt_C$i', '${sessionId.value}', $i, $i, 14, "
-        "zeroblob(512), 0, 1000)",
+        "INSERT INTO t_revealed_disc (id, session_id, lat, lon, radius_m, fixed_at_utc) "
+        "VALUES ('rvd_C$i', '${sessionId.value}', ${i * 0.001}, ${i * 0.001}, 25.0, 1000)",
       );
     }
 
@@ -83,20 +82,20 @@ void main() {
     await db.close();
   });
 
-  test('precondition: the seed has 1 session + 2 markers + 3 tiles + 1 photo', () async {
+  test('precondition: the seed has 1 session + 2 markers + 3 discs + 1 photo', () async {
     expect(await _count(db, 't_sessions', 'id = ?', <Object?>[sessionId.value]), 1);
     expect(await _count(db, 't_markers', 'session_id = ?', <Object?>[sessionId.value]), 2);
-    expect(await _count(db, 't_revealed_tiles', 'session_id = ?', <Object?>[sessionId.value]), 3);
+    expect(await _count(db, 't_revealed_disc', 'session_id = ?', <Object?>[sessionId.value]), 3);
     expect(await _count(db, 't_photos', 'marker_id = ?', <Object?>['mrk_C1']), 1);
   });
 
-  test('DriftSessionStore.delete cascades to markers, revealed_tiles '
+  test('DriftSessionStore.delete cascades to markers, revealed_disc '
       'AND photos of markers belonging to the deleted session', () async {
     await store.delete(sessionId);
 
     expect(await _count(db, 't_sessions', 'id = ?', <Object?>[sessionId.value]), 0, reason: 'session row removed');
     expect(await _count(db, 't_markers', 'session_id = ?', <Object?>[sessionId.value]), 0, reason: 'markers cascaded via FK ON DELETE CASCADE');
-    expect(await _count(db, 't_revealed_tiles', 'session_id = ?', <Object?>[sessionId.value]), 0, reason: 'revealed tiles cascaded via FK ON DELETE CASCADE');
+    expect(await _count(db, 't_revealed_disc', 'session_id = ?', <Object?>[sessionId.value]), 0, reason: 'revealed discs cascaded via FK ON DELETE CASCADE');
     expect(
       await _count(db, 't_photos', 'marker_id = ?', <Object?>['mrk_C1']),
       0,

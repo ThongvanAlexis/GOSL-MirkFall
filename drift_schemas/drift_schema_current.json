@@ -613,153 +613,6 @@
       ],
       "type": "table",
       "data": {
-        "name": "t_revealed_tiles",
-        "was_declared_in_moor": false,
-        "columns": [
-          {
-            "name": "id",
-            "getter_name": "id",
-            "moor_type": "string",
-            "nullable": false,
-            "customConstraints": null,
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "session_id",
-            "getter_name": "sessionId",
-            "moor_type": "string",
-            "nullable": false,
-            "customConstraints": null,
-            "defaultConstraints": "REFERENCES t_sessions (id) ON DELETE CASCADE",
-            "dialectAwareDefaultConstraints": {
-              "sqlite": "REFERENCES t_sessions (id) ON DELETE CASCADE"
-            },
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": [
-              {
-                "foreign_key": {
-                  "to": {
-                    "table": "t_sessions",
-                    "column": "id"
-                  },
-                  "initially_deferred": false,
-                  "on_update": null,
-                  "on_delete": "cascade"
-                }
-              }
-            ]
-          },
-          {
-            "name": "parent_x",
-            "getter_name": "parentX",
-            "moor_type": "int",
-            "nullable": false,
-            "customConstraints": null,
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "parent_y",
-            "getter_name": "parentY",
-            "moor_type": "int",
-            "nullable": false,
-            "customConstraints": null,
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "parent_zoom",
-            "getter_name": "parentZoom",
-            "moor_type": "int",
-            "nullable": false,
-            "customConstraints": null,
-            "default_dart": "const CustomExpression('14')",
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "bitmap",
-            "getter_name": "bitmap",
-            "moor_type": "blob",
-            "nullable": false,
-            "customConstraints": null,
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": [
-              {
-                "check": {
-                  "dart_expression": {
-                    "elements": [
-                      "const ",
-                      {
-                        "lexeme": "CustomExpression",
-                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
-                      },
-                      "<",
-                      {
-                        "lexeme": "bool",
-                        "import_uri": "dart:core"
-                      },
-                      ">('length(bitmap) = 512')"
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "name": "set_bit_count",
-            "getter_name": "setBitCount",
-            "moor_type": "int",
-            "nullable": false,
-            "customConstraints": null,
-            "default_dart": "const CustomExpression('0')",
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "updated_at_utc",
-            "getter_name": "updatedAtUtc",
-            "moor_type": "int",
-            "nullable": false,
-            "customConstraints": null,
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": [],
-            "type_converter": {
-              "dart_expr": "const UnixMsToDateTimeConverter()",
-              "dart_type_name": "DateTime"
-            }
-          }
-        ],
-        "is_virtual": false,
-        "without_rowid": false,
-        "constraints": [],
-        "explicit_pk": [
-          "id"
-        ],
-        "unique_keys": [
-          [
-            "session_id",
-            "parent_x",
-            "parent_y",
-            "parent_zoom"
-          ]
-        ]
-      }
-    },
-    {
-      "id": 5,
-      "references": [
-        1
-      ],
-      "type": "table",
-      "data": {
         "name": "t_revealed_disc",
         "was_declared_in_moor": false,
         "columns": [
@@ -872,7 +725,7 @@
       }
     },
     {
-      "id": 6,
+      "id": 5,
       "references": [
         3
       ],
@@ -1020,7 +873,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 6,
       "references": [
         1
       ],
@@ -1245,7 +1098,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 7,
       "references": [
         1
       ],
@@ -1259,7 +1112,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 8,
       "references": [
         3
       ],
@@ -1273,7 +1126,7 @@
       }
     },
     {
-      "id": 10,
+      "id": 9,
       "references": [
         3
       ],
@@ -1287,6 +1140,20 @@
       }
     },
     {
+      "id": 10,
+      "references": [
+        4
+      ],
+      "type": "index",
+      "data": {
+        "on": 4,
+        "name": "idx_t_revealed_disc_session",
+        "sql": "CREATE INDEX idx_t_revealed_disc_session ON t_revealed_disc(session_id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
       "id": 11,
       "references": [
         4
@@ -1294,8 +1161,8 @@
       "type": "index",
       "data": {
         "on": 4,
-        "name": "idx_t_revealed_tiles_session_id_parent_key",
-        "sql": "CREATE INDEX idx_t_revealed_tiles_session_id_parent_key ON t_revealed_tiles(session_id, parent_x, parent_y);",
+        "name": "idx_t_revealed_disc_session_latlon",
+        "sql": "CREATE INDEX idx_t_revealed_disc_session_latlon ON t_revealed_disc(session_id, lat, lon);",
         "unique": false,
         "columns": []
       }
@@ -1308,8 +1175,8 @@
       "type": "index",
       "data": {
         "on": 5,
-        "name": "idx_t_revealed_disc_session",
-        "sql": "CREATE INDEX idx_t_revealed_disc_session ON t_revealed_disc(session_id);",
+        "name": "idx_t_photos_marker_id",
+        "sql": "CREATE INDEX idx_t_photos_marker_id ON t_photos(marker_id);",
         "unique": false,
         "columns": []
       }
@@ -1317,13 +1184,13 @@
     {
       "id": 13,
       "references": [
-        5
+        6
       ],
       "type": "index",
       "data": {
-        "on": 5,
-        "name": "idx_t_revealed_disc_session_latlon",
-        "sql": "CREATE INDEX idx_t_revealed_disc_session_latlon ON t_revealed_disc(session_id, lat, lon);",
+        "on": 6,
+        "name": "idx_t_fixes_session_id",
+        "sql": "CREATE INDEX idx_t_fixes_session_id ON t_fixes(session_id);",
         "unique": false,
         "columns": []
       }
@@ -1336,34 +1203,6 @@
       "type": "index",
       "data": {
         "on": 6,
-        "name": "idx_t_photos_marker_id",
-        "sql": "CREATE INDEX idx_t_photos_marker_id ON t_photos(marker_id);",
-        "unique": false,
-        "columns": []
-      }
-    },
-    {
-      "id": 15,
-      "references": [
-        7
-      ],
-      "type": "index",
-      "data": {
-        "on": 7,
-        "name": "idx_t_fixes_session_id",
-        "sql": "CREATE INDEX idx_t_fixes_session_id ON t_fixes(session_id);",
-        "unique": false,
-        "columns": []
-      }
-    },
-    {
-      "id": 16,
-      "references": [
-        7
-      ],
-      "type": "index",
-      "data": {
-        "on": 7,
         "name": "idx_t_fixes_session_recorded_at",
         "sql": "CREATE INDEX idx_t_fixes_session_recorded_at ON t_fixes(session_id, recorded_at_utc);",
         "unique": false,
@@ -1405,15 +1244,6 @@
         {
           "dialect": "sqlite",
           "sql": "CREATE TABLE IF NOT EXISTS \"t_markers\" (\"id\" TEXT NOT NULL, \"session_id\" TEXT NOT NULL REFERENCES t_sessions (id) ON DELETE CASCADE, \"category_id\" TEXT NOT NULL REFERENCES t_marker_categories (id), \"lat\" REAL NOT NULL, \"lon\" REAL NOT NULL, \"title\" TEXT NOT NULL, \"notes\" TEXT NULL, \"created_at_utc\" INTEGER NOT NULL, \"created_at_offset_minutes\" INTEGER NOT NULL CHECK(\"created_at_offset_minutes\" BETWEEN -720 AND 840), PRIMARY KEY (\"id\"));"
-        }
-      ]
-    },
-    {
-      "name": "t_revealed_tiles",
-      "sql": [
-        {
-          "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"t_revealed_tiles\" (\"id\" TEXT NOT NULL, \"session_id\" TEXT NOT NULL REFERENCES t_sessions (id) ON DELETE CASCADE, \"parent_x\" INTEGER NOT NULL, \"parent_y\" INTEGER NOT NULL, \"parent_zoom\" INTEGER NOT NULL DEFAULT 14, \"bitmap\" BLOB NOT NULL CHECK(length(bitmap) = 512), \"set_bit_count\" INTEGER NOT NULL DEFAULT 0, \"updated_at_utc\" INTEGER NOT NULL, PRIMARY KEY (\"id\"), UNIQUE (\"session_id\", \"parent_x\", \"parent_y\", \"parent_zoom\"));"
         }
       ]
     },
@@ -1468,15 +1298,6 @@
         {
           "dialect": "sqlite",
           "sql": "CREATE INDEX idx_t_markers_category_id ON t_markers (category_id)"
-        }
-      ]
-    },
-    {
-      "name": "idx_t_revealed_tiles_session_id_parent_key",
-      "sql": [
-        {
-          "dialect": "sqlite",
-          "sql": "CREATE INDEX idx_t_revealed_tiles_session_id_parent_key ON t_revealed_tiles (session_id, parent_x, parent_y)"
         }
       ]
     },

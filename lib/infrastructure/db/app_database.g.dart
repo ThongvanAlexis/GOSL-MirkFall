@@ -1561,418 +1561,6 @@ class MarkersCompanion extends UpdateCompanion<MarkerRow> {
   }
 }
 
-class $RevealedTilesTable extends RevealedTiles with TableInfo<$RevealedTilesTable, RevealedTileRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $RevealedTilesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>('id', aliasedName, false, type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _sessionIdMeta = const VerificationMeta('sessionId');
-  @override
-  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
-    'session_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('REFERENCES t_sessions (id) ON DELETE CASCADE'),
-  );
-  static const VerificationMeta _parentXMeta = const VerificationMeta('parentX');
-  @override
-  late final GeneratedColumn<int> parentX = GeneratedColumn<int>('parent_x', aliasedName, false, type: DriftSqlType.int, requiredDuringInsert: true);
-  static const VerificationMeta _parentYMeta = const VerificationMeta('parentY');
-  @override
-  late final GeneratedColumn<int> parentY = GeneratedColumn<int>('parent_y', aliasedName, false, type: DriftSqlType.int, requiredDuringInsert: true);
-  static const VerificationMeta _parentZoomMeta = const VerificationMeta('parentZoom');
-  @override
-  late final GeneratedColumn<int> parentZoom = GeneratedColumn<int>(
-    'parent_zoom',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(kRevealedTileParentZoom),
-  );
-  static const VerificationMeta _bitmapMeta = const VerificationMeta('bitmap');
-  @override
-  late final GeneratedColumn<Uint8List> bitmap = GeneratedColumn<Uint8List>(
-    'bitmap',
-    aliasedName,
-    false,
-    check: () => const CustomExpression<bool>('length(bitmap) = 512'),
-    type: DriftSqlType.blob,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _setBitCountMeta = const VerificationMeta('setBitCount');
-  @override
-  late final GeneratedColumn<int> setBitCount = GeneratedColumn<int>(
-    'set_bit_count',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  @override
-  late final GeneratedColumnWithTypeConverter<DateTime, int> updatedAtUtc = GeneratedColumn<int>(
-    'updated_at_utc',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  ).withConverter<DateTime>($RevealedTilesTable.$converterupdatedAtUtc);
-  @override
-  List<GeneratedColumn> get $columns => [id, sessionId, parentX, parentY, parentZoom, bitmap, setBitCount, updatedAtUtc];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 't_revealed_tiles';
-  @override
-  VerificationContext validateIntegrity(Insertable<RevealedTileRow> instance, {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('session_id')) {
-      context.handle(_sessionIdMeta, sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta));
-    } else if (isInserting) {
-      context.missing(_sessionIdMeta);
-    }
-    if (data.containsKey('parent_x')) {
-      context.handle(_parentXMeta, parentX.isAcceptableOrUnknown(data['parent_x']!, _parentXMeta));
-    } else if (isInserting) {
-      context.missing(_parentXMeta);
-    }
-    if (data.containsKey('parent_y')) {
-      context.handle(_parentYMeta, parentY.isAcceptableOrUnknown(data['parent_y']!, _parentYMeta));
-    } else if (isInserting) {
-      context.missing(_parentYMeta);
-    }
-    if (data.containsKey('parent_zoom')) {
-      context.handle(_parentZoomMeta, parentZoom.isAcceptableOrUnknown(data['parent_zoom']!, _parentZoomMeta));
-    }
-    if (data.containsKey('bitmap')) {
-      context.handle(_bitmapMeta, bitmap.isAcceptableOrUnknown(data['bitmap']!, _bitmapMeta));
-    } else if (isInserting) {
-      context.missing(_bitmapMeta);
-    }
-    if (data.containsKey('set_bit_count')) {
-      context.handle(_setBitCountMeta, setBitCount.isAcceptableOrUnknown(data['set_bit_count']!, _setBitCountMeta));
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  List<Set<GeneratedColumn>> get uniqueKeys => [
-    {sessionId, parentX, parentY, parentZoom},
-  ];
-  @override
-  RevealedTileRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return RevealedTileRow(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      sessionId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}session_id'])!,
-      parentX: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}parent_x'])!,
-      parentY: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}parent_y'])!,
-      parentZoom: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}parent_zoom'])!,
-      bitmap: attachedDatabase.typeMapping.read(DriftSqlType.blob, data['${effectivePrefix}bitmap'])!,
-      setBitCount: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}set_bit_count'])!,
-      updatedAtUtc: $RevealedTilesTable.$converterupdatedAtUtc.fromSql(
-        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at_utc'])!,
-      ),
-    );
-  }
-
-  @override
-  $RevealedTilesTable createAlias(String alias) {
-    return $RevealedTilesTable(attachedDatabase, alias);
-  }
-
-  static TypeConverter<DateTime, int> $converterupdatedAtUtc = const UnixMsToDateTimeConverter();
-}
-
-class RevealedTileRow extends DataClass implements Insertable<RevealedTileRow> {
-  final String id;
-  final String sessionId;
-  final int parentX;
-  final int parentY;
-  final int parentZoom;
-  final Uint8List bitmap;
-  final int setBitCount;
-  final DateTime updatedAtUtc;
-  const RevealedTileRow({
-    required this.id,
-    required this.sessionId,
-    required this.parentX,
-    required this.parentY,
-    required this.parentZoom,
-    required this.bitmap,
-    required this.setBitCount,
-    required this.updatedAtUtc,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['session_id'] = Variable<String>(sessionId);
-    map['parent_x'] = Variable<int>(parentX);
-    map['parent_y'] = Variable<int>(parentY);
-    map['parent_zoom'] = Variable<int>(parentZoom);
-    map['bitmap'] = Variable<Uint8List>(bitmap);
-    map['set_bit_count'] = Variable<int>(setBitCount);
-    {
-      map['updated_at_utc'] = Variable<int>($RevealedTilesTable.$converterupdatedAtUtc.toSql(updatedAtUtc));
-    }
-    return map;
-  }
-
-  RevealedTilesCompanion toCompanion(bool nullToAbsent) {
-    return RevealedTilesCompanion(
-      id: Value(id),
-      sessionId: Value(sessionId),
-      parentX: Value(parentX),
-      parentY: Value(parentY),
-      parentZoom: Value(parentZoom),
-      bitmap: Value(bitmap),
-      setBitCount: Value(setBitCount),
-      updatedAtUtc: Value(updatedAtUtc),
-    );
-  }
-
-  factory RevealedTileRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return RevealedTileRow(
-      id: serializer.fromJson<String>(json['id']),
-      sessionId: serializer.fromJson<String>(json['sessionId']),
-      parentX: serializer.fromJson<int>(json['parentX']),
-      parentY: serializer.fromJson<int>(json['parentY']),
-      parentZoom: serializer.fromJson<int>(json['parentZoom']),
-      bitmap: serializer.fromJson<Uint8List>(json['bitmap']),
-      setBitCount: serializer.fromJson<int>(json['setBitCount']),
-      updatedAtUtc: serializer.fromJson<DateTime>(json['updatedAtUtc']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'sessionId': serializer.toJson<String>(sessionId),
-      'parentX': serializer.toJson<int>(parentX),
-      'parentY': serializer.toJson<int>(parentY),
-      'parentZoom': serializer.toJson<int>(parentZoom),
-      'bitmap': serializer.toJson<Uint8List>(bitmap),
-      'setBitCount': serializer.toJson<int>(setBitCount),
-      'updatedAtUtc': serializer.toJson<DateTime>(updatedAtUtc),
-    };
-  }
-
-  RevealedTileRow copyWith({
-    String? id,
-    String? sessionId,
-    int? parentX,
-    int? parentY,
-    int? parentZoom,
-    Uint8List? bitmap,
-    int? setBitCount,
-    DateTime? updatedAtUtc,
-  }) => RevealedTileRow(
-    id: id ?? this.id,
-    sessionId: sessionId ?? this.sessionId,
-    parentX: parentX ?? this.parentX,
-    parentY: parentY ?? this.parentY,
-    parentZoom: parentZoom ?? this.parentZoom,
-    bitmap: bitmap ?? this.bitmap,
-    setBitCount: setBitCount ?? this.setBitCount,
-    updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
-  );
-  RevealedTileRow copyWithCompanion(RevealedTilesCompanion data) {
-    return RevealedTileRow(
-      id: data.id.present ? data.id.value : this.id,
-      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
-      parentX: data.parentX.present ? data.parentX.value : this.parentX,
-      parentY: data.parentY.present ? data.parentY.value : this.parentY,
-      parentZoom: data.parentZoom.present ? data.parentZoom.value : this.parentZoom,
-      bitmap: data.bitmap.present ? data.bitmap.value : this.bitmap,
-      setBitCount: data.setBitCount.present ? data.setBitCount.value : this.setBitCount,
-      updatedAtUtc: data.updatedAtUtc.present ? data.updatedAtUtc.value : this.updatedAtUtc,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('RevealedTileRow(')
-          ..write('id: $id, ')
-          ..write('sessionId: $sessionId, ')
-          ..write('parentX: $parentX, ')
-          ..write('parentY: $parentY, ')
-          ..write('parentZoom: $parentZoom, ')
-          ..write('bitmap: $bitmap, ')
-          ..write('setBitCount: $setBitCount, ')
-          ..write('updatedAtUtc: $updatedAtUtc')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, sessionId, parentX, parentY, parentZoom, $driftBlobEquality.hash(bitmap), setBitCount, updatedAtUtc);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is RevealedTileRow &&
-          other.id == this.id &&
-          other.sessionId == this.sessionId &&
-          other.parentX == this.parentX &&
-          other.parentY == this.parentY &&
-          other.parentZoom == this.parentZoom &&
-          $driftBlobEquality.equals(other.bitmap, this.bitmap) &&
-          other.setBitCount == this.setBitCount &&
-          other.updatedAtUtc == this.updatedAtUtc);
-}
-
-class RevealedTilesCompanion extends UpdateCompanion<RevealedTileRow> {
-  final Value<String> id;
-  final Value<String> sessionId;
-  final Value<int> parentX;
-  final Value<int> parentY;
-  final Value<int> parentZoom;
-  final Value<Uint8List> bitmap;
-  final Value<int> setBitCount;
-  final Value<DateTime> updatedAtUtc;
-  final Value<int> rowid;
-  const RevealedTilesCompanion({
-    this.id = const Value.absent(),
-    this.sessionId = const Value.absent(),
-    this.parentX = const Value.absent(),
-    this.parentY = const Value.absent(),
-    this.parentZoom = const Value.absent(),
-    this.bitmap = const Value.absent(),
-    this.setBitCount = const Value.absent(),
-    this.updatedAtUtc = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  RevealedTilesCompanion.insert({
-    required String id,
-    required String sessionId,
-    required int parentX,
-    required int parentY,
-    this.parentZoom = const Value.absent(),
-    required Uint8List bitmap,
-    this.setBitCount = const Value.absent(),
-    required DateTime updatedAtUtc,
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       sessionId = Value(sessionId),
-       parentX = Value(parentX),
-       parentY = Value(parentY),
-       bitmap = Value(bitmap),
-       updatedAtUtc = Value(updatedAtUtc);
-  static Insertable<RevealedTileRow> custom({
-    Expression<String>? id,
-    Expression<String>? sessionId,
-    Expression<int>? parentX,
-    Expression<int>? parentY,
-    Expression<int>? parentZoom,
-    Expression<Uint8List>? bitmap,
-    Expression<int>? setBitCount,
-    Expression<int>? updatedAtUtc,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (sessionId != null) 'session_id': sessionId,
-      if (parentX != null) 'parent_x': parentX,
-      if (parentY != null) 'parent_y': parentY,
-      if (parentZoom != null) 'parent_zoom': parentZoom,
-      if (bitmap != null) 'bitmap': bitmap,
-      if (setBitCount != null) 'set_bit_count': setBitCount,
-      if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  RevealedTilesCompanion copyWith({
-    Value<String>? id,
-    Value<String>? sessionId,
-    Value<int>? parentX,
-    Value<int>? parentY,
-    Value<int>? parentZoom,
-    Value<Uint8List>? bitmap,
-    Value<int>? setBitCount,
-    Value<DateTime>? updatedAtUtc,
-    Value<int>? rowid,
-  }) {
-    return RevealedTilesCompanion(
-      id: id ?? this.id,
-      sessionId: sessionId ?? this.sessionId,
-      parentX: parentX ?? this.parentX,
-      parentY: parentY ?? this.parentY,
-      parentZoom: parentZoom ?? this.parentZoom,
-      bitmap: bitmap ?? this.bitmap,
-      setBitCount: setBitCount ?? this.setBitCount,
-      updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (sessionId.present) {
-      map['session_id'] = Variable<String>(sessionId.value);
-    }
-    if (parentX.present) {
-      map['parent_x'] = Variable<int>(parentX.value);
-    }
-    if (parentY.present) {
-      map['parent_y'] = Variable<int>(parentY.value);
-    }
-    if (parentZoom.present) {
-      map['parent_zoom'] = Variable<int>(parentZoom.value);
-    }
-    if (bitmap.present) {
-      map['bitmap'] = Variable<Uint8List>(bitmap.value);
-    }
-    if (setBitCount.present) {
-      map['set_bit_count'] = Variable<int>(setBitCount.value);
-    }
-    if (updatedAtUtc.present) {
-      map['updated_at_utc'] = Variable<int>($RevealedTilesTable.$converterupdatedAtUtc.toSql(updatedAtUtc.value));
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('RevealedTilesCompanion(')
-          ..write('id: $id, ')
-          ..write('sessionId: $sessionId, ')
-          ..write('parentX: $parentX, ')
-          ..write('parentY: $parentY, ')
-          ..write('parentZoom: $parentZoom, ')
-          ..write('bitmap: $bitmap, ')
-          ..write('setBitCount: $setBitCount, ')
-          ..write('updatedAtUtc: $updatedAtUtc, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $RevealedDiscsTable extends RevealedDiscs with TableInfo<$RevealedDiscsTable, RevealedDiscRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -3231,7 +2819,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SessionsTable sessions = $SessionsTable(this);
   late final $MarkerCategoriesTable markerCategories = $MarkerCategoriesTable(this);
   late final $MarkersTable markers = $MarkersTable(this);
-  late final $RevealedTilesTable revealedTiles = $RevealedTilesTable(this);
   late final $RevealedDiscsTable revealedDiscs = $RevealedDiscsTable(this);
   late final $PhotosTable photos = $PhotosTable(this);
   late final $FixesTable fixes = $FixesTable(this);
@@ -3241,10 +2828,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final Index idxTMarkersSessionId = Index('idx_t_markers_session_id', 'CREATE INDEX idx_t_markers_session_id ON t_markers (session_id)');
   late final Index idxTMarkersCategoryId = Index('idx_t_markers_category_id', 'CREATE INDEX idx_t_markers_category_id ON t_markers (category_id)');
-  late final Index idxTRevealedTilesSessionIdParentKey = Index(
-    'idx_t_revealed_tiles_session_id_parent_key',
-    'CREATE INDEX idx_t_revealed_tiles_session_id_parent_key ON t_revealed_tiles (session_id, parent_x, parent_y)',
-  );
   late final Index idxTRevealedDiscSession = Index('idx_t_revealed_disc_session', 'CREATE INDEX idx_t_revealed_disc_session ON t_revealed_disc (session_id)');
   late final Index idxTRevealedDiscSessionLatlon = Index(
     'idx_t_revealed_disc_session_latlon',
@@ -3264,14 +2847,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     sessions,
     markerCategories,
     markers,
-    revealedTiles,
     revealedDiscs,
     photos,
     fixes,
     idxTSessionsStatusActive,
     idxTMarkersSessionId,
     idxTMarkersCategoryId,
-    idxTRevealedTilesSessionIdParentKey,
     idxTRevealedDiscSession,
     idxTRevealedDiscSessionLatlon,
     idxTPhotosMarkerId,
@@ -3287,10 +2868,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName('t_sessions', limitUpdateKind: UpdateKind.delete),
       result: [TableUpdate('t_markers', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName('t_sessions', limitUpdateKind: UpdateKind.delete),
-      result: [TableUpdate('t_revealed_tiles', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName('t_sessions', limitUpdateKind: UpdateKind.delete),
@@ -3589,16 +3166,6 @@ final class $$SessionsTableReferences extends BaseReferences<_$AppDatabase, $Ses
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 
-  static MultiTypedResultKey<$RevealedTilesTable, List<RevealedTileRow>> _revealedTilesRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(db.revealedTiles, aliasName: $_aliasNameGenerator(db.sessions.id, db.revealedTiles.sessionId));
-
-  $$RevealedTilesTableProcessedTableManager get revealedTilesRefs {
-    final manager = $$RevealedTilesTableTableManager($_db, $_db.revealedTiles).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_revealedTilesRefsTable($_db));
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
-  }
-
   static MultiTypedResultKey<$RevealedDiscsTable, List<RevealedDiscRow>> _revealedDiscsRefsTable(_$AppDatabase db) =>
       MultiTypedResultKey.fromTable(db.revealedDiscs, aliasName: $_aliasNameGenerator(db.sessions.id, db.revealedDiscs.sessionId));
 
@@ -3672,23 +3239,6 @@ class $$SessionsTableFilterComposer extends Composer<_$AppDatabase, $SessionsTab
       builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$MarkersTableFilterComposer(
         $db: $db,
         $table: $db.markers,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> revealedTilesRefs(Expression<bool> Function($$RevealedTilesTableFilterComposer f) f) {
-    final $$RevealedTilesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.revealedTiles,
-      getReferencedColumn: (t) => t.sessionId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$RevealedTilesTableFilterComposer(
-        $db: $db,
-        $table: $db.revealedTiles,
         $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
         joinBuilder: joinBuilder,
         $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -3832,23 +3382,6 @@ class $$SessionsTableAnnotationComposer extends Composer<_$AppDatabase, $Session
     return f(composer);
   }
 
-  Expression<T> revealedTilesRefs<T extends Object>(Expression<T> Function($$RevealedTilesTableAnnotationComposer a) f) {
-    final $$RevealedTilesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.revealedTiles,
-      getReferencedColumn: (t) => t.sessionId,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$RevealedTilesTableAnnotationComposer(
-        $db: $db,
-        $table: $db.revealedTiles,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
-    );
-    return f(composer);
-  }
-
   Expression<T> revealedDiscsRefs<T extends Object>(Expression<T> Function($$RevealedDiscsTableAnnotationComposer a) f) {
     final $$RevealedDiscsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -3897,7 +3430,7 @@ class $$SessionsTableTableManager
           $$SessionsTableUpdateCompanionBuilder,
           (SessionRow, $$SessionsTableReferences),
           SessionRow,
-          PrefetchHooks Function({bool mirkStyleId, bool markersRefs, bool revealedTilesRefs, bool revealedDiscsRefs, bool fixesRefs})
+          PrefetchHooks Function({bool mirkStyleId, bool markersRefs, bool revealedDiscsRefs, bool fixesRefs})
         > {
   $$SessionsTableTableManager(_$AppDatabase db, $SessionsTable table)
     : super(
@@ -3956,15 +3489,10 @@ class $$SessionsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0.map((e) => (e.readTable(table), $$SessionsTableReferences(db, table, e))).toList(),
-          prefetchHooksCallback: ({mirkStyleId = false, markersRefs = false, revealedTilesRefs = false, revealedDiscsRefs = false, fixesRefs = false}) {
+          prefetchHooksCallback: ({mirkStyleId = false, markersRefs = false, revealedDiscsRefs = false, fixesRefs = false}) {
             return PrefetchHooks(
               db: db,
-              explicitlyWatchedTables: [
-                if (markersRefs) db.markers,
-                if (revealedTilesRefs) db.revealedTiles,
-                if (revealedDiscsRefs) db.revealedDiscs,
-                if (fixesRefs) db.fixes,
-              ],
+              explicitlyWatchedTables: [if (markersRefs) db.markers, if (revealedDiscsRefs) db.revealedDiscs, if (fixesRefs) db.fixes],
               addJoins:
                   <T extends TableManagerState<dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic>>(state) {
                     if (mirkStyleId) {
@@ -3987,14 +3515,6 @@ class $$SessionsTableTableManager
                       currentTable: table,
                       referencedTable: $$SessionsTableReferences._markersRefsTable(db),
                       managerFromTypedResult: (p0) => $$SessionsTableReferences(db, table, p0).markersRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) => referencedItems.where((e) => e.sessionId == item.id),
-                      typedResults: items,
-                    ),
-                  if (revealedTilesRefs)
-                    await $_getPrefetchedData<SessionRow, $SessionsTable, RevealedTileRow>(
-                      currentTable: table,
-                      referencedTable: $$SessionsTableReferences._revealedTilesRefsTable(db),
-                      managerFromTypedResult: (p0) => $$SessionsTableReferences(db, table, p0).revealedTilesRefs,
                       referencedItemsForCurrentItem: (item, referencedItems) => referencedItems.where((e) => e.sessionId == item.id),
                       typedResults: items,
                     ),
@@ -4034,7 +3554,7 @@ typedef $$SessionsTableProcessedTableManager =
       $$SessionsTableUpdateCompanionBuilder,
       (SessionRow, $$SessionsTableReferences),
       SessionRow,
-      PrefetchHooks Function({bool mirkStyleId, bool markersRefs, bool revealedTilesRefs, bool revealedDiscsRefs, bool fixesRefs})
+      PrefetchHooks Function({bool mirkStyleId, bool markersRefs, bool revealedDiscsRefs, bool fixesRefs})
     >;
 typedef $$MarkerCategoriesTableCreateCompanionBuilder =
     MarkerCategoriesCompanion Function({
@@ -4656,277 +4176,6 @@ typedef $$MarkersTableProcessedTableManager =
       (MarkerRow, $$MarkersTableReferences),
       MarkerRow,
       PrefetchHooks Function({bool sessionId, bool categoryId, bool photosRefs})
-    >;
-typedef $$RevealedTilesTableCreateCompanionBuilder =
-    RevealedTilesCompanion Function({
-      required String id,
-      required String sessionId,
-      required int parentX,
-      required int parentY,
-      Value<int> parentZoom,
-      required Uint8List bitmap,
-      Value<int> setBitCount,
-      required DateTime updatedAtUtc,
-      Value<int> rowid,
-    });
-typedef $$RevealedTilesTableUpdateCompanionBuilder =
-    RevealedTilesCompanion Function({
-      Value<String> id,
-      Value<String> sessionId,
-      Value<int> parentX,
-      Value<int> parentY,
-      Value<int> parentZoom,
-      Value<Uint8List> bitmap,
-      Value<int> setBitCount,
-      Value<DateTime> updatedAtUtc,
-      Value<int> rowid,
-    });
-
-final class $$RevealedTilesTableReferences extends BaseReferences<_$AppDatabase, $RevealedTilesTable, RevealedTileRow> {
-  $$RevealedTilesTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $SessionsTable _sessionIdTable(_$AppDatabase db) => db.sessions.createAlias($_aliasNameGenerator(db.revealedTiles.sessionId, db.sessions.id));
-
-  $$SessionsTableProcessedTableManager get sessionId {
-    final $_column = $_itemColumn<String>('session_id')!;
-
-    final manager = $$SessionsTableTableManager($_db, $_db.sessions).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_sessionIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
-  }
-}
-
-class $$RevealedTilesTableFilterComposer extends Composer<_$AppDatabase, $RevealedTilesTable> {
-  $$RevealedTilesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get parentX => $composableBuilder(column: $table.parentX, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get parentY => $composableBuilder(column: $table.parentY, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get parentZoom => $composableBuilder(column: $table.parentZoom, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<Uint8List> get bitmap => $composableBuilder(column: $table.bitmap, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get setBitCount => $composableBuilder(column: $table.setBitCount, builder: (column) => ColumnFilters(column));
-
-  ColumnWithTypeConverterFilters<DateTime, DateTime, int> get updatedAtUtc =>
-      $composableBuilder(column: $table.updatedAtUtc, builder: (column) => ColumnWithTypeConverterFilters(column));
-
-  $$SessionsTableFilterComposer get sessionId {
-    final $$SessionsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.sessionId,
-      referencedTable: $db.sessions,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableFilterComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
-    );
-    return composer;
-  }
-}
-
-class $$RevealedTilesTableOrderingComposer extends Composer<_$AppDatabase, $RevealedTilesTable> {
-  $$RevealedTilesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get parentX => $composableBuilder(column: $table.parentX, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get parentY => $composableBuilder(column: $table.parentY, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get parentZoom => $composableBuilder(column: $table.parentZoom, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<Uint8List> get bitmap => $composableBuilder(column: $table.bitmap, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get setBitCount => $composableBuilder(column: $table.setBitCount, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get updatedAtUtc => $composableBuilder(column: $table.updatedAtUtc, builder: (column) => ColumnOrderings(column));
-
-  $$SessionsTableOrderingComposer get sessionId {
-    final $$SessionsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.sessionId,
-      referencedTable: $db.sessions,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableOrderingComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
-    );
-    return composer;
-  }
-}
-
-class $$RevealedTilesTableAnnotationComposer extends Composer<_$AppDatabase, $RevealedTilesTable> {
-  $$RevealedTilesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<int> get parentX => $composableBuilder(column: $table.parentX, builder: (column) => column);
-
-  GeneratedColumn<int> get parentY => $composableBuilder(column: $table.parentY, builder: (column) => column);
-
-  GeneratedColumn<int> get parentZoom => $composableBuilder(column: $table.parentZoom, builder: (column) => column);
-
-  GeneratedColumn<Uint8List> get bitmap => $composableBuilder(column: $table.bitmap, builder: (column) => column);
-
-  GeneratedColumn<int> get setBitCount => $composableBuilder(column: $table.setBitCount, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<DateTime, int> get updatedAtUtc => $composableBuilder(column: $table.updatedAtUtc, builder: (column) => column);
-
-  $$SessionsTableAnnotationComposer get sessionId {
-    final $$SessionsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.sessionId,
-      referencedTable: $db.sessions,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) => $$SessionsTableAnnotationComposer(
-        $db: $db,
-        $table: $db.sessions,
-        $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-        joinBuilder: joinBuilder,
-        $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-      ),
-    );
-    return composer;
-  }
-}
-
-class $$RevealedTilesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $RevealedTilesTable,
-          RevealedTileRow,
-          $$RevealedTilesTableFilterComposer,
-          $$RevealedTilesTableOrderingComposer,
-          $$RevealedTilesTableAnnotationComposer,
-          $$RevealedTilesTableCreateCompanionBuilder,
-          $$RevealedTilesTableUpdateCompanionBuilder,
-          (RevealedTileRow, $$RevealedTilesTableReferences),
-          RevealedTileRow,
-          PrefetchHooks Function({bool sessionId})
-        > {
-  $$RevealedTilesTableTableManager(_$AppDatabase db, $RevealedTilesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () => $$RevealedTilesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$RevealedTilesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$RevealedTilesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> sessionId = const Value.absent(),
-                Value<int> parentX = const Value.absent(),
-                Value<int> parentY = const Value.absent(),
-                Value<int> parentZoom = const Value.absent(),
-                Value<Uint8List> bitmap = const Value.absent(),
-                Value<int> setBitCount = const Value.absent(),
-                Value<DateTime> updatedAtUtc = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => RevealedTilesCompanion(
-                id: id,
-                sessionId: sessionId,
-                parentX: parentX,
-                parentY: parentY,
-                parentZoom: parentZoom,
-                bitmap: bitmap,
-                setBitCount: setBitCount,
-                updatedAtUtc: updatedAtUtc,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String sessionId,
-                required int parentX,
-                required int parentY,
-                Value<int> parentZoom = const Value.absent(),
-                required Uint8List bitmap,
-                Value<int> setBitCount = const Value.absent(),
-                required DateTime updatedAtUtc,
-                Value<int> rowid = const Value.absent(),
-              }) => RevealedTilesCompanion.insert(
-                id: id,
-                sessionId: sessionId,
-                parentX: parentX,
-                parentY: parentY,
-                parentZoom: parentZoom,
-                bitmap: bitmap,
-                setBitCount: setBitCount,
-                updatedAtUtc: updatedAtUtc,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0.map((e) => (e.readTable(table), $$RevealedTilesTableReferences(db, table, e))).toList(),
-          prefetchHooksCallback: ({sessionId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <T extends TableManagerState<dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic, dynamic>>(state) {
-                    if (sessionId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.sessionId,
-                                referencedTable: $$RevealedTilesTableReferences._sessionIdTable(db),
-                                referencedColumn: $$RevealedTilesTableReferences._sessionIdTable(db).id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$RevealedTilesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $RevealedTilesTable,
-      RevealedTileRow,
-      $$RevealedTilesTableFilterComposer,
-      $$RevealedTilesTableOrderingComposer,
-      $$RevealedTilesTableAnnotationComposer,
-      $$RevealedTilesTableCreateCompanionBuilder,
-      $$RevealedTilesTableUpdateCompanionBuilder,
-      (RevealedTileRow, $$RevealedTilesTableReferences),
-      RevealedTileRow,
-      PrefetchHooks Function({bool sessionId})
     >;
 typedef $$RevealedDiscsTableCreateCompanionBuilder =
     RevealedDiscsCompanion Function({
@@ -5741,7 +4990,6 @@ class $AppDatabaseManager {
   $$SessionsTableTableManager get sessions => $$SessionsTableTableManager(_db, _db.sessions);
   $$MarkerCategoriesTableTableManager get markerCategories => $$MarkerCategoriesTableTableManager(_db, _db.markerCategories);
   $$MarkersTableTableManager get markers => $$MarkersTableTableManager(_db, _db.markers);
-  $$RevealedTilesTableTableManager get revealedTiles => $$RevealedTilesTableTableManager(_db, _db.revealedTiles);
   $$RevealedDiscsTableTableManager get revealedDiscs => $$RevealedDiscsTableTableManager(_db, _db.revealedDiscs);
   $$PhotosTableTableManager get photos => $$PhotosTableTableManager(_db, _db.photos);
   $$FixesTableTableManager get fixes => $$FixesTableTableManager(_db, _db.fixes);

@@ -9,10 +9,10 @@ import 'package:mirkfall/domain/revealed/revealed_disc_store.dart';
 
 /// Observable in-memory [RevealedDiscStore] for widget + provider tests
 /// that need to assert which discs get queried, when, and how often —
-/// without spinning a Drift database. Mirrors [`FakeRevealedTileStore`]'s
-/// counter + observable pattern; the BUG-010 Option B path's contract is
-/// narrower (no merge, no popcount, no monotonic-OR semantic), so the
-/// fake stays minimal.
+/// without spinning a Drift database. The BUG-010 Option B contract is
+/// narrow (no merge, no popcount, no monotonic-OR semantic), so the
+/// fake stays minimal — counters per method, a backing list, and a
+/// throw-injection hook for error-path tests.
 class FakeRevealedDiscStore implements RevealedDiscStore {
   /// Backing list — appended on [addDisc], rebuilt on [compactSession].
   /// Public for test inspection.

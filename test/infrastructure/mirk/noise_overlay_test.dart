@@ -40,15 +40,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
-import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/atmospheric_mirk_renderer.dart';
 import 'package:mirkfall/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart';
 
 import '_render_helpers.dart';
 
-/// Builds a context with a SINGLE fully-unrevealed tile filling the
-/// entire test canvas. No holes → no rounded-reveal interference with
-/// pixel sampling. Default canvas is 256×256 (see [kTestCanvasSize]).
+/// Builds a context with a TINY off-centre disc — the analogue of the
+/// pre-Commit-5 "fully-fogged single tile" fixture. The 1 m disc is well
+/// inside the viewport but small enough that virtually every pixel reads
+/// as fog (matching the pre-fix `makeAllUnrevealedBitmap` semantics
+/// for this test's pixel-sampling assertions). Default canvas is 256×256
+/// (see [kTestCanvasSize]).
 MirkPaintContext _fullyFoggedContext({int elapsedMs = 0}) {
   final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
   return MirkPaintContext(
@@ -56,15 +59,17 @@ MirkPaintContext _fullyFoggedContext({int elapsedMs = 0}) {
     pixelRatio: 1.0,
     sessionElapsed: Duration(milliseconds: elapsedMs),
     viewportBbox: viewport,
-    visibleTiles: <VisibleMirkTile>[
-      VisibleMirkTile(
-        parentX: 8456,
-        parentY: 5959,
-        bitmap: makeAllUnrevealedBitmap(),
-        tileNorthLat: 44.0,
-        tileWestLon: 5.0,
-        tileSouthLat: 43.0,
-        tileEastLon: 6.0,
+    discs: <RevealDisc>[
+      RevealDisc(
+        id: 'rvd_test_tinyfog',
+        sessionId: 'sess_test',
+        // Off-centre + tiny radius → fog covers the canvas centre at (128, 128)
+        // where the test samples alpha. The disc exists only so the
+        // renderer's `discs.isEmpty` early-return does not fire.
+        lat: 43.05,
+        lon: 5.05,
+        radiusMeters: 1.0,
+        fixedAtUtc: DateTime.utc(2026, 4, 26),
       ),
     ],
   );
@@ -111,7 +116,12 @@ void main() {
       await renderer.dispose();
     });
 
-    test('atmospheric: paint with all-revealed bitmap is a no-op (no draw calls)', () async {
+    test('atmospheric: paint with a viewport-spanning disc is a no-op (no draw calls)', () async {
+      // BUG-010 Option B Commit 5: pre-Commit-5 this asserted "all-bits-set
+      // bitmap → no draw". The continuous-geometry equivalent is "one disc
+      // whose radius covers the entire viewport". The clip path is then
+      // `viewportRect − giantCircle` → empty bounds → renderer early-return
+      // → fully transparent output.
       final renderer = AtmosphericMirkRenderer(const MirkStyleConfig.atmospheric() as AtmosphericConfig);
       await renderer.shaderReady;
       final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
@@ -120,16 +130,8 @@ void main() {
         pixelRatio: 1.0,
         sessionElapsed: Duration.zero,
         viewportBbox: viewport,
-        visibleTiles: <VisibleMirkTile>[
-          VisibleMirkTile(
-            parentX: 8456,
-            parentY: 5959,
-            bitmap: makeAllRevealedBitmap(),
-            tileNorthLat: 44.0,
-            tileWestLon: 5.0,
-            tileSouthLat: 43.0,
-            tileEastLon: 6.0,
-          ),
+        discs: <RevealDisc>[
+          RevealDisc(id: 'rvd_test_swallow_n', sessionId: 'sess_test', lat: 43.5, lon: 5.5, radiusMeters: 200000.0, fixedAtUtc: DateTime.utc(2026, 4, 26)),
         ],
       );
       // path.getBounds().isEmpty → renderer early-returns. The output
@@ -142,7 +144,7 @@ void main() {
           break;
         }
       }
-      expect(allTransparent, isTrue, reason: 'all-revealed bitmap → renderer must paint nothing (every pixel transparent)');
+      expect(allTransparent, isTrue, reason: 'viewport-spanning disc → renderer must paint nothing (every pixel transparent)');
       await renderer.dispose();
     });
 

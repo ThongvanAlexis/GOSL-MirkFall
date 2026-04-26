@@ -28,9 +28,11 @@ import 'wisp_particle.dart';
 ///
 /// ## Lifecycle
 ///
-/// 1. `spawnAtCellCenter` is called by the renderer when its
-///    `MirkPaintContext.visibleTiles` reveals new cells (the renderer
-///    diffs the new bitmap against the cached previous bitmap).
+/// 1. `spawnAtPosition` is called by the renderer once per newly-emerged
+///    `RevealDisc` — N evenly-spaced wisps land along the disc perimeter
+///    so the user sees a "puff bursting outward from the new reveal" the
+///    moment the GPS fix lands. Pre-Commit-5 the spawn surface was
+///    cell-keyed (`spawnAtCellCenter`); Commit 5 rewired to disc IDs.
 /// 2. `advance(dt)` integrates every active wisp and decrements life.
 ///    Dead wisps are removed in-place.
 /// 3. `render(canvas, paint)` draws each active wisp as an
@@ -58,29 +60,34 @@ class WispParticleSystem {
   /// Number of currently active wisps.
   int get activeCount => _wisps.length;
 
-  /// Spawns up to [kMirkFogWispSpawnPerCell] new wisps at the cell
-  /// centre [position], with initial velocity along [direction] (length
-  /// usually 1 — a unit gradient). The renderer computes [direction]
-  /// from the SDF gradient at [position] so wisps stream OUT of the
-  /// revealed area into the fog.
+  /// Spawns one wisp at [position], with initial velocity along
+  /// [direction] (length usually 1 — a unit gradient). The renderer
+  /// computes [direction] as the outward normal of the disc's perimeter
+  /// at [position] so wisps stream OUT of the revealed area into the fog.
+  ///
+  /// Pre-Commit-5 this method spawned [kMirkFogWispSpawnPerCell] wisps
+  /// per call (one per newly-flipped cell). Commit 5 rewired the spawn
+  /// surface to "one wisp per disc-perimeter sample point": the renderer
+  /// chooses how many sample points along the disc circumference to spawn
+  /// (based on `kMirkFogWispSpawnsPerNewDisc` and the meters-per-wisp
+  /// budget). This method just spawns ONE wisp per invocation.
   ///
   /// If the active count would exceed [_maxCount], the OLDEST wisps
   /// are LRU-evicted (oldest = lowest remaining life). The cap is a
   /// hard ceiling, not a soft suggestion.
-  void spawnAtCellCenter({required Offset position, required Offset direction}) {
-    for (var i = 0; i < kMirkFogWispSpawnPerCell; i++) {
-      // Tiny random jitter on the spawn position so multi-particle
-      // bursts don't perfectly overlap.
-      final jitterX = (_rng.nextDouble() - 0.5) * 4.0;
-      final jitterY = (_rng.nextDouble() - 0.5) * 4.0;
-      // Velocity is the unit direction × initial speed × a small
-      // random factor to break visual lockstep.
-      final speedFactor = 0.8 + _rng.nextDouble() * 0.4; // [0.8, 1.2)
-      final velocity = Offset(direction.dx * kMirkFogWispInitialSpeedPx * speedFactor, direction.dy * kMirkFogWispInitialSpeedPx * speedFactor);
-      _wisps.add(
-        WispParticle(position: position + Offset(jitterX, jitterY), velocity: velocity, life: kMirkFogWispLifeSeconds, maxLife: kMirkFogWispLifeSeconds),
-      );
-    }
+  void spawnAtPosition({required Offset position, required Offset direction}) {
+    // Tiny random jitter on the spawn position so multi-particle
+    // bursts don't perfectly overlap when several spawnAtPosition calls
+    // land at nearly the same coordinates within one paint pass.
+    final jitterX = (_rng.nextDouble() - 0.5) * 4.0;
+    final jitterY = (_rng.nextDouble() - 0.5) * 4.0;
+    // Velocity is the unit direction × initial speed × a small
+    // random factor to break visual lockstep.
+    final speedFactor = 0.8 + _rng.nextDouble() * 0.4; // [0.8, 1.2)
+    final velocity = Offset(direction.dx * kMirkFogWispInitialSpeedPx * speedFactor, direction.dy * kMirkFogWispInitialSpeedPx * speedFactor);
+    _wisps.add(
+      WispParticle(position: position + Offset(jitterX, jitterY), velocity: velocity, life: kMirkFogWispLifeSeconds, maxLife: kMirkFogWispLifeSeconds),
+    );
     _enforceCap();
   }
 

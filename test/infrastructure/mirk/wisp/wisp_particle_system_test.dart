@@ -4,9 +4,16 @@
 
 // Phase 09 BUG-009 (TIER 2) — structural tests for WispParticleSystem.
 //
+// BUG-010 Option B Commit 5 — `spawnAtCellCenter` renamed to
+// `spawnAtPosition` (cell→disc-perimeter retarget) and the
+// `kMirkFogWispSpawnPerCell` constant retired in favour of the
+// renderer-side `kMirkFogMetersPerWisp` perimeter spacing. Each
+// `spawnAtPosition` call now creates EXACTLY ONE wisp; the renderer
+// chooses how many sample points along the perimeter to invoke.
+//
 // Tests cover the system's contract without pixel-by-pixel rendering
 // (visual is tuned on real device walks):
-//   - spawnAtCellCenter creates kMirkFogWispSpawnPerCell particles
+//   - spawnAtPosition creates exactly one particle
 //   - LRU eviction enforces the cap
 //   - advance(dt) decrements life, eventually evicts dead particles
 //   - render does not throw with empty / non-empty population
@@ -27,24 +34,25 @@ void main() {
       expect(system.activeCount, equals(0));
     });
 
-    test('spawnAtCellCenter creates kMirkFogWispSpawnPerCell wisps', () {
+    test('spawnAtPosition creates exactly one wisp per invocation', () {
       final system = WispParticleSystem();
-      system.spawnAtCellCenter(position: const Offset(100, 100), direction: const Offset(1, 0));
-      expect(system.activeCount, equals(kMirkFogWispSpawnPerCell));
+      system.spawnAtPosition(position: const Offset(100, 100), direction: const Offset(1, 0));
+      expect(system.activeCount, equals(1));
     });
 
-    test('LRU eviction caps at maxCount when many cells reveal', () {
+    test('LRU eviction caps at maxCount when many calls land', () {
       final system = WispParticleSystem(maxCount: 10);
-      // Spawn enough to overflow: 50 cells × 2 spawns each = 100 raw.
+      // 50 spawnAtPosition calls — each adds 1 wisp. The cap evicts the
+      // oldest 40 (lowest remaining life).
       for (var i = 0; i < 50; i++) {
-        system.spawnAtCellCenter(position: Offset(i.toDouble(), i.toDouble()), direction: const Offset(1, 0));
+        system.spawnAtPosition(position: Offset(i.toDouble(), i.toDouble()), direction: const Offset(1, 0));
       }
       expect(system.activeCount, equals(10), reason: 'cap must be enforced strictly — no soft overflow');
     });
 
     test('advance(dt) decrements life and evicts dead particles', () {
       final system = WispParticleSystem();
-      system.spawnAtCellCenter(position: const Offset(50, 50), direction: const Offset(1, 0));
+      system.spawnAtPosition(position: const Offset(50, 50), direction: const Offset(1, 0));
       expect(system.activeCount, greaterThan(0));
       // Advance by more than the configured wisp lifetime → all
       // particles die.
@@ -54,7 +62,7 @@ void main() {
 
     test('advance(dt) leaves non-dead wisps in place', () {
       final system = WispParticleSystem();
-      system.spawnAtCellCenter(position: const Offset(50, 50), direction: const Offset(1, 0));
+      system.spawnAtPosition(position: const Offset(50, 50), direction: const Offset(1, 0));
       final initialCount = system.activeCount;
       // Tiny advance — no wisp should hit zero life.
       system.advance(0.001);
@@ -63,7 +71,7 @@ void main() {
 
     test('advance(dt) integrates position via velocity (wisps actually move)', () {
       final system = WispParticleSystem();
-      system.spawnAtCellCenter(position: const Offset(100, 100), direction: const Offset(1, 0));
+      system.spawnAtPosition(position: const Offset(100, 100), direction: const Offset(1, 0));
       final initialPositions = system.wisps.map((w) => w.position).toList();
       system.advance(0.5); // Half-second step.
       final newPositions = system.wisps.map((w) => w.position).toList();
@@ -89,8 +97,8 @@ void main() {
 
     test('render with active wisps does not throw', () {
       final system = WispParticleSystem();
-      system.spawnAtCellCenter(position: const Offset(50, 50), direction: const Offset(1, 0));
-      system.spawnAtCellCenter(position: const Offset(150, 150), direction: const Offset(0, 1));
+      system.spawnAtPosition(position: const Offset(50, 50), direction: const Offset(1, 0));
+      system.spawnAtPosition(position: const Offset(150, 150), direction: const Offset(0, 1));
       final recorder = PictureRecorder();
       final canvas = Canvas(recorder);
       expect(() => system.render(canvas, const Color(0xFFFFFFFF)), returnsNormally);
@@ -100,7 +108,7 @@ void main() {
     test('clear() empties the active list', () {
       final system = WispParticleSystem();
       for (var i = 0; i < 5; i++) {
-        system.spawnAtCellCenter(position: Offset(i.toDouble() * 10, i.toDouble() * 10), direction: const Offset(1, 0));
+        system.spawnAtPosition(position: Offset(i.toDouble() * 10, i.toDouble() * 10), direction: const Offset(1, 0));
       }
       expect(system.activeCount, greaterThan(0));
       system.clear();
@@ -110,14 +118,14 @@ void main() {
     test('determinism: same rng seed produces same wisp positions after spawn', () {
       final s1 = WispParticleSystem(rngSeed: 42);
       final s2 = WispParticleSystem(rngSeed: 42);
-      s1.spawnAtCellCenter(position: const Offset(100, 100), direction: const Offset(1, 0));
-      s2.spawnAtCellCenter(position: const Offset(100, 100), direction: const Offset(1, 0));
+      s1.spawnAtPosition(position: const Offset(100, 100), direction: const Offset(1, 0));
+      s2.spawnAtPosition(position: const Offset(100, 100), direction: const Offset(1, 0));
       expect(s1.wisps.first.position, equals(s2.wisps.first.position), reason: 'identical seeds must produce identical jitter');
     });
 
     test('age progresses 0 → 1 over maxLife', () {
       final system = WispParticleSystem();
-      system.spawnAtCellCenter(position: const Offset(50, 50), direction: const Offset(1, 0));
+      system.spawnAtPosition(position: const Offset(50, 50), direction: const Offset(1, 0));
       expect(system.wisps.first.age, lessThan(0.01), reason: 'fresh wisp age ≈ 0');
       system.advance(kMirkFogWispLifeSeconds * 0.5);
       expect(system.wisps.first.age, closeTo(0.5, 0.05), reason: 'half-life wisp age ≈ 0.5');

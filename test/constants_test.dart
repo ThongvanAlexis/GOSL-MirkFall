@@ -334,7 +334,12 @@ void main() {
 
     test('wisp particle tunables', () {
       expect(kMirkFogWispMaxCount, equals(200));
-      expect(kMirkFogWispSpawnPerCell, equals(2));
+      // BUG-010 Option B Commit 5: per-cell wisp count retired in favour
+      // of metres-per-wisp perimeter spacing. 8 m at 25 m radius
+      // ≈ 20 wisps per emergence — comparable density to the pre-Commit-5
+      // cell-diff cadence (3-5 cells × 2 wisps/cell ≈ 6-10).
+      expect(kMirkFogMetersPerWisp, equals(8.0));
+      expect(kMirkFogMetersPerWisp, isA<double>());
       expect(kMirkFogWispLifeSeconds, equals(2.5));
       expect(kMirkFogWispInitialSpeedPx, equals(18.0));
       expect(kMirkFogWispBirthRadiusPx, equals(6.0));

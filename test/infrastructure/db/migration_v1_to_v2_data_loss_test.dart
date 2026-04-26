@@ -74,9 +74,12 @@ void main() {
 
         // Fixture sanity: confirm the fixture loaded as expected so a
         // fixture regression shows up here, not only downstream.
+        // BUG-010 Option B Commit 5: SchemaSanityChecker no longer
+        // queries `t_revealed_tiles` (V6 dropped it); a missing key for
+        // the disc table at V1 is the symmetric "table did not exist
+        // yet" signal.
         expect(before['t_sessions'], 10, reason: 'fixture should ship 10 sessions; regression if changed');
         expect(before['t_markers'], 50);
-        expect(before['t_revealed_tiles'], 5);
 
         // 3. Run the ADVERSARIAL migration directly against the V1
         //    executor: the legitimate V1→V2 change (ALTER TABLE ADD

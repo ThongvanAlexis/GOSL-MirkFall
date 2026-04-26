@@ -10,7 +10,6 @@ import 'package:mirkfall/application/controllers/active_session_controller.dart'
 import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/location_stream_provider.dart';
 import 'package:mirkfall/application/providers/revealed_disc_store_provider.dart';
-import 'package:mirkfall/application/providers/revealed_tile_store_provider.dart';
 import 'package:mirkfall/application/providers/session_notification_service_provider.dart';
 import 'package:mirkfall/application/providers/session_store_provider.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
@@ -22,7 +21,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../fakes/fake_revealed_disc_store.dart';
 import '../../helpers/fake_location_stream.dart';
-import '../../helpers/no_op_revealed_tile_store.dart';
 import '../screens/session_list_screen_test.dart' show FakeFixStore, FakeSessionStore;
 
 /// Minimal notification fake — satisfies the [SessionNotificationService]
@@ -85,10 +83,6 @@ void main() {
             fixStoreProvider.overrideWith((ref) async => fixStore),
             locationStreamProvider.overrideWith((ref) => locationStream),
             sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
-            // BUG-009 follow-up (2026-04-25) — start() now awaits
-            // `revealedTileStoreProvider.future`. Tests that drive
-            // start() must override or path_provider hangs.
-            revealedTileStoreProvider.overrideWith((ref) async => const NoOpRevealedTileStore()),
             revealedDiscStoreProvider.overrideWith((ref) async => FakeRevealedDiscStore()),
           ],
           child: MaterialApp.router(routerConfig: _buildRouter(const ActiveSessionBanner())),
@@ -124,10 +118,6 @@ void main() {
             fixStoreProvider.overrideWith((ref) async => fixStore),
             locationStreamProvider.overrideWith((ref) => locationStream),
             sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
-            // BUG-009 follow-up (2026-04-25) — start() now awaits
-            // `revealedTileStoreProvider.future`. Tests that drive
-            // start() must override or path_provider hangs.
-            revealedTileStoreProvider.overrideWith((ref) async => const NoOpRevealedTileStore()),
             revealedDiscStoreProvider.overrideWith((ref) async => FakeRevealedDiscStore()),
           ],
           child: MaterialApp.router(routerConfig: _buildRouter(const ActiveSessionBanner())),
@@ -184,10 +174,6 @@ void main() {
             fixStoreProvider.overrideWith((ref) async => fixStore),
             locationStreamProvider.overrideWith((ref) => locationStream),
             sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
-            // BUG-009 follow-up (2026-04-25) — start() now awaits
-            // `revealedTileStoreProvider.future`. Tests that drive
-            // start() must override or path_provider hangs.
-            revealedTileStoreProvider.overrideWith((ref) async => const NoOpRevealedTileStore()),
             revealedDiscStoreProvider.overrideWith((ref) async => FakeRevealedDiscStore()),
           ],
           child: MaterialApp.router(routerConfig: _buildRouter(const ActiveSessionBanner())),

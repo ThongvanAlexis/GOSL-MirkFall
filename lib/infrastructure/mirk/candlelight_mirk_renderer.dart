@@ -6,7 +6,6 @@ import 'dart:math' as math;
 import 'dart:ui' show BlurStyle, Canvas, Color, Gradient, MaskFilter, Offset, Paint, PaintingStyle, Size;
 
 import 'package:logging/logging.dart';
-import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
@@ -46,16 +45,16 @@ final Logger _log = Logger('infrastructure.mirk.candlelight');
 /// Like the atmospheric and heavenly_clouds variants, candlelight now
 /// composes a single viewport-wide fog path and emits ONE
 /// `canvas.drawPath` per frame. The radial gradient covers the whole
-/// canvas; the path carves out revealed cells. The mask filter applies
-/// to the global silhouette — no per-tile seam erosion.
+/// canvas; the path carves out the union of revealed discs (BUG-010
+/// Option B Commit 5 — continuous geometry replaces the cell-bitmap
+/// hole rectangles).
 ///
 /// ## BUG-006 (2026-04-25): rounded reveal corners
 ///
 /// Switched `BlurStyle.inner` → `BlurStyle.normal` so the hole edges
-/// blur in BOTH directions, rounding the cell-rectangle reveal corners
-/// (the user's iOS UAT showed sharp 64×64 grid corners around the
-/// 20 m initial reveal — should look like a circle, not a stair-step
-/// grid). See atmospheric renderer docstring.
+/// blur in BOTH directions. With Commit 5's continuous-geometry clip
+/// path the disc silhouette is already mathematically circular; the
+/// `BlurStyle.normal` feather adds the soft watercolour edge.
 class CandlelightMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config] and an optional [seed] for
   /// the internal flicker-noise generator.
@@ -87,20 +86,19 @@ class CandlelightMirkRenderer implements MirkRenderer {
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
     if (!_firstPaintLogged) {
       _log.info(
-        'paint(): first invocation — disposed=$_disposed visibleTiles=${context.visibleTiles.length} canvasSize=${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)}',
+        'paint(): first invocation — disposed=$_disposed discs=${context.discs.length} canvasSize=${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)}',
       );
       _firstPaintLogged = true;
     } else if (_paintCallCount % 60 == 0) {
-      _log.info('paint(): entry heartbeat frame=$_paintCallCount disposed=$_disposed visibleTiles=${context.visibleTiles.length}');
+      _log.info('paint(): entry heartbeat frame=$_paintCallCount disposed=$_disposed discs=${context.discs.length}');
     }
     _paintCallCount++;
     if (_disposed) {
       _logEarlyReturnTransition('disposed');
       return;
     }
-    // BUG-010 Option B (Commit 4): see atmospheric renderer.
-    if (context.visibleTiles.isEmpty && context.discs.isEmpty) {
-      _logEarlyReturnTransition('visibleTiles+discs both empty');
+    if (context.discs.isEmpty) {
+      _logEarlyReturnTransition('discs empty');
       return;
     }
 
@@ -130,8 +128,14 @@ class CandlelightMirkRenderer implements MirkRenderer {
     final centerColor = _applyAlpha(config.centerColorArgb, aMul);
     final peripheryColor = _applyAlpha(config.peripheryColorArgb, aMul);
 
-    final cellSize = size.height / kRevealedTileSubgridSize;
-    final featherSigma = cellSize * config.featherRadiusFraction * context.pixelRatio;
+    // Feather sigma — pre-Commit-5 this scaled to the bitmap cell size
+    // (canvas.height / 64) so the soft edge matched a single grid cell.
+    // Post-Commit-5 the reveal silhouette is continuous geometry, so the
+    // feather scales to a fixed 4 px base and `featherRadiusFraction`
+    // tunes the actual blur. See atmospheric renderer for the same
+    // rationale.
+    const baseFeatherPx = 4.0;
+    final featherSigma = baseFeatherPx * config.featherRadiusFraction * context.pixelRatio;
 
     final shader = Gradient.radial(centre, radius, <Color>[centerColor, peripheryColor], <double>[0.0, 1.0]);
     final paint = Paint()
@@ -139,15 +143,12 @@ class CandlelightMirkRenderer implements MirkRenderer {
       ..style = PaintingStyle.fill
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
 
-    // BUG-003 fix (2026-04-25): single viewport-level path. See
-    // [buildViewportFogClipPath] for the rationale.
-    // BUG-010 Option B (Commit 4): falls back to the disc-based clip
-    // path when no bitmap fixtures are provided.
-    final path = context.visibleTiles.isNotEmpty
-        ? buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size)
-        : buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
+    // BUG-010 Option B Commit 5 — single canonical disc-based clip path
+    // (the per-tile bitmap helper retired with the rest of the cell
+    // surface).
+    final path = buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
     if (path.getBounds().isEmpty) {
-      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible tile fully revealed?)');
+      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible region fully revealed?)');
       return;
     }
     _logEarlyReturnTransition('none');

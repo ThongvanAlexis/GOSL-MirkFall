@@ -48,7 +48,10 @@ void main() {
         )
         .get();
     final names = rows.map((r) => r.read<String>('name')).toList();
-    expect(names, containsAll(<String>['t_marker_categories', 't_markers', 't_mirk_styles', 't_photos', 't_revealed_disc', 't_revealed_tiles', 't_sessions']));
+    // BUG-010 Option B Commit 5: `t_revealed_tiles` was dropped (V5→V6).
+    // Reveals now live exclusively in `t_revealed_disc`.
+    expect(names, containsAll(<String>['t_marker_categories', 't_markers', 't_mirk_styles', 't_photos', 't_revealed_disc', 't_sessions']));
+    expect(names, isNot(contains('t_revealed_tiles')), reason: 'V6 must drop the legacy bitmap reveal table');
   });
 
   test('SESS-06: idx_t_sessions_status_active partial unique index exists', () async {
@@ -87,27 +90,7 @@ void main() {
     );
   });
 
-  test('MIRK-03: t_revealed_tiles composite unique key enforces idempotence', () async {
-    await db.customStatement(
-      "INSERT INTO t_sessions (id, display_name, status, started_at_utc, "
-      "started_at_offset_minutes) VALUES ('sess_T', 'T', 'stopped', 1000, 120)",
-    );
-    await db.customStatement(
-      "INSERT INTO t_revealed_tiles (id, session_id, parent_x, parent_y, "
-      "parent_zoom, bitmap, set_bit_count, updated_at_utc) "
-      "VALUES ('rvt_1', 'sess_T', 10, 20, 14, zeroblob(512), 0, 1000)",
-    );
-    await expectLater(
-      db.customStatement(
-        "INSERT INTO t_revealed_tiles (id, session_id, parent_x, parent_y, "
-        "parent_zoom, bitmap, set_bit_count, updated_at_utc) "
-        "VALUES ('rvt_2', 'sess_T', 10, 20, 14, zeroblob(512), 0, 1000)",
-      ),
-      throwsA(isA<SqliteException>().having((e) => e.extendedResultCode, 'extendedResultCode', _sqliteConstraintUnique)),
-    );
-  });
-
-  test('CASCADE: deleting a session removes its markers + revealed_tiles', () async {
+  test('CASCADE: deleting a session removes its markers + revealed_disc', () async {
     await db.customStatement("SELECT 1");
     // cat_default is seeded by onCreate (finding #2 / Batch F); previously
     // this test re-inserted it manually, now that would PK-collide.
@@ -120,10 +103,10 @@ void main() {
       "created_at_utc, created_at_offset_minutes) "
       "VALUES ('mrk_1', 'sess_C', 'cat_default', 0, 0, 'M1', 1000, 120)",
     );
+    // BUG-010 Option B Commit 5: cascade target is now t_revealed_disc.
     await db.customStatement(
-      "INSERT INTO t_revealed_tiles (id, session_id, parent_x, parent_y, "
-      "parent_zoom, bitmap, set_bit_count, updated_at_utc) "
-      "VALUES ('rvt_C', 'sess_C', 1, 1, 14, zeroblob(512), 0, 1000)",
+      "INSERT INTO t_revealed_disc (id, session_id, lat, lon, radius_m, fixed_at_utc) "
+      "VALUES ('rvd_C', 'sess_C', 0.0, 0.0, 25.0, 1000)",
     );
 
     await db.customStatement("DELETE FROM t_sessions WHERE id = 'sess_C'");
@@ -131,21 +114,16 @@ void main() {
     final markerCount = await db.customSelect("SELECT COUNT(*) AS c FROM t_markers WHERE session_id = 'sess_C'").getSingle();
     expect(markerCount.read<int>('c'), 0, reason: 'CASCADE should remove markers');
 
-    final tileCount = await db
-        .customSelect(
-          "SELECT COUNT(*) AS c FROM t_revealed_tiles "
-          "WHERE session_id = 'sess_C'",
-        )
-        .getSingle();
-    expect(tileCount.read<int>('c'), 0, reason: 'CASCADE should remove revealed_tiles');
+    final discCount = await db.customSelect("SELECT COUNT(*) AS c FROM t_revealed_disc WHERE session_id = 'sess_C'").getSingle();
+    expect(discCount.read<int>('c'), 0, reason: 'CASCADE should remove revealed_disc rows');
 
     // Category stays — marker.category_id is NOT cascade (reassign transactional).
     final catCount = await db.customSelect("SELECT COUNT(*) AS c FROM t_marker_categories WHERE id = 'cat_default'").getSingle();
     expect(catCount.read<int>('c'), 1, reason: 'category deletion is transactional-reassign, not cascade');
   });
 
-  test('schemaVersion is 5 (V5 — t_revealed_disc added by BUG-010 Commit 2)', () async {
-    expect(db.schemaVersion, 5);
+  test('schemaVersion is 6 (V6 — t_revealed_tiles dropped by BUG-010 Commit 5)', () async {
+    expect(db.schemaVersion, 6);
   });
 
   test('t_sessions.mirk_style_id column exists (V4 shape — 09-05)', () async {

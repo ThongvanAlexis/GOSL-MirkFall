@@ -6,6 +6,10 @@
 // Underscore-prefixed filename indicates "do not import outside
 // test/infrastructure/mirk/" — `flutter analyze` will not complain
 // because the file lives under `test/`.
+//
+// BUG-010 Option B Commit 5 — fixture surface migrated from cell-bitmap
+// `VisibleMirkTile` rows to continuous-geometry `RevealDisc`s. The
+// `make*Bitmap` helpers were removed (no caller post-Commit-5).
 
 import 'dart:typed_data';
 import 'dart:ui';
@@ -14,80 +18,47 @@ import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
-import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
 /// Default canvas size for renderer tests — small enough to keep PNG
 /// encode time under a few ms, large enough for the visual-distinctness
 /// byte-diff assertion to discriminate.
 const Size kTestCanvasSize = Size(256, 256);
 
-/// Constructs a 512-byte bitmap (64×64 cells, 1 bit each) in a known
-/// "half revealed" pattern: the top-left 32×32 quadrant is fully
-/// revealed (bit=1), the rest is unrevealed (bit=0). Gives every
-/// renderer a non-trivial mix of revealed + unrevealed cells to draw.
-Uint8List makeHalfRevealedBitmap() {
-  final bytes = Uint8List(512); // 64*64/8
-  for (var j = 0; j < 32; j++) {
-    for (var i = 0; i < 32; i++) {
-      final bitIndex = j * 64 + i;
-      final byteIndex = bitIndex >> 3;
-      final bitOffset = bitIndex & 7;
-      bytes[byteIndex] |= 1 << bitOffset;
-    }
-  }
-  return bytes;
-}
-
-/// Constructs a 512-byte bitmap with all bits set to 0 (fully unrevealed).
-Uint8List makeAllUnrevealedBitmap() => Uint8List(512);
-
-/// Constructs a 512-byte bitmap with all bits set to 1 (fully revealed).
-Uint8List makeAllRevealedBitmap() {
-  final bytes = Uint8List(512);
-  for (var i = 0; i < 512; i++) {
-    bytes[i] = 0xFF;
-  }
-  return bytes;
-}
-
-/// Builds a realistic [MirkPaintContext] for renderer tests.
+/// Builds a [MirkPaintContext] for renderer tests with a single 100 m
+/// reveal disc at the centre of a Marseille-area viewport. Gives every
+/// renderer a non-trivial mix of revealed (inside the disc) +
+/// unrevealed (everywhere else) area to draw.
 ///
-/// Defaults:
-/// * Viewport bbox spans roughly Marseille (43°/44° N, 5°/6° E).
-/// * Two visible tiles — one half-revealed top-left quadrant, one
-///   fully unrevealed — so renderers have something non-trivial to
-///   paint and the visual-distinctness suite has signal.
-/// * `sessionElapsed` defaults to 0 ms (override for animation tests).
-MirkPaintContext fakeContext({int elapsedMs = 0, List<VisibleMirkTile>? tiles, Fix? currentFix, MirkViewportBbox? viewport}) {
+/// The default disc id is stable across calls so two contexts in the
+/// same test produce comparable wisp-emergence diff state. Pass a
+/// custom [discs] list to override the default fixture.
+MirkPaintContext fakeContext({int elapsedMs = 0, List<RevealDisc>? discs, Fix? currentFix, MirkViewportBbox? viewport}) {
   final bbox = viewport ?? MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
   return MirkPaintContext(
     zoomLevel: 14.0,
     pixelRatio: 1.0,
     sessionElapsed: Duration(milliseconds: elapsedMs),
     viewportBbox: bbox,
-    visibleTiles:
-        tiles ??
-        <VisibleMirkTile>[
-          VisibleMirkTile(
-            parentX: 8456,
-            parentY: 5959,
-            bitmap: makeHalfRevealedBitmap(),
-            tileNorthLat: 43.7,
-            tileWestLon: 5.3,
-            tileSouthLat: 43.5,
-            tileEastLon: 5.5,
-          ),
-          VisibleMirkTile(
-            parentX: 8457,
-            parentY: 5959,
-            bitmap: makeAllUnrevealedBitmap(),
-            tileNorthLat: 43.7,
-            tileWestLon: 5.5,
-            tileSouthLat: 43.5,
-            tileEastLon: 5.7,
-          ),
-        ],
+    discs: discs ?? <RevealDisc>[singleCentreDisc(bbox: bbox)],
     currentFix: currentFix,
+  );
+}
+
+/// Single deterministic disc centred inside [bbox] with a 100 m radius —
+/// the canonical "something visible to render" fixture. The id is stable
+/// (`rvd_test_centre`) so wisp-emergence tests can reason about the
+/// previous-id-set diff between paints.
+RevealDisc singleCentreDisc({required MirkViewportBbox bbox, double radiusMeters = 100.0}) {
+  final centreLat = (bbox.south + bbox.north) * 0.5;
+  final centreLon = (bbox.west + bbox.east) * 0.5;
+  return RevealDisc(
+    id: 'rvd_test_centre',
+    sessionId: 'sess_test',
+    lat: centreLat,
+    lon: centreLon,
+    radiusMeters: radiusMeters,
+    fixedAtUtc: DateTime.utc(2026, 4, 26),
   );
 }
 

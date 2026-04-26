@@ -2,8 +2,6 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-import 'dart:typed_data';
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,34 +10,21 @@ import 'package:mirkfall/application/providers/active_mirk_renderer_provider.dar
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/providers/map_viewport_provider.dart';
 import 'package:mirkfall/application/providers/discs_in_viewport_provider.dart';
-import 'package:mirkfall/application/providers/visible_mirk_tiles_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
-import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/atmospheric_mirk_renderer.dart';
 import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 
 import '../../fakes/fake_mirk_renderer.dart';
 
-/// Returns a 512-byte bitmap with a top-left 32×32 quadrant revealed
-/// (bit=1) and the rest unrevealed (bit=0). Mirrors
-/// `_render_helpers.makeHalfRevealedBitmap`.
-Uint8List _halfRevealedBitmap() {
-  final bytes = Uint8List(512);
-  for (var j = 0; j < 32; j++) {
-    for (var i = 0; i < 32; i++) {
-      final bit = j * 64 + i;
-      bytes[bit >> 3] |= 1 << (bit & 7);
-    }
-  }
-  return bytes;
-}
-
-VisibleMirkTile _tile() =>
-    VisibleMirkTile(parentX: 8456, parentY: 5959, bitmap: _halfRevealedBitmap(), tileNorthLat: 43.7, tileWestLon: 5.3, tileSouthLat: 43.5, tileEastLon: 5.5);
+/// Single 100 m disc at the centre of the test viewport — gives the
+/// overlay non-trivial reveal geometry to project (BUG-010 Option B
+/// Commit 5 — replaces the half-revealed-quadrant bitmap fixture).
+RevealDisc _disc() =>
+    RevealDisc(id: 'rvd_feather_centre', sessionId: 'sess_test', lat: 43.6, lon: 5.4, radiusMeters: 100.0, fixedAtUtc: DateTime.utc(2026, 4, 26));
 
 class _FakeActiveSessionController extends ActiveSessionController {
   _FakeActiveSessionController(this._initial);
@@ -82,8 +67,7 @@ void main() {
               ),
             ),
             activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
-            visibleMirkTilesProvider.overrideWith((ref) async => [_tile()]),
-            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
+            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
           ],
@@ -100,14 +84,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 16));
 
       expect(fakeRenderer.paintCallCount, greaterThan(0), reason: 'overlay must invoke renderer.paint at least once after mount');
-      // Painted with the right ingredients. BUG-010 Option B Commit 4:
-      // the overlay now feeds `discs` from `discsInViewportProvider`
-      // rather than `visibleTiles` (the legacy bitmap field is
-      // defaulted to const [] and Commit 5 deletes it).
+      // Painted with the right ingredients. BUG-010 Option B Commit 5:
+      // the overlay feeds `discs` from `discsInViewportProvider` (the
+      // canonical reveal input post-Commit-5).
       final ctx = fakeRenderer.paintContexts.last;
       expect(ctx.zoomLevel, 14.0);
       expect(ctx.viewportBbox.north, 44.0);
-      expect(ctx.discs, isEmpty, reason: 'override seeds an empty disc list — overlay still paints (fog over viewport rect)');
+      expect(ctx.discs, hasLength(1), reason: 'overlay routes the discsInViewportProvider list verbatim');
+      expect(ctx.discs.single.id, 'rvd_feather_centre');
     });
 
     testWidgets('AtmosphericMirkRenderer paints without throwing when wired through the overlay', (tester) async {
@@ -130,8 +114,7 @@ void main() {
               ),
             ),
             activeMirkRendererProvider.overrideWith((ref) async => renderer),
-            visibleMirkTilesProvider.overrideWith((ref) async => [_tile()]),
-            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
+            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
           ],
@@ -161,8 +144,7 @@ void main() {
             ),
           ),
           activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
-          visibleMirkTilesProvider.overrideWith((ref) async => [_tile()]),
-          discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
+          discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
           mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
           mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
         ],

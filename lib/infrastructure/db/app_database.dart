@@ -25,6 +25,7 @@ import 'migrations/v1_to_v2_notes.dart';
 import 'migrations/v2_to_v3_fixes.dart';
 import 'migrations/v3_to_v4_session_mirk_style.dart';
 import 'migrations/v4_to_v5_revealed_disc.dart';
+import 'migrations/v5_to_v6_drop_revealed_tiles.dart';
 import 'pragma_setup.dart';
 import 'type_converters.dart';
 
@@ -137,54 +138,6 @@ class Markers extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {id};
-}
-
-/// `t_revealed_tiles` — MIRK-03 storage unit: a 512-byte (64x64 bit) bitmap
-/// per parent tile. Composite unique key `(session_id, parent_x, parent_y,
-/// parent_zoom)` ensures per-session idempotence (re-reveal merges into the
-/// existing row via `mergeBitmap`).
-@DataClassName('RevealedTileRow')
-@TableIndex.sql(
-  'CREATE INDEX idx_t_revealed_tiles_session_id_parent_key '
-  'ON t_revealed_tiles(session_id, parent_x, parent_y);',
-)
-class RevealedTiles extends Table {
-  @override
-  String get tableName => 't_revealed_tiles';
-
-  TextColumn get id => text()();
-  TextColumn get sessionId => text().references(Sessions, #id, onDelete: KeyAction.cascade)();
-  IntColumn get parentX => integer()();
-  IntColumn get parentY => integer()();
-  // Finding #5/#13 (Batch C) — replace the magic `14` with
-  // `kRevealedTileParentZoom` (source of truth in `lib/config/constants.dart`).
-  IntColumn get parentZoom => integer().withDefault(const Constant(kRevealedTileParentZoom))();
-  // Finding #14 (Batch B) — DB-level defense on the 512-byte bitmap
-  // invariant already guarded by the store. `length(bitmap) = 512` refuses
-  // any SQL-level write that bypasses the store path.
-  //
-  // Drift's `BlobColumn` does not expose a `.length` getter (that is a
-  // `StringExpressionOperators` method only). We compose the CHECK through
-  // a raw `CustomExpression<bool>` that references the unqualified column
-  // name `bitmap` — the expression is emitted as the literal SQL
-  // `CHECK (length(bitmap) = 512)` inside the `t_revealed_tiles` CREATE
-  // TABLE statement, which is exactly the SQLite form we want.
-  //
-  // `kRevealedTileBitmapBytes` cannot be referenced inside a Drift `check()`
-  // generator (the expression is emitted as literal SQL at build time), so
-  // the literal 512 is paired with a unit-test-level guard referencing the
-  // constant.
-  BlobColumn get bitmap => blob().check(const CustomExpression<bool>('length(bitmap) = 512'))();
-  IntColumn get setBitCount => integer().withDefault(const Constant(0))();
-  IntColumn get updatedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-
-  @override
-  List<Set<Column<Object>>> get uniqueKeys => [
-    {sessionId, parentX, parentY, parentZoom},
-  ];
 }
 
 /// `t_revealed_disc` — BUG-010 Option B continuous-geometry reveal storage.
@@ -343,7 +296,7 @@ class Photos extends Table {
 /// 2. `MigrationStrategy.beforeOpen` calls [applyRuntimePragmas] to set the
 ///    other three pragmas (synchronous, busy_timeout, foreign_keys) on every
 ///    cold + warm open.
-@DriftDatabase(tables: [Sessions, MarkerCategories, Markers, RevealedTiles, RevealedDiscs, MirkStyles, Photos, Fixes])
+@DriftDatabase(tables: [Sessions, MarkerCategories, Markers, RevealedDiscs, MirkStyles, Photos, Fixes])
 class AppDatabase extends _$AppDatabase {
   /// Creates an [AppDatabase] backed by [executor].
   ///
@@ -357,7 +310,7 @@ class AppDatabase extends _$AppDatabase {
   final Future<void> Function(OpeningDetails details)? onBeforeUpgrade;
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -388,6 +341,7 @@ class AppDatabase extends _$AppDatabase {
       await V2ToV3Fixes.apply(m, from, to);
       await V3ToV4SessionMirkStyle.apply(m, from, to);
       await V4ToV5RevealedDisc.apply(m, from, to);
+      await V5ToV6DropRevealedTiles.apply(m, from, to);
     },
     beforeOpen: (OpeningDetails details) async {
       if (details.hadUpgrade && onBeforeUpgrade != null) {

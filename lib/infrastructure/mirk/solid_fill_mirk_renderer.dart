@@ -5,7 +5,6 @@
 import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Paint, PaintingStyle, Size;
 
 import 'package:logging/logging.dart';
-import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
@@ -15,12 +14,15 @@ import 'tile_cell_iteration.dart';
 final Logger _log = Logger('infrastructure.mirk.solid_fill');
 
 /// Sigma multiplier used to derive [SolidFillMirkRenderer]'s feather
-/// radius from the on-screen cell size. Matches the magnitude of the
+/// radius from a fixed base-pixel reference. Matches the magnitude of the
 /// `featherRadiusFraction` defaults on the animated variants (0.1 ×
-/// cellSize) — keeps the rounded-reveal corners consistent across all
-/// 4 builtins (BUG-006 fix, 2026-04-25). Hard-coded because [SolidConfig]
-/// intentionally has no feather param (the variant is the debug /
-/// proof-of-seam minimalist).
+/// baseFeatherPx) — keeps the rounded-reveal corners consistent across all
+/// 4 builtins (BUG-006 fix, 2026-04-25).
+///
+/// BUG-010 Option B Commit 5: pre-Commit-5 the multiplier was paired with
+/// `cellSize = size.height / 64` (the bitmap-cell pixel size). The
+/// continuous-geometry reveal layer has no cell concept; the feather now
+/// derives from a fixed 4-px base instead of a grid-cell pixel size.
 const double _kSolidFeatherCellFraction = 0.1;
 
 /// Flat solid-color fog renderer — no noise, no animation.
@@ -40,10 +42,10 @@ const double _kSolidFeatherCellFraction = 0.1;
 /// ## BUG-006 (2026-04-25): rounded reveal corners
 ///
 /// Solid ships a `MaskFilter.blur(BlurStyle.normal, sigma)` matching the
-/// 3 animated variants so the cell-rectangle holes around the user's
-/// reveal radius read as a smooth circle, not a stair-step grid of 64
-/// little squares. Sigma is derived from the on-screen cell size at
-/// paint time (depends on canvas height), not pre-computed in `_paint`.
+/// 3 animated variants so the reveal silhouette reads as a smooth
+/// circle. With BUG-010 Option B Commit 5 the silhouette is already
+/// mathematically circular (continuous-geometry discs); the feather is
+/// now decorative softness on top.
 class SolidFillMirkRenderer implements MirkRenderer {
   /// Constructs a renderer using [config] for colour + alpha.
   SolidFillMirkRenderer(this.config);
@@ -88,46 +90,42 @@ class SolidFillMirkRenderer implements MirkRenderer {
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
     if (!_firstPaintLogged) {
       _log.info(
-        'paint(): first invocation — disposed=$_disposed visibleTiles=${context.visibleTiles.length} canvasSize=${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)}',
+        'paint(): first invocation — disposed=$_disposed discs=${context.discs.length} canvasSize=${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)}',
       );
       _firstPaintLogged = true;
     } else if (_paintCallCount % 60 == 0) {
-      _log.info('paint(): entry heartbeat frame=$_paintCallCount disposed=$_disposed visibleTiles=${context.visibleTiles.length}');
+      _log.info('paint(): entry heartbeat frame=$_paintCallCount disposed=$_disposed discs=${context.discs.length}');
     }
     _paintCallCount++;
     if (_disposed) {
       _logEarlyReturnTransition('disposed');
       return;
     }
-    // BUG-010 Option B (Commit 4): see atmospheric renderer for the
-    // dual-input rationale. Solid still consumes whichever side has
-    // entries — bitmap fixtures continue to drive the existing tests.
-    if (context.visibleTiles.isEmpty && context.discs.isEmpty) {
-      _logEarlyReturnTransition('visibleTiles+discs both empty');
+    if (context.discs.isEmpty) {
+      _logEarlyReturnTransition('discs empty');
       return;
     }
-    // Solid renderer adopts the same viewport-level path strategy as the
-    // 3 animated renderers — BUG-003 (2026-04-25) consolidated all 4 on
-    // [buildViewportFogClipPath] for consistency. Solid never showed the
-    // damier (no MaskFilter) but unifying the path strategy avoids
-    // future seam discrepancies between variants AND saves N-1 drawPath
-    // calls per frame on a viewport with N visible tiles.
+    // Solid renderer adopts the same viewport-level disc clip path as the
+    // 3 animated renderers — BUG-010 Option B Commit 5 collapsed the 4
+    // builtins onto a single canonical clip helper. Solid never showed
+    // the damier (no MaskFilter pre-BUG-006) but unifying the path
+    // strategy avoids future seam discrepancies between variants AND
+    // saves N-1 drawPath calls per frame on a viewport with N visible
+    // tiles (legacy bitmap path, retired here).
     //
     // BUG-006 (2026-04-25) — adds the same `BlurStyle.normal` feather as
-    // the animated variants so cell-rectangle reveal holes round into a
-    // circle. Sigma derived from canvas height because cells are
-    // pixel-sized at paint time, not bake-time.
-    final cellSize = size.height / kRevealedTileSubgridSize;
-    final featherSigma = cellSize * _kSolidFeatherCellFraction * context.pixelRatio;
+    // the animated variants so the disc silhouette gets a soft
+    // watercolour edge. Sigma derived from a fixed 4-px base × the
+    // configured fraction × pixel ratio.
+    const baseFeatherPx = 4.0;
+    final featherSigma = baseFeatherPx * _kSolidFeatherCellFraction * context.pixelRatio;
     final paint = Paint()
       ..color = _color
       ..style = PaintingStyle.fill
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
-    final path = context.visibleTiles.isNotEmpty
-        ? buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size)
-        : buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
+    final path = buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
     if (path.getBounds().isEmpty) {
-      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible tile fully revealed?)');
+      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible region fully revealed?)');
       return;
     }
     _logEarlyReturnTransition('none');

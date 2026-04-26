@@ -21,10 +21,10 @@ import '../mirk/mirk_viewport_bbox.dart';
 ///     storage growth.
 ///
 /// `id` follows the project's `<prefix>_<26-char-ULID>` convention used by
-/// [SessionId] / [RevealedTileId]; the prefix for reveal discs is `rvd_`.
-/// The field is typed as `String` here — it lives in a `TEXT` PK column —
-/// rather than a dedicated extension type so this domain object stays
-/// trivially constructible from a Drift row without an extra wrap.
+/// [SessionId]; the prefix for reveal discs is `rvd_`. The field is typed
+/// as `String` here — it lives in a `TEXT` PK column — rather than a
+/// dedicated extension type so this domain object stays trivially
+/// constructible from a Drift row without an extra wrap.
 class RevealDisc {
   /// Primary key. Format: `rvd_<26-char-ULID>` — see class docstring.
   final String id;

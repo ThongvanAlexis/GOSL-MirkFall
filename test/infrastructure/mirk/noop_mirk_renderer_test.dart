@@ -28,9 +28,11 @@ void main() {
         zoomLevel: 13.0,
         pixelRatio: 2.0,
         sessionElapsed: const Duration(minutes: 5),
-        // Phase 09 plan 09-02: extended fields. Noop renderer ignores all of them; supplying the
-        // narrowest valid values keeps this test focused on "100 paint/update iterations don't throw".
+        // BUG-010 Option B Commit 5: discs is required (no default). Noop
+        // renderer ignores everything; the empty list keeps this test
+        // focused on "100 paint/update iterations don't throw".
         viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
+        discs: const [],
       );
       final PictureRecorder rec = PictureRecorder();
       final Canvas canvas = Canvas(rec);

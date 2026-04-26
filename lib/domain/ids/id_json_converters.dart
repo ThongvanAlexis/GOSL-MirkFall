@@ -7,7 +7,6 @@ import 'fix_id.dart';
 import 'marker_id.dart';
 import 'mirk_style_id.dart';
 import 'photo_ref_id.dart';
-import 'revealed_tile_id.dart';
 import 'session_id.dart';
 
 /// Bridge between json_serializable and the Dart-3 extension-type IDs.
@@ -47,9 +46,6 @@ String mirkStyleIdToJson(MirkStyleId value) => value.value;
 
 PhotoRefId photoRefIdFromJson(String json) => PhotoRefId(json);
 String photoRefIdToJson(PhotoRefId value) => value.value;
-
-RevealedTileId revealedTileIdFromJson(String json) => RevealedTileId(json);
-String revealedTileIdToJson(RevealedTileId value) => value.value;
 
 FixId fixIdFromJson(String json) => FixId(json);
 String fixIdToJson(FixId value) => value.value;

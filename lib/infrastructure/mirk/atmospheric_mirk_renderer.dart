@@ -3,7 +3,6 @@
 // See LICENSE file for details
 
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
 import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Rect, Size;
 
@@ -14,7 +13,7 @@ import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
-import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
 import 'animation_helpers.dart';
 import 'mirk_projection.dart';
@@ -38,7 +37,7 @@ final Logger _log = Logger('infrastructure.mirk.atmospheric');
 /// ## Two-path rendering
 ///
 /// 1. **Shader path** (preferred): when [FogShaderService.load] succeeds
-///    AND the SDF for the current viewport+revealed-cell hash is built,
+///    AND the SDF for the current viewport+disc-list hash is built,
 ///    the renderer issues ONE `canvas.drawRect(viewport, Paint()..shader =
 ///    fragmentShader)` clipped to the fog path. The shader handles all
 ///    7 TIER 2 quality dimensions; the boundary watercolour falloff
@@ -49,31 +48,17 @@ final Logger _log = Logger('infrastructure.mirk.atmospheric');
 ///    Impeller blocklist, etc.) OR while waiting for the first SDF
 ///    build, the renderer paints a uniform solid fog using the base
 ///    palette colour at the configured baseline alpha. No noise, no
-///    animation. This is intentional: the previous BUG-004 ImageShader
-///    overlay was the "cheap noise sliding" the BUG-009 visual target
-///    is replacing — keeping it as fallback would defeat the purpose.
-///    The fallback is only reached on devices that cannot run the
-///    shader (rare in 2026), and even then a flat fog is preferable to
-///    the cheap drift.
+///    animation — see class docstring history before BUG-010 Option B
+///    Commit 5 collapsed the dual visibleTiles/discs input.
 ///
-/// ## SDF caching
+/// ## Wisp emergence (BUG-010 Option B Commit 5)
 ///
-/// The SDF depends on (a) the union of revealed cell bitmaps and (b)
-/// the viewport bbox. The renderer hashes both and rebuilds only when
-/// the hash changes. Hash construction happens on the synchronous paint
-/// path; SDF rebuild kicks off as a side-effect Future and the renderer
-/// uses the previously-cached `ui.Image` (or a fallback "all fog" SDF)
-/// while the new build resolves.
-///
-/// ## Pre-BUG-009 behaviour preserved
-///
-/// * `buildViewportFogClipPath` is still consulted to determine which
-///   region to fog (BUG-003 invariant — single composite path, no
-///   per-tile seam erosion).
-/// * `MaskFilter.blur(BlurStyle.normal, sigma)` is retained on the
-///   FALLBACK path so a worst-case device sees feathered edges. The
-///   shader path doesn't need it (the watercolour boundary inside the
-///   shader produces a softer + more cartographic edge).
+/// Wisps spawn on the per-frame diff of the disc id set. When a fix
+/// lands, the disc-list provider gains exactly one new id; the renderer
+/// detects the new id and spawns N evenly-spaced wisps along the disc
+/// perimeter. First-paint guard: the very first paint populates
+/// `_previousDiscIdSet` from the current input WITHOUT spawning, so
+/// resuming a session does not spray wisps over already-revealed area.
 class AtmosphericMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config], an optional [seed] for
   /// deterministic noise / shader perturbation, an injected
@@ -113,10 +98,15 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   final RevealedSdfBuilder _sdfBuilder;
   final WispParticleSystem _wispSystem;
 
-  /// Last-paint snapshot of revealed-cell bitmaps per parent tile.
-  /// Used to compute the diff "newly revealed since last frame" for
-  /// wisp spawning.
-  final Map<int, Uint8List> _lastBitmapByTileKey = <int, Uint8List>{};
+  /// Disc id set as seen on the previous paint pass. Used to detect
+  /// "newly emerged" discs (ids in `currentDiscs` but not here) so the
+  /// wisp burst on a fresh GPS fix is local to the new disc only.
+  Set<String> _previousDiscIdSet = <String>{};
+
+  /// First-paint sentinel — see [_spawnWispsForNewlyEmergedDiscs] for the
+  /// guard that suppresses the initial spawn so resuming a session does
+  /// not spray wisps over already-revealed area.
+  bool _firstPaint = true;
 
   /// Last-paint sessionElapsed in seconds. Used to compute dt for the
   /// wisp system's advance step.
@@ -132,13 +122,9 @@ class AtmosphericMirkRenderer implements MirkRenderer {
 
   /// BUG-009 follow-up diagnostic (2026-04-26). Tracks the last reason
   /// `paint()` early-returned so we only log INFO on transitions
-  /// (`null` → `disposed`, `disposed` → `noTiles`, `noTiles` → `none`,
+  /// (`null` → `disposed`, `disposed` → `noDiscs`, `noDiscs` → `none`,
   /// etc.). Without this, the file logger would never confirm whether
-  /// `paint()` is even being called — the user's UAT log on commit
-  /// `dcffede` showed zero renderer output past gps.stream start, which
-  /// is consistent with EITHER paint() never being invoked OR a silent
-  /// early-return firing every frame. INFO level so the records pass
-  /// regardless of root logger threshold.
+  /// `paint()` is even being called.
   String? _lastEarlyReturnReason;
   bool _firstPaintLogged = false;
 
@@ -151,7 +137,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   ui.FragmentShader? _shader;
 
   /// Cached SDF image. Rebuilt when [_lastSdfHash] no longer matches
-  /// the current frame's revealed-cell + viewport hash.
+  /// the current frame's disc-list + viewport hash.
   ui.Image? _sdfImage;
 
   /// Hash of the inputs that produced [_sdfImage]. Re-computed every
@@ -174,40 +160,26 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     // BUG-009 follow-up diagnostic (2026-04-26). Log the first paint()
     // invocation unconditionally + heartbeat every 60 frames AT INFO so
     // we can prove paint() is firing irrespective of which path we end
-    // up on. Without this, a silent early-return below produced ZERO
-    // log output on the user's walk for build dcffede.
+    // up on.
     if (!_firstPaintLogged) {
       _log.info(
-        'paint(): first invocation — disposed=$_disposed visibleTiles=${context.visibleTiles.length} canvasSize=${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)}',
+        'paint(): first invocation — disposed=$_disposed discs=${context.discs.length} canvasSize=${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)}',
       );
       _firstPaintLogged = true;
     } else if (_paintCallCount % 60 == 0) {
-      _log.info('paint(): entry heartbeat frame=$_paintCallCount disposed=$_disposed visibleTiles=${context.visibleTiles.length}');
+      _log.info('paint(): entry heartbeat frame=$_paintCallCount disposed=$_disposed discs=${context.discs.length}');
     }
     if (_disposed) {
       _logEarlyReturnTransition('disposed');
       return;
     }
-    // BUG-010 Option B (Commit 4): the production read path now feeds
-    // `discs` instead of bitmap tiles. Either input being non-empty
-    // means there's something to paint; both empty means there's no
-    // active session OR the session has not yet revealed anything in
-    // the current viewport — fog still covers the viewport rect, but
-    // the SDF builder degenerates to "all fog" so the boundary effects
-    // collapse to a uniform shade. Bail to keep the renderer cheap.
-    if (context.visibleTiles.isEmpty && context.discs.isEmpty) {
-      _logEarlyReturnTransition('visibleTiles+discs both empty');
+    if (context.discs.isEmpty) {
+      _logEarlyReturnTransition('discs empty');
       return;
     }
 
-    // Resolve the fog clip path FIRST. BUG-010 Option B (Commit 4): on
-    // the disc path the fog covers the entire viewport rect with disc
-    // circles carved out; legacy fixtures still feed `visibleTiles`
-    // (all 4 mirk_overlay_* / multi_tile_seam tests) so we keep the
-    // bitmap helper available behind a non-empty check.
-    final path = context.visibleTiles.isNotEmpty
-        ? buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size)
-        : buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
+    // BUG-010 Option B Commit 5: single canonical disc-based clip path.
+    final path = buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
     if (path.getBounds().isEmpty) {
       _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible region fully revealed?)');
       return;
@@ -223,9 +195,9 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     // schedule an async rebuild whose result we'll see on the NEXT paint.
     _refreshSdfIfNeeded(context: context, canvasSize: size);
 
-    // Diff against last frame's bitmaps to find newly-revealed cells →
-    // spawn wisps along their SDF gradient.
-    _spawnWispsForNewlyRevealed(context: context, canvasSize: size);
+    // Diff against last frame's disc-id set to find newly-emerged discs →
+    // spawn wisps along their perimeter.
+    _spawnWispsForNewlyEmergedDiscs(context: context, canvasSize: size);
 
     // Advance wisps by the elapsed delta since last paint.
     final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
@@ -238,16 +210,14 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     final pathThisFrame = (shader != null && sdf != null) ? 'shader' : 'fallback';
     if (pathThisFrame != _lastLoggedPath) {
       _log.info(
-        'paint(): path transition ${_lastLoggedPath ?? "(initial)"} → $pathThisFrame · shader=${shader != null} sdf=${sdf != null} sdfBuildInFlight=$_sdfBuildInFlight visibleTiles=${context.visibleTiles.length}',
+        'paint(): path transition ${_lastLoggedPath ?? "(initial)"} → $pathThisFrame · shader=${shader != null} sdf=${sdf != null} sdfBuildInFlight=$_sdfBuildInFlight discs=${context.discs.length}',
       );
       _lastLoggedPath = pathThisFrame;
     } else if (_paintCallCount % 60 == 0) {
       // Heartbeat at ~1 Hz when in steady state — confirms paint() is
       // still being called, useful when investigating "no fog visible".
-      // BUG-009 follow-up (2026-04-26): bumped FINE → INFO so the user's
-      // file logger captures it without a root-level threshold change.
       _log.info(
-        'paint(): post-paint heartbeat path=$pathThisFrame · frame=$_paintCallCount visibleTiles=${context.visibleTiles.length} sessionElapsed=${context.sessionElapsed.inMilliseconds}ms',
+        'paint(): post-paint heartbeat path=$pathThisFrame · frame=$_paintCallCount discs=${context.discs.length} sessionElapsed=${context.sessionElapsed.inMilliseconds}ms',
       );
     }
     _paintCallCount++;
@@ -276,75 +246,68 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     _lastEarlyReturnReason = reason;
   }
 
-  /// Diff each visible tile's current bitmap against [_lastBitmapByTileKey];
-  /// for every cell that flipped 0→1 (newly revealed), spawn wisps at
-  /// the cell's screen-space centre with velocity along the cell's
-  /// SDF gradient (approximated by the cell's offset from the parent
-  /// tile centre — the gradient direction is "outward from revealed
-  /// area").
-  void _spawnWispsForNewlyRevealed({required MirkPaintContext context, required Size canvasSize}) {
-    for (final tile in context.visibleTiles) {
-      final key = (tile.parentX << 16) ^ tile.parentY;
-      final last = _lastBitmapByTileKey[key];
-      if (last == null) {
-        // First time we've seen this tile this session — record the
-        // bitmap as baseline. Existing revealed cells do NOT spawn
-        // wisps retroactively (they would on every fresh viewport
-        // intersection — way too many wisps).
-        _lastBitmapByTileKey[key] = Uint8List.fromList(tile.bitmap);
-        continue;
-      }
-      // Iterate bytes; a byte that changed indicates >= 1 cell flip.
-      for (var byteIdx = 0; byteIdx < tile.bitmap.length; byteIdx++) {
-        final newByte = tile.bitmap[byteIdx];
-        final oldByte = last[byteIdx];
-        if (newByte == oldByte) continue;
-        // Find cells that flipped 0→1.
-        final flipped = newByte & ~oldByte;
-        if (flipped == 0) continue;
-        for (var bit = 0; bit < 8; bit++) {
-          if ((flipped & (1 << bit)) == 0) continue;
-          final bitIndex = byteIdx * 8 + bit;
-          final j = bitIndex ~/ kRevealedTileSubgridSize;
-          final i = bitIndex % kRevealedTileSubgridSize;
-          _spawnWispForCell(tile: tile, cellI: i, cellJ: j, viewport: context.viewportBbox, canvasSize: canvasSize);
-        }
-      }
-      // Update baseline. Copy because the source Uint8List may be
-      // mutated by the next provider rebuild.
-      _lastBitmapByTileKey[key] = Uint8List.fromList(tile.bitmap);
-    }
-  }
-
-  /// Computes the screen-space centre of cell ([cellI], [cellJ]) of
-  /// [tile], then spawns wisps there with velocity along the SDF
-  /// gradient. Gradient direction is approximated as "from the cell
-  /// centre toward the parent tile centre, then negated" — wisps stream
-  /// OUT of the revealed area into the surrounding fog.
-  void _spawnWispForCell({
-    required VisibleMirkTile tile,
-    required int cellI,
-    required int cellJ,
-    required MirkViewportBbox viewport,
-    required Size canvasSize,
-  }) {
-    final cellLatSpan = (tile.tileNorthLat - tile.tileSouthLat) / kRevealedTileSubgridSize;
-    final cellLonSpan = (tile.tileEastLon - tile.tileWestLon) / kRevealedTileSubgridSize;
-    final cellCentreLat = tile.tileNorthLat - (cellJ + 0.5) * cellLatSpan;
-    final cellCentreLon = tile.tileWestLon + (cellI + 0.5) * cellLonSpan;
-    final centre = MirkProjection.latLonToScreen(lat: cellCentreLat, lon: cellCentreLon, viewport: viewport, size: canvasSize);
-    // Skip if cell centre is far off-screen (saves wisp budget for
-    // visible action).
-    if (centre.dx < -50 || centre.dx > canvasSize.width + 50 || centre.dy < -50 || centre.dy > canvasSize.height + 50) {
+  /// Diff `context.discs` against [_previousDiscIdSet] to find discs that
+  /// just emerged this frame. For each new disc, spawn N evenly-spaced
+  /// wisps along its perimeter (N ∝ circumference / [kMirkFogMetersPerWisp]).
+  ///
+  /// First-paint guard: the very first invocation ingests the current
+  /// disc-id set into [_previousDiscIdSet] WITHOUT spawning. Otherwise
+  /// resuming a session would spawn wisps for every existing disc all at
+  /// once — typically a few hundred — flooding the visible viewport with
+  /// puffs over already-revealed area.
+  void _spawnWispsForNewlyEmergedDiscs({required MirkPaintContext context, required Size canvasSize}) {
+    final currentIds = <String>{for (final disc in context.discs) disc.id};
+    if (_firstPaint) {
+      _previousDiscIdSet = currentIds;
+      _firstPaint = false;
       return;
     }
-    // Direction: outward from the cell. Approximate by random unit
-    // vector — the SDF gradient at the cell is hard to compute on the
-    // hot path. Random-direction wisps give a "puff dispersing
-    // omnidirectionally" reading which is visually acceptable.
-    final angle = (cellI * 13 + cellJ * 17) * 0.6283185; // Cheap deterministic angle.
-    final direction = Offset(math.cos(angle), math.sin(angle));
-    _wispSystem.spawnAtCellCenter(position: centre, direction: direction);
+    for (final disc in context.discs) {
+      if (_previousDiscIdSet.contains(disc.id)) continue;
+      _spawnWispsAlongDiscPerimeter(disc: disc, viewport: context.viewportBbox, canvasSize: canvasSize);
+    }
+    _previousDiscIdSet = currentIds;
+  }
+
+  /// Emits one wisp at each evenly-spaced sample point along [disc]'s
+  /// perimeter. Sample count is `ceil(circumference / kMirkFogMetersPerWisp)`,
+  /// floored to 1 so a tiny disc still gets a single puff.
+  void _spawnWispsAlongDiscPerimeter({required RevealDisc disc, required MirkViewportBbox viewport, required Size canvasSize}) {
+    // Circumference-driven sample count: keeps the wisp density along
+    // the perimeter constant regardless of disc radius. At the 25 m
+    // default radius and kMirkFogMetersPerWisp = 8 m, this produces
+    // ~20 wisps per emergence.
+    final circumferenceMeters = 2.0 * math.pi * disc.radiusMeters;
+    final sampleCount = math.max(1, (circumferenceMeters / kMirkFogMetersPerWisp).ceil());
+
+    // Local equirectangular conversion factors at the disc's centre lat.
+    // 1 m of latitude ≈ 1 / kMetersPerDegreeLat degrees; 1 m of longitude
+    // is the same scaled by cos(lat).
+    final latRad = disc.lat * math.pi / 180.0;
+    final cosLat = math.cos(latRad);
+    final degPerMeterLat = 1.0 / kMetersPerDegreeLat;
+    // Polar guard: at ±90° cos drops to 0 and divides explode. The disc
+    // skip-on-bbox check above already guards the SDF builder; here we
+    // guard the conversion math too.
+    final degPerMeterLon = cosLat.abs() < 1e-6 ? degPerMeterLat : 1.0 / (kMetersPerDegreeLat * cosLat);
+
+    for (var k = 0; k < sampleCount; k++) {
+      final theta = (2.0 * math.pi * k) / sampleCount;
+      final perimeterLat = disc.lat + (disc.radiusMeters * degPerMeterLat) * math.sin(theta);
+      final perimeterLon = disc.lon + (disc.radiusMeters * degPerMeterLon) * math.cos(theta);
+      final screen = MirkProjection.latLonToScreen(lat: perimeterLat, lon: perimeterLon, viewport: viewport, size: canvasSize);
+      // Skip if this perimeter point is far off-screen — saves wisp
+      // budget for visible action. 50 px slack matches the cell-spawn
+      // bound from the pre-Commit-5 code.
+      if (screen.dx < -50 || screen.dx > canvasSize.width + 50 || screen.dy < -50 || screen.dy > canvasSize.height + 50) {
+        continue;
+      }
+      // Outward direction at this perimeter point: `(cos(theta), -sin(theta))`
+      // — `-sin` because screen-y grows southward while `sin(theta)` in our
+      // lat-offset above grows northward (positive theta = north when k=π/2).
+      final direction = Offset(math.cos(theta), -math.sin(theta));
+      _wispSystem.spawnAtPosition(position: screen, direction: direction);
+    }
   }
 
   /// Shader path — clip to fog path, draw a viewport-filling rect with
@@ -437,8 +400,15 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     final g = (kMirkFogAtmosphericBaseColorArgb >> 8) & 0xFF;
     final b = kMirkFogAtmosphericBaseColorArgb & 0xFF;
 
-    final cellSize = size.height / kRevealedTileSubgridSize;
-    final featherSigma = cellSize * config.featherRadiusFraction * context.pixelRatio;
+    // Feather sigma — pre-Commit-5 this scaled to the bitmap cell size
+    // (canvas.height / 64) so the soft edge matched a single grid cell.
+    // Post-Commit-5 the reveal silhouette is continuous geometry, so the
+    // feather scales to a small fraction of the canvas dimension. The
+    // numerator (canvas height / kRevealedTileParentZoom heuristic) is
+    // gone; we use a fixed 4 px base and let `featherRadiusFraction`
+    // tune the actual blur.
+    const baseFeatherPx = 4.0;
+    final featherSigma = baseFeatherPx * config.featherRadiusFraction * context.pixelRatio;
 
     // Tiny per-frame alpha jitter sourced from the CPU noise generator
     // — gives the regression test "different seeds produce different
@@ -459,10 +429,6 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// Hashes the inputs that affect the SDF. If they changed since
   /// [_lastSdfHash], schedule a rebuild (kick off async; the new SDF
   /// will be picked up on the NEXT frame). Cheap — runs every paint.
-  ///
-  /// BUG-010 Option B (Commit 4): SDF inputs switched from per-tile
-  /// bitmap union → list of [RevealDisc]s. The hash + the rebuild now
-  /// reflect the disc list rather than the bitmap union.
   void _refreshSdfIfNeeded({required MirkPaintContext context, required Size canvasSize}) {
     if (_sdfBuildInFlight) return;
     final hash = _computeSdfHash(context);
@@ -535,6 +501,6 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     _sdfImage?.dispose();
     _sdfImage = null;
     _wispSystem.clear();
-    _lastBitmapByTileKey.clear();
+    _previousDiscIdSet = <String>{};
   }
 }

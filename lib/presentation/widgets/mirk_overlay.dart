@@ -85,12 +85,9 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
     final viewport = ref.watch(mapViewportProvider);
     final sessionState = ref.watch(activeSessionControllerProvider);
     final double? zoom = ref.watch(mapViewportZoomProvider);
-    // BUG-010 Option B Commit 4 — replaces the prior
-    // `visibleMirkTilesProvider` watch. The renderers consume the disc
-    // list via `MirkPaintContext.discs` and feed it to
-    // [`RevealedSdfBuilder.buildFromDiscs`] (continuous geometry). The
-    // legacy bitmap provider remains in the codebase for one more commit
-    // (orphan-deletion lands in Commit 5).
+    // BUG-010 Option B Commit 5 — disc-list is the canonical reveal
+    // input. The renderers consume `MirkPaintContext.discs` and feed it
+    // to [`RevealedSdfBuilder.buildFromDiscs`] (continuous geometry).
     final AsyncValue<List<RevealDisc>> discsAsync = viewport != null
         ? ref.watch(discsInViewportProvider(viewport: viewport))
         : const AsyncData<List<RevealDisc>>(<RevealDisc>[]);
@@ -162,9 +159,6 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
           // promotion can't see across the local-string check. Asserted
           // non-null with `!` — safe by construction.
           viewportBbox: viewport!,
-          // visibleTiles intentionally defaulted (`const []`) — the
-          // BUG-010 Option B disc path superseded the bitmap surface;
-          // Commit 5 deletes the orphaned visibleMirkTilesProvider.
           discs: discs,
           currentFix: currentFix,
         ),

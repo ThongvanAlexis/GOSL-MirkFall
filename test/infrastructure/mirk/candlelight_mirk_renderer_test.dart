@@ -16,6 +16,7 @@ import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/ids/fix_id.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/candlelight_mirk_renderer.dart';
 
 import '_render_helpers.dart';
@@ -88,11 +89,11 @@ void main() {
       expect(() => renderToPicture(renderer, context: ctx).dispose(), returnsNormally);
     });
 
-    test('paint() with empty visibleTiles list issues no draw calls', () async {
+    test('paint() with empty discs list issues no draw calls', () async {
       final renderer = CandlelightMirkRenderer(const MirkStyleConfig.candlelight() as CandlelightConfig);
-      final ctx = fakeContext(tiles: const []);
+      final ctx = fakeContext(discs: const <RevealDisc>[]);
       final pic = renderToPicture(renderer, context: ctx);
-      expect(pic.approximateBytesUsed, lessThan(500), reason: 'Empty visibleTiles should produce a near-empty picture');
+      expect(pic.approximateBytesUsed, lessThan(500), reason: 'Empty discs list should produce a near-empty picture');
       pic.dispose();
       await renderer.dispose();
     });

@@ -89,10 +89,11 @@ void main() {
           zoomLevel: 5.0,
           pixelRatio: 2.0,
           sessionElapsed: const Duration(seconds: 1),
-          // Phase 09 plan 09-02: extended fields. Test-only minimal bbox + empty visible-tile list
-          // exercise the SAME 3-method renderer surface — semantic stays "is there exactly 1 paint
-          // call?", new fields just satisfy the now-required Freezed parameters.
+          // BUG-010 Option B Commit 5: discs is required (no default) — empty
+          // list keeps the contract test focused on the 3-method renderer
+          // surface without coupling to fixture geometry.
           viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
+          discs: const [],
         ),
       );
       w.update(const Duration(milliseconds: 16));
@@ -122,6 +123,7 @@ void main() {
           pixelRatio: 1.0,
           sessionElapsed: Duration.zero,
           viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
+          discs: const [],
         ),
         throwsA(isA<AssertionError>()),
       );
@@ -134,6 +136,7 @@ void main() {
           pixelRatio: 0.0,
           sessionElapsed: Duration.zero,
           viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
+          discs: const [],
         ),
         throwsA(isA<AssertionError>()),
       );

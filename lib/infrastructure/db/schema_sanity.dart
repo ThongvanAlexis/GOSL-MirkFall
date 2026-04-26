@@ -26,20 +26,33 @@ class SchemaSanityChecker {
   final QueryExecutor _executor;
 
   /// MirkFall's six tables, queried in a fixed order so `captureRowCounts`
-  /// always returns a stable key set.
-  static const List<String> _tables = <String>['t_sessions', 't_markers', 't_revealed_tiles', 't_marker_categories', 't_mirk_styles', 't_photos'];
+  /// always returns a stable key set. BUG-010 Option B Commit 5 swapped
+  /// the legacy `t_revealed_tiles` for the continuous-geometry
+  /// `t_revealed_disc` (V5→V6 — table count unchanged at six).
+  static const List<String> _tables = <String>['t_sessions', 't_markers', 't_revealed_disc', 't_marker_categories', 't_mirk_styles', 't_photos'];
 
   /// Returns row-count per MirkFall table.
   ///
-  /// Every table in [_tables] is queried individually — a single table missing
-  /// raises the underlying SQLite error (caller context: pre-migration should
-  /// always return the full set; post-migration a missing-table signal is
-  /// itself a red flag).
+  /// Tables in [_tables] track the **current** schema. When called against
+  /// an older schema (e.g. pre-migration capture from a V1 fixture during a
+  /// V1→V2 round-trip test) a not-yet-introduced table simply yields no
+  /// entry in the returned map — `assertNoLoss` already treats a missing
+  /// `after` key as 0, and the symmetry holds for missing `before` keys
+  /// (the table just didn't exist yet). This keeps the checker robust to
+  /// the moving frontier of the current schema without forcing every
+  /// migration test to re-list the historical table set.
   Future<Map<String, int>> captureRowCounts() async {
     final result = <String, int>{};
     for (final table in _tables) {
-      final row = await _executor.runSelect('SELECT COUNT(*) AS c FROM $table', const <Object?>[]);
-      result[table] = row.first['c']! as int;
+      try {
+        final row = await _executor.runSelect('SELECT COUNT(*) AS c FROM $table', const <Object?>[]);
+        result[table] = row.first['c']! as int;
+      } on Object {
+        // Table absent from this schema — leave the key out of the map
+        // (assertNoLoss treats missing-after as 0; missing-before is a
+        // symmetric signal that the table was added by a later migration
+        // and has nothing to compare against).
+      }
     }
     return result;
   }

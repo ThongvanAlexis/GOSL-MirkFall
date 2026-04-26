@@ -2,20 +2,18 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-import 'dart:typed_data';
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/providers/active_mirk_renderer_provider.dart';
+import 'package:mirkfall/application/providers/discs_in_viewport_provider.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/providers/map_viewport_provider.dart';
-import 'package:mirkfall/application/providers/visible_mirk_tiles_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
-import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 
 import '../fakes/fake_mirk_renderer.dart';
@@ -62,8 +60,10 @@ class _SeededMapViewport extends MapViewport {
   MirkViewportBbox? build() => _initial;
 }
 
-VisibleMirkTile _allUnrevealedTile() =>
-    VisibleMirkTile(parentX: 8456, parentY: 5959, bitmap: Uint8List(512), tileNorthLat: 43.7, tileWestLon: 5.3, tileSouthLat: 43.5, tileEastLon: 5.5);
+/// Single 100 m disc — gives the overlay non-trivial geometry without
+/// going through the legacy bitmap surface (BUG-010 Option B Commit 5).
+RevealDisc _disc() =>
+    RevealDisc(id: 'rvd_repaint_boundary', sessionId: 'sess_test', lat: 43.6, lon: 5.4, radiusMeters: 100.0, fixedAtUtc: DateTime.utc(2026, 4, 26));
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -80,7 +80,7 @@ void main() {
               ),
             ),
             activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
-            visibleMirkTilesProvider.overrideWith((ref) async => <VisibleMirkTile>[_allUnrevealedTile()]),
+            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0))),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
           ],
@@ -116,7 +116,7 @@ void main() {
               ),
             ),
             activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
-            visibleMirkTilesProvider.overrideWith((ref) async => <VisibleMirkTile>[_allUnrevealedTile()]),
+            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0))),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
           ],

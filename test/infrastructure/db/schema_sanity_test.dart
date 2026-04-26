@@ -38,7 +38,9 @@ void main() {
     final checker = SchemaSanityChecker(db.executor);
 
     final counts = await checker.captureRowCounts();
-    expect(counts.keys, containsAll(<String>['t_sessions', 't_markers', 't_revealed_tiles', 't_marker_categories', 't_mirk_styles', 't_photos']));
+    // BUG-010 Option B Commit 5: legacy `t_revealed_tiles` retired in V6
+    // → swapped for `t_revealed_disc` (continuous-geometry reveal storage).
+    expect(counts.keys, containsAll(<String>['t_sessions', 't_markers', 't_revealed_disc', 't_marker_categories', 't_mirk_styles', 't_photos']));
     // Fresh DB — every table empty EXCEPT t_marker_categories which carries
     // the onCreate-seeded `cat_default` sentinel row (04-rev Batch F /
     // finding #2).

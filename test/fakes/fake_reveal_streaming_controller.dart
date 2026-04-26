@@ -5,8 +5,8 @@
 /// Observable fake for the Phase 09 `RevealStreamingController` (plan
 /// 09-06). Lets widget + integration suites assert how many times
 /// `onFix`, `revealInitial`, `flush`, and `dispose` were invoked
-/// without driving a real `RevealedTileStore` or computing actual
-/// reveal masks.
+/// without driving a real `RevealedDiscStore` or computing actual
+/// reveal geometry.
 ///
 /// Wave 0 keeps the surface dependency-free — does NOT
 /// `implements RevealStreamingController` because that class lands in

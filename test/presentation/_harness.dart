@@ -20,7 +20,7 @@ import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 ///
 /// Wrap in [`ProviderScope`] (with the necessary overrides for
 /// [`activeSessionControllerProvider`], [`activeMirkRendererProvider`],
-/// [`visibleMirkTilesProvider`], [`mapViewportProvider`], and
+/// [`discsInViewportProvider`], [`mapViewportProvider`], and
 /// [`mapViewportZoomProvider`]) before pumping.
 class TestMapScreenHarness extends StatelessWidget {
   const TestMapScreenHarness({super.key, this.attributionBuilder, this.fabBuilder, this.bannerBuilder, this.chipBuilder});

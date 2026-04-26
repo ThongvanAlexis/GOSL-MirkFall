@@ -5,14 +5,14 @@
 // Phase 09 plan 09-04 Task 3 RED test suite for `HeavenlyCloudsMirkRenderer`
 // (MIRK-06 builtin).
 //
-// Heavenly clouds is a slow drifting overlay — coarse-noise blobs that
-// drift NE (45°). Tests cover:
-// - Animation proof (output differs across 5-second sessionElapsed delta).
-// - dispose idempotence + post-dispose paint guard.
-// - Empty visibleTiles → no-op picture.
+// BUG-010 Option B Commit 5 — fixture surface migrated from cell-bitmap
+// to continuous-geometry discs (see atmospheric renderer test for the
+// "all-revealed" → "viewport-spanning disc" rationale).
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart';
 
 import '_render_helpers.dart';
@@ -50,42 +50,37 @@ void main() {
       await r2.dispose();
     });
 
-    test('paint() with empty visibleTiles list issues no draw calls', () async {
+    test('paint() with empty discs list issues no draw calls', () async {
       final renderer = HeavenlyCloudsMirkRenderer(const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig);
-      final ctx = fakeContext(tiles: const []);
+      final ctx = fakeContext(discs: const <RevealDisc>[]);
       final pic = renderToPicture(renderer, context: ctx);
-      expect(pic.approximateBytesUsed, lessThan(500), reason: 'Empty visibleTiles should produce a near-empty picture');
+      expect(pic.approximateBytesUsed, lessThan(500), reason: 'Empty discs list should produce a near-empty picture');
       pic.dispose();
       await renderer.dispose();
     });
 
-    test('paint() with all-revealed bitmap draws no fog (smaller picture than all-unrevealed)', () async {
+    test('paint() with a viewport-spanning disc draws no fog (smaller picture than localised disc)', () async {
       final renderer = HeavenlyCloudsMirkRenderer(const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig);
-      final ctxAllRevealed = fakeContext(
-        tiles: [
-          (() {
-            final t = fakeContext().visibleTiles.first;
-            return t.copyWith(bitmap: makeAllRevealedBitmap());
-          })(),
-        ],
+      final bbox = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+      final swallowingDisc = RevealDisc(
+        id: 'rvd_test_swallow_h',
+        sessionId: 'sess_test',
+        lat: 43.5,
+        lon: 5.5,
+        radiusMeters: 200000.0,
+        fixedAtUtc: DateTime.utc(2026, 4, 26),
       );
-      final ctxAllUnrevealed = fakeContext(
-        tiles: [
-          (() {
-            final t = fakeContext().visibleTiles.first;
-            return t.copyWith(bitmap: makeAllUnrevealedBitmap());
-          })(),
-        ],
-      );
+      final ctxAllRevealed = fakeContext(viewport: bbox, discs: [swallowingDisc]);
+      final ctxLocalised = fakeContext(viewport: bbox);
       final picRevealed = renderToPicture(renderer, context: ctxAllRevealed);
-      final picUnrevealed = renderToPicture(renderer, context: ctxAllUnrevealed);
+      final picLocalised = renderToPicture(renderer, context: ctxLocalised);
       expect(
         picRevealed.approximateBytesUsed,
-        lessThan(picUnrevealed.approximateBytesUsed),
-        reason: 'All-revealed tile must draw less than all-unrevealed tile',
+        lessThan(picLocalised.approximateBytesUsed),
+        reason: 'Viewport-spanning disc must draw less than a localised reveal',
       );
       picRevealed.dispose();
-      picUnrevealed.dispose();
+      picLocalised.dispose();
       await renderer.dispose();
     });
 

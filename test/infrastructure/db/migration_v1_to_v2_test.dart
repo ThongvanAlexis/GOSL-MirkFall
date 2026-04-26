@@ -128,12 +128,15 @@ void main() {
         }
 
         // Capture pre-migration counts through SchemaSanityChecker — proves
-        // the checker works against the V1 schema too.
+        // the checker works against the V1 schema too. BUG-010 Option B
+        // Commit 5 retired the legacy `t_revealed_tiles`; the checker now
+        // queries `t_revealed_disc` instead. At V1 that table does not
+        // exist, so its key is absent from the returned map — the checker
+        // skips missing-from-this-schema tables.
         final sanity = SchemaSanityChecker(seedDb.executor);
         before = await sanity.captureRowCounts();
         expect(before['t_sessions'], 10);
         expect(before['t_markers'], 50);
-        expect(before['t_revealed_tiles'], 5);
         expect(before['t_marker_categories'], 3);
         expect(before['t_mirk_styles'], 2);
         expect(before['t_photos'], 0);
@@ -153,9 +156,10 @@ void main() {
         sanityAfter.assertNoLoss(before, after);
 
         // Spot-check: fixture count is identical (V1ToV2Notes doesn't seed).
+        // V2 only adds the `notes` column to `t_sessions` — `t_revealed_disc`
+        // arrives at V5, so it's still absent here.
         expect(after['t_sessions'], 10);
         expect(after['t_markers'], 50);
-        expect(after['t_revealed_tiles'], 5);
         expect(after['t_marker_categories'], 3);
         expect(after['t_mirk_styles'], 2);
         expect(after['t_photos'], 0);

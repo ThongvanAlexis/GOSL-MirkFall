@@ -83,20 +83,12 @@ const int kMaxDbBackups = 3;
 /// well under one second.
 const int kDbBusyTimeoutMs = 5000;
 
-/// Zoom level at which "parent tiles" carry a 64×64 bitmap in
-/// `t_revealed_tiles`. Revealed-mirk storage unit (decision D3 — see
-/// PROJECT.md Key Decisions: zoom-14 parent tiles + 64×64 sub-tile grid).
+/// Parent-tile zoom level historically used by the cell-bitmap reveal
+/// model (decision D3, retired in BUG-010 Option B Commit 5). Retained
+/// post-Commit-5 as a sensible default for future SDF query-bbox parent
+/// zoom logic and as a stable Phase-09 cross-phase constant — both the
+/// constants test and any future tile-key derivations may reference it.
 const int kRevealedTileParentZoom = 14;
-
-/// Sub-grid resolution per parent tile. 64×64 = 4096 bits = 512 bytes per
-/// row. Smaller than 64 wastes per-row overhead; larger inflates per-tile
-/// memory residency without improving reveal granularity at zoom 14+4.
-const int kRevealedTileSubgridSize = 64;
-
-/// Convenience: bytes per stored bitmap, derived from [kRevealedTileSubgridSize].
-/// 64 * 64 / 8 = 512. Hoisted as a constant so callers (DB schema, perf
-/// budgets, fixture seeders) reference the same number without re-deriving.
-const int kRevealedTileBitmapBytes = (kRevealedTileSubgridSize * kRevealedTileSubgridSize) ~/ 8;
 
 /// Lower bound on UTC-offset-minutes for Session + timestamp columns.
 /// -720 min = UTC-12 (Baker Island / US Minor Outlying — the westernmost
@@ -249,7 +241,7 @@ const int kInitialSessionMapZoom = 15;
 /// Radius (meters) of the data-only reveal seeded around the user's
 /// position at session open. Phase 07 captures the intent in the DB but
 /// does NOT paint fog — the corresponding render lands in Phase 09 when
-/// the mirk renderer materialises the RevealedTileStore state.
+/// the mirk renderer materialises the revealed-disc state.
 const int kInitialRevealRadiusMeters = 20;
 
 /// Safety-margin multiplier applied to the expected total byte size when
@@ -376,11 +368,9 @@ const double kEarthRadiusMeters = 6371008.8;
 
 /// Approximate metres per degree of latitude (WGS-84, equator-aligned).
 /// Constant globally because a meridian is a great circle — accurate to
-/// ~0.5 % at any latitude. Used both by the cell-rasterisation
-/// `computeRevealMask` (`reveal_calculator.dart`) and by the analytic
-/// `RevealedSdfBuilder.buildFromDiscs` to convert metres ↔ degrees ↔
-/// pixel space. Promoted at the same time as [kEarthRadiusMeters] for
-/// the same "third call site" reason.
+/// ~0.5 % at any latitude. Used by the analytic
+/// `RevealedSdfBuilder.buildFromDiscs` and by `RevealDisc.intersectsBbox`
+/// to convert metres ↔ degrees ↔ pixel space.
 const double kMetersPerDegreeLat = 111320.0;
 
 /// Tolerance (fraction of the larger disc's radius) applied by the
@@ -749,10 +739,16 @@ const int kMirkFogSdfResolution = 256;
 /// dense enough that the eye latches onto motion.
 const int kMirkFogWispMaxCount = 200;
 
-/// Wisp particles spawned per newly-revealed cell event. The user
-/// walking 1 step typically reveals 3-5 cells; multiplying by this
-/// value gives a comfortable spawn rate without flooding the cap.
-const int kMirkFogWispSpawnPerCell = 2;
+/// Spacing (metres of disc circumference) between wisp spawn points
+/// along a newly-emerged disc's perimeter. The renderer divides
+/// `2 * π * radiusMeters` by this constant (then `ceil`s) to decide how
+/// many wisps to spawn for that disc. At the 25 m default reveal
+/// radius the circumference is ≈ 157 m → 8 m/wisp produces ~20 wisps
+/// per fix, comparable to the pre-Commit-5 cell-diff count
+/// (3-5 newly-revealed cells × 2 wisps/cell ≈ 6-10) but distributed
+/// along the actual disc silhouette so the puff reads as a halo
+/// bursting outward rather than a few stray flickers near the centre.
+const double kMirkFogMetersPerWisp = 8.0;
 
 /// Wisp lifetime in seconds. After this the particle is evicted.
 /// Long enough that the user perceives a deliberate trail, short
