@@ -597,7 +597,7 @@ const bool kMirkFogCurlScaleAnimationDefaultEnabled = true;
 /// 2026-04-26 (N+2) preferred an even slower cadence than the prior
 /// 40 s — the 60 s period reads as ambient breathing rather than active
 /// motion, which is the desired "alive but calm" volumetric feel.
-const double kMirkFogCurlScaleAnimationPeriodSec = 60.0;
+const double kMirkFogCurlScaleAnimationPeriodSec = 40.0;
 
 /// Minimum value of the curlScale triangle-wave animation. 0.0 is the
 /// "no curl noise warp at all" extremum — paired with
