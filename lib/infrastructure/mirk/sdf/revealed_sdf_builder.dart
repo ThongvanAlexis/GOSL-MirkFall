@@ -138,13 +138,24 @@ class RevealedSdfBuilder {
     // type cell.
     final signedDistPixels = _chamferSignedDistance(seed, n);
 
+    // Step 2b (BUG-009 N+2): smooth the float SDF with a small
+    // separable Gaussian. The seed is binary 0/1 and the chamfer
+    // distance therefore inherits the cell-rectangle stair-steps as
+    // pixel-aligned creases in the float field. A 5-tap Gaussian
+    // (sigma ~ kMirkFogSdfBlurSigma) softens those creases below the
+    // ~1.5 SDF-pixel level, which on a 256² SDF over a phone viewport
+    // is well below 1 screen pixel — the boundary reads as
+    // watercolour instead of polygon. Cost: 2 × n² × 5 muladds ≈ 650 k
+    // ops on n=256, negligible vs the chamfer pass.
+    final smoothedDistPixels = _gaussianBlurSeparable(signedDistPixels, n, sigma: kMirkFogSdfBlurSigma);
+
     // Step 3: encode signed distance in [-distMax, distMax] → byte
     // [0, 255] via midpoint-128. distMax = n * 0.5 (half the SDF
     // resolution — the maximum useful range; further is uniform fog).
     final distMax = n * 0.5;
     final pixels = Uint8List(n * n * 4);
     for (var i = 0; i < n * n; i++) {
-      final d = signedDistPixels[i].clamp(-distMax, distMax);
+      final d = smoothedDistPixels[i].clamp(-distMax, distMax);
       // Map [-distMax, +distMax] → [0, 255] linearly with 128 = zero.
       final byte = (128.0 + (d / distMax) * 127.0).clamp(0.0, 255.0).toInt();
       final idx = i * 4;
@@ -337,4 +348,68 @@ class RevealedSdfBuilder {
   /// adds a function call overhead that is not negligible at 65k×8 =
   /// ~520k invocations. Hand-inline.
   double _minF(double a, double b) => a < b ? a : b;
+
+  /// Separable 5-tap Gaussian blur over an n×n float field. Returns a
+  /// new Float32List; the input is not mutated.
+  ///
+  /// Uses Pascal-triangle integer weights `[1, 4, 6, 4, 1] / 16` which
+  /// approximate a true Gaussian with `sigma ≈ 1.0`. The [sigma]
+  /// parameter is informational for now (the kernel is fixed at 5 taps
+  /// for performance + Pascal integer-friendliness); a future change
+  /// could switch to a wider kernel computed from sigma if BUG-009 N+3
+  /// shows we need a softer blur.
+  ///
+  /// Edges use clamp-to-edge — out-of-bounds samples reuse the nearest
+  /// in-bounds value. This avoids the SDF's outer ring being pulled
+  /// toward 0 (which would happen with zero-padding) and matches the
+  /// "uniform far-fog beyond the viewport" intent.
+  ///
+  /// Two passes (horizontal, then vertical) keep cost O(n²·k) instead
+  /// of O(n²·k²). Visible to tests via the package-private name —
+  /// `_visibleForTestingGaussianBlurSeparable` is the test entry point
+  /// for the unit test that asserts the kernel softens a sharp edge.
+  Float32List _gaussianBlurSeparable(Float32List src, int n, {required double sigma}) {
+    // Pascal-triangle 5-tap weights, integer-friendly. Sum = 16.
+    const int w0 = 1;
+    const int w1 = 4;
+    const int w2 = 6;
+    const int w3 = 4;
+    const int w4 = 1;
+    const double inv16 = 1.0 / 16.0;
+    final tmp = Float32List(n * n);
+    // Horizontal pass: tmp[y, x] = sum(src[y, x + (-2..+2)] * w) / 16
+    for (var y = 0; y < n; y++) {
+      final rowOffset = y * n;
+      for (var x = 0; x < n; x++) {
+        final xm2 = x >= 2 ? x - 2 : 0;
+        final xm1 = x >= 1 ? x - 1 : 0;
+        final xp1 = x <= n - 2 ? x + 1 : n - 1;
+        final xp2 = x <= n - 3 ? x + 2 : n - 1;
+        final s = src[rowOffset + xm2] * w0 + src[rowOffset + xm1] * w1 + src[rowOffset + x] * w2 + src[rowOffset + xp1] * w3 + src[rowOffset + xp2] * w4;
+        tmp[rowOffset + x] = s * inv16;
+      }
+    }
+    // Vertical pass: dst[y, x] = sum(tmp[y + (-2..+2), x] * w) / 16
+    final dst = Float32List(n * n);
+    for (var y = 0; y < n; y++) {
+      final ym2 = (y >= 2 ? y - 2 : 0) * n;
+      final ym1 = (y >= 1 ? y - 1 : 0) * n;
+      final yc = y * n;
+      final yp1 = (y <= n - 2 ? y + 1 : n - 1) * n;
+      final yp2 = (y <= n - 3 ? y + 2 : n - 1) * n;
+      for (var x = 0; x < n; x++) {
+        final s = tmp[ym2 + x] * w0 + tmp[ym1 + x] * w1 + tmp[yc + x] * w2 + tmp[yp1 + x] * w3 + tmp[yp2 + x] * w4;
+        dst[yc + x] = s * inv16;
+      }
+    }
+    return dst;
+  }
+
+  /// Test-only entry point for [_gaussianBlurSeparable]. Routed through
+  /// a `@visibleForTesting`-style accessor so the production call site
+  /// stays private but unit tests can validate the kernel softens a
+  /// sharp edge as expected.
+  Float32List debugGaussianBlurSeparable(Float32List src, int n, {required double sigma}) {
+    return _gaussianBlurSeparable(src, n, sigma: sigma);
+  }
 }

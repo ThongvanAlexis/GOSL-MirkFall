@@ -711,6 +711,30 @@ const double kMirkFogBoundaryDensityBoost = 0.15;
 /// not every frame.
 const int kMirkFogSdfResolution = 256;
 
+/// Sigma (in SDF pixels) of the separable Gaussian blur applied to the
+/// chamfer-distance output before encoding to uint8.
+///
+/// BUG-009 follow-up walk #N+2 (2026-04-26): user UAT screenshot
+/// `docs/IMG_1233.PNG` shows the revealed-area boundary still has
+/// visible 2-3 px stair-steps even after the shader-side smoothstep +
+/// dither shipped in commit 4736342. Root cause: `RevealedSdfBuilder`
+/// rasterises each revealed cell as a binary 0/1 rectangle into the
+/// seed grid, so the chamfer pass sees pixel-aligned cell-rect edges
+/// and bakes the stair-step into the float distance field. No shader
+/// uniform can hide that geometry — the source itself is steppy.
+///
+/// Solution: a small Gaussian smooths the float SDF in-place, post-
+/// chamfer. Sigma 1.0 with a 5-tap kernel ([1,4,6,4,1]/16, Pascal
+/// integer-friendly weights) softens 1-pixel cell-rect corners over
+/// roughly 3 SDF pixels (~5 screen pixels on a phone) — enough to read
+/// as smooth watercolour without erasing the boundary's reactivity.
+///
+/// Tunable via this constant (NOT exposed in the dev tuner UI: the SDF
+/// is rebuilt only on viewport/cell change, so a live slider would
+/// either no-op on scrub or force constant rebuilds). Static const is
+/// the right knob shape here.
+const double kMirkFogSdfBlurSigma = 1.0;
+
 // CPU wisp particle system — discrete tendrils spawned at the boundary
 // when the user walks (Reference 1 + 9).
 
