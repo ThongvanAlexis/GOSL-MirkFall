@@ -10,6 +10,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
+import 'package:mirkfall/application/tunables/mirk_fog_opacity_pref.dart';
+import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/presentation/widgets/mirk_style_picker_sheet.dart';
@@ -72,6 +75,8 @@ class SessionBurgerMenu extends ConsumerWidget {
               title: const Text('Placer un marker'),
               onTap: () => _showPhase13Snackbar(context, 'Placer un marker disponible en Phase 11'),
             ),
+            const Divider(),
+            const _FogDensitySection(),
             const Divider(),
             _PositionRow(lastFix: tracking?.lastFix),
             const _ZoomRow(),
@@ -259,6 +264,91 @@ class _PendingChronoRow extends StatelessWidget {
     return ListTile(
       leading: const Icon(Icons.timer_outlined),
       title: Text('Durée : --:--:--', style: Theme.of(context).textTheme.bodyMedium),
+    );
+  }
+}
+
+/// User-facing fog density slider — drives all three opacity octaves of
+/// [MirkRuntimeTunables] in lockstep + persists the chosen value via
+/// [MirkFogOpacityPref] so the choice survives app restarts.
+///
+/// Independent of the dev mirk tuner sheet (which exposes per-octave
+/// continuous sliders for fine-tuning); both write to the same backing
+/// fields. The dev tuner remains the right surface for the eight other
+/// shader uniforms — this slider is intentionally a single coarse knob
+/// for end users.
+///
+/// Listens to [MirkRuntimeTunables.instance] so the displayed value
+/// stays in sync if a parallel surface (dev tuner) edits the opacities.
+class _FogDensitySection extends StatelessWidget {
+  const _FogDensitySection();
+
+  /// Default reset value — the baked `kMirkFogOpacityFar` (post-2026-04-26
+  /// UAT walk). Pulled from the constant so a future re-bake of the
+  /// default propagates here without an extra edit. All three octaves
+  /// share the same baked value (see `kMirkFogOpacityMid/Near`), so
+  /// using the Far field as the canonical default is correct by
+  /// construction.
+  static const double _kFogDensityDefault = kMirkFogOpacityFar;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: MirkRuntimeTunables.instance,
+      builder: (BuildContext ctx, Widget? _) {
+        // Read one octave as the slider's displayed value — they are
+        // kept in lockstep by [MirkFogOpacityPref.applyAndPersist], so
+        // any of the three returns the same value at rest.
+        final double currentValue = MirkRuntimeTunables.instance.opacityFar.clamp(kMirkFogOpacityMin, kMirkFogOpacityMax);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  const Icon(Icons.cloud_outlined),
+                  const SizedBox(width: 12.0),
+                  Expanded(child: Text('Densité du brouillard', style: Theme.of(context).textTheme.bodyMedium)),
+                  Text(currentValue.toStringAsFixed(2), style: const TextStyle(fontFeatures: <FontFeature>[FontFeature.tabularFigures()])),
+                  IconButton(
+                    iconSize: 18.0,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Réinitialiser à ${_kFogDensityDefault.toStringAsFixed(2)}',
+                    // Disable when already at default so an accidental tap
+                    // doesn't fire an unnecessary SharedPreferences write.
+                    onPressed: (currentValue - _kFogDensityDefault).abs() < 1e-9
+                        ? null
+                        : () {
+                            // Fire-and-forget — the slider's onChanged is
+                            // also fire-and-forget, same lifecycle.
+                            MirkFogOpacityPref.applyAndPersist(_kFogDensityDefault);
+                          },
+                    icon: const Icon(Icons.replay),
+                  ),
+                ],
+              ),
+              Slider(
+                value: currentValue,
+                min: kMirkFogOpacityMin,
+                // Slider.max defaults to 1.0 which currently matches
+                // kMirkFogOpacityMax — pass it explicitly so a future
+                // re-tune of the constant cannot silently leave the
+                // slider clamped at the framework default.
+                max: kMirkFogOpacityMax, // ignore: avoid_redundant_argument_values
+                divisions: kMirkFogOpacitySliderDivisions,
+                onChanged: (double v) {
+                  // Eager write — SharedPreferences async write is cheap
+                  // (~1 ms on hot path) and avoids needing a debounce
+                  // timer + dispose path. If profiling reveals lag on a
+                  // future device, switch to a 200 ms debounce here.
+                  MirkFogOpacityPref.applyAndPersist(v);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -64,6 +64,14 @@ void main() {
 
   group('SessionBurgerMenu', () {
     testWidgets('renders 3 unwired action tiles + live-data rows when Tracking', (tester) async {
+      // Surface tall enough that the drawer's ListView lays out every row
+      // eagerly. Default 800×600 is too short post-2026-04-26: the new
+      // "Densité du brouillard" section pushes ChronoRow + the Stop tile
+      // below the viewport, where SliverList's lazy materialisation
+      // leaves them unbuilt.
+      await tester.binding.setSurfaceSize(const Size(800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       final Tracking tracking = Tracking(
         sessionId: sid,
         startedAtUtc: DateTime.now().toUtc().subtract(const Duration(seconds: 65)),

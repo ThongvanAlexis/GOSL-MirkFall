@@ -722,3 +722,29 @@ const double kMirkFogWispPeakAlpha = 0.35;
 ///
 /// Default: false (production output).
 const bool kMirkFogDebugOutputDensity = false;
+
+/// SharedPreferences key for the user-facing fog density slider exposed
+/// in the session burger menu. Single double in `[kMirkFogOpacityMin,
+/// kMirkFogOpacityMax]` — slider drag writes all three opacity octaves
+/// (`MirkRuntimeTunables.opacity{Far,Mid,Near}`) to this value, which
+/// in turn is persisted under this key. Read at app boot in `main.dart`
+/// so the user's choice survives across launches.
+const String kMirkFogOpacityPrefsKey = 'mirk_fog_opacity';
+
+/// Inclusive lower bound of the user-facing fog density slider. 0.2 is
+/// the floor where the fog reads as "thin haze with the basemap clearly
+/// visible underneath" — below this the fog effectively disappears,
+/// defeating the purpose of the user-facing control.
+const double kMirkFogOpacityMin = 0.2;
+
+/// Inclusive upper bound of the user-facing fog density slider. 1.0 is
+/// the natural cap (fully opaque per octave). The render still respects
+/// any palette alpha modulations on top of this — the slider drives the
+/// noise-driven octave weights, not the final canvas alpha.
+const double kMirkFogOpacityMax = 1.0;
+
+/// Number of slider divisions for the user-facing fog density slider.
+/// 16 divisions over `[0.2 .. 1.0]` = 0.05 step, coarse enough for an
+/// end-user UX (the dev tuner exposes per-octave continuous sliders
+/// for fine adjustment).
+const int kMirkFogOpacitySliderDivisions = 16;

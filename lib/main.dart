@@ -14,6 +14,7 @@ import 'package:logging/logging.dart';
 import 'app.dart';
 import 'application/providers/map_providers.dart';
 import 'application/providers/session_store_provider.dart';
+import 'application/tunables/mirk_fog_opacity_pref.dart';
 import 'config/constants.dart';
 import 'infrastructure/logging/file_logger.dart';
 import 'infrastructure/logging/file_logger_lifecycle_observer.dart';
@@ -192,6 +193,19 @@ Future<void> main() async {
         // the app still launches and the user can stop the session
         // manually from the detail screen.
         log.warning('Session reconciliation failed (non-fatal)', e, st);
+      }
+
+      // Phase 09 BUG-009 follow-up — restore the user's persisted fog
+      // density choice (set via the burger-menu slider). Read BEFORE
+      // runApp so the very first paint already reflects the user's
+      // preference; no-op on first launch (the tunables already carry
+      // the kMirkFog* defaults).
+      try {
+        await MirkFogOpacityPref.applyOnBoot();
+      } on Object catch (e, st) {
+        // Non-fatal — the user can re-pick the value from the burger
+        // menu if persistence is wedged.
+        log.warning('MirkFogOpacityPref.applyOnBoot failed (non-fatal)', e, st);
       }
 
       // Phase 05 wiring note — `ActiveSessionController` is the first

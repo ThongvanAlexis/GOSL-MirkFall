@@ -74,9 +74,13 @@ void main() {
       MirkRuntimeTunables.instance.addListener(listener);
       addTearDown(() => MirkRuntimeTunables.instance.removeListener(listener));
 
-      MirkRuntimeTunables.instance.curlAmplitude = 1.0;
-      MirkRuntimeTunables.instance.lightStrength = 2.0;
-      MirkRuntimeTunables.instance.hueStrength = 1.5;
+      // Use values intentionally distinct from any kMirkFog* default so
+      // the no-op guard doesn't accidentally suppress one of the three
+      // notifications (the 2026-04-26 baking pass moved several
+      // defaults; using the prior literals would have collided).
+      MirkRuntimeTunables.instance.curlAmplitude = 0.123;
+      MirkRuntimeTunables.instance.lightStrength = 2.71;
+      MirkRuntimeTunables.instance.hueStrength = 0.987;
       expect(notifyCount, 3);
     });
 
