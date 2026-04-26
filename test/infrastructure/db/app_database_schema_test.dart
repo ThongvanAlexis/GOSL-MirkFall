@@ -40,7 +40,7 @@ void main() {
     await db.close();
   });
 
-  test('all six expected t_* tables exist', () async {
+  test('all expected t_* tables exist', () async {
     final rows = await db
         .customSelect(
           "SELECT name FROM sqlite_master WHERE type='table' "
@@ -48,7 +48,10 @@ void main() {
         )
         .get();
     final names = rows.map((r) => r.read<String>('name')).toList();
-    expect(names, containsAll(<String>['t_marker_categories', 't_markers', 't_mirk_styles', 't_photos', 't_revealed_tiles', 't_sessions']));
+    expect(
+      names,
+      containsAll(<String>['t_marker_categories', 't_markers', 't_mirk_styles', 't_photos', 't_revealed_disc', 't_revealed_tiles', 't_sessions']),
+    );
   });
 
   test('SESS-06: idx_t_sessions_status_active partial unique index exists', () async {
@@ -144,8 +147,8 @@ void main() {
     expect(catCount.read<int>('c'), 1, reason: 'category deletion is transactional-reassign, not cascade');
   });
 
-  test('schemaVersion is 4 (V4 — t_sessions.mirk_style_id added by 09-05)', () async {
-    expect(db.schemaVersion, 4);
+  test('schemaVersion is 5 (V5 — t_revealed_disc added by BUG-010 Commit 2)', () async {
+    expect(db.schemaVersion, 5);
   });
 
   test('t_sessions.mirk_style_id column exists (V4 shape — 09-05)', () async {

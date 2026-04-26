@@ -24,6 +24,7 @@ import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'migrations/v1_to_v2_notes.dart';
 import 'migrations/v2_to_v3_fixes.dart';
 import 'migrations/v3_to_v4_session_mirk_style.dart';
+import 'migrations/v4_to_v5_revealed_disc.dart';
 import 'pragma_setup.dart';
 import 'type_converters.dart';
 
@@ -186,6 +187,57 @@ class RevealedTiles extends Table {
   ];
 }
 
+/// `t_revealed_disc` — BUG-010 Option B continuous-geometry reveal storage.
+///
+/// One row per reveal disc: an immutable `(lat, lon, radius_m)` triple
+/// timestamped at the originating GPS fix. Replaces the V4 cell-bitmap
+/// model (`t_revealed_tiles`) for the SDF builder; the bitmap path is
+/// kept untouched in this commit and dropped in BUG-010 Commit 5.
+///
+/// FK `session_id` references `t_sessions.id` with `ON DELETE CASCADE`
+/// — deleting a session drops every disc it owns in the same transaction
+/// (CONTEXT.md §cascade).
+///
+/// Indexes:
+/// - `idx_t_revealed_disc_session` — cheap lookup when listing all discs
+///   for a session (the access path for `discsForSession` and the FK
+///   cascade scan).
+/// - `idx_t_revealed_disc_session_latlon` — composite, prefilters the
+///   bbox-query path on `(session_id, lat, lon)`. The current Dart-side
+///   filter does not exploit the index yet; the future-perf SQL bbox
+///   filter (see `DriftRevealedDiscStore.discsInBbox`) will.
+@DataClassName('RevealedDiscRow')
+@TableIndex.sql('CREATE INDEX idx_t_revealed_disc_session ON t_revealed_disc(session_id);')
+@TableIndex.sql(
+  'CREATE INDEX idx_t_revealed_disc_session_latlon '
+  'ON t_revealed_disc(session_id, lat, lon);',
+)
+class RevealedDiscs extends Table {
+  @override
+  String get tableName => 't_revealed_disc';
+
+  TextColumn get id => text()();
+  TextColumn get sessionId => text().references(Sessions, #id, onDelete: KeyAction.cascade)();
+  RealColumn get lat => real()();
+  RealColumn get lon => real()();
+  // DB-level guard mirroring the `RevealDisc` constructor's `radiusMeters > 0`
+  // contract — defense-in-depth so a raw SQL insert that bypasses the store
+  // path cannot land a degenerate row.
+  //
+  // SQL column name `radius_m` (override) rather than the auto-derived
+  // `radius_meters`: keeps the storage column short and matches the
+  // BUG-010 plan deliverable schema. The Dart accessor stays
+  // `radiusMeters` for symmetry with `RevealDisc.radiusMeters`.
+  RealColumn get radiusMeters => real().named('radius_m').check(radiusMeters.isBiggerThanValue(0.0))();
+  // SQL column name `fixed_at_utc` matches the auto-derived snake_case;
+  // override is unnecessary, but the converter is mandatory — UnixMs ↔
+  // DateTime, same as every other timestamp in the schema.
+  IntColumn get fixedAtUtc => integer().map(const UnixMsToDateTimeConverter())();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 /// `t_mirk_styles` — renderer configurations. `renderer_type` is a denormalized
 /// top-level copy of `config.rendererType` for fast SELECT-WHERE without a
 /// JSON scan.
@@ -291,7 +343,7 @@ class Photos extends Table {
 /// 2. `MigrationStrategy.beforeOpen` calls [applyRuntimePragmas] to set the
 ///    other three pragmas (synchronous, busy_timeout, foreign_keys) on every
 ///    cold + warm open.
-@DriftDatabase(tables: [Sessions, MarkerCategories, Markers, RevealedTiles, MirkStyles, Photos, Fixes])
+@DriftDatabase(tables: [Sessions, MarkerCategories, Markers, RevealedTiles, RevealedDiscs, MirkStyles, Photos, Fixes])
 class AppDatabase extends _$AppDatabase {
   /// Creates an [AppDatabase] backed by [executor].
   ///
@@ -305,7 +357,7 @@ class AppDatabase extends _$AppDatabase {
   final Future<void> Function(OpeningDetails details)? onBeforeUpgrade;
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -335,6 +387,7 @@ class AppDatabase extends _$AppDatabase {
       await V1ToV2Notes.apply(m, from, to);
       await V2ToV3Fixes.apply(m, from, to);
       await V3ToV4SessionMirkStyle.apply(m, from, to);
+      await V4ToV5RevealedDisc.apply(m, from, to);
     },
     beforeOpen: (OpeningDetails details) async {
       if (details.hadUpgrade && onBeforeUpgrade != null) {

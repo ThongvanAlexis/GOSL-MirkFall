@@ -33,7 +33,8 @@ final appSupportDirProvider = AppSupportDirProvider._();
 /// `keepAlive: true` — the path is a process-lifetime constant; recomputing
 /// it on every consumer subscription would thrash the platform channel.
 
-final class AppSupportDirProvider extends $FunctionalProvider<AsyncValue<String>, String, FutureOr<String>>
+final class AppSupportDirProvider
+    extends $FunctionalProvider<AsyncValue<String>, String, FutureOr<String>>
     with $FutureModifier<String>, $FutureProvider<String> {
   /// Production path to `<app_support>/` resolved via `path_provider`.
   ///
@@ -61,7 +62,8 @@ final class AppSupportDirProvider extends $FunctionalProvider<AsyncValue<String>
 
   @$internal
   @override
-  $FutureProviderElement<String> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<String> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
 
   @override
   FutureOr<String> create(Ref ref) {
@@ -98,7 +100,13 @@ final countryCatalogProvider = CountryCatalogProvider._();
 /// parsed value is a 249-country document that would otherwise re-parse
 /// on every Riverpod dispose/recreate cycle.
 
-final class CountryCatalogProvider extends $FunctionalProvider<AsyncValue<CountryCatalog>, CountryCatalog, FutureOr<CountryCatalog>>
+final class CountryCatalogProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<CountryCatalog>,
+          CountryCatalog,
+          FutureOr<CountryCatalog>
+        >
     with $FutureModifier<CountryCatalog>, $FutureProvider<CountryCatalog> {
   /// Parsed [CountryCatalog] loaded once from the bundled
   /// `assets/maps/catalog.json`.
@@ -127,7 +135,9 @@ final class CountryCatalogProvider extends $FunctionalProvider<AsyncValue<Countr
 
   @$internal
   @override
-  $FutureProviderElement<CountryCatalog> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<CountryCatalog> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<CountryCatalog> create(Ref ref) {
@@ -145,7 +155,8 @@ String _$countryCatalogHash() => r'54dd56fe017f00ae2134865ce8b4349a0958ab00';
 /// list stays reactive across `/` → `/map` transitions.
 
 @ProviderFor(installedManifestRepository)
-final installedManifestRepositoryProvider = InstalledManifestRepositoryProvider._();
+final installedManifestRepositoryProvider =
+    InstalledManifestRepositoryProvider._();
 
 /// Filesystem-backed [InstalledManifestRepository] adapter.
 ///
@@ -155,8 +166,15 @@ final installedManifestRepositoryProvider = InstalledManifestRepositoryProvider.
 /// list stays reactive across `/` → `/map` transitions.
 
 final class InstalledManifestRepositoryProvider
-    extends $FunctionalProvider<AsyncValue<InstalledManifestRepository>, InstalledManifestRepository, FutureOr<InstalledManifestRepository>>
-    with $FutureModifier<InstalledManifestRepository>, $FutureProvider<InstalledManifestRepository> {
+    extends
+        $FunctionalProvider<
+          AsyncValue<InstalledManifestRepository>,
+          InstalledManifestRepository,
+          FutureOr<InstalledManifestRepository>
+        >
+    with
+        $FutureModifier<InstalledManifestRepository>,
+        $FutureProvider<InstalledManifestRepository> {
   /// Filesystem-backed [InstalledManifestRepository] adapter.
   ///
   /// Single instance for the lifetime of the process — the repository owns a
@@ -179,7 +197,9 @@ final class InstalledManifestRepositoryProvider
 
   @$internal
   @override
-  $FutureProviderElement<InstalledManifestRepository> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<InstalledManifestRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<InstalledManifestRepository> create(Ref ref) {
@@ -187,7 +207,8 @@ final class InstalledManifestRepositoryProvider
   }
 }
 
-String _$installedManifestRepositoryHash() => r'550639af45771e75d798646448252c7a80f52139';
+String _$installedManifestRepositoryHash() =>
+    r'550639af45771e75d798646448252c7a80f52139';
 
 /// Reactive [InstalledManifest] snapshot.
 ///
@@ -214,8 +235,16 @@ final installedManifestProvider = InstalledManifestProvider._();
 /// subscription on every widget mount/unmount would create redundant disk
 /// reads.
 
-final class InstalledManifestProvider extends $FunctionalProvider<AsyncValue<InstalledManifest>, InstalledManifest, Stream<InstalledManifest>>
-    with $FutureModifier<InstalledManifest>, $StreamProvider<InstalledManifest> {
+final class InstalledManifestProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<InstalledManifest>,
+          InstalledManifest,
+          Stream<InstalledManifest>
+        >
+    with
+        $FutureModifier<InstalledManifest>,
+        $StreamProvider<InstalledManifest> {
   /// Reactive [InstalledManifest] snapshot.
   ///
   /// Emits the current manifest on subscription (via a synchronous `read()`)
@@ -242,7 +271,9 @@ final class InstalledManifestProvider extends $FunctionalProvider<AsyncValue<Ins
 
   @$internal
   @override
-  $StreamProviderElement<InstalledManifest> $createElement($ProviderPointer pointer) => $StreamProviderElement(pointer);
+  $StreamProviderElement<InstalledManifest> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
 
   @override
   Stream<InstalledManifest> create(Ref ref) {
@@ -261,7 +292,13 @@ final pmtilesSourceProvider = PmtilesSourceProvider._();
 /// [PmtilesSource] resolver — converts `CountryCode?` + manifest snapshot
 /// into a `pmtiles://file:///…` URI for MapLibre's style source.
 
-final class PmtilesSourceProvider extends $FunctionalProvider<AsyncValue<PmtilesSource>, PmtilesSource, FutureOr<PmtilesSource>>
+final class PmtilesSourceProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<PmtilesSource>,
+          PmtilesSource,
+          FutureOr<PmtilesSource>
+        >
     with $FutureModifier<PmtilesSource>, $FutureProvider<PmtilesSource> {
   /// [PmtilesSource] resolver — converts `CountryCode?` + manifest snapshot
   /// into a `pmtiles://file:///…` URI for MapLibre's style source.
@@ -281,7 +318,9 @@ final class PmtilesSourceProvider extends $FunctionalProvider<AsyncValue<Pmtiles
 
   @$internal
   @override
-  $FutureProviderElement<PmtilesSource> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<PmtilesSource> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<PmtilesSource> create(Ref ref) {
@@ -300,7 +339,13 @@ final styleRewriterProvider = StyleRewriterProvider._();
 /// [StyleRewriter] — loads `assets/maps/style.json`, validates + swaps the
 /// PMTiles placeholder for the resolved runtime URI.
 
-final class StyleRewriterProvider extends $FunctionalProvider<AsyncValue<StyleRewriter>, StyleRewriter, FutureOr<StyleRewriter>>
+final class StyleRewriterProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<StyleRewriter>,
+          StyleRewriter,
+          FutureOr<StyleRewriter>
+        >
     with $FutureModifier<StyleRewriter>, $FutureProvider<StyleRewriter> {
   /// [StyleRewriter] — loads `assets/maps/style.json`, validates + swaps the
   /// PMTiles placeholder for the resolved runtime URI.
@@ -320,7 +365,9 @@ final class StyleRewriterProvider extends $FunctionalProvider<AsyncValue<StyleRe
 
   @$internal
   @override
-  $FutureProviderElement<StyleRewriter> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<StyleRewriter> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<StyleRewriter> create(Ref ref) {
@@ -341,7 +388,14 @@ final diskSpaceCheckerProvider = DiskSpaceCheckerProvider._();
 /// `FileManager.systemFreeSize` via platform channels). Process-wide
 /// singleton — the underlying MethodChannel is stateless.
 
-final class DiskSpaceCheckerProvider extends $FunctionalProvider<DiskSpaceChecker, DiskSpaceChecker, DiskSpaceChecker> with $Provider<DiskSpaceChecker> {
+final class DiskSpaceCheckerProvider
+    extends
+        $FunctionalProvider<
+          DiskSpaceChecker,
+          DiskSpaceChecker,
+          DiskSpaceChecker
+        >
+    with $Provider<DiskSpaceChecker> {
   /// Hand-rolled [DiskSpaceChecker] (Android `StatFs` + iOS
   /// `FileManager.systemFreeSize` via platform channels). Process-wide
   /// singleton — the underlying MethodChannel is stateless.
@@ -361,7 +415,8 @@ final class DiskSpaceCheckerProvider extends $FunctionalProvider<DiskSpaceChecke
 
   @$internal
   @override
-  $ProviderElement<DiskSpaceChecker> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+  $ProviderElement<DiskSpaceChecker> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
   DiskSpaceChecker create(Ref ref) {
@@ -370,7 +425,10 @@ final class DiskSpaceCheckerProvider extends $FunctionalProvider<DiskSpaceChecke
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(DiskSpaceChecker value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<DiskSpaceChecker>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DiskSpaceChecker>(value),
+    );
   }
 }
 
@@ -385,7 +443,14 @@ final iosBackupExcluderProvider = IosBackupExcluderProvider._();
 /// [IosBackupExcluder] — no-op on non-iOS; sets
 /// `NSURLIsExcludedFromBackupKey` on iOS for per-country PMTiles files.
 
-final class IosBackupExcluderProvider extends $FunctionalProvider<IosBackupExcluder, IosBackupExcluder, IosBackupExcluder> with $Provider<IosBackupExcluder> {
+final class IosBackupExcluderProvider
+    extends
+        $FunctionalProvider<
+          IosBackupExcluder,
+          IosBackupExcluder,
+          IosBackupExcluder
+        >
+    with $Provider<IosBackupExcluder> {
   /// [IosBackupExcluder] — no-op on non-iOS; sets
   /// `NSURLIsExcludedFromBackupKey` on iOS for per-country PMTiles files.
   IosBackupExcluderProvider._()
@@ -404,7 +469,9 @@ final class IosBackupExcluderProvider extends $FunctionalProvider<IosBackupExclu
 
   @$internal
   @override
-  $ProviderElement<IosBackupExcluder> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+  $ProviderElement<IosBackupExcluder> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
 
   @override
   IosBackupExcluder create(Ref ref) {
@@ -413,7 +480,10 @@ final class IosBackupExcluderProvider extends $FunctionalProvider<IosBackupExclu
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(IosBackupExcluder value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<IosBackupExcluder>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<IosBackupExcluder>(value),
+    );
   }
 }
 
@@ -431,8 +501,15 @@ final firstLaunchWorldCopierProvider = FirstLaunchWorldCopierProvider._();
 /// post-write sha256 mismatch. Consumed by [firstLaunchBootstrapProvider].
 
 final class FirstLaunchWorldCopierProvider
-    extends $FunctionalProvider<AsyncValue<FirstLaunchWorldCopier>, FirstLaunchWorldCopier, FutureOr<FirstLaunchWorldCopier>>
-    with $FutureModifier<FirstLaunchWorldCopier>, $FutureProvider<FirstLaunchWorldCopier> {
+    extends
+        $FunctionalProvider<
+          AsyncValue<FirstLaunchWorldCopier>,
+          FirstLaunchWorldCopier,
+          FutureOr<FirstLaunchWorldCopier>
+        >
+    with
+        $FutureModifier<FirstLaunchWorldCopier>,
+        $FutureProvider<FirstLaunchWorldCopier> {
   /// [FirstLaunchWorldCopier] — copies the bundled world PMTiles asset to
   /// `<app_support>/maps/world.pmtiles` on first launch and auto-heals on
   /// post-write sha256 mismatch. Consumed by [firstLaunchBootstrapProvider].
@@ -452,7 +529,9 @@ final class FirstLaunchWorldCopierProvider
 
   @$internal
   @override
-  $FutureProviderElement<FirstLaunchWorldCopier> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<FirstLaunchWorldCopier> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<FirstLaunchWorldCopier> create(Ref ref) {
@@ -460,7 +539,8 @@ final class FirstLaunchWorldCopierProvider
   }
 }
 
-String _$firstLaunchWorldCopierHash() => r'2c6dcfc8a745202d29dc9660a9a226f77ad4c7b1';
+String _$firstLaunchWorldCopierHash() =>
+    r'2c6dcfc8a745202d29dc9660a9a226f77ad4c7b1';
 
 /// [HttpChunkDownloader] — pure dart:io `HttpClient` wrapper with Range
 /// resume + 200-OK restart fallback + 302 redirect following.
@@ -479,7 +559,13 @@ final httpChunkDownloaderProvider = HttpChunkDownloaderProvider._();
 /// are released cleanly at provider invalidation (e.g. app-level
 /// re-bootstrap during development).
 
-final class HttpChunkDownloaderProvider extends $FunctionalProvider<HttpChunkDownloader, HttpChunkDownloader, HttpChunkDownloader>
+final class HttpChunkDownloaderProvider
+    extends
+        $FunctionalProvider<
+          HttpChunkDownloader,
+          HttpChunkDownloader,
+          HttpChunkDownloader
+        >
     with $Provider<HttpChunkDownloader> {
   /// [HttpChunkDownloader] — pure dart:io `HttpClient` wrapper with Range
   /// resume + 200-OK restart fallback + 302 redirect following.
@@ -503,7 +589,9 @@ final class HttpChunkDownloaderProvider extends $FunctionalProvider<HttpChunkDow
 
   @$internal
   @override
-  $ProviderElement<HttpChunkDownloader> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+  $ProviderElement<HttpChunkDownloader> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
 
   @override
   HttpChunkDownloader create(Ref ref) {
@@ -512,11 +600,15 @@ final class HttpChunkDownloaderProvider extends $FunctionalProvider<HttpChunkDow
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(HttpChunkDownloader value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<HttpChunkDownloader>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<HttpChunkDownloader>(value),
+    );
   }
 }
 
-String _$httpChunkDownloaderHash() => r'c1428b92161fb6d896123f8370244c2b4a2c804f';
+String _$httpChunkDownloaderHash() =>
+    r'c1428b92161fb6d896123f8370244c2b4a2c804f';
 
 /// [Sha256Verifier] — streaming sha256 over a [File] via `sha256.bind`.
 /// Stateless; const-constructible.
@@ -527,7 +619,9 @@ final sha256VerifierProvider = Sha256VerifierProvider._();
 /// [Sha256Verifier] — streaming sha256 over a [File] via `sha256.bind`.
 /// Stateless; const-constructible.
 
-final class Sha256VerifierProvider extends $FunctionalProvider<Sha256Verifier, Sha256Verifier, Sha256Verifier> with $Provider<Sha256Verifier> {
+final class Sha256VerifierProvider
+    extends $FunctionalProvider<Sha256Verifier, Sha256Verifier, Sha256Verifier>
+    with $Provider<Sha256Verifier> {
   /// [Sha256Verifier] — streaming sha256 over a [File] via `sha256.bind`.
   /// Stateless; const-constructible.
   Sha256VerifierProvider._()
@@ -546,7 +640,8 @@ final class Sha256VerifierProvider extends $FunctionalProvider<Sha256Verifier, S
 
   @$internal
   @override
-  $ProviderElement<Sha256Verifier> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+  $ProviderElement<Sha256Verifier> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
   Sha256Verifier create(Ref ref) {
@@ -555,7 +650,10 @@ final class Sha256VerifierProvider extends $FunctionalProvider<Sha256Verifier, S
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(Sha256Verifier value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<Sha256Verifier>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Sha256Verifier>(value),
+    );
   }
 }
 
@@ -570,7 +668,13 @@ final binaryConcatenatorProvider = BinaryConcatenatorProvider._();
 /// [BinaryConcatenator] — streams N part files into a single destination
 /// via `IOSink`. Stateless.
 
-final class BinaryConcatenatorProvider extends $FunctionalProvider<BinaryConcatenator, BinaryConcatenator, BinaryConcatenator>
+final class BinaryConcatenatorProvider
+    extends
+        $FunctionalProvider<
+          BinaryConcatenator,
+          BinaryConcatenator,
+          BinaryConcatenator
+        >
     with $Provider<BinaryConcatenator> {
   /// [BinaryConcatenator] — streams N part files into a single destination
   /// via `IOSink`. Stateless.
@@ -590,7 +694,9 @@ final class BinaryConcatenatorProvider extends $FunctionalProvider<BinaryConcate
 
   @$internal
   @override
-  $ProviderElement<BinaryConcatenator> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+  $ProviderElement<BinaryConcatenator> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
 
   @override
   BinaryConcatenator create(Ref ref) {
@@ -599,11 +705,15 @@ final class BinaryConcatenatorProvider extends $FunctionalProvider<BinaryConcate
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(BinaryConcatenator value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<BinaryConcatenator>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BinaryConcatenator>(value),
+    );
   }
 }
 
-String _$binaryConcatenatorHash() => r'a04a485140685cf756cca3e1112795f27db7fb3e';
+String _$binaryConcatenatorHash() =>
+    r'a04a485140685cf756cca3e1112795f27db7fb3e';
 
 /// [AtomicRenamer] — `File.rename` with cross-volume `EXDEV`
 /// copy+delete fallback. Stateless. The ctor takes a logger so it is
@@ -616,7 +726,9 @@ final atomicRenamerProvider = AtomicRenamerProvider._();
 /// copy+delete fallback. Stateless. The ctor takes a logger so it is
 /// non-const; a single instance per process is enough.
 
-final class AtomicRenamerProvider extends $FunctionalProvider<AtomicRenamer, AtomicRenamer, AtomicRenamer> with $Provider<AtomicRenamer> {
+final class AtomicRenamerProvider
+    extends $FunctionalProvider<AtomicRenamer, AtomicRenamer, AtomicRenamer>
+    with $Provider<AtomicRenamer> {
   /// [AtomicRenamer] — `File.rename` with cross-volume `EXDEV`
   /// copy+delete fallback. Stateless. The ctor takes a logger so it is
   /// non-const; a single instance per process is enough.
@@ -636,7 +748,8 @@ final class AtomicRenamerProvider extends $FunctionalProvider<AtomicRenamer, Ato
 
   @$internal
   @override
-  $ProviderElement<AtomicRenamer> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+  $ProviderElement<AtomicRenamer> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
   AtomicRenamer create(Ref ref) {
@@ -645,7 +758,10 @@ final class AtomicRenamerProvider extends $FunctionalProvider<AtomicRenamer, Ato
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(AtomicRenamer value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<AtomicRenamer>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AtomicRenamer>(value),
+    );
   }
 }
 
@@ -658,8 +774,16 @@ final downloadQueueStoreProvider = DownloadQueueStoreProvider._();
 
 /// Persistent JSON-backed [DownloadQueueStore].
 
-final class DownloadQueueStoreProvider extends $FunctionalProvider<AsyncValue<DownloadQueueStore>, DownloadQueueStore, FutureOr<DownloadQueueStore>>
-    with $FutureModifier<DownloadQueueStore>, $FutureProvider<DownloadQueueStore> {
+final class DownloadQueueStoreProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<DownloadQueueStore>,
+          DownloadQueueStore,
+          FutureOr<DownloadQueueStore>
+        >
+    with
+        $FutureModifier<DownloadQueueStore>,
+        $FutureProvider<DownloadQueueStore> {
   /// Persistent JSON-backed [DownloadQueueStore].
   DownloadQueueStoreProvider._()
     : super(
@@ -677,7 +801,9 @@ final class DownloadQueueStoreProvider extends $FunctionalProvider<AsyncValue<Do
 
   @$internal
   @override
-  $FutureProviderElement<DownloadQueueStore> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<DownloadQueueStore> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<DownloadQueueStore> create(Ref ref) {
@@ -685,7 +811,8 @@ final class DownloadQueueStoreProvider extends $FunctionalProvider<AsyncValue<Do
   }
 }
 
-String _$downloadQueueStoreHash() => r'dbc25867a00e58d83faaff43b514953dd3a27513';
+String _$downloadQueueStoreHash() =>
+    r'dbc25867a00e58d83faaff43b514953dd3a27513';
 
 /// [PmtilesDownloadController] — plain-Dart orchestrator for the 7-step
 /// atomic download protocol. Wrapped in a Riverpod provider so the Plan
@@ -709,8 +836,15 @@ final pmtilesDownloadControllerProvider = PmtilesDownloadControllerProvider._();
 /// shutdown.
 
 final class PmtilesDownloadControllerProvider
-    extends $FunctionalProvider<AsyncValue<PmtilesDownloadController>, PmtilesDownloadController, FutureOr<PmtilesDownloadController>>
-    with $FutureModifier<PmtilesDownloadController>, $FutureProvider<PmtilesDownloadController> {
+    extends
+        $FunctionalProvider<
+          AsyncValue<PmtilesDownloadController>,
+          PmtilesDownloadController,
+          FutureOr<PmtilesDownloadController>
+        >
+    with
+        $FutureModifier<PmtilesDownloadController>,
+        $FutureProvider<PmtilesDownloadController> {
   /// [PmtilesDownloadController] — plain-Dart orchestrator for the 7-step
   /// atomic download protocol. Wrapped in a Riverpod provider so the Plan
   /// 07-05 `DownloadQueueController` (and the Plan 07-06 UI via that
@@ -735,7 +869,9 @@ final class PmtilesDownloadControllerProvider
 
   @$internal
   @override
-  $FutureProviderElement<PmtilesDownloadController> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<PmtilesDownloadController> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<PmtilesDownloadController> create(Ref ref) {
@@ -743,7 +879,8 @@ final class PmtilesDownloadControllerProvider
   }
 }
 
-String _$pmtilesDownloadControllerHash() => r'8fd1a90180b84773dbf20d7dc14979ca8becce96';
+String _$pmtilesDownloadControllerHash() =>
+    r'8fd1a90180b84773dbf20d7dc14979ca8becce96';
 
 /// [CountryDeleteService] — world-bundle-guarded per-country uninstall.
 
@@ -752,8 +889,16 @@ final countryDeleteServiceProvider = CountryDeleteServiceProvider._();
 
 /// [CountryDeleteService] — world-bundle-guarded per-country uninstall.
 
-final class CountryDeleteServiceProvider extends $FunctionalProvider<AsyncValue<CountryDeleteService>, CountryDeleteService, FutureOr<CountryDeleteService>>
-    with $FutureModifier<CountryDeleteService>, $FutureProvider<CountryDeleteService> {
+final class CountryDeleteServiceProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<CountryDeleteService>,
+          CountryDeleteService,
+          FutureOr<CountryDeleteService>
+        >
+    with
+        $FutureModifier<CountryDeleteService>,
+        $FutureProvider<CountryDeleteService> {
   /// [CountryDeleteService] — world-bundle-guarded per-country uninstall.
   CountryDeleteServiceProvider._()
     : super(
@@ -771,7 +916,9 @@ final class CountryDeleteServiceProvider extends $FunctionalProvider<AsyncValue<
 
   @$internal
   @override
-  $FutureProviderElement<CountryDeleteService> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<CountryDeleteService> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<CountryDeleteService> create(Ref ref) {
@@ -779,7 +926,8 @@ final class CountryDeleteServiceProvider extends $FunctionalProvider<AsyncValue<
   }
 }
 
-String _$countryDeleteServiceHash() => r'5049b16bcb8c0fb944d8506fd36e57c62309d03e';
+String _$countryDeleteServiceHash() =>
+    r'5049b16bcb8c0fb944d8506fd36e57c62309d03e';
 
 /// [FirstLaunchBootstrap] — composes the world copy, orphan staging scan,
 /// pmtiles-heal recovery path, and iOS backup-exclude side effect.
@@ -810,8 +958,16 @@ final firstLaunchBootstrapProvider = FirstLaunchBootstrapProvider._();
 /// corrupt — which the UI layer surfaces as a fatal "Application bundle
 /// corrupt" banner (MAP-07 floor: the world basemap MUST be present).
 
-final class FirstLaunchBootstrapProvider extends $FunctionalProvider<AsyncValue<FirstLaunchBootstrap>, FirstLaunchBootstrap, FutureOr<FirstLaunchBootstrap>>
-    with $FutureModifier<FirstLaunchBootstrap>, $FutureProvider<FirstLaunchBootstrap> {
+final class FirstLaunchBootstrapProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<FirstLaunchBootstrap>,
+          FirstLaunchBootstrap,
+          FutureOr<FirstLaunchBootstrap>
+        >
+    with
+        $FutureModifier<FirstLaunchBootstrap>,
+        $FutureProvider<FirstLaunchBootstrap> {
   /// [FirstLaunchBootstrap] — composes the world copy, orphan staging scan,
   /// pmtiles-heal recovery path, and iOS backup-exclude side effect.
   ///
@@ -840,7 +996,9 @@ final class FirstLaunchBootstrapProvider extends $FunctionalProvider<AsyncValue<
 
   @$internal
   @override
-  $FutureProviderElement<FirstLaunchBootstrap> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<FirstLaunchBootstrap> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<FirstLaunchBootstrap> create(Ref ref) {
@@ -848,7 +1006,8 @@ final class FirstLaunchBootstrapProvider extends $FunctionalProvider<AsyncValue<
   }
 }
 
-String _$firstLaunchBootstrapHash() => r'b60fc3c0e805e055c690ca9540e97f2076563c77';
+String _$firstLaunchBootstrapHash() =>
+    r'b60fc3c0e805e055c690ca9540e97f2076563c77';
 
 /// Mutable [MapView] reference published by the Plan 07-06
 /// `MapLibreMapViewWidget` via its `onReady` callback.
@@ -886,7 +1045,8 @@ final mapViewHolderProvider = MapViewHolderProvider._();
 /// with the domain port, so the notifier is named `MapViewHolder` but the
 /// auto-generated provider is aliased to `mapViewProvider` below for
 /// call-site ergonomics.
-final class MapViewHolderProvider extends $NotifierProvider<MapViewHolder, MapView?> {
+final class MapViewHolderProvider
+    extends $NotifierProvider<MapViewHolder, MapView?> {
   /// Mutable [MapView] reference published by the Plan 07-06
   /// `MapLibreMapViewWidget` via its `onReady` callback.
   ///
@@ -923,7 +1083,10 @@ final class MapViewHolderProvider extends $NotifierProvider<MapViewHolder, MapVi
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(MapView? value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<MapView?>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<MapView?>(value),
+    );
   }
 }
 
@@ -952,7 +1115,14 @@ abstract class _$MapViewHolder extends $Notifier<MapView?> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<MapView?, MapView?>;
-    final element = ref.element as $ClassProviderElement<AnyNotifier<MapView?, MapView?>, MapView?, Object?, Object?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<MapView?, MapView?>,
+              MapView?,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }
@@ -987,7 +1157,8 @@ final mapViewportZoomProvider = MapViewportZoomProvider._();
 /// down the subscription every time the drawer closes would drop events
 /// during the gap and surface a stale zoom the next time the drawer
 /// opens.
-final class MapViewportZoomProvider extends $NotifierProvider<MapViewportZoom, double?> {
+final class MapViewportZoomProvider
+    extends $NotifierProvider<MapViewportZoom, double?> {
   /// Current MapLibre viewport zoom level. Null until the MapView is ready
   /// and the first `onCameraIdle` viewport event fires.
   ///
@@ -1021,7 +1192,10 @@ final class MapViewportZoomProvider extends $NotifierProvider<MapViewportZoom, d
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(double? value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<double?>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<double?>(value),
+    );
   }
 }
 
@@ -1047,7 +1221,14 @@ abstract class _$MapViewportZoom extends $Notifier<double?> {
   @override
   void runBuild() {
     final ref = this.ref as $Ref<double?, double?>;
-    final element = ref.element as $ClassProviderElement<AnyNotifier<double?, double?>, double?, Object?, Object?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<double?, double?>,
+              double?,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }

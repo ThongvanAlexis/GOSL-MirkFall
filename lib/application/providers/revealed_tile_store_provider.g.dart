@@ -23,8 +23,16 @@ final revealedTileStoreProvider = RevealedTileStoreProvider._();
 /// revealed-tile row id (`rvt_` prefix) when the parent tile has not
 /// been written yet in the current session.
 
-final class RevealedTileStoreProvider extends $FunctionalProvider<AsyncValue<RevealedTileStore>, RevealedTileStore, FutureOr<RevealedTileStore>>
-    with $FutureModifier<RevealedTileStore>, $FutureProvider<RevealedTileStore> {
+final class RevealedTileStoreProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<RevealedTileStore>,
+          RevealedTileStore,
+          FutureOr<RevealedTileStore>
+        >
+    with
+        $FutureModifier<RevealedTileStore>,
+        $FutureProvider<RevealedTileStore> {
   /// Production [RevealedTileStore] — wraps [`DriftRevealedTileStore`]
   /// around the app database + production id generator. The id generator
   /// is required at this layer: `mergeMask`'s insert branch mints a new
@@ -46,7 +54,9 @@ final class RevealedTileStoreProvider extends $FunctionalProvider<AsyncValue<Rev
 
   @$internal
   @override
-  $FutureProviderElement<RevealedTileStore> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<RevealedTileStore> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<RevealedTileStore> create(Ref ref) {

@@ -57,7 +57,13 @@ final revealStreamingControllerProvider = RevealStreamingControllerFamily._();
 /// changes would risk flushing stale fixes to a freshly-restarted
 /// session.
 
-final class RevealStreamingControllerProvider extends $FunctionalProvider<RevealStreamingController?, RevealStreamingController?, RevealStreamingController?>
+final class RevealStreamingControllerProvider
+    extends
+        $FunctionalProvider<
+          RevealStreamingController?,
+          RevealStreamingController?,
+          RevealStreamingController?
+        >
     with $Provider<RevealStreamingController?> {
   /// Family-style provider that returns a [RevealStreamingController] for
   /// the given [sessionId]. Returns `null` while the
@@ -81,8 +87,16 @@ final class RevealStreamingControllerProvider extends $FunctionalProvider<Reveal
   /// for the session it was constructed for. Carrying it across session
   /// changes would risk flushing stale fixes to a freshly-restarted
   /// session.
-  RevealStreamingControllerProvider._({required RevealStreamingControllerFamily super.from, required SessionId super.argument})
-    : super(retry: null, name: r'revealStreamingControllerProvider', isAutoDispose: true, dependencies: null, $allTransitiveDependencies: null);
+  RevealStreamingControllerProvider._({
+    required RevealStreamingControllerFamily super.from,
+    required SessionId super.argument,
+  }) : super(
+         retry: null,
+         name: r'revealStreamingControllerProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
 
   @override
   String debugGetCreateSourceHash() => _$revealStreamingControllerHash();
@@ -96,7 +110,9 @@ final class RevealStreamingControllerProvider extends $FunctionalProvider<Reveal
 
   @$internal
   @override
-  $ProviderElement<RevealStreamingController?> $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+  $ProviderElement<RevealStreamingController?> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
 
   @override
   RevealStreamingController? create(Ref ref) {
@@ -106,12 +122,16 @@ final class RevealStreamingControllerProvider extends $FunctionalProvider<Reveal
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(RevealStreamingController? value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<RevealStreamingController?>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<RevealStreamingController?>(value),
+    );
   }
 
   @override
   bool operator ==(Object other) {
-    return other is RevealStreamingControllerProvider && other.argument == argument;
+    return other is RevealStreamingControllerProvider &&
+        other.argument == argument;
   }
 
   @override
@@ -120,7 +140,8 @@ final class RevealStreamingControllerProvider extends $FunctionalProvider<Reveal
   }
 }
 
-String _$revealStreamingControllerHash() => r'ab87279a1a029f421bcd3830698f4a2546978056';
+String _$revealStreamingControllerHash() =>
+    r'ab87279a1a029f421bcd3830698f4a2546978056';
 
 /// Family-style provider that returns a [RevealStreamingController] for
 /// the given [sessionId]. Returns `null` while the
@@ -145,9 +166,16 @@ String _$revealStreamingControllerHash() => r'ab87279a1a029f421bcd3830698f4a2546
 /// changes would risk flushing stale fixes to a freshly-restarted
 /// session.
 
-final class RevealStreamingControllerFamily extends $Family with $FunctionalFamilyOverride<RevealStreamingController?, SessionId> {
+final class RevealStreamingControllerFamily extends $Family
+    with $FunctionalFamilyOverride<RevealStreamingController?, SessionId> {
   RevealStreamingControllerFamily._()
-    : super(retry: null, name: r'revealStreamingControllerProvider', dependencies: null, $allTransitiveDependencies: null, isAutoDispose: true);
+    : super(
+        retry: null,
+        name: r'revealStreamingControllerProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
 
   /// Family-style provider that returns a [RevealStreamingController] for
   /// the given [sessionId]. Returns `null` while the
@@ -172,7 +200,8 @@ final class RevealStreamingControllerFamily extends $Family with $FunctionalFami
   /// changes would risk flushing stale fixes to a freshly-restarted
   /// session.
 
-  RevealStreamingControllerProvider call(SessionId sessionId) => RevealStreamingControllerProvider._(argument: sessionId, from: this);
+  RevealStreamingControllerProvider call(SessionId sessionId) =>
+      RevealStreamingControllerProvider._(argument: sessionId, from: this);
 
   @override
   String toString() => r'revealStreamingControllerProvider';

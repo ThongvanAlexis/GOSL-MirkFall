@@ -76,7 +76,9 @@ final activeSessionControllerProvider = ActiveSessionControllerProvider._();
 /// consolidation rationale (smell:over-state-machine — dedicated
 /// ErrorState duplicated what AsyncError already carries) and
 /// 08.1-REVIEW.md §3 row #1 (Blocker closure — UI routing restored).
-final class ActiveSessionControllerProvider extends $AsyncNotifierProvider<ActiveSessionController, ActiveSessionState> {
+final class ActiveSessionControllerProvider
+    extends
+        $AsyncNotifierProvider<ActiveSessionController, ActiveSessionState> {
   /// Orchestrator for a session's GPS tracking lifecycle.
   ///
   /// Owns the single [StreamSubscription] over [LocationStream.positions];
@@ -128,7 +130,8 @@ final class ActiveSessionControllerProvider extends $AsyncNotifierProvider<Activ
   ActiveSessionController create() => ActiveSessionController();
 }
 
-String _$activeSessionControllerHash() => r'0bce3fe3b26c2cea29384ff8c9d5ec5471d47222';
+String _$activeSessionControllerHash() =>
+    r'4e168bc5b059ce0542ce71aee19fa520b3046beb';
 
 /// Orchestrator for a session's GPS tracking lifecycle.
 ///
@@ -163,14 +166,22 @@ String _$activeSessionControllerHash() => r'0bce3fe3b26c2cea29384ff8c9d5ec5471d4
 /// ErrorState duplicated what AsyncError already carries) and
 /// 08.1-REVIEW.md §3 row #1 (Blocker closure — UI routing restored).
 
-abstract class _$ActiveSessionController extends $AsyncNotifier<ActiveSessionState> {
+abstract class _$ActiveSessionController
+    extends $AsyncNotifier<ActiveSessionState> {
   FutureOr<ActiveSessionState> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<ActiveSessionState>, ActiveSessionState>;
+    final ref =
+        this.ref as $Ref<AsyncValue<ActiveSessionState>, ActiveSessionState>;
     final element =
-        ref.element as $ClassProviderElement<AnyNotifier<AsyncValue<ActiveSessionState>, ActiveSessionState>, AsyncValue<ActiveSessionState>, Object?, Object?>;
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<ActiveSessionState>, ActiveSessionState>,
+              AsyncValue<ActiveSessionState>,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }

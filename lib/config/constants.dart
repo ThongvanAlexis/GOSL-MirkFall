@@ -364,6 +364,17 @@ const Duration kDiskSpaceCheckTimeout = Duration(seconds: 5);
 /// du reveal.
 const double kDefaultRevealRadiusMeters = 25.0;
 
+/// Tolerance (fraction of the larger disc's radius) applied by the
+/// offline `RevealedDiscStore.compactSession` containment check. A disc
+/// `A` is dropped when another disc `B` of the same session satisfies
+/// `B.distanceMetersTo(A.lat, A.lon) + A.radiusMeters <=
+///   B.radiusMeters * (1 + kRevealedDiscCompactionContainmentTolerance)`.
+/// 5 % keeps the union of revealed area effectively unchanged (the slop
+/// is below GPS accuracy at the 25 m default radius) while collapsing
+/// stationary GPS-jitter clusters to a single disc. Hoisted as a constant
+/// so a future tuner change has one source of truth.
+const double kRevealedDiscCompactionContainmentTolerance = 0.05;
+
 /// DB flush cadence — time bound. First of [kRevealFlushIntervalSeconds]
 /// OR [kRevealFlushMaxFixes] triggers a batched `mergeMask` write.
 /// Tuneable in dev per user decision Phase 09 CONTEXT (amended from

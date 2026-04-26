@@ -37,7 +37,13 @@ final sessionListProvider = SessionListProvider._();
 /// emissions fire on every `t_sessions` row change. Ordering matches the
 /// store's `listAll` contract (`startedAtUtc` DESC).
 
-final class SessionListProvider extends $FunctionalProvider<AsyncValue<List<Session>>, List<Session>, Stream<List<Session>>>
+final class SessionListProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Session>>,
+          List<Session>,
+          Stream<List<Session>>
+        >
     with $FutureModifier<List<Session>>, $StreamProvider<List<Session>> {
   /// Derived stream provider that bridges [sessionStoreProvider] (a
   /// `Future<SessionStore>`) to the widget layer.
@@ -52,14 +58,24 @@ final class SessionListProvider extends $FunctionalProvider<AsyncValue<List<Sess
   /// emissions fire on every `t_sessions` row change. Ordering matches the
   /// store's `listAll` contract (`startedAtUtc` DESC).
   SessionListProvider._()
-    : super(from: null, argument: null, retry: null, name: r'sessionListProvider', isAutoDispose: false, dependencies: null, $allTransitiveDependencies: null);
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'sessionListProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$sessionListHash();
 
   @$internal
   @override
-  $StreamProviderElement<List<Session>> $createElement($ProviderPointer pointer) => $StreamProviderElement(pointer);
+  $StreamProviderElement<List<Session>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
 
   @override
   Stream<List<Session>> create(Ref ref) {

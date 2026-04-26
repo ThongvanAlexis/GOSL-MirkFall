@@ -41,8 +41,16 @@ final visibleMirkTilesProvider = VisibleMirkTilesProvider._();
 ///
 /// Phase 09 plan 09-07 Task 2 — viewport filtering (SC#5) seam.
 
-final class VisibleMirkTilesProvider extends $FunctionalProvider<AsyncValue<List<VisibleMirkTile>>, List<VisibleMirkTile>, FutureOr<List<VisibleMirkTile>>>
-    with $FutureModifier<List<VisibleMirkTile>>, $FutureProvider<List<VisibleMirkTile>> {
+final class VisibleMirkTilesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<VisibleMirkTile>>,
+          List<VisibleMirkTile>,
+          FutureOr<List<VisibleMirkTile>>
+        >
+    with
+        $FutureModifier<List<VisibleMirkTile>>,
+        $FutureProvider<List<VisibleMirkTile>> {
   /// Async provider returning the parent tiles intersecting the current
   /// viewport, hydrated with their bitmap from [`RevealedTileStore`] and
   /// pre-projected lat/lon extents.
@@ -73,7 +81,9 @@ final class VisibleMirkTilesProvider extends $FunctionalProvider<AsyncValue<List
 
   @$internal
   @override
-  $FutureProviderElement<List<VisibleMirkTile>> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
+  $FutureProviderElement<List<VisibleMirkTile>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
   FutureOr<List<VisibleMirkTile>> create(Ref ref) {
@@ -81,4 +91,4 @@ final class VisibleMirkTilesProvider extends $FunctionalProvider<AsyncValue<List
   }
 }
 
-String _$visibleMirkTilesHash() => r'd31069038ae055f2e040545599e05bea805467a9';
+String _$visibleMirkTilesHash() => r'88cf79b7c5b486a01c7d03ed897aa775bb9fc7a3';

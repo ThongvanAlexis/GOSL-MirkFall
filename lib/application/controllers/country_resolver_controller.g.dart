@@ -54,7 +54,8 @@ final countryResolverControllerProvider = CountryResolverControllerProvider._();
 /// added / removed) triggers a rebuild of the internal [CountryResolver]
 /// polygon map via [CountryPolygonLoader]. The controller re-runs the
 /// resolve on the last-known viewport + emits the new active state.
-final class CountryResolverControllerProvider extends $NotifierProvider<CountryResolverController, CountryResolverState> {
+final class CountryResolverControllerProvider
+    extends $NotifierProvider<CountryResolverController, CountryResolverState> {
   /// Orchestrates viewport → country hot-swap.
   ///
   /// Subscribes to [MapView.viewportUpdates] (debounced 500 ms) and runs
@@ -96,11 +97,15 @@ final class CountryResolverControllerProvider extends $NotifierProvider<CountryR
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(CountryResolverState value) {
-    return $ProviderOverride(origin: this, providerOverride: $SyncValueProvider<CountryResolverState>(value));
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<CountryResolverState>(value),
+    );
   }
 }
 
-String _$countryResolverControllerHash() => r'5a2f42f67b4482f8772fdce94f87f5e262c8f748';
+String _$countryResolverControllerHash() =>
+    r'6feb7a17e8a53fd11c058a0053d67e648fa9dca1';
 
 /// Orchestrates viewport → country hot-swap.
 ///
@@ -124,13 +129,21 @@ String _$countryResolverControllerHash() => r'5a2f42f67b4482f8772fdce94f87f5e262
 /// polygon map via [CountryPolygonLoader]. The controller re-runs the
 /// resolve on the last-known viewport + emits the new active state.
 
-abstract class _$CountryResolverController extends $Notifier<CountryResolverState> {
+abstract class _$CountryResolverController
+    extends $Notifier<CountryResolverState> {
   CountryResolverState build();
   @$mustCallSuper
   @override
   void runBuild() {
     final ref = this.ref as $Ref<CountryResolverState, CountryResolverState>;
-    final element = ref.element as $ClassProviderElement<AnyNotifier<CountryResolverState, CountryResolverState>, CountryResolverState, Object?, Object?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<CountryResolverState, CountryResolverState>,
+              CountryResolverState,
+              Object?,
+              Object?
+            >;
     element.handleCreate(ref, build);
   }
 }
