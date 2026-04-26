@@ -235,79 +235,96 @@ void main() {
       expect(kMirkFogHeavenlyShadowColorArgb, equals(0xFF5D6878));
     });
 
-    test('atmospheric drift Z speeds form a 3-tier ladder (far < mid < near, all > 0)', () {
+    test('atmospheric drift Z speeds are positive and finite', () {
       // Structural test — exact values are tuning knobs revised on UAT
-      // walks. The ladder ordering is the contract the shader assumes.
+      // walks (most recently 2026-04-26 from the live tuner export). The
+      // strict ladder ordering (far < mid < near) was relaxed after the
+      // baking pass because the user landed on an "all octaves drift at
+      // similar pace" sweet spot. Only the positivity and finiteness
+      // contract the shader assumes is checked here.
       expect(kMirkFogAtmosphericDriftZFar, greaterThan(0));
-      expect(kMirkFogAtmosphericDriftZFar, lessThan(kMirkFogAtmosphericDriftZMid));
-      expect(kMirkFogAtmosphericDriftZMid, lessThan(kMirkFogAtmosphericDriftZNear));
+      expect(kMirkFogAtmosphericDriftZMid, greaterThan(0));
+      expect(kMirkFogAtmosphericDriftZNear, greaterThan(0));
+      expect(kMirkFogAtmosphericDriftZFar.isFinite, isTrue);
+      expect(kMirkFogAtmosphericDriftZMid.isFinite, isTrue);
+      expect(kMirkFogAtmosphericDriftZNear.isFinite, isTrue);
     });
 
-    test('heavenly drift Z speeds form a 3-tier ladder (far < mid < near, all > atmospheric)', () {
+    test('heavenly drift Z speeds form a 3-tier ladder (far < mid < near)', () {
+      // Heavenly stayed at defaults during the 2026-04-26 baking pass —
+      // the cross-palette comparison with atmospheric was dropped because
+      // the user explicitly tuned only atmospheric, so the relative
+      // "heavenly faster than atmospheric" invariant no longer holds.
       expect(kMirkFogHeavenlyDriftZFar, lessThan(kMirkFogHeavenlyDriftZMid));
       expect(kMirkFogHeavenlyDriftZMid, lessThan(kMirkFogHeavenlyDriftZNear));
-      expect(kMirkFogHeavenlyDriftZFar, greaterThan(kMirkFogAtmosphericDriftZFar));
-      expect(kMirkFogHeavenlyDriftZMid, greaterThan(kMirkFogAtmosphericDriftZMid));
-      expect(kMirkFogHeavenlyDriftZNear, greaterThan(kMirkFogAtmosphericDriftZNear));
     });
 
     test('atmospheric scale ladder (far < mid < near)', () {
-      expect(kMirkFogAtmosphericScaleFar, equals(0.6));
-      expect(kMirkFogAtmosphericScaleMid, equals(1.4));
-      expect(kMirkFogAtmosphericScaleNear, equals(3.0));
+      // Exact values are tuning knobs (last revised 2026-04-26 from the
+      // live tuner export). Only the ladder ordering — which the shader
+      // assumes for parallax depth — is asserted.
+      expect(kMirkFogAtmosphericScaleFar, greaterThan(0));
       expect(kMirkFogAtmosphericScaleFar, lessThan(kMirkFogAtmosphericScaleMid));
       expect(kMirkFogAtmosphericScaleMid, lessThan(kMirkFogAtmosphericScaleNear));
     });
 
     test('heavenly scale ladder (far < mid < near)', () {
-      expect(kMirkFogHeavenlyScaleFar, equals(0.8));
-      expect(kMirkFogHeavenlyScaleMid, equals(1.8));
-      expect(kMirkFogHeavenlyScaleNear, equals(3.6));
+      expect(kMirkFogHeavenlyScaleFar, greaterThan(0));
+      expect(kMirkFogHeavenlyScaleFar, lessThan(kMirkFogHeavenlyScaleMid));
+      expect(kMirkFogHeavenlyScaleMid, lessThan(kMirkFogHeavenlyScaleNear));
     });
 
-    test('opacity weights sum to ~1.0', () {
-      final sum = kMirkFogOpacityFar + kMirkFogOpacityMid + kMirkFogOpacityNear;
-      expect(sum, closeTo(1.0, 0.001));
-      expect(kMirkFogOpacityFar, greaterThan(kMirkFogOpacityMid));
-      expect(kMirkFogOpacityMid, greaterThan(kMirkFogOpacityNear));
+    test('opacity weights are non-negative and finite', () {
+      // The 2026-04-26 baking pass landed on equal-octave opacities (all
+      // 0.58) — the user-facing density slider then drives all three
+      // simultaneously. The "sum to ~1.0" + "far > mid > near" invariants
+      // from the original 3-octave parallax design no longer apply.
+      expect(kMirkFogOpacityFar, greaterThan(0));
+      expect(kMirkFogOpacityMid, greaterThan(0));
+      expect(kMirkFogOpacityNear, greaterThan(0));
+      expect(kMirkFogOpacityFar.isFinite, isTrue);
+      expect(kMirkFogOpacityMid.isFinite, isTrue);
+      expect(kMirkFogOpacityNear.isFinite, isTrue);
     });
 
-    test('curl noise tunables', () {
-      // Amplitude bumped 2026-04-25 (BUG-009 follow-up) — initial 0.18
-      // produced eddies too small to perceive. 0.45 is the new visible
-      // baseline.
-      expect(kMirkFogCurlAmplitude, equals(0.45));
-      expect(kMirkFogCurlScale, equals(1.0));
+    test('curl noise tunables are positive and finite', () {
+      // Amplitude + scale are tuning knobs revised on UAT walks; only
+      // positivity is contractual.
+      expect(kMirkFogCurlAmplitude, greaterThan(0));
+      expect(kMirkFogCurlScale, greaterThan(0));
+      expect(kMirkFogCurlAmplitude.isFinite, isTrue);
+      expect(kMirkFogCurlScale.isFinite, isTrue);
     });
 
-    test('faux-shading tunables', () {
-      // Light offset + strength bumped 2026-04-25 (BUG-009 follow-up) —
-      // 0.04 / 0.55 produced near-zero shading delta, so the fog read as
-      // flat. 0.12 / 1.4 give clearly visible bright/dark sides.
-      expect(kMirkFogLightDirRadians, closeTo(-0.785398, 0.0001));
-      expect(kMirkFogLightOffset, equals(0.12));
-      expect(kMirkFogLightStrength, equals(1.4));
+    test('faux-shading tunables are within sane shader-input ranges', () {
+      // Direction is in [-π, π] (full radians sweep around the unit
+      // circle). Offset and strength are positive — the 2026-04-26 walk
+      // pushed strength past 1.0, intentionally (see constants.dart
+      // comment).
+      expect(kMirkFogLightDirRadians, greaterThanOrEqualTo(-3.14159));
+      expect(kMirkFogLightDirRadians, lessThanOrEqualTo(3.14159));
+      expect(kMirkFogLightOffset, greaterThan(0));
+      expect(kMirkFogLightStrength, greaterThan(0));
     });
 
-    test('hue variation tunables', () {
-      // Hue strength bumped 2026-04-25 (BUG-009 follow-up) — 0.35 was
-      // below screen-noise threshold. 0.7 gives a clear material-tint
-      // shift without rainbowing.
-      expect(kMirkFogHueNoiseScale, equals(0.45));
-      expect(kMirkFogHueStrength, equals(0.7));
+    test('hue variation tunables are non-negative and finite', () {
+      expect(kMirkFogHueNoiseScale, greaterThan(0));
+      expect(kMirkFogHueStrength, greaterThanOrEqualTo(0));
+      expect(kMirkFogHueNoiseScale.isFinite, isTrue);
+      expect(kMirkFogHueStrength.isFinite, isTrue);
     });
 
-    test('two-stop watercolour boundary distances', () {
-      expect(kMirkFogBoundarySharpDistance, equals(0.025));
-      expect(kMirkFogBoundaryBleedDistance, equals(0.085));
-      // Bleed must be longer than sharp — this is the very definition of
-      // "two stop": short crisp core + long trailing fade.
-      expect(kMirkFogBoundaryBleedDistance, greaterThan(kMirkFogBoundarySharpDistance));
+    test('two-stop watercolour boundary distances are non-negative', () {
+      // 2026-04-26 baking pass: the user dialed bleed to 0 (sharp-only
+      // boundary, no trailing fade), so the original "bleed > sharp"
+      // invariant no longer holds. Only non-negativity is checked.
+      expect(kMirkFogBoundarySharpDistance, greaterThanOrEqualTo(0));
+      expect(kMirkFogBoundaryBleedDistance, greaterThanOrEqualTo(0));
     });
 
     test('boundary curl edge band is positive and finite', () {
-      expect(kMirkFogBoundaryEdgeBand, equals(0.07));
       expect(kMirkFogBoundaryEdgeBand, greaterThan(0.0));
+      expect(kMirkFogBoundaryEdgeBand.isFinite, isTrue);
     });
 
     test('SDF resolution is a positive power of two-ish (256)', () {

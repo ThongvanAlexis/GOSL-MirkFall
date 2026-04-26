@@ -489,19 +489,22 @@ const int kMirkFogHeavenlyShadowColorArgb = 0xFF5D6878;
 /// perceptual threshold. Far octave drives ~55% of the visible signal
 /// (kMirkFogOpacityFar) so its drift dominates the "is this animating"
 /// reading.
-const double kMirkFogAtmosphericDriftZFar = 0.07;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogAtmosphericDriftZFar = 0.23;
 
 /// Z-axis drift speed for the MID octave. Slightly faster than far so
 /// the layers don't track in lockstep.
 ///
 /// 2026-04-26: bumped 0.035 → 0.15 (~4×) — see DriftZFar comment.
-const double kMirkFogAtmosphericDriftZMid = 0.15;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogAtmosphericDriftZMid = 0.24;
 
 /// Z-axis drift speed for the NEAR/fine octave (surface boil). Fastest
 /// — this is where the eye reads "alive".
 ///
 /// 2026-04-26: bumped 0.075 → 0.30 (4×) — see DriftZFar comment.
-const double kMirkFogAtmosphericDriftZNear = 0.30;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogAtmosphericDriftZNear = 0.23;
 
 /// Heavenly clouds far-octave drift. Heavenly reads as "thinner, faster
 /// clouds" so all three octaves are uniformly faster.
@@ -522,13 +525,16 @@ const double kMirkFogHeavenlyDriftZNear = 0.46;
 // for now — only the absolute scales differ.
 
 /// Spatial scale of the FAR/coarse 3D-FBM octave. Big lazy blobs.
-const double kMirkFogAtmosphericScaleFar = 0.6;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogAtmosphericScaleFar = 2.9;
 
 /// Spatial scale of the MID octave. Mid-frequency detail.
-const double kMirkFogAtmosphericScaleMid = 1.4;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogAtmosphericScaleMid = 5.1;
 
 /// Spatial scale of the NEAR/fine octave. Fine surface texture.
-const double kMirkFogAtmosphericScaleNear = 3.0;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogAtmosphericScaleNear = 10.5;
 
 /// Heavenly far-octave scale. Heavenly clouds are smaller "puffs" than
 /// the atmospheric mass, so the near scale is finer.
@@ -543,13 +549,16 @@ const double kMirkFogHeavenlyScaleNear = 3.6;
 
 /// Far-octave weight in the final density mix. Largest contributor —
 /// gives the fog its bulk shape.
-const double kMirkFogOpacityFar = 0.55;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogOpacityFar = 0.58;
 
 /// Mid-octave weight.
-const double kMirkFogOpacityMid = 0.30;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogOpacityMid = 0.58;
 
 /// Near-octave weight. Smallest contributor; rides as detail on top.
-const double kMirkFogOpacityNear = 0.15;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogOpacityNear = 0.58;
 
 // Curl-noise advection — how much each octave warps in 2D from a
 // curl-of-scalar-noise vector field (Reference 7).
@@ -560,12 +569,21 @@ const double kMirkFogOpacityNear = 0.15;
 /// the swirling motion was visually invisible and the user reported
 /// "ressemble juste à un truc semi-transparent". 0.45 gives clearly
 /// visible eddies while still preserving the far-octave silhouette.
-const double kMirkFogCurlAmplitude = 0.45;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogCurlAmplitude = 1.0;
 
 /// Spatial frequency of the curl-noise potential field. Lower → bigger
 /// vortices. Tied to `kMirkFogAtmosphericScaleMid` so eddies live at the
 /// mid-octave scale (where they read most as "stirred fluid").
-const double kMirkFogCurlScale = 1.0;
+///
+/// NOTE: this is the STATIC fallback used only when
+/// [MirkRuntimeTunables.curlScaleAnimationEnabled] is false. By default
+/// the renderers animate curlScale as a triangle wave (0..10 over 20s)
+/// to give the fog a "really alive" volumetric feel — the static value
+/// here is therefore the off-state baseline, not the typical runtime
+/// value (see commit 3 of the 2026-04-26 baking pass).
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogCurlScale = 0.8;
 
 // Faux directional shading — the single highest-leverage trick for
 // "feels volumetric" (Reference 6 + 10). Sample density at the pixel
@@ -575,7 +593,8 @@ const double kMirkFogCurlScale = 1.0;
 /// shading reads as "sun from upper-left" rather than dead-on. Standard
 /// cartographic NW-light convention (~135° clockwise-from-north → in
 /// math coords ~-45°).
-const double kMirkFogLightDirRadians = -0.785398; // -π/4
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogLightDirRadians = -1.11;
 
 /// Distance (in noise UV units) offset between the two density samples
 /// for faux shading. Roughly equivalent to "screen px" at the shader's
@@ -583,7 +602,8 @@ const double kMirkFogLightDirRadians = -0.785398; // -π/4
 /// follow-up) — too small a step landed both samples inside the same
 /// noise cell, so the delta was always near zero and the fake-shading
 /// contributed nothing visible.
-const double kMirkFogLightOffset = 0.12;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogLightOffset = 0.46;
 
 /// Strength of the faux-shading brightness modulation. 0 = no effect,
 /// 1 = sample-delta fully drives lightness. Bumped 2026-04-25 from
@@ -592,21 +612,24 @@ const double kMirkFogLightOffset = 0.12;
 /// the fog mass. Values >1.0 are intentional: shadeDelta is small in
 /// absolute terms (delta of two normalised noise samples), so the
 /// strength multiplier needs headroom to actually move the colour.
-const double kMirkFogLightStrength = 1.4;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogLightStrength = 1.67;
 
 // Sub-grey hue variation — second cheap noise channel modulates a tint
 // shift (Reference 5 NASA SVS multi-channel encoding).
 
 /// Spatial scale of the hue-variation noise. Coarser than the density
 /// noise so tint regions are bigger than density blobs.
-const double kMirkFogHueNoiseScale = 0.45;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogHueNoiseScale = 1.6;
 
 /// Strength of the hue tint. 0 = pure grey, 1 = pull fully toward the
 /// base palette colour. Bumped 2026-04-25 from 0.35 → 0.7 (BUG-009
 /// follow-up) — at 0.35 the tint shift was inside JPEG-compression
 /// noise on most screens. 0.7 produces a clear "warmer in valleys,
 /// cooler on ridges" reading without rainbowing.
-const double kMirkFogHueStrength = 0.7;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogHueStrength = 0.44;
 
 // Two-stop watercolour boundary — sharp inner gradient + long-tail
 // bleed (Reference 11 Heaven's Vault inspiration).
@@ -617,17 +640,20 @@ const double kMirkFogHueStrength = 0.7;
 
 /// Distance (SDF units) over which the SHARP inner gradient ramps from
 /// 0 to 0.7 alpha. Small → crisp watercolour core.
-const double kMirkFogBoundarySharpDistance = 0.025;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogBoundarySharpDistance = 0.04;
 
 /// Distance over which the LONG-TAIL bleed ramps from 0.7 to 1.0 alpha.
 /// Several times the sharp distance — the trailing watercolour fade.
-const double kMirkFogBoundaryBleedDistance = 0.085;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogBoundaryBleedDistance = 0.0;
 
 /// Width (SDF units) of the curl-rotated edge field. Within this band
 /// of the fog/clear boundary the curl-noise sample is rotated ~90° so
 /// wisps appear to spiral outward from the boundary instead of through
 /// it.
-const double kMirkFogBoundaryEdgeBand = 0.07;
+// 2026-04-26: baked from live tuner walk N+M
+const double kMirkFogBoundaryEdgeBand = 0.17;
 
 /// Resolution (square) of the CPU-built SDF texture passed to the
 /// shader as `sampler2D`. 256² is a good cost/quality balance — the
