@@ -28,9 +28,9 @@ class RevealDisc {
   /// Primary key. Format: `rvd_<26-char-ULID>` — see class docstring.
   final String id;
 
-  /// Foreign key to `t_sessions.id`. Carried as a plain [String] for the
-  /// same reason as [id] (cheap DB hydration); callers that already hold
-  /// a `SessionId` should pass `.value`.
+  /// Foreign key to `t_sessions.id`. Plain [String] — the project
+  /// does not wrap session IDs in a typed extension today; if that
+  /// changes, this field migrates with the rest of the codebase.
   final String sessionId;
 
   /// Disc centre latitude in degrees, range `[-90, 90]`.
