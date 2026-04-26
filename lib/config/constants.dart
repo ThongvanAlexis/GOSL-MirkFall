@@ -30,44 +30,20 @@ const int kAboutTapTotalWindowMilliseconds = 10000;
 /// CLAUDE.md §Timeouts for native-plugin invocations.
 const int kShareCallTimeoutMilliseconds = 30000;
 
-/// Hybrid flush cadence for the FileLogger sink. A flush is forced every
-/// [kFileLoggerFlushEveryNRecords] records OR whenever a Logger.shout is
-/// emitted (errors always flush immediately) OR every
-/// [kFileLoggerFlushPeriodSeconds] seconds via the sink's backstop timer
-/// OR on any [AppLifecycleState] transition out of `resumed` (paused /
-/// inactive / hidden / detached) handled by the top-level lifecycle
-/// observer in `main.dart`. Balances the per-record fsync cost against
-/// acceptable data-loss window on abrupt process termination.
-///
-/// TEMPORARY DIAGNOSTIC VALUE (2026-04-25, BUG-009 follow-up): lowered to
-/// 1 (flush on every single record) after a second UAT walk on commit
-/// 935b9de still produced log files that ended mid-session — both at
-/// pmtiles-install boundary and at first GPS fix — with ZERO mirk-stack
-/// records persisted despite the user observing the fog visual on screen.
-/// The previous 5-record threshold was still racing iOS process suspension
-/// and abrupt foreground-service kills: even one record between two events
-/// could be lost if the OS didn't grant a flush window before suspending.
-///
-/// Cost: every Logger call triggers a userspace fsync on the IOSink. On
-/// modern mobile flash this is sub-millisecond per call, but it does
-/// serialise the writer. Acceptable on a single-user single-window
-/// personal app during diagnostic iteration.
-///
-/// PROPER FIX (post BUG-009 close-out): the eventual right architecture is
-/// a non-blocking ring buffer drained by a dedicated flusher isolate so
-/// the producer never pays the I/O cost on the call site. Once BUG-009 is
-/// fully resolved this constant can be raised again (5–20 range) or, if
-/// the ring-buffer-isolate lands, the per-record counter dropped entirely
-/// in favour of timer + lifecycle + shout.
-const int kFileLoggerFlushEveryNRecords = 1;
-
-/// Periodic backstop flush interval (seconds) for the FileLogger sink.
-/// Guarantees a maximum data-loss window of this many seconds regardless
-/// of record cadence — covers the scenario where activity is too sparse
-/// to trip [kFileLoggerFlushEveryNRecords] but the user still expects
-/// recent records to land on disk if they pull the file or the OS
-/// suspends the process between lifecycle callbacks.
-const int kFileLoggerFlushPeriodSeconds = 2;
+// FileLogger flush cadence constants removed 2026-04-26 (BUG-009 follow-up).
+// The hybrid flush policy (every-N records + periodic timer + lifecycle +
+// shout) was a workaround for an [IOSink]-based sink whose `flush()` only
+// drained user-space → kernel page cache (jettisoned by iOS jetsam under
+// foreground RAM pressure during the 5.2 GB pmtiles install). The sink also
+// suffered an `async` re-entrancy race against `Stream.listen` (which does
+// not await `async` callbacks) → `StateError` on concurrent flushes →
+// silent log loss for the rest of the session.
+//
+// FileLogger now writes via [RandomAccessFile.writeStringSync] +
+// [RandomAccessFile.flushSync] (real `fsync(2)` per Dart docs) on every
+// record from a synchronous handler. No buffer, no race, no durability
+// gap. The cadence threshold + periodic backstop timer are therefore
+// redundant and have been removed.
 
 /// Default screen-body padding for placeholder / full-bleed content screens
 /// (logical pixels). Named so the intent ("breathing room around centered

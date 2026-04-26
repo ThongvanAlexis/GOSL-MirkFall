@@ -71,9 +71,11 @@ void main() {
 
     Logger('test').info('hello world');
 
-    // Let the async stream listener drain.
+    // Records are now flushed synchronously per record (RandomAccessFile
+    // + flushSync replaced the previous async IOSink path), but Logger
+    // still emits records via a Stream so we yield once to let the
+    // synchronous _onRecord handler run.
     await Future<void>.delayed(Duration.zero);
-    await Future<void>.delayed(const Duration(milliseconds: 10));
 
     final file = File(FileLogger.activeFilename!);
     expect(file.existsSync(), isTrue);
@@ -93,19 +95,75 @@ void main() {
     expect(decoded['ts'], isA<String>());
   });
 
+  test('bootstrap writes the active file path as the first record', () async {
+    // Cross-check anchor for iOS sandbox-container UUID drift between
+    // launches (BUG-009 logging audit, theory B.4): the path emitted at
+    // bootstrap-time should be readable at the same path post-bootstrap.
+    await FileLogger.bootstrap();
+    await Future<void>.delayed(Duration.zero);
+
+    final file = File(FileLogger.activeFilename!);
+    final content = await file.readAsString();
+    final lines = const LineSplitter().convert(content).where((l) => l.trim().isNotEmpty).toList();
+    expect(lines, isNotEmpty);
+    final firstDecoded = jsonDecode(lines.first) as Map<String, Object?>;
+    expect(firstDecoded['logger'], 'infrastructure.logging.file_logger');
+    expect(firstDecoded['msg'], contains('FileLogger bootstrap'));
+    expect(firstDecoded['msg'], contains(FileLogger.activeFilename!));
+  });
+
   test('bootstrap is idempotent: calling twice does not throw', () async {
     await FileLogger.bootstrap();
     final firstFilename = FileLogger.activeFilename;
     expect(firstFilename, isNotNull);
 
-    // Second bootstrap should close the first sink and reopen cleanly.
+    // Second bootstrap should close the first handle and reopen cleanly.
     await FileLogger.bootstrap();
     expect(FileLogger.activeFilename, isNotNull);
 
     Logger('test').info('post-rebootstrap');
-    await Future<void>.delayed(const Duration(milliseconds: 10));
+    await Future<void>.delayed(Duration.zero);
     // No exception = pass. Best-effort content assertion:
     final f = File(FileLogger.activeFilename!);
     expect(f.existsSync(), isTrue);
+  });
+
+  test('concurrent log emission does not corrupt the file (regression for IOSink async race)', () async {
+    // BUG-009 logging audit regression test. Pre-fix, the IOSink-based
+    // sink raced itself under concurrent writes — `Stream.listen` doesn't
+    // await async callbacks, so two records arriving back-to-back could
+    // re-enter the body before the first `await sink.flush()` resolved
+    // → `StateError: StreamSink is bound`, which the catch nulled the
+    // sink for, dropping the rest of the session silently.
+    //
+    // With the RandomAccessFile + synchronous flushSync handler this is
+    // no longer possible: the handler runs to completion before the next
+    // record can be processed.
+    await FileLogger.bootstrap();
+
+    const recordCount = 100;
+    for (var i = 0; i < recordCount; i++) {
+      Logger('test').info('concurrent-record-$i');
+    }
+    // Yield once so the synchronous Stream listener drains every record.
+    await Future<void>.delayed(Duration.zero);
+
+    final file = File(FileLogger.activeFilename!);
+    final content = await file.readAsString();
+    final lines = const LineSplitter().convert(content).where((l) => l.trim().isNotEmpty).toList();
+
+    // Every emitted record must be present and correctly decodable.
+    final recordedIndexes = <int>{};
+    for (final line in lines) {
+      final decoded = jsonDecode(line) as Map<String, Object?>;
+      final msg = decoded['msg'] as String?;
+      if (msg == null || !msg.startsWith('concurrent-record-')) continue;
+      final idx = int.parse(msg.substring('concurrent-record-'.length));
+      recordedIndexes.add(idx);
+    }
+    expect(recordedIndexes.length, equals(recordCount), reason: 'Every concurrent record must reach disk — none lost to the previous async race');
+    for (var i = 0; i < recordCount; i++) {
+      expect(recordedIndexes, contains(i), reason: 'Record $i missing — possible regression of the IOSink async race');
+    }
   });
 }

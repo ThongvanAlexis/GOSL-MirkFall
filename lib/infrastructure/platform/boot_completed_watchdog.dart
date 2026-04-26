@@ -3,6 +3,7 @@
 // See LICENSE file for details
 
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -15,7 +16,6 @@ import 'package:mirkfall/domain/sessions/session_status.dart';
 import 'package:mirkfall/domain/sessions/session_store.dart';
 import 'package:mirkfall/infrastructure/db/app_database.dart';
 import 'package:mirkfall/infrastructure/db/app_database_factory.dart';
-import 'package:mirkfall/infrastructure/logging/file_logger.dart';
 import 'package:mirkfall/infrastructure/notifications/session_notification_service.dart';
 import 'package:mirkfall/infrastructure/stores/drift_session_store.dart';
 import 'package:path/path.dart' as p;
@@ -114,16 +114,22 @@ Future<void> runBootWatchdogEntryPoint() async {
   // register their handlers.
   WidgetsFlutterBinding.ensureInitialized();
 
-  try {
-    await FileLogger.bootstrap();
-  } on Object catch (_) {
-    // Logger bootstrap can fail on a device with no writable docs dir
-    // (edge case). The watchdog must still reach the DB check, so the
-    // failure is swallowed silently — there is no sink to emit onto
-    // until the logger is up anyway. Any subsequent `_log.warning`
-    // calls in [_runWatchdogOnce] degrade to print() via
-    // `dart:developer`, which is safe in this minimal engine context.
-  }
+  // The watchdog isolate deliberately does NOT call [FileLogger.bootstrap]
+  // — that would open a parallel `<app_docs>/logs/yyyymmdd_hhmm.ss_logs.txt`
+  // file on every receiver wake-up and contend with the main isolate's own
+  // log handle (theory A.H3 from the 2026-04-26 BUG-009 logging audit). The
+  // watchdog only emits a handful of records per wake-up; routing them
+  // through `dart:developer` `log()` (which on iOS reaches the Xcode
+  // console and on Android reaches Logcat) is sufficient for diagnostics
+  // without forking the on-disk log file.
+  //
+  // The Logger.root listener installed by [FileLogger.bootstrap] still
+  // exists in the MAIN isolate; it just won't be reached from this minimal
+  // engine because the two isolates do not share state.
+  Logger.root.level = Level.INFO;
+  Logger.root.onRecord.listen((LogRecord rec) {
+    developer.log(rec.message, time: rec.time, level: rec.level.value, name: rec.loggerName, error: rec.error, stackTrace: rec.stackTrace);
+  });
 
   _bootWatchdogChannel.setMethodCallHandler((MethodCall call) async {
     if (call.method != 'runWatchdog') {

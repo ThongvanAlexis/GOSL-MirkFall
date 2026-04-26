@@ -83,13 +83,14 @@ Future<void> main() async {
       // Phase 01 did a debugPrint listener; Phase 02 replaces it with this.
       await FileLogger.bootstrap();
 
-      // Force-flush the FileLogger whenever the app transitions out of
-      // `resumed` (paused / inactive / hidden / detached). Without this,
-      // a UAT walk that ends with `< kFileLoggerFlushEveryNRecords`
-      // unflushed records loses those records to OS suspend / kill before
-      // they reach disk — the exact failure mode that motivated the
-      // 2026-04-25 logger reliability fix. The observer registers against
-      // `WidgetsBinding.instance` which is now valid post-`ensureInitialized`.
+      // Lifecycle observer kept as a defence-in-depth safeguard. Since the
+      // 2026-04-26 logger rewrite each record is `flushSync`'d on write, so
+      // the observer's flush callback is now a cheap no-op — but keeping
+      // the wiring in place means a future ring-buffer + flusher-isolate
+      // architecture (the eventual non-blocking design) can re-introduce a
+      // meaningful flush without reintroducing the lifecycle subscription.
+      // The observer registers against `WidgetsBinding.instance` which is
+      // valid post-`ensureInitialized`.
       WidgetsBinding.instance.addObserver(FileLoggerLifecycleObserver());
 
       final log = Logger('main');

@@ -28,24 +28,12 @@ void main() {
     expect(kAboutTapWindowMilliseconds, equals(3000));
   });
 
-  // Logging reliability constants — lowered + added 2026-04-25 to fix
-  // UAT-walk log truncation (records < threshold sat in buffer until
-  // OS suspended the process). See lib/config/constants.dart docstrings
-  // for the rationale.
-  //
-  // Lowered again 2026-04-25 from 5 → 1 (flush on every record) after a
-  // second UAT walk on 935b9de still lost mirk-stack records mid-session.
-  // TEMPORARY DIAGNOSTIC VALUE — the eventual fix is a ring-buffer +
-  // flusher isolate; until then we accept the per-record fsync cost.
-  test('kFileLoggerFlushEveryNRecords is 1 (DIAGNOSTIC — flush every record, BUG-009 follow-up)', () {
-    expect(kFileLoggerFlushEveryNRecords, equals(1));
-    expect(kFileLoggerFlushEveryNRecords, isA<int>());
-  });
-
-  test('kFileLoggerFlushPeriodSeconds is 2 (backstop timer interval)', () {
-    expect(kFileLoggerFlushPeriodSeconds, equals(2));
-    expect(kFileLoggerFlushPeriodSeconds, isA<int>());
-  });
+  // Logging reliability constants (kFileLoggerFlushEveryNRecords +
+  // kFileLoggerFlushPeriodSeconds) were removed 2026-04-26 with the
+  // FileLogger rewrite to RandomAccessFile + per-record flushSync (real
+  // fsync). The hybrid threshold + periodic timer existed solely to
+  // amortise an IOSink's userspace flush — no longer applicable.
+  // No replacement constants are needed.
 
   // Phase 07 (Map Integration) — every new Phase 07 slot gets a value +
   // type guard here so a silent rename/retype is caught at test time.

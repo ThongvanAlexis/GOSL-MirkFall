@@ -4,9 +4,9 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -19,17 +19,29 @@ import '../../config/constants.dart';
 /// One file per app launch under `<app_docs>/logs/yyyymmdd_hhmm.ss_logs.txt`.
 /// At bootstrap, oldest files are pruned until directory size < [kMaxLogsDirBytes].
 /// Root log level is set from `--dart-define=DEBUG` or SharedPreferences flag.
+///
+/// Durability — each record performs `writeStringSync` + `flushSync` (real
+/// `fsync(2)` per Dart docs) on a [RandomAccessFile] opened in
+/// `FileMode.writeOnlyAppend`. The previous implementation used [IOSink] +
+/// async `Stream.listen`, which suffered from two production-fatal defects:
+///
+///   1. `Stream.listen` does NOT await `async` callbacks, so two records
+///      arriving back-to-back could re-enter the body before the first
+///      `await sink.flush()` resolved → `StateError: StreamSink is bound`
+///      → catch nulled the sink → ~99% of records dropped silently for the
+///      rest of the session.
+///   2. `IOSink.flush()` only flushes user-space → kernel page cache; iOS
+///      jetsam (foreground RAM pressure during the 5.2 GB pmtiles install)
+///      discards the page cache and records never reach flash.
+///
+/// Synchronous per-record `flushSync` eliminates both. Per-call overhead is
+/// sub-millisecond on modern flash; acceptable for a single-user diagnostic
+/// app. The eventual non-blocking architecture (ring buffer + flusher
+/// isolate) is documented as a future evolution path.
 class FileLogger {
-  static IOSink? _sink;
+  static RandomAccessFile? _raf;
   static String? _activeFilename;
   static StreamSubscription<LogRecord>? _subscription;
-  // Counter for the hybrid flush policy (flush-every-N) to amortize the
-  // per-record flush cost at high log rates.
-  static int _unflushedRecordCount = 0;
-  // Backstop periodic flush timer — guarantees `<= kFileLoggerFlushPeriodSeconds`
-  // data-loss window even when activity is too sparse to trip the
-  // record-count threshold. Cancelled in [clearAll] / re-armed in [bootstrap].
-  static Timer? _periodicFlushTimer;
 
   /// Shared-prefs key for the verbose-logging toggle. Value lives across
   /// launches; `--dart-define=DEBUG=true` overrides to verbose regardless.
@@ -42,8 +54,8 @@ class FileLogger {
   /// [Logger.root] level, subscribes to the `LogRecord` stream.
   ///
   /// MUST be awaited before [runApp]. Idempotent: calling twice closes the
-  /// previous sink and re-opens cleanly (covers dev hot-reload and tests that
-  /// re-bootstrap between cases).
+  /// previous handle and re-opens cleanly (covers dev hot-reload and tests
+  /// that re-bootstrap between cases).
   static Future<void> bootstrap() async {
     // 1) Decide level — DEBUG define or SharedPreferences flag switches to ALL.
     const debugDefine = bool.fromEnvironment('DEBUG');
@@ -61,42 +73,26 @@ class FileLogger {
     // 3) Prune oldest files until directory size < kMaxLogsDirBytes.
     await _pruneToSizeLimit(logsDir);
 
-    // 4) Compute today's filename and open it in append mode.
+    // 4) Compute today's filename and open it in writeOnlyAppend mode.
     final now = DateTime.now();
     final timestamp = _formatFilenameTimestamp(now);
     _activeFilename = p.join(logsDir.path, '${timestamp}_logs.txt');
     final file = File(_activeFilename!);
 
-    // Idempotency: close previous sink + unsubscribe if bootstrap was called
-    // twice (hot-reload / tests). Order: flush → close → cancel.
-    await _sink?.flush();
-    await _sink?.close();
+    // Idempotency: close previous handle + unsubscribe if bootstrap was
+    // called twice (hot-reload / tests). Order: close → cancel.
+    await _closeRafQuietly();
     await _subscription?.cancel();
-    _periodicFlushTimer?.cancel();
 
-    _sink = file.openWrite(mode: FileMode.append);
+    _raf = file.openSync(mode: FileMode.writeOnlyAppend);
     _subscription = Logger.root.onRecord.listen(_onRecord);
-    _unflushedRecordCount = 0;
-    // Backstop timer — bounds the worst-case loss window at
-    // kFileLoggerFlushPeriodSeconds even when no record-count threshold
-    // and no lifecycle transition fires. Started AFTER the sink so the
-    // first tick has a sink to flush against.
-    _periodicFlushTimer = startPeriodicFlushTimer(flush);
-  }
 
-  /// Creates the backstop [Timer.periodic] that drives a periodic flush
-  /// every [kFileLoggerFlushPeriodSeconds] seconds. Extracted from
-  /// [bootstrap] so the timer wiring can be exercised under `fakeAsync`
-  /// without standing up the real I/O sink — tests inject a counting
-  /// callback and advance fake time to assert the cadence.
-  ///
-  /// The callback is fire-and-forget: `Timer.periodic` does not observe
-  /// the returned `Future`, but [IOSink] serialises its own
-  /// write-after-flush ordering internally, so a still-pending flush at
-  /// the next tick is benign.
-  @visibleForTesting
-  static Timer startPeriodicFlushTimer(Future<void> Function() flushCallback) {
-    return Timer.periodic(const Duration(seconds: kFileLoggerFlushPeriodSeconds), (_) => unawaited(flushCallback()));
+    // First record after bootstrap: capture the absolute path of the active
+    // log file. iOS sandbox container UUIDs can shift between launches —
+    // this lets us cross-check, at read-time, that the path we are reading
+    // from matches the path that was written to at bootstrap-time. Routed
+    // through the standard pipeline so it lives in the JSONL file itself.
+    Logger('infrastructure.logging.file_logger').info('FileLogger bootstrap — activeFilename=$_activeFilename');
   }
 
   /// Toggles the SharedPreferences flag that controls logging verbosity when
@@ -128,14 +124,14 @@ class FileLogger {
     return prefs.getBool(kDebugLoggingPrefsKey) ?? false;
   }
 
-  /// Forces the active sink's internal buffer to disk. No-op when no sink is
-  /// open. Must be awaited before handing the file path to another process
-  /// (share-sheet, external editor) so the shared copy isn't missing the most
-  /// recent records. Resets the hybrid-flush counter so the next flush policy
-  /// check starts from zero.
+  /// Cheap no-op safeguard for callers that historically forced a flush
+  /// before handing the file path to another process (share-sheet, external
+  /// editor) or before lifecycle suspension. Now that every record is
+  /// `flushSync`'d at write-time, there is no buffered data to drain — but
+  /// retaining this entry-point keeps the share-sheet + lifecycle observer
+  /// call-sites unchanged. Returns immediately.
   static Future<void> flush() async {
-    await _sink?.flush();
-    _unflushedRecordCount = 0;
+    // Intentionally empty — durability is enforced per-record in [_onRecord].
   }
 
   /// Lists all `*_logs.txt` files in the logs directory, sorted newest-first
@@ -161,20 +157,16 @@ class FileLogger {
     return entries.map((e) => e.$1).toList();
   }
 
-  /// Deletes every log file, closes the active sink, and clears the active
+  /// Deletes every log file, closes the active handle, and clears the active
   /// filename. When [rearm] is true (default), immediately re-bootstraps so
   /// subsequent logs are persisted to a fresh file — this matches the
   /// intuitive user mental model ("clear the logs and keep recording").
   /// Pass [rearm] = false for test tear-downs or shutdown code that explicitly
   /// wants the logger to stay closed after clearing.
   static Future<void> clearAll({bool rearm = true}) async {
-    await _sink?.flush();
-    await _sink?.close();
+    await _closeRafQuietly();
     await _subscription?.cancel();
-    _periodicFlushTimer?.cancel();
-    _sink = null;
     _subscription = null;
-    _periodicFlushTimer = null;
 
     final files = await listLogFiles();
     for (final f in files) {
@@ -188,14 +180,24 @@ class FileLogger {
     _activeFilename = null;
 
     if (rearm) {
-      // Re-arm: open a fresh sink so subsequent LogRecords are persisted
+      // Re-arm: open a fresh handle so subsequent LogRecords are persisted
       // instead of silently dropped. The new file sits inside an empty dir,
       // so the bootstrap prune step is a no-op.
       await bootstrap();
     }
   }
 
-  static Future<void> _onRecord(LogRecord rec) async {
+  /// Synchronous record handler — encodes [rec] as JSON and performs a
+  /// blocking `writeStringSync` + `flushSync` on the active [RandomAccessFile].
+  ///
+  /// Synchronous on purpose: `Stream.listen` does NOT await `async`
+  /// callbacks, so an `async` body races itself on back-to-back records.
+  /// `flushSync` is documented as the real `fsync(2)` (durable to disk),
+  /// not just a userspace drain.
+  static void _onRecord(LogRecord rec) {
+    final raf = _raf;
+    if (raf == null) return;
+
     final entry = <String, Object?>{
       'ts': rec.time.toIso8601String(),
       'level': rec.level.name,
@@ -204,29 +206,33 @@ class FileLogger {
       if (rec.error != null) 'error': rec.error.toString(),
       if (rec.stackTrace != null) 'stack': rec.stackTrace.toString(),
     };
-    final sink = _sink;
-    if (sink == null) return;
-    // Guard against write failures (disk full, sink closed mid-write, etc.)
-    // If the sink throws, clear the reference so subsequent records are
-    // silently dropped instead of re-entering the zone error handler —
-    // which would itself call Logger.shout → _onRecord → infinite loop.
+    final line = '${jsonEncode(entry)}\n';
+
+    // Catch only [FileSystemException] — the sync API does not raise
+    // [StateError]. On an I/O failure we surface the message via
+    // `dart:developer` `log()` (which on iOS reaches the Xcode console)
+    // and null the handle so subsequent records are silently dropped
+    // instead of re-entering the zone error handler — which would itself
+    // call Logger.shout → _onRecord → infinite loop.
     try {
-      sink.writeln(jsonEncode(entry));
-      // Hybrid flush: force fsync every N records OR on any SHOUT-level
-      // record (errors must be durable immediately). Amortizes per-record
-      // syscall cost at high-frequency log rates while keeping error
-      // durability tight. Acceptable loss window is kFileLoggerFlushEveryNRecords
-      // INFO/WARNING records on abrupt process termination.
-      _unflushedRecordCount++;
-      if (rec.level >= Level.SHOUT || _unflushedRecordCount >= kFileLoggerFlushEveryNRecords) {
-        await sink.flush();
-        _unflushedRecordCount = 0;
-      }
+      raf.writeStringSync(line);
+      raf.flushSync();
+    } on FileSystemException catch (e) {
+      developer.log('FileLogger record write failed; nulling handle: $e', name: 'FileLogger');
+      _raf = null;
+    }
+  }
+
+  /// Closes [_raf] and clears the field, swallowing any [FileSystemException]
+  /// (close errors are not actionable from caller code — best effort).
+  static Future<void> _closeRafQuietly() async {
+    final raf = _raf;
+    _raf = null;
+    if (raf == null) return;
+    try {
+      await raf.close();
     } on FileSystemException {
-      _sink = null;
-    } on StateError {
-      // IOSink throws StateError when addStream/write is called after close.
-      _sink = null;
+      // Best effort — file is being torn down regardless.
     }
   }
 

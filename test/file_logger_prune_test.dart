@@ -75,17 +75,23 @@ void main() {
     // Bootstrap runs the prune.
     await FileLogger.bootstrap();
 
-    // Measure the remaining files (exclude the newly-opened active file
-    // which has size 0 at this point) and confirm total is under the cap.
+    // Measure the remaining files. The newly-opened active file is
+    // excluded from the cap check — bootstrap immediately writes a
+    // first-record line capturing `activeFilename` (cross-check anchor
+    // for iOS sandbox container UUID drift) so it is no longer 0 bytes
+    // at this point, and the prune algorithm is only responsible for
+    // the SEEDED total, not the post-bootstrap write.
+    final activeFilename = FileLogger.activeFilename;
     int totalAfter = 0;
     final remaining = <String>[];
     await for (final entity in logsDir.list()) {
       if (entity is File && entity.path.endsWith('_logs.txt')) {
+        if (entity.path == activeFilename) continue;
         totalAfter += await entity.length();
         remaining.add(p.basename(entity.path));
       }
     }
-    expect(totalAfter, lessThanOrEqualTo(kMaxLogsDirBytes), reason: 'Directory must be under the cap after prune');
+    expect(totalAfter, lessThanOrEqualTo(kMaxLogsDirBytes), reason: 'Seeded files must be under the cap after prune (active file excluded)');
 
     // Oldest seeded file should be gone; newest should survive.
     expect(remaining, isNot(contains('20260417_100000.01_logs.txt')), reason: 'Oldest seeded file must have been pruned');
