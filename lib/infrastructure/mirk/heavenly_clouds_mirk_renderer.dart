@@ -8,6 +8,7 @@ import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
 import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Rect, Size;
 
 import 'package:logging/logging.dart';
+import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
@@ -237,6 +238,9 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     final centreLon = (context.viewportBbox.east + context.viewportBbox.west) * 0.5;
     final offsetX = centreLon * 0.05;
     final offsetY = -centreLat * 0.05;
+    // Read every shader uniform from [MirkRuntimeTunables.instance] (see
+    // atmospheric renderer for rationale).
+    final t = MirkRuntimeTunables.instance;
     FogShaderUniforms.setAll(
       shader,
       resolution: size,
@@ -248,28 +252,28 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
       highlightArgb: kMirkFogHeavenlyHighlightColorArgb,
       shadowArgb: kMirkFogHeavenlyShadowColorArgb,
       // Faster drift than atmospheric — clouds evolve visibly faster.
-      driftZFar: kMirkFogHeavenlyDriftZFar,
-      driftZMid: kMirkFogHeavenlyDriftZMid,
-      driftZNear: kMirkFogHeavenlyDriftZNear,
+      driftZFar: t.heavenlyDriftZFar,
+      driftZMid: t.heavenlyDriftZMid,
+      driftZNear: t.heavenlyDriftZNear,
       // Bigger puffs (finer near-octave for cloud detail).
-      scaleFar: kMirkFogHeavenlyScaleFar,
-      scaleMid: kMirkFogHeavenlyScaleMid,
-      scaleNear: kMirkFogHeavenlyScaleNear,
+      scaleFar: t.heavenlyScaleFar,
+      scaleMid: t.heavenlyScaleMid,
+      scaleNear: t.heavenlyScaleNear,
       // Same opacity weights as atmospheric — the parallax depth
       // signature stays consistent across builtins.
-      opacityFar: kMirkFogOpacityFar,
-      opacityMid: kMirkFogOpacityMid,
-      opacityNear: kMirkFogOpacityNear,
-      curlAmplitude: kMirkFogCurlAmplitude,
-      curlScale: kMirkFogCurlScale,
-      lightDirRadians: kMirkFogLightDirRadians,
-      lightOffset: kMirkFogLightOffset,
-      lightStrength: kMirkFogLightStrength,
-      hueNoiseScale: kMirkFogHueNoiseScale,
-      hueStrength: kMirkFogHueStrength,
-      boundarySharpDistance: kMirkFogBoundarySharpDistance,
-      boundaryBleedDistance: kMirkFogBoundaryBleedDistance,
-      boundaryEdgeBand: kMirkFogBoundaryEdgeBand,
+      opacityFar: t.opacityFar,
+      opacityMid: t.opacityMid,
+      opacityNear: t.opacityNear,
+      curlAmplitude: t.curlAmplitude,
+      curlScale: t.curlScale,
+      lightDirRadians: t.lightDirRadians,
+      lightOffset: t.lightOffset,
+      lightStrength: t.lightStrength,
+      hueNoiseScale: t.hueNoiseScale,
+      hueStrength: t.hueStrength,
+      boundarySharpDistance: t.boundarySharpDistance,
+      boundaryBleedDistance: t.boundaryBleedDistance,
+      boundaryEdgeBand: t.boundaryEdgeBand,
       sdfRect: const (0.0, 0.0, 1.0, 1.0),
       sdfImage: sdf,
     );

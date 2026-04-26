@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +26,7 @@ import '../widgets/map_country_banner.dart';
 import '../widgets/map_follow_me_fab.dart';
 import '../widgets/mirk_initial_reveal_fade.dart';
 import '../widgets/mirk_overlay.dart';
+import '../widgets/mirk_tuner_sheet.dart';
 import '../widgets/session_burger_menu.dart';
 
 final Logger _log = Logger('presentation.map_screen');
@@ -294,6 +296,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ],
           ),
         ),
+        // BUG-009 follow-up — top-right live-tuner icon. Gated by
+        // [kDebugMode] so production iOS sideloads carry the binary but
+        // never expose the affordance. Tapping opens the
+        // [showMirkTunerSheet] non-blocking bottom sheet on top of the
+        // map, so each slider movement is immediately visible on the
+        // running shader.
+        if (kDebugMode) Positioned(top: MediaQuery.of(context).padding.top + 8.0, right: 8.0, child: _MirkTunerButton()),
         // Bottom-right: follow-me FAB + attribution icon.
         Positioned(
           right: 16.0,
@@ -419,6 +428,33 @@ class _BackButton extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(10.0),
           child: Icon(Icons.arrow_back, size: 22.0, color: cs.onSurface),
+        ),
+      ),
+    );
+  }
+}
+
+/// Top-right tuner-icon button — only visible in debug builds (the
+/// Positioned wrapping it is gated by [kDebugMode]).
+///
+/// Opens [showMirkTunerSheet] on tap. The sheet is a non-blocking
+/// DraggableScrollableSheet so the user can scrub a slider, watch the
+/// fog respond on the visible map strip above the sheet, and adjust
+/// without leaving the route.
+class _MirkTunerButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    return Material(
+      color: cs.surface.withValues(alpha: 0.8),
+      shape: const CircleBorder(),
+      elevation: 2.0,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () => showMirkTunerSheet(context),
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Icon(Icons.tune, size: 22.0, color: cs.onSurface),
         ),
       ),
     );

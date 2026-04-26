@@ -8,6 +8,7 @@ import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
 import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Rect, Size;
 
 import 'package:logging/logging.dart';
+import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
@@ -356,6 +357,14 @@ class AtmosphericMirkRenderer implements MirkRenderer {
 
     // Configure all uniforms via the FogShaderUniforms helper. Slot
     // indices are hand-counted there — single source of truth.
+    //
+    // Read every shader-tunable parameter from [MirkRuntimeTunables.instance]
+    // instead of the const literal, so the in-app tuner sheet (Phase 09
+    // BUG-009 follow-up) can scrub each value live without rebuilding the
+    // app. The tunables singleton is initialised from the same `kMirkFog*`
+    // defaults; production builds with the tuner closed see byte-identical
+    // output.
+    final t = MirkRuntimeTunables.instance;
     FogShaderUniforms.setAll(
       shader,
       resolution: size,
@@ -365,25 +374,25 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       baseAlpha: config.densityBaselineAlpha,
       highlightArgb: kMirkFogAtmosphericHighlightColorArgb,
       shadowArgb: kMirkFogAtmosphericShadowColorArgb,
-      driftZFar: kMirkFogAtmosphericDriftZFar,
-      driftZMid: kMirkFogAtmosphericDriftZMid,
-      driftZNear: kMirkFogAtmosphericDriftZNear,
-      scaleFar: kMirkFogAtmosphericScaleFar,
-      scaleMid: kMirkFogAtmosphericScaleMid,
-      scaleNear: kMirkFogAtmosphericScaleNear,
-      opacityFar: kMirkFogOpacityFar,
-      opacityMid: kMirkFogOpacityMid,
-      opacityNear: kMirkFogOpacityNear,
-      curlAmplitude: kMirkFogCurlAmplitude,
-      curlScale: kMirkFogCurlScale,
-      lightDirRadians: kMirkFogLightDirRadians,
-      lightOffset: kMirkFogLightOffset,
-      lightStrength: kMirkFogLightStrength,
-      hueNoiseScale: kMirkFogHueNoiseScale,
-      hueStrength: kMirkFogHueStrength,
-      boundarySharpDistance: kMirkFogBoundarySharpDistance,
-      boundaryBleedDistance: kMirkFogBoundaryBleedDistance,
-      boundaryEdgeBand: kMirkFogBoundaryEdgeBand,
+      driftZFar: t.atmosphericDriftZFar,
+      driftZMid: t.atmosphericDriftZMid,
+      driftZNear: t.atmosphericDriftZNear,
+      scaleFar: t.atmosphericScaleFar,
+      scaleMid: t.atmosphericScaleMid,
+      scaleNear: t.atmosphericScaleNear,
+      opacityFar: t.opacityFar,
+      opacityMid: t.opacityMid,
+      opacityNear: t.opacityNear,
+      curlAmplitude: t.curlAmplitude,
+      curlScale: t.curlScale,
+      lightDirRadians: t.lightDirRadians,
+      lightOffset: t.lightOffset,
+      lightStrength: t.lightStrength,
+      hueNoiseScale: t.hueNoiseScale,
+      hueStrength: t.hueStrength,
+      boundarySharpDistance: t.boundarySharpDistance,
+      boundaryBleedDistance: t.boundaryBleedDistance,
+      boundaryEdgeBand: t.boundaryEdgeBand,
       // SDF rect: shader maps screen-normalised [0,1] uv to SDF uv via
       // (uv - rect.xy) / rect.zw. Default fills the full screen, which
       // is correct because the SDF was built for the entire viewport.
