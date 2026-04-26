@@ -1,6 +1,16 @@
 # BUG-006 — Le reveal s'affiche en grille de carrés au lieu d'un cercle smooth
 
-**Status:** fixed (boundary smoothing seulement — les carrés à petit rayon persistent ; suivi sous BUG-010)
+**Status:** ✅ closed — same root cause as BUG-010 (cell-grid quantisation in the bitmap data layer). Resolved end-to-end by the BUG-010 Option B continuous-geometry refactor shipped 2026-04-26.
+
+## Resolution
+
+The BUG-006 boundary-smoothing fix (`BlurStyle.normal`) was a partial mitigation; the structural cause — cell-grid resolution at 19 m/cell producing a "+" silhouette at small radii — is fully resolved by the BUG-010 Option B refactor (bitmap reveal layer replaced by continuous `(lat, lon, radius, fixed_at)` discs, SDF computed analytically). For the full implementation summary, perf numbers, and follow-ups, see [`BUG-010-cell-grid-resolution-blocky.md`](BUG-010-cell-grid-resolution-blocky.md). No code change owned by this ticket beyond the original boundary-smoothing fix below.
+
+---
+
+## Original ticket (boundary smoothing only — historical)
+
+**Original status:** fixed (boundary smoothing seulement — les carrés à petit rayon persistent ; suivi sous BUG-010)
 **Reported:** 2026-04-25 (iOS UAT walk après build `0b96197`)
 **Platform:** iOS sideloaded
 **Phase context:** Comportement initial Phase 09 — exposé après le fix BUG-003 qui a retiré le `MaskFilter.blur` (parce qu'il causait le damier dans le mode per-tile). Sans feather, les arêtes des cells du subgrid sont visibles.

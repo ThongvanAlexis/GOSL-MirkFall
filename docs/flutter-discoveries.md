@@ -280,3 +280,42 @@ Citing CLAUDE.md and `DEPENDENCIES.md` so the next agent doesn't re-evaluate fro
 A common thread runs through the BUG-009 iteration log: when the visible symptom changes ("fog is grey," "fog is too uniform," "fog snaps to position," "no fog at startup"), the temptation is to chase each symptom in isolation. The fastest path forward in practice was to invest one cycle in DIAGNOSTIC INSTRUMENTATION (the `paint() first invocation` / `paint() early-return state` / `path transition` logs in commit `7b6d819`) so the next walk produced a discriminating signal that pointed at ONE of the four hypotheses. Without that instrumentation, every walk was an undirected search over (data layer × renderer × shader × fallback × pipeline) — five axes, exponential in walks.
 
 **For the next agent.** When a visible bug doesn't reproduce on the rasteriser and only shows up on real-device walks, the cost of one diagnostic-only commit is lower than the cost of a single misdirected fix-and-walk cycle. Instrument first.
+
+---
+
+## Disc-based reveal architecture (BUG-010 Option B)
+
+**MirkFall-specific (but the architectural pattern is cross-project for any geo / fog-of-war / coverage-map app).** Closed 2026-04-26 across commits `9bd0c93` … `f9b6f1a`. Captures the lessons from replacing the cell-bitmap reveal layer with continuous geometry.
+
+### The problem
+
+Cell-bitmap reveal storage (64×64 cells per parent tile at zoom 14, ~19 m/cell) produces structurally rectangular reveals at small radii. A 25 m radius covers ~1.5 cells → silhouette is a "+" of 5 cells (centre + 4 neighbours). No amount of post-process blur or shader smoothstep can transform a "+" of 5 cells into a smooth disc — the artefact is intrinsic to the data resolution. Three rendering-only fix attempts each softened corners but kept the rectangular character (chamfer SDF, watercolour boundary smoothstep, post-chamfer Gaussian σ=1.0). See `BUG-010-cell-grid-resolution-blocky.md` for the full Options A / C / D / E rejection table.
+
+### The fix
+
+Replace the bitmap with a list of `(lat, lon, radius_m, fixed_at)` discs. Compute the SDF analytically: `sdf(p) = min over discs of (dist(p, centre) - radius)`. No chamfer transform, no quantisation, no two-pass distance propagation.
+
+### What it bought
+
+- Truly circular reveals at every radius — geometry is honest, not rasterised.
+- The SDF builder simplified from ~340 lines (chamfer 3-4, two-pass distance transform, bitmap iteration) to ~140 lines (one analytic loop per disc).
+- Storage is now O(N) discs per session instead of O(visible-tile-count × 512 bytes), and compaction at session flush keeps it bounded — stationary GPS-jitter clusters collapse, walking paths stay intact.
+
+### What it cost
+
+- Bigger refactor than expected: 9 commits, ~1 day with subagents, touching every renderer + the data layer + ~15 widget tests.
+- Per-disc-in-viewport SDF rebuild is ~211 ms / 1 k discs / 256² output on Windows desktop (no spatial index yet) — heavier than the original "well under 16 ms" docstring guess. Acceptable for now because rebuild only fires on disc-list / viewport change, not per-frame, but a spatial index is the natural follow-up if device measurement misses the budget.
+
+### Wisps
+
+The "spawn particles on newly revealed area" effect was previously driven by per-frame bitmap diffs (compare current bitmap vs previous, spawn one wisp per newly-set bit). With discs it became "diff the disc id set per frame, spawn N along the perimeter of each newly emerged disc" (where N scales with circumference via `kMirkFogMetersPerWisp`). Cleaner and zoom-independent — the perimeter parametrisation gives the same visual density at any rendered scale.
+
+### Schema migration
+
+Drift made the table-add → table-drop sequence trivial (`schemaVersion 4 → 5 → 6`, two `customStatement` migrations: add `revealed_disc` table at v5, drop `revealed_tile` table at v6). Worth knowing that the post-codegen `dart format --line-length 160` step has to be part of every commit that touches a `.g.dart` file — `build_runner` does NOT honour the project line-length, and `dart format` running with the default 80-col will fight CI. We hit this on commit `3d8c6ac` and again on `89c5cfc`.
+
+### CI gotchas baked in (cross-ref)
+
+- `dart format --line-length 160 --set-exit-if-changed .` is enforced by CI; build_runner output must be reformatted before commit (see commit `3d8c6ac`).
+- `dart run drift_dev schema dump lib/infrastructure/db/app_database.dart drift_schemas/drift_schema_current.json` is enforced by CI for any schema bump (see commit `89c5cfc`).
+- `git add -A` is dangerous in this repo — many large untracked working files at root (logs, screenshots, build APKs up to 200 MB). Always stage explicitly.

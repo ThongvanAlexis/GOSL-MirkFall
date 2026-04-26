@@ -1,9 +1,41 @@
 # BUG-010 — Reveal blocky par construction (data layer en grille de cellules 19 m)
 
-**Status:** open / planned — **décision pending (2026-04-26 post-`118b95a`)** entre attaquer Option B directement OU shipper Option D ("circle rasterisation in SDF builder") comme stop-gap pretty-mais-hack avant la refonte propre. Voir nouvelle section "Option D — circle rasterisation in SDF builder (candidate intermediate fix)" plus bas.
+**Status:** ✅ closed — Option B (continuous geometry) shipped 2026-04-26 across commits `9bd0c93` … `f9b6f1a` on `main`. Voie A retenue (skip Option D bandaid).
 **Reported:** 2026-04-25 (observation utilisateur pendant les UAT walks de l'itération BUG-009)
 **Platform:** cross-platform (défaut data layer, pas de rendu)
 **Phase context:** Surfacé par les walks BUG-009. Le fix BUG-006 (`BlurStyle.normal`) lisse les blobs larges mais à 25 m de rayon le reveal reste un "+" structurel.
+
+## Implementation summary (what shipped)
+
+```
+9bd0c93  feat(09-bug-010): add RevealDisc domain type for continuous-geometry reveals
+8c106e4  chore(09-bug-010): correct RevealDisc.sessionId docstring
+3faa06e  feat(09-bug-010): add Drift-backed RevealedDiscStore with offline compaction
+3d8c6ac  chore(09-bug-010): apply project line-length 160 to commits 1+2
+c91098d  feat(09-bug-010): add RevealedSdfBuilder.buildFromDiscs (analytic SDF)
+89c5cfc  chore(09-bug-010): refresh drift schema dump for v5 (revealed_disc)
+7f7bee6  feat(09-bug-010): rewire writes + reads to disc path
+d47e5ab  refactor(09-bug-010): delete dead bitmap reveal path; spawn wisps on disc emergence
+f9b6f1a  feat(09-bug-010): hook compactSession at session stop + add SDF perf test
+```
+
+## Perf reality vs estimate (warrants follow-up)
+
+Local Windows desktop measurements (median over 10 iterations after 1 warmup):
+- 100 discs: ~28 ms
+- 1 000 discs: ~211 ms
+- 5 000 discs: ~432–478 ms
+- 10 000 discs: ~2 450 ms
+
+The `buildFromDiscs` docstring originally said "well under 16 ms at < 1 k discs"; reality is ~13× heavier. The SDF only rebuilds on disc-list-change or viewport-change (not per-frame), so it is not yet a paint blocker, but device measurement during the next UAT walk will tell whether the spatial-index TODO (`revealed_sdf_builder.dart:103`) must be promoted to a follow-up phase before Phase 10 / Review Gate Fog.
+
+## Known follow-ups (post-Phase 09)
+
+- [ ] Real-device perf measurement during UAT walk (sub-16-ms target?)
+- [ ] Spatial-index pass on `buildFromDiscs` (`revealed_sdf_builder.dart:103` TODO) if device measurement misses the budget
+- [ ] Drop the orphan `kRevealedTileParentZoom` constant + its `constants_test` assertion (kept by Commit 5 because the test asserted it; the constant has no code consumers since the bitmap path was deleted)
+- [ ] Wisp density tuning on UAT — current `kMirkFogMetersPerWisp = 8.0` gives ~20 wisps per 25 m disc; user can drop to 12-16 if the visual feels too puffy
+- [ ] Audit `fake_async: 1.3.3` dev_dep added in `fb35154` — no DEPENDENCIES.md entry yet (carried over from BUG-009)
 
 ## Comportement attendu
 
@@ -78,12 +110,7 @@ Le chamfer SDF voit alors des shapes **inhérence-circulaires** au lieu de recta
 | Bloque Phase 10 ? | oui pendant 3-5j | non |
 | Résout structurellement ? | oui | non — bandaid sur le rendu |
 
-**Décision pending — caller-context.** L'utilisateur a demandé "ok BUG-010 next ? ou hack D first ?" en fin de session du 2026-04-26 après le revert `118b95a`. Le prochain agent doit choisir avec lui :
-
-1. **Voie A — skip Option D, attaquer Option B directement.** Plus propre, plus de risque de pinch-point résiduel, mais bloque tout pendant 3-5j.
-2. **Voie B — ship Option D first.** Visual win immédiat, BUG-010 Option B reste programmé après pour la résolution structurelle. Cohérent avec la philosophie projet "logiciel utile, ship the simplest thing that works" — le bandaid est conscient et limité dans le temps.
-
-À discuter avec le user au prochain tour.
+**Décision arrêtée.** L'utilisateur a tranché Voie A le 2026-04-26 après la discussion post-compact : full rework (Option B) plutôt qu'Option D stop-gap, parce que le bitmap path était structurellement limité (le bandaid n'aurait pas tenu sur shapes étroits) et que la team avait un visuel fog suffisamment stable sur `5e6265a` pour absorber le 1-jour de refonte sans bloquer le Review Gate. Option D décommissionnée — skipée, pas shippée.
 
 ## Effort & scope
 
