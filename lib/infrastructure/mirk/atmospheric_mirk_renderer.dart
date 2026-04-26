@@ -188,17 +188,28 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       _logEarlyReturnTransition('disposed');
       return;
     }
-    if (context.visibleTiles.isEmpty) {
-      _logEarlyReturnTransition('visibleTiles.isEmpty');
+    // BUG-010 Option B (Commit 4): the production read path now feeds
+    // `discs` instead of bitmap tiles. Either input being non-empty
+    // means there's something to paint; both empty means there's no
+    // active session OR the session has not yet revealed anything in
+    // the current viewport — fog still covers the viewport rect, but
+    // the SDF builder degenerates to "all fog" so the boundary effects
+    // collapse to a uniform shade. Bail to keep the renderer cheap.
+    if (context.visibleTiles.isEmpty && context.discs.isEmpty) {
+      _logEarlyReturnTransition('visibleTiles+discs both empty');
       return;
     }
 
-    // Resolve the fog clip path FIRST — same rules as pre-BUG-009. This
-    // also gives us a fast bail-out when every visible tile is fully
-    // revealed.
-    final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
+    // Resolve the fog clip path FIRST. BUG-010 Option B (Commit 4): on
+    // the disc path the fog covers the entire viewport rect with disc
+    // circles carved out; legacy fixtures still feed `visibleTiles`
+    // (all 4 mirk_overlay_* / multi_tile_seam tests) so we keep the
+    // bitmap helper available behind a non-empty check.
+    final path = context.visibleTiles.isNotEmpty
+        ? buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size)
+        : buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
     if (path.getBounds().isEmpty) {
-      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible tile fully revealed?)');
+      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible region fully revealed?)');
       return;
     }
     _logEarlyReturnTransition('none');
@@ -448,34 +459,19 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// Hashes the inputs that affect the SDF. If they changed since
   /// [_lastSdfHash], schedule a rebuild (kick off async; the new SDF
   /// will be picked up on the NEXT frame). Cheap — runs every paint.
+  ///
+  /// BUG-010 Option B (Commit 4): SDF inputs switched from per-tile
+  /// bitmap union → list of [RevealDisc]s. The hash + the rebuild now
+  /// reflect the disc list rather than the bitmap union.
   void _refreshSdfIfNeeded({required MirkPaintContext context, required Size canvasSize}) {
     if (_sdfBuildInFlight) return;
     final hash = _computeSdfHash(context);
     if (hash == _lastSdfHash && _sdfImage != null) return;
     _sdfBuildInFlight = true;
     _lastSdfHash = hash;
-    // BUG-009 follow-up diagnostic (2026-04-25): count the total set
-    // bits across every visible tile's bitmap BEFORE the SDF builder
-    // sees them. If totalSetBits is 0 here, the bits were lost upstream
-    // (RevealedTileStore / visibleMirkTilesProvider); if it's > 0 yet
-    // the SDF still reports 0% revealed, the loss is inside the
-    // builder's projection. Discriminator log for the next walk.
-    var totalSetBits = 0;
-    for (final tile in context.visibleTiles) {
-      for (final byte in tile.bitmap) {
-        // Brian Kernighan bit-count — fine for diagnostic; this only
-        // runs when a rebuild was already going to happen anyway.
-        var b = byte;
-        while (b != 0) {
-          b &= b - 1;
-          totalSetBits++;
-        }
-      }
-    }
-    _log.fine('_refreshSdfIfNeeded: visibleTiles=${context.visibleTiles.length} totalSetBits=$totalSetBits');
-    _log.fine('_refreshSdfIfNeeded: scheduling rebuild (hash=$hash visibleTiles=${context.visibleTiles.length})');
+    _log.fine('_refreshSdfIfNeeded: scheduling rebuild (hash=$hash discs=${context.discs.length})');
     _sdfBuilder
-        .build(visibleTiles: context.visibleTiles, viewport: context.viewportBbox)
+        .buildFromDiscs(discs: context.discs, viewport: context.viewportBbox)
         .then((image) {
           if (_disposed) {
             image.dispose();
@@ -493,9 +489,9 @@ class AtmosphericMirkRenderer implements MirkRenderer {
         });
   }
 
-  /// Cheap hash combining viewport bbox + a digest of revealed-cell
-  /// bitmaps. Not cryptographic — just needs to discriminate between
-  /// "the user walked" and "no change".
+  /// Cheap hash combining viewport bbox + a digest of the disc list.
+  /// Not cryptographic — just needs to discriminate between "the user
+  /// walked (new disc landed)" and "no change".
   int _computeSdfHash(MirkPaintContext context) {
     var hash = 0x811C9DC5;
     final bbox = context.viewportBbox;
@@ -503,17 +499,16 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     hash = _mix(hash, bbox.west.hashCode);
     hash = _mix(hash, bbox.north.hashCode);
     hash = _mix(hash, bbox.east.hashCode);
-    for (final tile in context.visibleTiles) {
-      hash = _mix(hash, tile.parentX);
-      hash = _mix(hash, tile.parentY);
-      // Sparse hash of the bitmap — sample 8 bytes spread across 512.
-      // Misses the rare case where two distinct bitmaps share these
-      // sampled bytes; in practice the parent-tile hash collision rate
-      // is negligible since the whole tile gets a fresh allocation
-      // every time the store updates.
-      for (var i = 0; i < 8; i++) {
-        hash = _mix(hash, tile.bitmap[i * 64]);
-      }
+    // Discs are typically a few-hundred-entry list per session viewport;
+    // hashing every (id, lat, lon, radius) is sub-microsecond and
+    // discriminates "same set of discs as last frame" with negligible
+    // collision risk (id is a 26-char ULID).
+    hash = _mix(hash, context.discs.length);
+    for (final disc in context.discs) {
+      hash = _mix(hash, disc.id.hashCode);
+      hash = _mix(hash, disc.lat.hashCode);
+      hash = _mix(hash, disc.lon.hashCode);
+      hash = _mix(hash, disc.radiusMeters.hashCode);
     }
     return hash;
   }

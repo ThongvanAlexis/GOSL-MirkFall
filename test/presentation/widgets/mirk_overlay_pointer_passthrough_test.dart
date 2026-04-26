@@ -28,11 +28,13 @@ import 'package:mirkfall/application/controllers/active_session_controller.dart'
 import 'package:mirkfall/application/providers/active_mirk_renderer_provider.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/providers/map_viewport_provider.dart';
+import 'package:mirkfall/application/providers/discs_in_viewport_provider.dart';
 import 'package:mirkfall/application/providers/visible_mirk_tiles_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 
 import '../../fakes/fake_mirk_renderer.dart';
@@ -83,6 +85,7 @@ void main() {
             ),
             activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
             visibleMirkTilesProvider.overrideWith((ref) async => [_allUnrevealedTile()]),
+            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
           ],
@@ -156,6 +159,7 @@ void main() {
             ),
             activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
             visibleMirkTilesProvider.overrideWith((ref) async => [_allUnrevealedTile()]),
+            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
           ],

@@ -10,16 +10,24 @@ part of 'reveal_streaming_controller_provider.dart';
 // ignore_for_file: type=lint, type=warning
 /// Family-style provider that returns a [RevealStreamingController] for
 /// the given [sessionId]. Returns `null` while the
-/// [revealedTileStoreProvider] async bootstrap (path_provider boot) is
+/// [revealedDiscStoreProvider] async bootstrap (path_provider boot) is
 /// still resolving.
 ///
-/// **Wiring rationale (Phase 09 plan 09-06).** This provider does NOT
-/// `watch(activeSessionControllerProvider)` — that would create a
-/// circular dependency, since `ActiveSessionController` itself reads
-/// the reveal controller in its `_onFix` and `stop` paths. Callers that
-/// want the "controller for the live session" pattern are expected to
-/// resolve the active session id from `ActiveSessionController.state`
-/// at the call site and pass it as the family parameter.
+/// **Wiring rationale (Phase 09 plan 09-06 + BUG-010 Option B Commit 4).**
+/// The controller is the WRITE side of the reveal pipeline; on
+/// BUG-010 Option B (Commit 4) it switched from
+/// [`RevealedTileStore.mergeMask`] to [`RevealedDiscStore.addDisc`]. The
+/// provider therefore depends on:
+///   * [revealedDiscStoreProvider] for the disc-store seam.
+///   * [idGeneratorProvider] for `rvd_<26-char-ULID>` id minting.
+///
+/// This provider does NOT `watch(activeSessionControllerProvider)` —
+/// that would create a circular dependency, since `ActiveSessionController`
+/// itself reads the reveal controller in its `_onFix` and `stop` paths.
+/// Callers that want the "controller for the live session" pattern are
+/// expected to resolve the active session id from
+/// `ActiveSessionController.state` at the call site and pass it as the
+/// family parameter.
 ///
 /// Lifecycle: `ref.onDispose` calls `controller.dispose()` which in
 /// turn flushes any still-buffered fixes — so provider disposal never
@@ -36,16 +44,24 @@ final revealStreamingControllerProvider = RevealStreamingControllerFamily._();
 
 /// Family-style provider that returns a [RevealStreamingController] for
 /// the given [sessionId]. Returns `null` while the
-/// [revealedTileStoreProvider] async bootstrap (path_provider boot) is
+/// [revealedDiscStoreProvider] async bootstrap (path_provider boot) is
 /// still resolving.
 ///
-/// **Wiring rationale (Phase 09 plan 09-06).** This provider does NOT
-/// `watch(activeSessionControllerProvider)` — that would create a
-/// circular dependency, since `ActiveSessionController` itself reads
-/// the reveal controller in its `_onFix` and `stop` paths. Callers that
-/// want the "controller for the live session" pattern are expected to
-/// resolve the active session id from `ActiveSessionController.state`
-/// at the call site and pass it as the family parameter.
+/// **Wiring rationale (Phase 09 plan 09-06 + BUG-010 Option B Commit 4).**
+/// The controller is the WRITE side of the reveal pipeline; on
+/// BUG-010 Option B (Commit 4) it switched from
+/// [`RevealedTileStore.mergeMask`] to [`RevealedDiscStore.addDisc`]. The
+/// provider therefore depends on:
+///   * [revealedDiscStoreProvider] for the disc-store seam.
+///   * [idGeneratorProvider] for `rvd_<26-char-ULID>` id minting.
+///
+/// This provider does NOT `watch(activeSessionControllerProvider)` —
+/// that would create a circular dependency, since `ActiveSessionController`
+/// itself reads the reveal controller in its `_onFix` and `stop` paths.
+/// Callers that want the "controller for the live session" pattern are
+/// expected to resolve the active session id from
+/// `ActiveSessionController.state` at the call site and pass it as the
+/// family parameter.
 ///
 /// Lifecycle: `ref.onDispose` calls `controller.dispose()` which in
 /// turn flushes any still-buffered fixes — so provider disposal never
@@ -61,16 +77,24 @@ final class RevealStreamingControllerProvider extends $FunctionalProvider<Reveal
     with $Provider<RevealStreamingController?> {
   /// Family-style provider that returns a [RevealStreamingController] for
   /// the given [sessionId]. Returns `null` while the
-  /// [revealedTileStoreProvider] async bootstrap (path_provider boot) is
+  /// [revealedDiscStoreProvider] async bootstrap (path_provider boot) is
   /// still resolving.
   ///
-  /// **Wiring rationale (Phase 09 plan 09-06).** This provider does NOT
-  /// `watch(activeSessionControllerProvider)` — that would create a
-  /// circular dependency, since `ActiveSessionController` itself reads
-  /// the reveal controller in its `_onFix` and `stop` paths. Callers that
-  /// want the "controller for the live session" pattern are expected to
-  /// resolve the active session id from `ActiveSessionController.state`
-  /// at the call site and pass it as the family parameter.
+  /// **Wiring rationale (Phase 09 plan 09-06 + BUG-010 Option B Commit 4).**
+  /// The controller is the WRITE side of the reveal pipeline; on
+  /// BUG-010 Option B (Commit 4) it switched from
+  /// [`RevealedTileStore.mergeMask`] to [`RevealedDiscStore.addDisc`]. The
+  /// provider therefore depends on:
+  ///   * [revealedDiscStoreProvider] for the disc-store seam.
+  ///   * [idGeneratorProvider] for `rvd_<26-char-ULID>` id minting.
+  ///
+  /// This provider does NOT `watch(activeSessionControllerProvider)` —
+  /// that would create a circular dependency, since `ActiveSessionController`
+  /// itself reads the reveal controller in its `_onFix` and `stop` paths.
+  /// Callers that want the "controller for the live session" pattern are
+  /// expected to resolve the active session id from
+  /// `ActiveSessionController.state` at the call site and pass it as the
+  /// family parameter.
   ///
   /// Lifecycle: `ref.onDispose` calls `controller.dispose()` which in
   /// turn flushes any still-buffered fixes — so provider disposal never
@@ -120,20 +144,28 @@ final class RevealStreamingControllerProvider extends $FunctionalProvider<Reveal
   }
 }
 
-String _$revealStreamingControllerHash() => r'ab87279a1a029f421bcd3830698f4a2546978056';
+String _$revealStreamingControllerHash() => r'e29d79887be81144705f0b1dbb5f3a793b06287a';
 
 /// Family-style provider that returns a [RevealStreamingController] for
 /// the given [sessionId]. Returns `null` while the
-/// [revealedTileStoreProvider] async bootstrap (path_provider boot) is
+/// [revealedDiscStoreProvider] async bootstrap (path_provider boot) is
 /// still resolving.
 ///
-/// **Wiring rationale (Phase 09 plan 09-06).** This provider does NOT
-/// `watch(activeSessionControllerProvider)` — that would create a
-/// circular dependency, since `ActiveSessionController` itself reads
-/// the reveal controller in its `_onFix` and `stop` paths. Callers that
-/// want the "controller for the live session" pattern are expected to
-/// resolve the active session id from `ActiveSessionController.state`
-/// at the call site and pass it as the family parameter.
+/// **Wiring rationale (Phase 09 plan 09-06 + BUG-010 Option B Commit 4).**
+/// The controller is the WRITE side of the reveal pipeline; on
+/// BUG-010 Option B (Commit 4) it switched from
+/// [`RevealedTileStore.mergeMask`] to [`RevealedDiscStore.addDisc`]. The
+/// provider therefore depends on:
+///   * [revealedDiscStoreProvider] for the disc-store seam.
+///   * [idGeneratorProvider] for `rvd_<26-char-ULID>` id minting.
+///
+/// This provider does NOT `watch(activeSessionControllerProvider)` —
+/// that would create a circular dependency, since `ActiveSessionController`
+/// itself reads the reveal controller in its `_onFix` and `stop` paths.
+/// Callers that want the "controller for the live session" pattern are
+/// expected to resolve the active session id from
+/// `ActiveSessionController.state` at the call site and pass it as the
+/// family parameter.
 ///
 /// Lifecycle: `ref.onDispose` calls `controller.dispose()` which in
 /// turn flushes any still-buffered fixes — so provider disposal never
@@ -151,16 +183,24 @@ final class RevealStreamingControllerFamily extends $Family with $FunctionalFami
 
   /// Family-style provider that returns a [RevealStreamingController] for
   /// the given [sessionId]. Returns `null` while the
-  /// [revealedTileStoreProvider] async bootstrap (path_provider boot) is
+  /// [revealedDiscStoreProvider] async bootstrap (path_provider boot) is
   /// still resolving.
   ///
-  /// **Wiring rationale (Phase 09 plan 09-06).** This provider does NOT
-  /// `watch(activeSessionControllerProvider)` — that would create a
-  /// circular dependency, since `ActiveSessionController` itself reads
-  /// the reveal controller in its `_onFix` and `stop` paths. Callers that
-  /// want the "controller for the live session" pattern are expected to
-  /// resolve the active session id from `ActiveSessionController.state`
-  /// at the call site and pass it as the family parameter.
+  /// **Wiring rationale (Phase 09 plan 09-06 + BUG-010 Option B Commit 4).**
+  /// The controller is the WRITE side of the reveal pipeline; on
+  /// BUG-010 Option B (Commit 4) it switched from
+  /// [`RevealedTileStore.mergeMask`] to [`RevealedDiscStore.addDisc`]. The
+  /// provider therefore depends on:
+  ///   * [revealedDiscStoreProvider] for the disc-store seam.
+  ///   * [idGeneratorProvider] for `rvd_<26-char-ULID>` id minting.
+  ///
+  /// This provider does NOT `watch(activeSessionControllerProvider)` —
+  /// that would create a circular dependency, since `ActiveSessionController`
+  /// itself reads the reveal controller in its `_onFix` and `stop` paths.
+  /// Callers that want the "controller for the live session" pattern are
+  /// expected to resolve the active session id from
+  /// `ActiveSessionController.state` at the call site and pass it as the
+  /// family parameter.
   ///
   /// Lifecycle: `ref.onDispose` calls `controller.dispose()` which in
   /// turn flushes any still-buffered fixes — so provider disposal never

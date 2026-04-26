@@ -128,7 +128,7 @@ final class ActiveSessionControllerProvider extends $AsyncNotifierProvider<Activ
   ActiveSessionController create() => ActiveSessionController();
 }
 
-String _$activeSessionControllerHash() => r'4e168bc5b059ce0542ce71aee19fa520b3046beb';
+String _$activeSessionControllerHash() => r'a72c451366a6dbf73ded487f0524b46fc0549399';
 
 /// Orchestrator for a session's GPS tracking lifecycle.
 ///

@@ -121,13 +121,17 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
       _logEarlyReturnTransition('disposed');
       return;
     }
-    if (context.visibleTiles.isEmpty) {
-      _logEarlyReturnTransition('visibleTiles.isEmpty');
+    // BUG-010 Option B (Commit 4): see atmospheric renderer for the
+    // dual-input bail-out rationale.
+    if (context.visibleTiles.isEmpty && context.discs.isEmpty) {
+      _logEarlyReturnTransition('visibleTiles+discs both empty');
       return;
     }
-    final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
+    final path = context.visibleTiles.isNotEmpty
+        ? buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size)
+        : buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
     if (path.getBounds().isEmpty) {
-      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible tile fully revealed?)');
+      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible region fully revealed?)');
       return;
     }
     _logEarlyReturnTransition('none');
@@ -319,23 +323,9 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     if (hash == _lastSdfHash && _sdfImage != null) return;
     _sdfBuildInFlight = true;
     _lastSdfHash = hash;
-    // BUG-009 follow-up diagnostic — see atmospheric renderer for the
-    // rationale. Discriminates "bits lost upstream" vs "lost inside
-    // the SDF projection" on the next iOS UAT walk.
-    var totalSetBits = 0;
-    for (final tile in context.visibleTiles) {
-      for (final byte in tile.bitmap) {
-        var b = byte;
-        while (b != 0) {
-          b &= b - 1;
-          totalSetBits++;
-        }
-      }
-    }
-    _log.fine('_refreshSdfIfNeeded: visibleTiles=${context.visibleTiles.length} totalSetBits=$totalSetBits');
-    _log.fine('_refreshSdfIfNeeded: scheduling rebuild (hash=$hash visibleTiles=${context.visibleTiles.length})');
+    _log.fine('_refreshSdfIfNeeded: scheduling rebuild (hash=$hash discs=${context.discs.length})');
     _sdfBuilder
-        .build(visibleTiles: context.visibleTiles, viewport: context.viewportBbox)
+        .buildFromDiscs(discs: context.discs, viewport: context.viewportBbox)
         .then((image) {
           if (_disposed) {
             image.dispose();
@@ -360,12 +350,12 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     hash = _mix(hash, bbox.west.hashCode);
     hash = _mix(hash, bbox.north.hashCode);
     hash = _mix(hash, bbox.east.hashCode);
-    for (final tile in context.visibleTiles) {
-      hash = _mix(hash, tile.parentX);
-      hash = _mix(hash, tile.parentY);
-      for (var i = 0; i < 8; i++) {
-        hash = _mix(hash, tile.bitmap[i * 64]);
-      }
+    hash = _mix(hash, context.discs.length);
+    for (final disc in context.discs) {
+      hash = _mix(hash, disc.id.hashCode);
+      hash = _mix(hash, disc.lat.hashCode);
+      hash = _mix(hash, disc.lon.hashCode);
+      hash = _mix(hash, disc.radiusMeters.hashCode);
     }
     return hash;
   }

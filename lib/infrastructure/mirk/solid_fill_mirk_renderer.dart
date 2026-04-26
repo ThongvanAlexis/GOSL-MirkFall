@@ -99,8 +99,11 @@ class SolidFillMirkRenderer implements MirkRenderer {
       _logEarlyReturnTransition('disposed');
       return;
     }
-    if (context.visibleTiles.isEmpty) {
-      _logEarlyReturnTransition('visibleTiles.isEmpty');
+    // BUG-010 Option B (Commit 4): see atmospheric renderer for the
+    // dual-input rationale. Solid still consumes whichever side has
+    // entries — bitmap fixtures continue to drive the existing tests.
+    if (context.visibleTiles.isEmpty && context.discs.isEmpty) {
+      _logEarlyReturnTransition('visibleTiles+discs both empty');
       return;
     }
     // Solid renderer adopts the same viewport-level path strategy as the
@@ -120,7 +123,9 @@ class SolidFillMirkRenderer implements MirkRenderer {
       ..color = _color
       ..style = PaintingStyle.fill
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
-    final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
+    final path = context.visibleTiles.isNotEmpty
+        ? buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size)
+        : buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
     if (path.getBounds().isEmpty) {
       _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible tile fully revealed?)');
       return;

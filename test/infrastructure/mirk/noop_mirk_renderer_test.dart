@@ -11,7 +11,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
-import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 import 'package:mirkfall/infrastructure/mirk/noop_mirk_renderer.dart';
 
 void main() {
@@ -32,7 +31,6 @@ void main() {
         // Phase 09 plan 09-02: extended fields. Noop renderer ignores all of them; supplying the
         // narrowest valid values keeps this test focused on "100 paint/update iterations don't throw".
         viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
-        visibleTiles: const <VisibleMirkTile>[],
       );
       final PictureRecorder rec = PictureRecorder();
       final Canvas canvas = Canvas(rec);

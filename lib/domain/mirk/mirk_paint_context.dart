@@ -5,6 +5,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../fixes/fix.dart';
+import '../revealed/reveal_disc.dart';
 import 'mirk_viewport_bbox.dart';
 import 'visible_mirk_tile.dart';
 
@@ -37,9 +38,20 @@ part 'mirk_paint_context.freezed.dart';
 ///   the first fix arrives. Consumed by `CandlelightMirkRenderer` to
 ///   centre the radial glow; atmospheric / solid / heavenly_clouds may
 ///   ignore it.
-/// * [visibleTiles] — list of parent tiles intersecting [viewportBbox]
-///   with their pre-projected lat/lon extents + bitmap. Empty list
-///   (`const []`) is valid (no session, or no visible revealed areas).
+/// * [visibleTiles] — legacy parent-tile bitmaps intersecting [viewportBbox].
+///   Defaulted to `const []` since BUG-010 Option B Commit 4: the
+///   production read path now feeds [discs] instead, and the bitmap
+///   surface is orphan (Commit 5 deletes it). Existing renderer paths
+///   that still consume this list (per-tile clip-path geometry) keep
+///   working when the field is non-empty (legacy fixtures, regression
+///   tests). When empty, the renderers fall back to a viewport-rect
+///   clip path and rely on [discs] / the SDF for boundary geometry.
+/// * [discs] — list of [RevealDisc]s of the active session intersecting
+///   [viewportBbox]. Default `const []` so existing call sites that
+///   still construct `MirkPaintContext` with bitmap fixtures keep
+///   compiling. The atmospheric / heavenly_clouds renderers feed this
+///   list to [RevealedSdfBuilder.buildFromDiscs] in place of the
+///   bitmap-based [RevealedSdfBuilder.build].
 @freezed
 abstract class MirkPaintContext with _$MirkPaintContext {
   @Assert('zoomLevel >= 0.0', 'MirkPaintContext.zoomLevel must be >= 0')
@@ -49,7 +61,8 @@ abstract class MirkPaintContext with _$MirkPaintContext {
     required double pixelRatio,
     required Duration sessionElapsed,
     required MirkViewportBbox viewportBbox,
-    required List<VisibleMirkTile> visibleTiles,
+    @Default(<VisibleMirkTile>[]) List<VisibleMirkTile> visibleTiles,
+    @Default(<RevealDisc>[]) List<RevealDisc> discs,
     Fix? currentFix,
   }) = _MirkPaintContext;
 }

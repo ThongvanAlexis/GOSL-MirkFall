@@ -33,7 +33,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
-import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
 
 /// Compile-time witness that [MirkRenderer] has exactly 3 abstract
 /// methods: `paint`, `update`, `dispose`. The analyzer enforces the
@@ -94,7 +93,6 @@ void main() {
           // exercise the SAME 3-method renderer surface — semantic stays "is there exactly 1 paint
           // call?", new fields just satisfy the now-required Freezed parameters.
           viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
-          visibleTiles: const <VisibleMirkTile>[],
         ),
       );
       w.update(const Duration(milliseconds: 16));
@@ -124,7 +122,6 @@ void main() {
           pixelRatio: 1.0,
           sessionElapsed: Duration.zero,
           viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
-          visibleTiles: const <VisibleMirkTile>[],
         ),
         throwsA(isA<AssertionError>()),
       );
@@ -137,7 +134,6 @@ void main() {
           pixelRatio: 0.0,
           sessionElapsed: Duration.zero,
           viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
-          visibleTiles: const <VisibleMirkTile>[],
         ),
         throwsA(isA<AssertionError>()),
       );

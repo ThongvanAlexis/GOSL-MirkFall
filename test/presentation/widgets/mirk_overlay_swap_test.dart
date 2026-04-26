@@ -11,12 +11,14 @@ import 'package:mirkfall/application/controllers/active_session_controller.dart'
 import 'package:mirkfall/application/providers/active_mirk_renderer_provider.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/providers/map_viewport_provider.dart';
+import 'package:mirkfall/application/providers/discs_in_viewport_provider.dart';
 import 'package:mirkfall/application/providers/visible_mirk_tiles_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 
 import '../../fakes/fake_mirk_renderer.dart';
@@ -79,6 +81,11 @@ void main() {
             return r;
           }),
           visibleMirkTilesProvider.overrideWith((ref) async => [_tile()]),
+          // BUG-010 Option B Commit 4 — overlay now also watches the
+          // disc-list provider; an empty list keeps the test focused on
+          // the swap lifecycle (renderer.paint still fires, the disc-
+          // path clip-path degenerates to the viewport rect).
+          discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
           mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
           mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
         ],
@@ -133,6 +140,11 @@ void main() {
             return r;
           }),
           visibleMirkTilesProvider.overrideWith((ref) async => [_tile()]),
+          // BUG-010 Option B Commit 4 — overlay now also watches the
+          // disc-list provider; an empty list keeps the test focused on
+          // the swap lifecycle (renderer.paint still fires, the disc-
+          // path clip-path degenerates to the viewport rect).
+          discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
           mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
           mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
         ],

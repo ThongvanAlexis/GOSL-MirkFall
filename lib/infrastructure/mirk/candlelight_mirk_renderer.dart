@@ -98,8 +98,9 @@ class CandlelightMirkRenderer implements MirkRenderer {
       _logEarlyReturnTransition('disposed');
       return;
     }
-    if (context.visibleTiles.isEmpty) {
-      _logEarlyReturnTransition('visibleTiles.isEmpty');
+    // BUG-010 Option B (Commit 4): see atmospheric renderer.
+    if (context.visibleTiles.isEmpty && context.discs.isEmpty) {
+      _logEarlyReturnTransition('visibleTiles+discs both empty');
       return;
     }
 
@@ -140,7 +141,11 @@ class CandlelightMirkRenderer implements MirkRenderer {
 
     // BUG-003 fix (2026-04-25): single viewport-level path. See
     // [buildViewportFogClipPath] for the rationale.
-    final path = buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size);
+    // BUG-010 Option B (Commit 4): falls back to the disc-based clip
+    // path when no bitmap fixtures are provided.
+    final path = context.visibleTiles.isNotEmpty
+        ? buildViewportFogClipPath(visibleTiles: context.visibleTiles, viewport: context.viewportBbox, canvasSize: size)
+        : buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
     if (path.getBounds().isEmpty) {
       _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible tile fully revealed?)');
       return;

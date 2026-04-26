@@ -3,7 +3,6 @@
 // See LICENSE file for details
 
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,17 +10,16 @@ import 'package:mirkfall/application/controllers/active_session_controller.dart'
 import 'package:mirkfall/application/providers/boot_watchdog_provider.dart';
 import 'package:mirkfall/application/providers/fix_store_provider.dart';
 import 'package:mirkfall/application/providers/location_stream_provider.dart';
-import 'package:mirkfall/application/providers/revealed_tile_store_provider.dart';
+import 'package:mirkfall/application/providers/revealed_disc_store_provider.dart';
 import 'package:mirkfall/application/providers/session_notification_service_provider.dart';
 import 'package:mirkfall/application/providers/session_store_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/fixes/fix_store.dart';
 import 'package:mirkfall/domain/ids/fix_id.dart';
 import 'package:mirkfall/domain/ids/mirk_style_id.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
-import 'package:mirkfall/domain/revealed/revealed_tile.dart';
-import 'package:mirkfall/domain/revealed/revealed_tile_store.dart';
 import 'package:mirkfall/domain/sessions/session.dart';
 import 'package:mirkfall/domain/sessions/session_status.dart';
 import 'package:mirkfall/domain/sessions/session_store.dart';
@@ -29,10 +27,14 @@ import 'package:mirkfall/infrastructure/notifications/session_notification_servi
 import 'package:mirkfall/infrastructure/platform/ios_significant_change_watchdog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../fakes/fake_revealed_disc_store.dart';
 import '../../helpers/fake_location_stream.dart';
 
 /// Plan 09-06 Task 4 — `ActiveSessionController.start` initial 20 m
-/// reveal + per-fix forwarding to the reveal pipeline.
+/// reveal + per-fix forwarding to the reveal pipeline. Reformatted by
+/// BUG-010 Option B Commit 4 (2026-04-26) — the controller now drives a
+/// disc store; counter assertions check `addDiscCallCount` and the
+/// emitted disc's `radiusMeters`.
 ///
 /// Scenarios covered:
 /// 1. start with `lastKnownFix` cached → revealInitial fires once on
@@ -41,7 +43,7 @@ import '../../helpers/fake_location_stream.dart';
 ///    fires exactly once on the first incoming fix (slow path).
 /// 3. Each subsequent fix is forwarded via [`RevealStreamingController.onFix`]
 ///    (no second revealInitial).
-/// 4. stop() flushes the pipeline (mergeMask calls land before Idle
+/// 4. stop() flushes the pipeline (addDisc calls land before Idle
 ///    state settles).
 
 const SessionId _testSessionId = SessionId('sess_01HRACTIVESESSCTLTESTAAAAAAA');
@@ -142,26 +144,6 @@ class _FakeIosSignificantChangeWatchdog implements IosSignificantChangeWatchdog 
   Future<void> stopMonitoring() async {}
 }
 
-/// Spy-RevealedTileStore: counts mergeMask calls so the test can
-/// distinguish initial (radius=20 m) writes from streaming
-/// (radius=25 m) writes purely by call ordering. The first writes
-/// after start() are necessarily the initial reveal (fast path);
-/// subsequent calls are the streaming pipeline.
-class _SpyRevealedTileStore implements RevealedTileStore {
-  final List<({int parentX, int parentY, Uint8List mask})> mergeMaskCalls = <({int parentX, int parentY, Uint8List mask})>[];
-
-  @override
-  Future<void> mergeMask({required SessionId sessionId, required int parentX, required int parentY, required Uint8List mask}) async {
-    mergeMaskCalls.add((parentX: parentX, parentY: parentY, mask: Uint8List.fromList(mask)));
-  }
-
-  @override
-  Future<List<RevealedTile>> listBySession(SessionId sessionId) async => const <RevealedTile>[];
-
-  @override
-  Future<RevealedTile?> findByParent({required SessionId sessionId, required int parentX, required int parentY}) async => null;
-}
-
 Session _buildSession(SessionId id) => Session(
   id: id,
   displayName: 'Initial reveal test',
@@ -184,7 +166,7 @@ ProviderContainer _buildContainer({
   required _FakeSessionStore sessionStore,
   required _FakeFixStore fixStore,
   required FakeLocationStream locationStream,
-  required _SpyRevealedTileStore revealedTileStore,
+  required FakeRevealedDiscStore discStore,
 }) {
   return ProviderContainer(
     overrides: [
@@ -193,7 +175,7 @@ ProviderContainer _buildContainer({
       locationStreamProvider.overrideWith((ref) => locationStream),
       sessionNotificationServiceProvider.overrideWith((ref) => _FakeNotificationService()),
       iosSignificantChangeWatchdogProvider.overrideWith((ref) => _FakeIosSignificantChangeWatchdog()),
-      revealedTileStoreProvider.overrideWith((ref) async => revealedTileStore),
+      revealedDiscStoreProvider.overrideWith((ref) async => discStore),
     ],
   );
 }
@@ -204,29 +186,29 @@ void main() {
     SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
   });
 
-  group('09-06 — ActiveSessionController initial reveal (MIRK-01)', () {
+  group('09-06 — ActiveSessionController initial reveal (MIRK-01) — disc-store path', () {
     test('start with cached lastKnownFix fires revealInitial immediately (fast path)', () async {
       final cachedFix = _buildFix(sessionId: _testSessionId, suffix: '0F');
       final sessionStore = _FakeSessionStore(<SessionId, Session>{_testSessionId: _buildSession(_testSessionId)});
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream()..setLastKnownFix(cachedFix);
-      final revealedTileStore = _SpyRevealedTileStore();
+      final discStore = FakeRevealedDiscStore();
 
-      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, revealedTileStore: revealedTileStore);
+      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, discStore: discStore);
       addTearDown(container.dispose);
 
-      // Pre-resolve the async revealed-tile store so the synchronous
+      // Pre-resolve the async revealed-disc store so the synchronous
       // revealStreamingControllerProvider family read inside start()
       // sees the cached AsyncData rather than a still-loading state.
-      await container.read(revealedTileStoreProvider.future);
+      await container.read(revealedDiscStoreProvider.future);
       await container.read(activeSessionControllerProvider.future);
       await container.read(activeSessionControllerProvider.notifier).start(_testSessionId);
 
-      expect(
-        revealedTileStore.mergeMaskCalls.length,
-        greaterThanOrEqualTo(1),
-        reason: 'cached lastKnownFix must fire revealInitial during start() (fast path)',
-      );
+      expect(discStore.addDiscCallCount, 1, reason: 'cached lastKnownFix must fire revealInitial during start() (fast path)');
+      final disc = discStore.discs.single;
+      expect(disc.radiusMeters, kInitialRevealRadiusMeters.toDouble(), reason: 'initial reveal uses kInitialRevealRadiusMeters');
+      expect(disc.lat, cachedFix.latitude);
+      expect(disc.lon, cachedFix.longitude);
     });
 
     test('start with no cached fix → revealInitial fires on first stream emission (slow path)', () async {
@@ -234,20 +216,20 @@ void main() {
       final fixStore = _FakeFixStore();
       // No cached fix.
       final locationStream = FakeLocationStream();
-      final revealedTileStore = _SpyRevealedTileStore();
+      final discStore = FakeRevealedDiscStore();
 
-      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, revealedTileStore: revealedTileStore);
+      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, discStore: discStore);
       addTearDown(container.dispose);
 
-      // Pre-resolve the async revealed-tile store so the synchronous
+      // Pre-resolve the async revealed-disc store so the synchronous
       // revealStreamingControllerProvider family read inside start()
       // sees the cached AsyncData rather than a still-loading state.
-      await container.read(revealedTileStoreProvider.future);
+      await container.read(revealedDiscStoreProvider.future);
       await container.read(activeSessionControllerProvider.future);
       await container.read(activeSessionControllerProvider.notifier).start(_testSessionId);
 
       // No reveal writes yet — start() returned without a cached fix.
-      expect(revealedTileStore.mergeMaskCalls, isEmpty, reason: 'no reveal until first stream emission lands');
+      expect(discStore.addDiscCallCount, 0, reason: 'no reveal until first stream emission lands');
 
       // First fix arrives — both initial reveal AND onFix should fire.
       final firstFix = _buildFix(sessionId: _testSessionId, suffix: '01');
@@ -257,7 +239,11 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      expect(revealedTileStore.mergeMaskCalls.length, greaterThanOrEqualTo(1), reason: 'first stream emission must trigger initial reveal (slow path)');
+      expect(discStore.addDiscCallCount, greaterThanOrEqualTo(1), reason: 'first stream emission must trigger initial reveal (slow path)');
+      // The first written disc carries the kInitialRevealRadiusMeters
+      // radius — confirms it's the initial-reveal write, not a streaming
+      // 25 m disc.
+      expect(discStore.discs.first.radiusMeters, kInitialRevealRadiusMeters.toDouble());
     });
 
     test('subsequent fixes do NOT re-fire revealInitial (only onFix forwards)', () async {
@@ -265,24 +251,19 @@ void main() {
       final sessionStore = _FakeSessionStore(<SessionId, Session>{_testSessionId: _buildSession(_testSessionId)});
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream()..setLastKnownFix(cachedFix);
-      final revealedTileStore = _SpyRevealedTileStore();
+      final discStore = FakeRevealedDiscStore();
 
-      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, revealedTileStore: revealedTileStore);
+      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, discStore: discStore);
       addTearDown(container.dispose);
 
-      // Pre-resolve the async revealed-tile store so the synchronous
-      // revealStreamingControllerProvider family read inside start()
-      // sees the cached AsyncData rather than a still-loading state.
-      await container.read(revealedTileStoreProvider.future);
+      await container.read(revealedDiscStoreProvider.future);
       await container.read(activeSessionControllerProvider.future);
       await container.read(activeSessionControllerProvider.notifier).start(_testSessionId);
 
-      final initialCallCount = revealedTileStore.mergeMaskCalls.length;
-      expect(initialCallCount, greaterThanOrEqualTo(1));
+      final initialCallCount = discStore.addDiscCallCount;
+      expect(initialCallCount, 1);
 
-      // Emit a fix far enough away that it touches a NEW parent tile.
-      // ~0.5° east of cachedFix at lat 45° = ~40 km — definitely a
-      // different parent tile at zoom 14.
+      // Emit a fix at a different lat/lon.
       final newFix = _buildFix(sessionId: _testSessionId, suffix: '0E', lon: 5.5);
       locationStream.emit(newFix);
       await Future<void>.delayed(Duration.zero);
@@ -290,20 +271,20 @@ void main() {
 
       // The reveal pipeline buffers fixes — we cannot synchronously
       // assert a write happened. But we CAN flush by calling stop()
-      // and then assert a NEW mergeMask call happened on the new tile.
+      // and then assert a NEW addDisc call happened on the new fix.
       await container.read(activeSessionControllerProvider.notifier).stop();
 
-      final newTilesTouched = revealedTileStore.mergeMaskCalls.map((c) => '${c.parentX}_${c.parentY}').toSet();
-      expect(
-        newTilesTouched.length,
-        greaterThanOrEqualTo(2),
-        reason: 'after stop()/flush, both the initial-reveal tile AND the new-fix tile have been written',
-      );
+      // Two distinct discs in store: initial-reveal (20 m) at cachedFix
+      // coords + per-fix flush (25 m) at newFix coords.
+      expect(discStore.addDiscCallCount, greaterThanOrEqualTo(2), reason: 'after stop()/flush, both the initial-reveal AND the new-fix discs are persisted');
+      final radii = discStore.discs.map((d) => d.radiusMeters).toSet();
+      expect(radii, contains(kInitialRevealRadiusMeters.toDouble()));
+      expect(radii, contains(kDefaultRevealRadiusMeters));
     });
 
-    test('BUG-009 regression — start() pre-resolves revealedTileStore so the slow path lands on cold launch', () async {
+    test('BUG-009 regression — start() pre-resolves revealedDiscStore so the slow path lands on cold launch', () async {
       // Reproduces the BUG-009 follow-up failure on iOS sideload: on a
-      // fresh cold launch, `revealedTileStoreProvider` was NOT awaited
+      // fresh cold launch, `revealedDiscStoreProvider` was NOT awaited
       // inside start(), so the synchronous `ref.read` of the family
       // `revealStreamingControllerProvider` returned null on the first
       // few `_onFix` calls — dropping fixes on the floor (incl. the
@@ -314,13 +295,13 @@ void main() {
       final fixStore = _FakeFixStore();
       // No cached fix → forces the slow path.
       final locationStream = FakeLocationStream();
-      final revealedTileStore = _SpyRevealedTileStore();
+      final discStore = FakeRevealedDiscStore();
 
-      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, revealedTileStore: revealedTileStore);
+      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, discStore: discStore);
       addTearDown(container.dispose);
 
       // INTENTIONALLY skip the pre-resolve `await container.read(
-      // revealedTileStoreProvider.future)` — production cold launch never
+      // revealedDiscStoreProvider.future)` — production cold launch never
       // does it either; start() must do it itself.
       await container.read(activeSessionControllerProvider.future);
       await container.read(activeSessionControllerProvider.notifier).start(_testSessionId);
@@ -333,9 +314,9 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(
-        revealedTileStore.mergeMaskCalls.length,
+        discStore.addDiscCallCount,
         greaterThanOrEqualTo(1),
-        reason: 'BUG-009 regression: start() must pre-resolve the tile store so the first fix triggers the initial 20m reveal',
+        reason: 'BUG-009 regression: start() must pre-resolve the disc store so the first fix triggers the initial 20m reveal',
       );
     });
 
@@ -344,15 +325,12 @@ void main() {
       final sessionStore = _FakeSessionStore(<SessionId, Session>{_testSessionId: _buildSession(_testSessionId)});
       final fixStore = _FakeFixStore();
       final locationStream = FakeLocationStream()..setLastKnownFix(cachedFix);
-      final revealedTileStore = _SpyRevealedTileStore();
+      final discStore = FakeRevealedDiscStore();
 
-      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, revealedTileStore: revealedTileStore);
+      final container = _buildContainer(sessionStore: sessionStore, fixStore: fixStore, locationStream: locationStream, discStore: discStore);
       addTearDown(container.dispose);
 
-      // Pre-resolve the async revealed-tile store so the synchronous
-      // revealStreamingControllerProvider family read inside start()
-      // sees the cached AsyncData rather than a still-loading state.
-      await container.read(revealedTileStoreProvider.future);
+      await container.read(revealedDiscStoreProvider.future);
       await container.read(activeSessionControllerProvider.future);
       await container.read(activeSessionControllerProvider.notifier).start(_testSessionId);
       // Add a few fixes that the buffer would normally hold pending.
@@ -361,14 +339,14 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      final beforeStop = revealedTileStore.mergeMaskCalls.length;
+      final beforeStop = discStore.addDiscCallCount;
 
       await container.read(activeSessionControllerProvider.notifier).stop();
 
       // After stop() the buffer must be drained — call count is at
       // least equal to before-stop (idempotent + flush pushes any
-      // buffered fixes to mergeMask).
-      expect(revealedTileStore.mergeMaskCalls.length, greaterThanOrEqualTo(beforeStop), reason: 'stop() must flush — no fix is dropped on session end');
+      // buffered fixes to addDisc).
+      expect(discStore.addDiscCallCount, greaterThanOrEqualTo(beforeStop), reason: 'stop() must flush — no fix is dropped on session end');
       expect(container.read(activeSessionControllerProvider).value, isA<Idle>());
     });
   });

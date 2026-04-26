@@ -11,12 +11,14 @@ import 'package:mirkfall/application/controllers/active_session_controller.dart'
 import 'package:mirkfall/application/providers/active_mirk_renderer_provider.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/providers/map_viewport_provider.dart';
+import 'package:mirkfall/application/providers/discs_in_viewport_provider.dart';
 import 'package:mirkfall/application/providers/visible_mirk_tiles_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/mirk/visible_mirk_tile.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/atmospheric_mirk_renderer.dart';
 import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 
@@ -81,6 +83,7 @@ void main() {
             ),
             activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
             visibleMirkTilesProvider.overrideWith((ref) async => [_tile()]),
+            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
           ],
@@ -97,11 +100,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 16));
 
       expect(fakeRenderer.paintCallCount, greaterThan(0), reason: 'overlay must invoke renderer.paint at least once after mount');
-      // Painted with the right ingredients.
+      // Painted with the right ingredients. BUG-010 Option B Commit 4:
+      // the overlay now feeds `discs` from `discsInViewportProvider`
+      // rather than `visibleTiles` (the legacy bitmap field is
+      // defaulted to const [] and Commit 5 deletes it).
       final ctx = fakeRenderer.paintContexts.last;
       expect(ctx.zoomLevel, 14.0);
       expect(ctx.viewportBbox.north, 44.0);
-      expect(ctx.visibleTiles, hasLength(1));
+      expect(ctx.discs, isEmpty, reason: 'override seeds an empty disc list — overlay still paints (fog over viewport rect)');
     });
 
     testWidgets('AtmosphericMirkRenderer paints without throwing when wired through the overlay', (tester) async {
@@ -125,6 +131,7 @@ void main() {
             ),
             activeMirkRendererProvider.overrideWith((ref) async => renderer),
             visibleMirkTilesProvider.overrideWith((ref) async => [_tile()]),
+            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
           ],
@@ -155,6 +162,7 @@ void main() {
           ),
           activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
           visibleMirkTilesProvider.overrideWith((ref) async => [_tile()]),
+          discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
           mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
           mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
         ],

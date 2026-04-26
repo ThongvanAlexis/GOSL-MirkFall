@@ -95,7 +95,8 @@ void main() {
         pixelRatio: 3.0,
         sessionElapsed: const Duration(seconds: 5),
         viewportBbox: MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0),
-        visibleTiles: const <VisibleMirkTile>[],
+        // visibleTiles omitted — defaults to const [] (was a required field
+        // before BUG-010 Option B Commit 4 demoted it to a defaulted slot).
         // currentFix omitted on purpose — the field is nullable and defaults to null;
         // this test documents that the omitted form is the canonical "no fix yet" shape.
       );
@@ -143,7 +144,6 @@ void main() {
         pixelRatio: 3.0,
         sessionElapsed: const Duration(seconds: 1),
         viewportBbox: MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0),
-        visibleTiles: const <VisibleMirkTile>[],
         currentFix: fix,
       );
       expect(ctx.currentFix, isNotNull);
@@ -157,7 +157,6 @@ void main() {
           pixelRatio: 3.0,
           sessionElapsed: Duration.zero,
           viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
-          visibleTiles: const <VisibleMirkTile>[],
         ),
         throwsA(isA<AssertionError>()),
       );
@@ -170,7 +169,6 @@ void main() {
           pixelRatio: 0.0,
           sessionElapsed: Duration.zero,
           viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
-          visibleTiles: const <VisibleMirkTile>[],
         ),
         throwsA(isA<AssertionError>()),
       );
@@ -178,20 +176,8 @@ void main() {
 
     test('Freezed equality: two identical contexts compare equal', () {
       final bbox = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
-      final a = MirkPaintContext(
-        zoomLevel: 14.0,
-        pixelRatio: 3.0,
-        sessionElapsed: const Duration(seconds: 5),
-        viewportBbox: bbox,
-        visibleTiles: const <VisibleMirkTile>[],
-      );
-      final b = MirkPaintContext(
-        zoomLevel: 14.0,
-        pixelRatio: 3.0,
-        sessionElapsed: const Duration(seconds: 5),
-        viewportBbox: bbox,
-        visibleTiles: const <VisibleMirkTile>[],
-      );
+      final a = MirkPaintContext(zoomLevel: 14.0, pixelRatio: 3.0, sessionElapsed: const Duration(seconds: 5), viewportBbox: bbox);
+      final b = MirkPaintContext(zoomLevel: 14.0, pixelRatio: 3.0, sessionElapsed: const Duration(seconds: 5), viewportBbox: bbox);
       expect(a, b);
       expect(a.hashCode, b.hashCode);
     });

@@ -3,20 +3,25 @@
 // See LICENSE file for details
 
 import 'dart:async';
-import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
+import 'package:mirkfall/domain/ids/id_generator.dart';
 import 'package:mirkfall/domain/ids/session_id.dart';
-import 'package:mirkfall/domain/revealed/reveal_calculator.dart';
-import 'package:mirkfall/domain/revealed/revealed_tile_store.dart';
-import 'package:mirkfall/domain/revealed/tile_math.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
+import 'package:mirkfall/domain/revealed/revealed_disc_store.dart';
 
 final Logger _log = Logger('application.controllers.reveal_streaming');
 
-/// Buffers GPS fixes and flushes reveal-mask writes to [RevealedTileStore]
+/// ID prefix for reveal disc rows. Kept inline (not promoted to a typed
+/// extension type yet — see [RevealDisc.id] docstring) so the controller
+/// mints `rvd_<26-char-ULID>` ids that match the Drift `t_revealed_disc.id`
+/// column shape. Trailing underscore matches the project convention used
+/// by every other id namespace (`sess_`, `rvt_`, `fix_`, …).
+const String _kRevealDiscIdPrefix = 'rvd_';
+
+/// Buffers GPS fixes and flushes reveal-disc writes to [RevealedDiscStore]
 /// in batches.
 ///
 /// Flush triggers (first-to-fire wins):
@@ -27,22 +32,38 @@ final Logger _log = Logger('application.controllers.reveal_streaming');
 /// session-open reveal uses [kInitialRevealRadiusMeters] (20 m) via
 /// [revealInitial] and bypasses the buffer entirely.
 ///
-/// Disposal semantics: [dispose] flushes any still-buffered fixes
-/// before returning — guarantees no fix is lost on session
-/// end / app background.
+/// ## BUG-010 Option B (Commit 4)
+///
+/// Pre-Commit-4 the controller wrote a 512-byte cell-bitmap mask per
+/// touched parent tile per fix (the 64×64 cell grid produced "blocky"
+/// reveal corners visible in BUG-010 UAT walks). The new path appends a
+/// single immutable [RevealDisc] per fix — the SDF builder consumes the
+/// continuous geometry directly at render time, so there is no per-tile
+/// fan-out and no quantisation. See `docs/phase09-bug-tracking/
+/// BUG-010-cell-grid-resolution-blocky.md` for the full rationale.
+///
+/// Disposal semantics: [dispose] flushes any still-buffered fixes before
+/// returning — guarantees no fix is lost on session end / app background.
 ///
 /// Error-handling tier (CLAUDE.md §Error handling level 2): a single
-/// `mergeMask` write failure on one parent tile is logged and the loop
-/// continues. The whole batch is not dropped — partial progress is
-/// strictly better than no progress in a fog-of-war reveal pipeline.
+/// `addDisc` write failure on one fix is logged and the loop continues.
+/// The whole batch is not dropped — partial progress is strictly better
+/// than no progress in a fog-of-war reveal pipeline.
 class RevealStreamingController {
-  RevealStreamingController({required this.sessionId, required this.store, Duration? flushInterval, int? flushMaxFixes, double? revealRadiusMeters})
-    : flushInterval = flushInterval ?? const Duration(seconds: kRevealFlushIntervalSeconds),
-      flushMaxFixes = flushMaxFixes ?? kRevealFlushMaxFixes,
-      revealRadiusMeters = revealRadiusMeters ?? kDefaultRevealRadiusMeters;
+  RevealStreamingController({
+    required this.sessionId,
+    required this.discStore,
+    required this.idGenerator,
+    Duration? flushInterval,
+    int? flushMaxFixes,
+    double? revealRadiusMeters,
+  }) : flushInterval = flushInterval ?? const Duration(seconds: kRevealFlushIntervalSeconds),
+       flushMaxFixes = flushMaxFixes ?? kRevealFlushMaxFixes,
+       revealRadiusMeters = revealRadiusMeters ?? kDefaultRevealRadiusMeters;
 
   final SessionId sessionId;
-  final RevealedTileStore store;
+  final RevealedDiscStore discStore;
+  final IdGenerator idGenerator;
   final Duration flushInterval;
   final int flushMaxFixes;
   final double revealRadiusMeters;
@@ -53,7 +74,7 @@ class RevealStreamingController {
 
   /// In-flight flush future. Re-entrant calls during a running flush
   /// await the same future rather than firing a parallel batch (which
-  /// could otherwise interleave `mergeMask` writes for the same tile).
+  /// could otherwise interleave `addDisc` writes).
   Future<void>? _inFlightFlush;
 
   /// Buffers [fix] and triggers a flush if [flushMaxFixes] is reached.
@@ -79,7 +100,7 @@ class RevealStreamingController {
   /// session open to seed an immediate disc around the user position.
   Future<void> revealInitial(Fix fix) async {
     if (_disposed) return;
-    await _writeCircleReveal(fix.latitude, fix.longitude, kInitialRevealRadiusMeters.toDouble());
+    await _writeDisc(fix, radiusMeters: kInitialRevealRadiusMeters.toDouble());
   }
 
   /// Triggers a flush of the buffered fixes immediately — bypasses the
@@ -109,98 +130,36 @@ class RevealStreamingController {
   }
 
   Future<void> _flushBatch(List<Fix> batch) async {
-    // BUG-009 follow-up diagnostic (2026-04-25) — count distinct parent
-    // tiles touched across the batch so a "flush ran but nothing was
-    // written" failure mode is observable in the logs. We sum tile
-    // counts per fix BEFORE the actual mergeMask call so the log
-    // appears even if a downstream write throws.
-    var totalCells = 0;
-    final touchedTileSet = <int>{};
+    _log.info('flush: writing ${batch.length} disc(s) to RevealedDiscStore (radius=${revealRadiusMeters.toStringAsFixed(1)}m)');
     for (final fix in batch) {
-      for (final tile in _touchedParentTiles(fix.latitude, fix.longitude, revealRadiusMeters)) {
-        // Pack (x, y) into a 53-bit-safe key for set dedup. parentX/Y
-        // at zoom 14 fit in 14 bits each.
-        touchedTileSet.add((tile.x << 20) ^ tile.y);
-        totalCells++;
-      }
-    }
-    _log.info('flush: writing $totalCells cells across ${touchedTileSet.length} tiles to RevealedTileStore (batch=${batch.length} fixes)');
-    for (final fix in batch) {
-      await _writeCircleReveal(fix.latitude, fix.longitude, revealRadiusMeters);
+      await _writeDisc(fix, radiusMeters: revealRadiusMeters);
     }
   }
 
-  /// Computes the per-parent-tile reveal masks for a circle of [radius]
-  /// metres around ([lat], [lon]) and writes each non-empty mask via
-  /// [`RevealedTileStore.mergeMask`].
+  /// Writes a single [RevealDisc] for [fix] with [radiusMeters] radius.
   ///
-  /// A fix near a parent-tile boundary touches 2+ tiles — every touched
-  /// tile gets its own write. Empty masks (circle does not actually
-  /// intersect a candidate tile after the per-cell Haversine prune) are
-  /// skipped to save a no-op DB write.
-  Future<void> _writeCircleReveal(double lat, double lon, double radius) async {
-    final touchedTiles = _touchedParentTiles(lat, lon, radius);
-    for (final tile in touchedTiles) {
-      final mask = computeRevealMask(
-        centerLat: lat,
-        centerLon: lon,
-        radiusMeters: radius,
-        parentX: tile.x,
-        parentY: tile.y,
-        parentZoom: kRevealedTileParentZoom,
-      );
-      if (!_hasAnyBit(mask)) continue;
-      try {
-        await store.mergeMask(sessionId: sessionId, parentX: tile.x, parentY: tile.y, mask: mask);
-      } on Object catch (e, stack) {
-        // CLAUDE.md §Error handling level 2: a per-tile DB write failure
-        // is recoverable noise — log and continue with the rest of the
-        // batch. Surfacing it would drop later tiles' reveal data on
-        // the floor, which is strictly worse than losing one tile's
-        // update.
-        _log.warning('mergeMask failed for parent (${tile.x}, ${tile.y}) — continuing', e, stack);
-      }
+  /// BUG-010 Option B: the per-parent-tile fan-out is gone — a single
+  /// disc carries the geometry the SDF builder needs at render time.
+  /// `addDisc` is idempotent on the disc id (`INSERT OR IGNORE`), so a
+  /// retry after a transient DB error is replay-safe.
+  Future<void> _writeDisc(Fix fix, {required double radiusMeters}) async {
+    final disc = RevealDisc(
+      id: idGenerator.newId(_kRevealDiscIdPrefix),
+      sessionId: sessionId.value,
+      lat: fix.latitude,
+      lon: fix.longitude,
+      radiusMeters: radiusMeters,
+      fixedAtUtc: fix.recordedAtUtc,
+    );
+    try {
+      await discStore.addDisc(disc);
+    } on Object catch (e, stack) {
+      // CLAUDE.md §Error handling level 2: a per-fix DB write failure
+      // is recoverable noise — log and continue with the rest of the
+      // batch. Surfacing it would drop later fixes' reveal data on the
+      // floor, which is strictly worse than losing one disc.
+      _log.warning('addDisc failed for fix lat=${fix.latitude} lon=${fix.longitude} — continuing', e, stack);
     }
-  }
-
-  /// Enumerates the zoom-14 parent tiles touched by a circle of [radius]
-  /// metres around ([lat], [lon]).
-  ///
-  /// Uses a crude Mercator inverse (fixed metres-per-degree-lat,
-  /// cos-scaled metres-per-degree-lon) to compute the bbox-corner tile
-  /// indices. The downstream [computeRevealMask] runs the per-cell
-  /// Haversine clamp, so a slight bbox over-estimate here produces at
-  /// most a few empty-mask candidates that get filtered by the
-  /// `_hasAnyBit` guard.
-  Iterable<({int x, int y})> _touchedParentTiles(double lat, double lon, double radius) {
-    const latDegPerMeter = 1.0 / 111320.0;
-    // Guard the cosine against the polar Mercator clamp (cos(±90°) →
-    // 0 → infinite lon-degree-per-metre).
-    final clampedCosLat = math.cos(lat.clamp(-TileMath.maxLatMercator, TileMath.maxLatMercator) * math.pi / 180.0);
-    final lonDegPerMeter = 1.0 / (111320.0 * clampedCosLat);
-
-    final minLat = lat - radius * latDegPerMeter;
-    final maxLat = lat + radius * latDegPerMeter;
-    final minLon = lon - radius * lonDegPerMeter;
-    final maxLon = lon + radius * lonDegPerMeter;
-
-    final nw = TileMath.latLonToTile(lat: maxLat, lon: minLon, zoom: kRevealedTileParentZoom);
-    final se = TileMath.latLonToTile(lat: minLat, lon: maxLon, zoom: kRevealedTileParentZoom);
-
-    final tiles = <({int x, int y})>[];
-    for (var y = nw.y; y <= se.y; y++) {
-      for (var x = nw.x; x <= se.x; x++) {
-        tiles.add((x: x, y: y));
-      }
-    }
-    return tiles;
-  }
-
-  bool _hasAnyBit(Uint8List bytes) {
-    for (final b in bytes) {
-      if (b != 0) return true;
-    }
-    return false;
   }
 
   /// Flushes any still-buffered fixes synchronously, then marks the

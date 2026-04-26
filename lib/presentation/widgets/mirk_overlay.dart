@@ -8,13 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/providers/active_mirk_renderer_provider.dart';
+import 'package:mirkfall/application/providers/discs_in_viewport_provider.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/providers/map_viewport_provider.dart';
-import 'package:mirkfall/application/providers/visible_mirk_tiles_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
 final Logger _log = Logger('presentation.mirk_overlay');
 
@@ -54,7 +55,7 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
   int _buildCallCount = 0;
 
   /// BUG-009 follow-up diagnostic (2026-04-26) — last bail-out reason we
-  /// INFO-logged ("rendererAsync", "tilesAsync", "viewport", "zoom", or
+  /// INFO-logged ("rendererAsync", "discsAsync", "viewport", "zoom", or
   /// "rendering") so we can pinpoint WHICH prerequisite was gating the
   /// overlay when the user observed "flat grey sheet" on commit dcffede.
   String? _lastBailoutReason;
@@ -81,10 +82,18 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final AsyncValue<MirkRenderer> rendererAsync = ref.watch(activeMirkRendererProvider);
-    final tilesAsync = ref.watch(visibleMirkTilesProvider);
     final viewport = ref.watch(mapViewportProvider);
     final sessionState = ref.watch(activeSessionControllerProvider);
     final double? zoom = ref.watch(mapViewportZoomProvider);
+    // BUG-010 Option B Commit 4 — replaces the prior
+    // `visibleMirkTilesProvider` watch. The renderers consume the disc
+    // list via `MirkPaintContext.discs` and feed it to
+    // [`RevealedSdfBuilder.buildFromDiscs`] (continuous geometry). The
+    // legacy bitmap provider remains in the codebase for one more commit
+    // (orphan-deletion lands in Commit 5).
+    final AsyncValue<List<RevealDisc>> discsAsync = viewport != null
+        ? ref.watch(discsInViewportProvider(viewport: viewport))
+        : const AsyncData<List<RevealDisc>>(<RevealDisc>[]);
 
     // BUG-009 follow-up diagnostic (2026-04-25) — confirm the overlay
     // is actually being built and inspect which prerequisite (if any)
@@ -98,10 +107,10 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
       // so the user's file logger captures it without a root-level
       // threshold change. Pairs with the renderer's first-paint log.
       _log.info(
-        'build: first invocation — rendererAsync=${rendererAsync.runtimeType} tilesAsync=${tilesAsync.runtimeType} viewport=${viewport != null} zoom=$zoom',
+        'build: first invocation — rendererAsync=${rendererAsync.runtimeType} discsAsync=${discsAsync.runtimeType} viewport=${viewport != null} zoom=$zoom',
       );
     } else if (_buildCallCount % 60 == 0) {
-      _log.fine('build: rendererAsync=${rendererAsync.runtimeType} tilesAsync=${tilesAsync.runtimeType} viewport=${viewport != null} zoom=$zoom');
+      _log.fine('build: rendererAsync=${rendererAsync.runtimeType} discsAsync=${discsAsync.runtimeType} viewport=${viewport != null} zoom=$zoom');
     }
     _buildCallCount++;
 
@@ -111,12 +120,12 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
     String bailoutReason;
     if (!rendererAsync.hasValue) {
       bailoutReason = 'rendererAsync not hasValue (${rendererAsync.runtimeType})';
-    } else if (!tilesAsync.hasValue) {
-      bailoutReason = 'tilesAsync not hasValue (${tilesAsync.runtimeType})';
     } else if (viewport == null) {
       bailoutReason = 'viewport==null';
     } else if (zoom == null) {
       bailoutReason = 'zoom==null';
+    } else if (!discsAsync.hasValue) {
+      bailoutReason = 'discsAsync not hasValue (${discsAsync.runtimeType})';
     } else {
       bailoutReason = 'rendering';
     }
@@ -130,7 +139,7 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
       return const SizedBox.shrink();
     }
     final renderer = rendererAsync.value!;
-    final tiles = tilesAsync.value!;
+    final discs = discsAsync.value!;
     final Tracking? tracking = sessionState.value is Tracking ? sessionState.value as Tracking : null;
     final Fix? currentFix = tracking?.lastFix;
 
@@ -153,7 +162,10 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
           // promotion can't see across the local-string check. Asserted
           // non-null with `!` — safe by construction.
           viewportBbox: viewport!,
-          visibleTiles: tiles,
+          // visibleTiles intentionally defaulted (`const []`) — the
+          // BUG-010 Option B disc path superseded the bitmap surface;
+          // Commit 5 deletes the orphaned visibleMirkTilesProvider.
+          discs: discs,
           currentFix: currentFix,
         ),
       ),
