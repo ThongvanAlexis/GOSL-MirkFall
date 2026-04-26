@@ -160,7 +160,15 @@ All three landed in MirkFall's `assets/shaders/atmospheric_fog.frag` simultaneou
 
 **For the next agent.** Treat unused uniform declarations as a compile-time error. Lint the `.frag` if your project has more than one shader.
 
-### 4.5 `FlutterFragCoord()` and the OpenGLES Y-flip guard
+### 4.5 SDF visible stepping cannot be fully fixed by post-processing if the source data is on a coarse grid
+
+**Cross-project lesson.** When you build a signed distance field from a coarse rasterised seed (e.g. cells written as binary 0/1 on a 64×64 grid), the rectangular character of those cells is baked into the distance field at every iso-surface, not just the boundary line. Downstream attempts to hide the stepping — shader-side `smoothstep` over a wider band, ordered dither at sample time, post-chamfer separable Gaussian blur on the float `signedDistPixels` array before encoding to uint8 — each soften the corners but cannot remove the rectangular character because the SDF distances themselves encode the rectangle topology. A 5×5 Pascal Gaussian (σ ≈ 1.0) over an SDF where each cell projects to 20-30 pixels has a blur radius (3-5 px) that's an order of magnitude smaller than the feature it would need to dissolve.
+
+We hit this end-to-end in MirkFall's BUG-009. The shader-side dither + smoothstep band (`4736342`) reduced banding to acceptable, but the rectangle silhouette stayed visible at small reveal radii. The post-chamfer Gaussian (`a9c7ced`) was reverted (`118b95a`) because it changed the boundary glow band's aspect globally without fixing the steppy character. The architectural fix tracked under `BUG-010` is to rasterise cells as **circles** (coverage-based circle fill at SDF build time) or to drop the bitmap entirely for a continuous geometry (`(lat, lon, radius, ts)` discs + `union-of-discs` SDF directly).
+
+**For the next agent.** When you find yourself adding the third post-processing layer to hide stepping in an SDF, stop and audit the source data. If the source is rasterised on a grid coarse enough that a single feature projects to N pixels of the SDF (N ≈ 20-30 in MirkFall's case), no kernel of reasonable cost (radius 3-5 px) can dissolve it. The fixes that work: (a) rasterise the source as a smoother shape (circle instead of rectangle) BEFORE the chamfer pass, (b) compute the SDF directly from continuous geometry (`min over primitives of (dist(p, primitive) - radius)`), or (c) increase the SDF resolution so each source cell projects to fewer pixels and reasonable blurs CAN dissolve it (linear cost increase). Post-process band-aids cost engineering attention without paying off architecturally.
+
+### 4.6 `FlutterFragCoord()` and the OpenGLES Y-flip guard
 
 **Cross-project lesson.** Use `FlutterFragCoord()` instead of `gl_FragCoord` in Flutter `.frag` files. The former is the abstraction that handles the OpenGLES vs Metal Y-flip difference. Bare `gl_FragCoord` produces an output that is upside-down on one platform and right-side-up on the other. See `assets/shaders/atmospheric_fog.frag` in commit `a07dff9`.
 

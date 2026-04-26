@@ -91,3 +91,7 @@ Les UAT walks de fin de journée (pendant l'itération BUG-009) confirment que l
 **Suivi :** voir **`BUG-010-cell-grid-resolution-blocky.md`**. Le fix retenu par l'utilisateur est une refonte de la data layer en géométrie continue (option B — liste de discs `(lat, lon, radius, timestamp)` + rendu via union-of-discs SDF). Doit lander avant Phase 10 (Review Gate Fog).
 
 Pas de changement de code sur ce ticket — le scope BUG-006 est officiellement fermé sur le périmètre boundary smoothing. Les carrés à petit rayon sont migrés vers BUG-010.
+
+### Update 2026-04-26 — confirmation que le bandaid post-process ne suffit pas
+
+Une tentative de fix purement-rendu sur le SDF (Gaussian post-chamfer σ=1.0, commit `a9c7ced`) a été reverted (`118b95a`) parce qu'elle lissait les corners mais pas le caractère rectangulaire des cells, et changeait l'aspect global du mirk. **Confirme que le périmètre BUG-006 boundary-smoothing est saturé** — toute amélioration supplémentaire passe par BUG-010. Une nouvelle Option D ("circle rasterisation in SDF builder") est à l'étude dans BUG-010 comme stop-gap intermédiaire avant le rework Option B complet.
