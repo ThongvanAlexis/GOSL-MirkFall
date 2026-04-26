@@ -122,3 +122,5 @@ Phase 10 = Review Gate Fog : l'utilisateur valide la qualité visuelle du fog su
 - **BUG-006** — boundary smoothing (closed sur ce périmètre, le reste migre ici)
 - **BUG-009** — TIER 2 fog visual (en cours de validation device, blocker pour démarrer BUG-010)
 - **CLAUDE.md "préférer la déduction au tracking"** — la liste de discs est la vraie state, le bitmap actuel en est une déduction ; donc le rework est aligné avec la philosophie projet.
+
+**Compaction:** `compactSession` is now invoked at session stop (Commit 6). Compaction tolerance configurable via `kRevealedDiscCompactionContainmentTolerance` in `lib/config/constants.dart`.

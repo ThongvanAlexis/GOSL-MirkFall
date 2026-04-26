@@ -293,6 +293,21 @@ class ActiveSessionController extends _$ActiveSessionController {
           // timer) fires now rather than racing with the next start().
           ref.invalidate(revealStreamingControllerProvider(stoppingId));
         });
+
+        // BUG-010 Option B Commit 6 (2026-04-26) — offline compaction.
+        // Runs AFTER the reveal-flush above so the compactor sees a
+        // fully drained table (no pending in-memory fixes that would
+        // land post-compaction and survive as un-compacted rows). Runs
+        // BEFORE the DB deactivate below so compaction is associated
+        // with the active session lifetime rather than with a stopped
+        // row. Failures are best-effort per CLAUDE.md §Error handling
+        // tier 3 — a compaction failure must NOT block the user's stop
+        // intent from settling.
+        await _bestEffort('stop.compactSession', () async {
+          final discStore = await ref.read(revealedDiscStoreProvider.future);
+          final droppedCount = await discStore.compactSession(stoppingId.value);
+          _log.info('compactSession(${stoppingId.value}): dropped $droppedCount discs');
+        });
       }
       _initialRevealDone = false;
 

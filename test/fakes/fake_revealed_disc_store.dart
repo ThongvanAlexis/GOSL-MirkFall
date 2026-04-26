@@ -35,6 +35,26 @@ class FakeRevealedDiscStore implements RevealedDiscStore {
   /// [throwOnNextCall] then resets it.
   Object? throwOnNextCall;
 
+  /// When non-null, the NEXT call to [compactSession] throws this error
+  /// (then resets). Lets BUG-010 Commit 6 tests assert the
+  /// `ActiveSessionController.stop()` flow swallows compaction failures
+  /// without preventing the session from settling to stopped.
+  Object? throwOnNextCompactSession;
+
+  /// Monotonic counter used to record the order in which methods are
+  /// invoked. Each call to [addDisc] / [compactSession] increments it
+  /// and stores the resulting sequence number on the call. Lets tests
+  /// assert that compaction runs AFTER all reveal writes (BUG-010
+  /// Commit 6 — compaction must see a fully flushed table).
+  int _callSequence = 0;
+
+  /// Sequence numbers for every [addDisc] call, in invocation order.
+  final List<int> addDiscCallSequenceNumbers = <int>[];
+
+  /// Sequence numbers for every [compactSession] call, in invocation
+  /// order.
+  final List<int> compactSessionCallSequenceNumbers = <int>[];
+
   /// Resets all counters + clears the in-memory disc list.
   void reset() {
     discs.clear();
@@ -43,6 +63,10 @@ class FakeRevealedDiscStore implements RevealedDiscStore {
     discsForSessionCallCount = 0;
     compactSessionCallCount = 0;
     throwOnNextCall = null;
+    throwOnNextCompactSession = null;
+    _callSequence = 0;
+    addDiscCallSequenceNumbers.clear();
+    compactSessionCallSequenceNumbers.clear();
   }
 
   void _maybeThrow() {
@@ -57,6 +81,8 @@ class FakeRevealedDiscStore implements RevealedDiscStore {
   Future<void> addDisc(RevealDisc disc) async {
     _maybeThrow();
     addDiscCallCount++;
+    _callSequence++;
+    addDiscCallSequenceNumbers.add(_callSequence);
     // Idempotent on `disc.id` — mirror the prod `INSERT OR IGNORE`.
     final exists = discs.any((d) => d.id == disc.id);
     if (exists) return;
@@ -82,7 +108,20 @@ class FakeRevealedDiscStore implements RevealedDiscStore {
   @override
   Future<int> compactSession(String sessionId, {double tolerance = kRevealedDiscCompactionContainmentTolerance}) async {
     _maybeThrow();
+    final scheduledThrow = throwOnNextCompactSession;
+    if (scheduledThrow != null) {
+      throwOnNextCompactSession = null;
+      // Count + sequence the call BEFORE throwing — the test assertion
+      // is "compactSession was attempted at the right point in stop()",
+      // which is true even when the implementation later raises.
+      compactSessionCallCount++;
+      _callSequence++;
+      compactSessionCallSequenceNumbers.add(_callSequence);
+      throw scheduledThrow;
+    }
     compactSessionCallCount++;
+    _callSequence++;
+    compactSessionCallSequenceNumbers.add(_callSequence);
     // Same containment-walk algorithm as `DriftRevealedDiscStore`: sort
     // by radius DESC, keep a "kept" list, drop any disc contained in
     // any earlier (larger-or-equal) kept disc.

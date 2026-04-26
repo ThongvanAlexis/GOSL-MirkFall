@@ -541,6 +541,120 @@ void main() {
       expect(container.read(activeSessionControllerProvider).value, isA<Idle>());
     });
 
+    test('stopInvokesCompactSessionOnDiscStore', () async {
+      // BUG-010 Option B Commit 6 — the offline compactor must run on
+      // session deactivation. The fake's compactSessionCallCount goes
+      // from 0 to 1 across the stop() boundary.
+      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      const sessionId = SessionId('sess_01HR0000000000000000000A');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final fixStore = _FakeFixStore();
+      final locationStream = FakeLocationStream();
+      final notificationService = _FakeNotificationService();
+      final discStore = FakeRevealedDiscStore();
+
+      final container = ProviderContainer(
+        overrides: [
+          sessionStoreProvider.overrideWith((ref) async => sessionStore),
+          fixStoreProvider.overrideWith((ref) async => fixStore),
+          locationStreamProvider.overrideWith((ref) => locationStream),
+          sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
+          iosSignificantChangeWatchdogProvider.overrideWith((ref) => _FakeIosSignificantChangeWatchdog()),
+          revealedDiscStoreProvider.overrideWith((ref) async => discStore),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeSessionControllerProvider.future);
+      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      // Initial 20 m reveal during start() races on `lastKnownFix` —
+      // emit one in-session fix to guarantee an addDisc call lands BEFORE
+      // stop(), so the sequence-number assertion below has at least one
+      // pre-compaction write to compare against.
+      locationStream.emit(_buildFix(sessionId: sessionId));
+      await Future<void>.delayed(Duration.zero);
+
+      await container.read(activeSessionControllerProvider.notifier).stop();
+
+      expect(discStore.compactSessionCallCount, 1, reason: 'compactSession must run exactly once on stop()');
+    });
+
+    test('stopInvokesCompactSessionAfterRevealWrites', () async {
+      // BUG-010 Option B Commit 6 — sequence proof: the compactor must
+      // see a flushed table. We assert the compactSession sequence
+      // number is strictly greater than every addDisc sequence number.
+      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      const sessionId = SessionId('sess_01HR0000000000000000000A');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final fixStore = _FakeFixStore();
+      final locationStream = FakeLocationStream();
+      final notificationService = _FakeNotificationService();
+      final discStore = FakeRevealedDiscStore();
+
+      final container = ProviderContainer(
+        overrides: [
+          sessionStoreProvider.overrideWith((ref) async => sessionStore),
+          fixStoreProvider.overrideWith((ref) async => fixStore),
+          locationStreamProvider.overrideWith((ref) => locationStream),
+          sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
+          iosSignificantChangeWatchdogProvider.overrideWith((ref) => _FakeIosSignificantChangeWatchdog()),
+          revealedDiscStoreProvider.overrideWith((ref) async => discStore),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeSessionControllerProvider.future);
+      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      locationStream.emit(_buildFix(sessionId: sessionId));
+      // Drain the microtask queue so RevealStreamingController's
+      // buffered write lands BEFORE we issue stop(). Without this, the
+      // addDisc may race the stop()'s flush into the same microtask
+      // batch and the sequence numbers no longer carry the "writes
+      // before compaction" semantic the test asserts.
+      await Future<void>.delayed(Duration.zero);
+      await container.read(activeSessionControllerProvider.notifier).stop();
+
+      expect(discStore.addDiscCallSequenceNumbers, isNotEmpty, reason: 'at least one reveal write must have landed before stop()');
+      expect(discStore.compactSessionCallSequenceNumbers, hasLength(1));
+      final maxAddDiscSeq = discStore.addDiscCallSequenceNumbers.reduce((a, b) => a > b ? a : b);
+      final compactSeq = discStore.compactSessionCallSequenceNumbers.single;
+      expect(compactSeq, greaterThan(maxAddDiscSeq), reason: 'compactSession must run AFTER every addDisc — the buffer is drained before compaction');
+    });
+
+    test('stopSettlesToIdleEvenWhenCompactionThrows', () async {
+      // BUG-010 Option B Commit 6 — compaction failure is best-effort
+      // per CLAUDE.md §Error handling tier 3. The user's stop intent
+      // MUST settle to Idle and the session MUST be deactivated even
+      // when the compactor raises.
+      SharedPreferences.setMockInitialValues(const <String, Object>{'distanceFilter_meters': 5});
+      const sessionId = SessionId('sess_01HR0000000000000000000A');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionId: _buildSession(sessionId)});
+      final fixStore = _FakeFixStore();
+      final locationStream = FakeLocationStream();
+      final notificationService = _FakeNotificationService();
+      final discStore = FakeRevealedDiscStore()..throwOnNextCompactSession = StateError('compaction blew up');
+
+      final container = ProviderContainer(
+        overrides: [
+          sessionStoreProvider.overrideWith((ref) async => sessionStore),
+          fixStoreProvider.overrideWith((ref) async => fixStore),
+          locationStreamProvider.overrideWith((ref) => locationStream),
+          sessionNotificationServiceProvider.overrideWith((ref) => notificationService),
+          iosSignificantChangeWatchdogProvider.overrideWith((ref) => _FakeIosSignificantChangeWatchdog()),
+          revealedDiscStoreProvider.overrideWith((ref) async => discStore),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(activeSessionControllerProvider.future);
+      await container.read(activeSessionControllerProvider.notifier).start(sessionId);
+      await container.read(activeSessionControllerProvider.notifier).stop();
+
+      expect(discStore.compactSessionCallCount, 1, reason: 'compaction was attempted');
+      expect(sessionStore.deactivatedIds, <SessionId>[sessionId], reason: 'compaction failure must NOT prevent the session from being deactivated');
+      expect(container.read(activeSessionControllerProvider).value, isA<Idle>(), reason: 'state must settle to Idle even when compaction throws');
+    });
+
     test('onFixDbInsertFailureTransitionsToAsyncError', () async {
       // Phase 06 Should #7 regression guard: fixStore.insert() throwing
       // mid-Tracking must not escape into the zone handler; the
