@@ -670,8 +670,16 @@ const double kMirkFogBoundarySharpDistance = 0.04;
 
 /// Distance over which the LONG-TAIL bleed ramps from 0.7 to 1.0 alpha.
 /// Several times the sharp distance — the trailing watercolour fade.
-// 2026-04-26: baked from live tuner walk N+M
-const double kMirkFogBoundaryBleedDistance = 0.0;
+///
+/// 2026-04-26 (BUG-009 follow-up): restored to 0.12 after the previous bake
+/// at 0.0 collapsed the second smoothstep into a hard step, producing a
+/// stark white-ish edge where the alpha jumped 0.7 → 1.0 in one pixel.
+/// The long-tail smoothstep was specifically designed to hide the SDF's
+/// 8-bit quantisation steps; zeroing it defeats the design AND surfaces
+/// concentric "rings of light" the user reported on the UAT walk. The
+/// restored value gives a soft halo of ~12% of the SDF range — visible
+/// watercolour fade, no hard line.
+const double kMirkFogBoundaryBleedDistance = 0.12;
 
 /// Width (SDF units) of the curl-rotated edge field. Within this band
 /// of the fog/clear boundary the curl-noise sample is rotated ~90° so
@@ -679,6 +687,22 @@ const double kMirkFogBoundaryBleedDistance = 0.0;
 /// it.
 // 2026-04-26: baked from live tuner walk N+M
 const double kMirkFogBoundaryEdgeBand = 0.17;
+
+/// "Watercolour pigment pool" boost — multiplier applied to the fog
+/// density immediately INSIDE the boundary bleed band so the nearby fog
+/// reads as visibly thicker along the inside edge of the revealed area
+/// (like watercolour pigment pooling at the perimeter of a wash).
+///
+/// 0.0 = no boost (fog density flat across boundary). 0.15 = +15% along
+/// the boundary tapering smoothly to 0% at `uBoundaryBleedDistance` away.
+/// Range guidance for the tuner: [0.0, 0.5]. Higher values produce a
+/// pronounced halo; default is the subtle "fog reacting to the boundary"
+/// look the user asked for in BUG-009 follow-up walk #N+2.
+///
+/// Implementation lives in `assets/shaders/atmospheric_fog.frag` —
+/// modulates `density` (NOT `fogColor`) so the boost reads as more fog
+/// rather than a stark colour change.
+const double kMirkFogBoundaryDensityBoost = 0.15;
 
 /// Resolution (square) of the CPU-built SDF texture passed to the
 /// shader as `sampler2D`. 256² is a good cost/quality balance — the

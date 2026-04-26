@@ -312,6 +312,14 @@ class _MirkTunerSheetContentState extends State<_MirkTunerSheetContent> {
                 max: 1.0,
                 onChanged: (v) => MirkRuntimeTunables.instance.boundaryEdgeBand = v,
               ),
+              _slider(
+                label: 'boundaryDensityBoost',
+                value: MirkRuntimeTunables.instance.boundaryDensityBoost,
+                defaultValue: kMirkFogBoundaryDensityBoost,
+                min: 0.0,
+                max: 0.5,
+                onChanged: (v) => MirkRuntimeTunables.instance.boundaryDensityBoost = v,
+              ),
               _section('Diagnostic'),
               SwitchListTile(
                 dense: true,

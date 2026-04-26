@@ -41,6 +41,7 @@ void main() {
       expect(t.boundarySharpDistance, kMirkFogBoundarySharpDistance);
       expect(t.boundaryBleedDistance, kMirkFogBoundaryBleedDistance);
       expect(t.boundaryEdgeBand, kMirkFogBoundaryEdgeBand);
+      expect(t.boundaryDensityBoost, kMirkFogBoundaryDensityBoost);
       expect(t.debugOutputDensity, kMirkFogDebugOutputDensity);
       expect(t.curlScaleAnimationEnabled, kMirkFogCurlScaleAnimationDefaultEnabled);
       expect(t.curlScaleAnimationPeriodSec, kMirkFogCurlScaleAnimationPeriodSec);
@@ -181,6 +182,7 @@ void main() {
       expect(json['boundarySharpDistance'], kMirkFogBoundarySharpDistance);
       expect(json['boundaryBleedDistance'], kMirkFogBoundaryBleedDistance);
       expect(json['boundaryEdgeBand'], kMirkFogBoundaryEdgeBand);
+      expect(json['boundaryDensityBoost'], kMirkFogBoundaryDensityBoost);
       expect(json['debugOutputDensity'], kMirkFogDebugOutputDensity);
       expect(json['curlScaleAnimationEnabled'], kMirkFogCurlScaleAnimationDefaultEnabled);
       expect(json['curlScaleAnimationPeriodSec'], kMirkFogCurlScaleAnimationPeriodSec);

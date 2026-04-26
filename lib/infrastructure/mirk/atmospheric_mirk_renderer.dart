@@ -401,6 +401,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       boundarySharpDistance: t.boundarySharpDistance,
       boundaryBleedDistance: t.boundaryBleedDistance,
       boundaryEdgeBand: t.boundaryEdgeBand,
+      boundaryDensityBoost: t.boundaryDensityBoost,
       // SDF rect: shader maps screen-normalised [0,1] uv to SDF uv via
       // (uv - rect.xy) / rect.zw. Default fills the full screen, which
       // is correct because the SDF was built for the entire viewport.

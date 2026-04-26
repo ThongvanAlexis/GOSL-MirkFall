@@ -104,11 +104,15 @@ uniform float uBoundarySharpDistance;
 uniform float uBoundaryBleedDistance;
 uniform float uBoundaryEdgeBand;
 
+// "Watercolour pigment pool" — additive density multiplier inside the
+// bleed band so the nearby fog visibly reacts to the boundary. Slot 36.
+uniform float uBoundaryDensityBoost;
+
 // SDF sampler — R channel encodes signed distance via midpoint-128.
 uniform sampler2D uSdf;
 
 // SDF rectangle on screen — uv mapped from FlutterFragCoord/uResolution
-// to SDF space via this rect. (xy = origin, zw = size). Slot 36..39.
+// to SDF space via this rect. (xy = origin, zw = size). Slot 37..40.
 uniform vec4  uSdfRect;
 
 out vec4 fragColor;
@@ -185,13 +189,30 @@ vec2 curl2(vec2 p) {
 // Returns the signed distance encoded in the SDF sampler at sdfUv.
 // Decoded from midpoint-128: `texture.r` is in [0, 1] with 0.5 at
 // the boundary; map to [-1, 1].
+//
+// BUG-009 follow-up (boundary watercolour, 2026-04-26): the SDF is an
+// 8-bit texture (256 levels) stretched across the screen, which makes
+// every byte step visible as a concentric "ring of light" around the
+// boundary when consumed by smoothsteps with narrow edges. Add a
+// 1-byte-amplitude ordered dither so the eye averages adjacent rings
+// into a smooth gradient. Dither is applied BEFORE the [0,1] → [-1,1]
+// remap so the ±0.5/256 perturbation translates to ±1/256 in signed
+// distance — exactly one quantisation step, the minimum required to
+// break visible banding.
 float sampleSdf(vec2 fragUv) {
     // fragUv is in screen-normalised [0, 1] space. Map to SDF UV via
     // uSdfRect (origin + size in screen-normalised coords).
     vec2 sdfUv = (fragUv - uSdfRect.xy) / uSdfRect.zw;
     sdfUv = clamp(sdfUv, 0.0, 1.0);
     float r = texture(uSdf, sdfUv).r;
-    return r * 2.0 - 1.0;
+    // Hashed white-noise dither in [-0.5/256, +0.5/256] keyed on screen
+    // position. Standard "blue-noise alternative" (cheap, deterministic
+    // per pixel). FlutterFragCoord rather than gl_FragCoord per shader
+    // contract.
+    vec2 fragPx = FlutterFragCoord().xy;
+    float ditherNoise = fract(sin(dot(fragPx, vec2(12.9898, 78.233))) * 43758.5453);
+    float ditherPx = (ditherNoise - 0.5) * (1.0 / 256.0);
+    return (r + ditherPx) * 2.0 - 1.0;
 }
 
 // ---------- Density assembly ----------
@@ -241,6 +262,16 @@ void main() {
     float dMid  = octaveDensity(noiseUv, curlVec, uScaleMid,  uDriftZMid);
     float dNear = octaveDensity(noiseUv, curlVec, uScaleNear, uDriftZNear);
     float density = dFar * uOpacityFar + dMid * uOpacityMid + dNear * uOpacityNear;
+
+    // ---------- Watercolour pigment pool ----------
+    // Within `uBoundaryBleedDistance` of the boundary on EITHER side,
+    // bump the density so the nearby fog reads as visibly thicker —
+    // the way watercolour pigment pools at the perimeter of a wash.
+    // boundaryGlow = 1 right at the boundary, 0 at the bleed-band edge.
+    // Guarded with `max(... , 1e-4)` so a 0 bleed band degrades to no
+    // boost rather than dividing by zero.
+    float boundaryGlow = 1.0 - smoothstep(0.0, max(uBoundaryBleedDistance, 1e-4), abs(sdf));
+    density *= 1.0 + boundaryGlow * uBoundaryDensityBoost;
 
     // ---------- 4. Faux directional shading ----------
     // Sample density a second time at uv + lightDir * uLightOffset, take
@@ -299,11 +330,30 @@ void main() {
     // Sharp inner gradient: 0 → 0.7 alpha over uBoundarySharpDistance.
     // Long-tail bleed:    0.7 → 1.0 alpha over uBoundaryBleedDistance.
     // The two ramps run from sdf = 0 (boundary) outward into fog.
+    //
+    // BUG-009 follow-up (2026-04-26): the previous bake set
+    // `uBoundaryBleedDistance = 0.0`, which collapsed the second
+    // smoothstep into a unit step at sdf = uBoundarySharpDistance — a
+    // hard alpha jump 0.7 → 1.0 in one pixel that read as a stark
+    // white edge. Combined with the 8-bit SDF banding, it surfaced as
+    // concentric rings of light. The bleed default has been restored
+    // to 0.12 so the long-tail fade actually fades; the
+    // `max(..., 1e-4)` guard below keeps the math sane if the live
+    // tuner pushes bleed to 0.
     float sharp = smoothstep(0.0, uBoundarySharpDistance, sdf) * 0.7;
-    float bleed = smoothstep(uBoundarySharpDistance, uBoundarySharpDistance + uBoundaryBleedDistance, sdf) * 0.3;
+    float bleedEnd = uBoundarySharpDistance + max(uBoundaryBleedDistance, 1e-4);
+    float bleed = smoothstep(uBoundarySharpDistance, bleedEnd, sdf) * 0.3;
     float boundaryAlpha = sharp + bleed;
-    // Inside revealed area (sdf < 0): force alpha 0 (clear).
-    boundaryAlpha *= step(0.0, sdf);
+    // Inside revealed area (sdf < 0): smoothstep over a thin band so
+    // the inside-edge transition is also watercolour-soft, not a hard
+    // 0/1 mask. The band scales with the sharp distance so adjusting
+    // the latter implicitly tunes the inside softness too. Guarded
+    // with `min(..., -1e-4)` so a 0 sharp distance from the live tuner
+    // still produces a valid (edge0 < edge1) smoothstep input rather
+    // than undefined behaviour.
+    float insideEdge = min(-uBoundarySharpDistance, -1e-4);
+    float insideMask = smoothstep(insideEdge, 0.0, sdf);
+    boundaryAlpha *= insideMask;
 
     // Final alpha: configured base alpha × density density-modulation ×
     // boundary alpha. The density modulation is now WIDE (0.55 → 1.0) so

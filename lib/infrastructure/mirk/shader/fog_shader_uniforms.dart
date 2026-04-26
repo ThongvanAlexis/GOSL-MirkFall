@@ -42,7 +42,8 @@ import 'dart:ui' show Size;
 /// | 33    | uBoundarySharpDistance   | float  |
 /// | 34    | uBoundaryBleedDistance   | float  |
 /// | 35    | uBoundaryEdgeBand        | float  |
-/// | 36..39| uSdfRect                 | vec4   |
+/// | 36    | uBoundaryDensityBoost    | float  |
+/// | 37..40| uSdfRect                 | vec4   |
 ///
 /// Sampler 0: uSdf — set via `setImageSampler(0, sdfImage)`.
 class FogShaderUniforms {
@@ -50,7 +51,7 @@ class FogShaderUniforms {
 
   /// Total number of float uniform slots. Useful for tests that want
   /// to assert the layout shape.
-  static const int totalFloatSlots = 40;
+  static const int totalFloatSlots = 41;
 
   /// Sets every uniform on [shader] in one call. Caller supplies
   /// already-decoded scalars / colours / records — no re-parsing inside.
@@ -82,6 +83,7 @@ class FogShaderUniforms {
     required double boundarySharpDistance,
     required double boundaryBleedDistance,
     required double boundaryEdgeBand,
+    required double boundaryDensityBoost,
     required (double, double, double, double) sdfRect,
     required ui.Image sdfImage,
   }) {
@@ -143,11 +145,13 @@ class FogShaderUniforms {
     shader.setFloat(33, boundarySharpDistance);
     shader.setFloat(34, boundaryBleedDistance);
     shader.setFloat(35, boundaryEdgeBand);
-    // SDF rect — slots 36..39
-    shader.setFloat(36, sdfRect.$1);
-    shader.setFloat(37, sdfRect.$2);
-    shader.setFloat(38, sdfRect.$3);
-    shader.setFloat(39, sdfRect.$4);
+    // Boundary density boost — slot 36 (BUG-009 follow-up 2026-04-26)
+    shader.setFloat(36, boundaryDensityBoost);
+    // SDF rect — slots 37..40
+    shader.setFloat(37, sdfRect.$1);
+    shader.setFloat(38, sdfRect.$2);
+    shader.setFloat(39, sdfRect.$3);
+    shader.setFloat(40, sdfRect.$4);
     // SDF sampler — index 0
     shader.setImageSampler(0, sdfImage);
   }

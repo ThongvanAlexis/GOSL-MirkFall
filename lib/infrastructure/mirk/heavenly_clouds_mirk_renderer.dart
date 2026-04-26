@@ -280,6 +280,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
       boundarySharpDistance: t.boundarySharpDistance,
       boundaryBleedDistance: t.boundaryBleedDistance,
       boundaryEdgeBand: t.boundaryEdgeBand,
+      boundaryDensityBoost: t.boundaryDensityBoost,
       sdfRect: const (0.0, 0.0, 1.0, 1.0),
       sdfImage: sdf,
     );

@@ -320,6 +320,16 @@ class MirkRuntimeTunables extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// "Watercolour pigment pool" density boost along the boundary band.
+  /// Range guidance: [0.0, 0.5]. See [kMirkFogBoundaryDensityBoost].
+  double _boundaryDensityBoost = kMirkFogBoundaryDensityBoost;
+  double get boundaryDensityBoost => _boundaryDensityBoost;
+  set boundaryDensityBoost(double v) {
+    if (_boundaryDensityBoost == v) return;
+    _boundaryDensityBoost = v;
+    notifyListeners();
+  }
+
   // -----------------------------------------------------------------
   // Diagnostic — raw density visualisation toggle. Mirrors
   // [kMirkFogDebugOutputDensity]. Note: the GLSL `#define` paired with
@@ -357,6 +367,7 @@ class MirkRuntimeTunables extends ChangeNotifier {
       'atmosphericScaleMid': _atmosphericScaleMid,
       'atmosphericScaleNear': _atmosphericScaleNear,
       'boundaryBleedDistance': _boundaryBleedDistance,
+      'boundaryDensityBoost': _boundaryDensityBoost,
       'boundaryEdgeBand': _boundaryEdgeBand,
       'boundarySharpDistance': _boundarySharpDistance,
       'curlAmplitude': _curlAmplitude,
@@ -416,6 +427,7 @@ class MirkRuntimeTunables extends ChangeNotifier {
     _boundarySharpDistance = kMirkFogBoundarySharpDistance;
     _boundaryBleedDistance = kMirkFogBoundaryBleedDistance;
     _boundaryEdgeBand = kMirkFogBoundaryEdgeBand;
+    _boundaryDensityBoost = kMirkFogBoundaryDensityBoost;
     _debugOutputDensity = kMirkFogDebugOutputDensity;
     notifyListeners();
   }
