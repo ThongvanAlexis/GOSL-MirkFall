@@ -84,17 +84,23 @@ class RevealedSdfBuilder {
   ///   1. Empty `discs` → return all-fog SDF (`_emptySdfImage()`).
   ///   2. For each disc whose extent intersects [viewport]:
   ///       a. Project its centre to seed-grid coordinates.
-  ///       b. Convert its `radiusMeters` to seed-grid pixels via the
-  ///          viewport's average `metresPerPixel` (geometric mean of the
-  ///          lat- and lon-direction conversion factors at viewport-mean
-  ///          latitude).
-  ///       c. Iterate the padded bounding box `[cx ± (rPx + distMaxPixels)]`
-  ///          and update `signed[i] = min(signed[i], pixelDistance - rPx)`.
+  ///       b. Compute an anisotropic padded bounding box that accounts
+  ///          for the latitude-dependent difference between
+  ///          `metersPerPixelX` and `metersPerPixelY`.
+  ///       c. Iterate the padded bbox and compute distance in METRES
+  ///          (`dxMeters`, `dyMeters`, `distMeters`), then convert
+  ///          back to pixel-equivalent units for the encoding step:
+  ///          `candidate = (distMeters - disc.radiusMeters) / metersPerPixel`.
   ///   3. Encode `signed` to bytes using the same midpoint-128 mapping.
   ///
-  /// Cost: per disc ≈ `(2·(rPx + distMaxPixels))²` pixel updates. For
-  /// typical viewport scales (city-wide to building-scale), `rPx` is a few
-  /// pixels and `distMaxPixels = 128`, so ~67 k updates per disc. A 4-hour
+  /// BUG-011 fix: the inner loop used to compute pixel-space Euclidean
+  /// distance (`sqrt(dx² + dy²)`), which produced a north-south oval at
+  /// non-equatorial latitudes. Switching to metric-space distance makes
+  /// the reveal boundary a true circle.
+  ///
+  /// Cost: per disc ≈ `(2·padPixels)²` pixel updates. For
+  /// typical viewport scales (city-wide to building-scale), the pad is
+  /// dominated by `distMaxPixels = 128`, so ~67 k updates per disc. A 4-hour
   /// session post-compaction holds < 1 k discs in viewport → ~67 M ops,
   /// well under 16 ms on Flutter's 2026 hardware. A spatial index would
   /// help for very large sessions; tagged in a TODO below for follow-up.
@@ -155,23 +161,34 @@ class RevealedSdfBuilder {
       // Project disc centre to seed-grid pixel coordinates. North → row 0.
       final cx = (disc.lon - viewport.west) / dLon * n;
       final cy = (viewport.north - disc.lat) / dLat * n;
-      final rPx = disc.radiusMeters / metersPerPixel;
-
-      final padded = rPx + distMaxPixels;
-      final xMin = math.max(0, (cx - padded).floor());
-      final xMax = math.min(n, (cx + padded).ceil());
-      final yMin = math.max(0, (cy - padded).floor());
-      final yMax = math.min(n, (cy + padded).ceil());
+      // Anisotropic padding: at non-equatorial latitudes, one pixel of
+      // latitude covers more metres than one pixel of longitude (by
+      // 1/cos(lat)). The padded bbox must account for this difference
+      // so that the distance computation reaches all pixels that could
+      // be within (disc.radiusMeters + distMaxMeters) in metric space.
+      final paddedMeters = disc.radiusMeters + distMaxPixels * metersPerPixel;
+      final xPadPixels = paddedMeters / metersPerPixelX;
+      final yPadPixels = paddedMeters / metersPerPixelY;
+      final xMin = math.max(0, (cx - xPadPixels).floor());
+      final xMax = math.min(n, (cx + xPadPixels).ceil());
+      final yMin = math.max(0, (cy - yPadPixels).floor());
+      final yMax = math.min(n, (cy + yPadPixels).ceil());
       if (xMin >= xMax || yMin >= yMax) continue;
 
       for (var y = yMin; y < yMax; y++) {
-        // Pixel-centre sampling.
+        // Pixel-centre sampling — distance computed in METRES, not pixels,
+        // so the SDF boundary is a true metric circle at any latitude
+        // (BUG-011 fix: pixel-space distance produced a north-south oval).
         final dy = (y + 0.5) - cy;
+        final dyMeters = dy * metersPerPixelY;
         final rowOffset = y * n;
         for (var x = xMin; x < xMax; x++) {
           final dx = (x + 0.5) - cx;
-          final pixelDistance = math.sqrt(dx * dx + dy * dy);
-          final candidate = pixelDistance - rPx;
+          final dxMeters = dx * metersPerPixelX;
+          final distMeters = math.sqrt(dxMeters * dxMeters + dyMeters * dyMeters);
+          // Convert back to pixel-equivalent units (geometric-mean scale)
+          // for the encoding step's distMaxPixels normalisation.
+          final candidate = (distMeters - disc.radiusMeters) / metersPerPixel;
           if (candidate < signed[rowOffset + x]) {
             signed[rowOffset + x] = candidate;
           }

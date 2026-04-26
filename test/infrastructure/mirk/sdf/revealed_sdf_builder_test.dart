@@ -216,6 +216,101 @@ void main() {
       img1.dispose();
       img2.dispose();
     });
+
+    test('metric circle: N-S and E-W boundary at same distance — Paris lat 48° (BUG-011 regression)', () async {
+      // At Paris (lat ~48.85°), metersPerPixelY / metersPerPixelX ≈ 1.52.
+      // Before BUG-011 fix the reveal was a north-south oval because the
+      // inner loop used pixel-space distance. After the fix the boundary
+      // must be equidistant in all cardinal directions.
+      const builder = RevealedSdfBuilder();
+      const parisLat = 48.85;
+      const parisLon = 2.35;
+      // ~200 m viewport span → disc comfortably inside.
+      const halfSpanLat = 0.001; // ~111 m north-south
+      const halfSpanLon = 0.0015; // ~99 m east-west at lat 48°
+      final viewport = MirkViewportBbox(
+        south: parisLat - halfSpanLat,
+        west: parisLon - halfSpanLon,
+        north: parisLat + halfSpanLat,
+        east: parisLon + halfSpanLon,
+      );
+      final disc = _disc(id: 'rvd_paris', lat: parisLat, lon: parisLon, radiusMeters: 30.0);
+      final img = await builder.buildFromDiscs(discs: [disc], viewport: viewport);
+      final r = await _readRChannel(img);
+      final n = img.width;
+
+      // Disc centre in pixel coordinates.
+      final cx = n / 2.0;
+      final cy = n / 2.0;
+
+      // Find the boundary pixel (byte closest to 128) in each cardinal
+      // direction by scanning outward from the centre.
+      int boundaryDistance(int dxStep, int dyStep) {
+        for (var step = 0; step < n ~/ 2; step++) {
+          final px = (cx + step * dxStep).round().clamp(0, n - 1);
+          final py = (cy + step * dyStep).round().clamp(0, n - 1);
+          final byte = r[py * n + px];
+          // Byte >= 128 means we crossed from inside to outside.
+          if (byte >= 128) return step;
+        }
+        return n ~/ 2;
+      }
+
+      final eastDist = boundaryDistance(1, 0);
+      final westDist = boundaryDistance(-1, 0);
+      final northDist = boundaryDistance(0, -1); // row 0 = north
+      final southDist = boundaryDistance(0, 1);
+
+      // East-West average vs North-South average should agree within
+      // ±1 pixel — proving the reveal is circular, not oval.
+      final ewAvg = (eastDist + westDist) / 2.0;
+      final nsAvg = (northDist + southDist) / 2.0;
+      final diff = (ewAvg - nsAvg).abs();
+      expect(diff, lessThanOrEqualTo(1.0), reason: 'BUG-011: N-S boundary distance ($nsAvg px) must match E-W ($ewAvg px) within ±1 pixel at Paris lat 48°');
+
+      img.dispose();
+    });
+
+    test('metric circle: N-S ≈ E-W at extreme latitude 70° (BUG-011 stress)', () async {
+      // At lat 70°, cos(70°) ≈ 0.342 → metersPerPixelY / metersPerPixelX ≈ 2.92.
+      // This is the most extreme anisotropy the app will encounter. The
+      // old pixel-space distance would produce a 3:1 aspect ratio oval.
+      const builder = RevealedSdfBuilder();
+      const lat70 = 70.0;
+      const lon70 = 25.0;
+      const halfSpanLat = 0.001;
+      const halfSpanLon = 0.003; // wider to keep viewport non-degenerate at high lat
+      final viewport = MirkViewportBbox(south: lat70 - halfSpanLat, west: lon70 - halfSpanLon, north: lat70 + halfSpanLat, east: lon70 + halfSpanLon);
+      final disc = _disc(id: 'rvd_arctic', lat: lat70, lon: lon70, radiusMeters: 25.0);
+      final img = await builder.buildFromDiscs(discs: [disc], viewport: viewport);
+      final r = await _readRChannel(img);
+      final n = img.width;
+
+      final cx = n / 2.0;
+      final cy = n / 2.0;
+
+      int boundaryDistance(int dxStep, int dyStep) {
+        for (var step = 0; step < n ~/ 2; step++) {
+          final px = (cx + step * dxStep).round().clamp(0, n - 1);
+          final py = (cy + step * dyStep).round().clamp(0, n - 1);
+          final byte = r[py * n + px];
+          if (byte >= 128) return step;
+        }
+        return n ~/ 2;
+      }
+
+      final eastDist = boundaryDistance(1, 0);
+      final westDist = boundaryDistance(-1, 0);
+      final northDist = boundaryDistance(0, -1);
+      final southDist = boundaryDistance(0, 1);
+
+      final ewAvg = (eastDist + westDist) / 2.0;
+      final nsAvg = (northDist + southDist) / 2.0;
+      final diff = (ewAvg - nsAvg).abs();
+      expect(diff, lessThanOrEqualTo(1.0), reason: 'BUG-011: N-S boundary distance ($nsAvg px) must match E-W ($ewAvg px) within ±1 pixel at extreme lat 70°');
+
+      img.dispose();
+    });
   });
 }
 
