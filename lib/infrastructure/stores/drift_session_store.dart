@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart' show SqliteException;
+import 'package:logging/logging.dart';
 import 'package:mirkfall/domain/errors/concurrent_errors.dart';
 import 'package:mirkfall/domain/errors/session_errors.dart';
 import 'package:mirkfall/domain/ids/mirk_style_id.dart';
@@ -31,6 +32,8 @@ import 'package:mirkfall/infrastructure/stores/sqlite_error_mapper.dart';
 /// was an invariant violation — the contract now holds for every caller.
 class DriftSessionStore implements SessionStore {
   DriftSessionStore(this._db);
+
+  static final Logger _log = Logger('stores.session');
 
   final AppDatabase _db;
 
@@ -77,6 +80,7 @@ class DriftSessionStore implements SessionStore {
     // never sees SqliteException" must hold at every write site.
     try {
       await _db.into(_db.sessions).insert(_toInsertCompanion(session));
+      _log.info('Session ${session.displayName} créée');
     } on SqliteException catch (e) {
       if (e.extendedResultCode == kSqliteConstraintUnique) {
         throw ConcurrentActivationException(attemptedId: session.id);
