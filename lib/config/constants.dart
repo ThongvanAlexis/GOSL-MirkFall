@@ -483,25 +483,38 @@ const int kMirkFogHeavenlyShadowColorArgb = 0xFF5D6878;
 /// Z-axis (time-slice) drift speed for the FAR/coarse octave of 3D-FBM.
 /// Lower values → noise morphs more slowly. Atmospheric is meant to feel
 /// thick and lazy, so the values stay low.
-const double kMirkFogAtmosphericDriftZFar = 0.018;
+///
+/// 2026-04-26: bumped 0.018 → 0.07 (~4×) after BUG-009 UAT walk #N
+/// confirmed pipeline + uniforms healthy but visible motion below the
+/// perceptual threshold. Far octave drives ~55% of the visible signal
+/// (kMirkFogOpacityFar) so its drift dominates the "is this animating"
+/// reading.
+const double kMirkFogAtmosphericDriftZFar = 0.07;
 
 /// Z-axis drift speed for the MID octave. Slightly faster than far so
 /// the layers don't track in lockstep.
-const double kMirkFogAtmosphericDriftZMid = 0.035;
+///
+/// 2026-04-26: bumped 0.035 → 0.15 (~4×) — see DriftZFar comment.
+const double kMirkFogAtmosphericDriftZMid = 0.15;
 
 /// Z-axis drift speed for the NEAR/fine octave (surface boil). Fastest
 /// — this is where the eye reads "alive".
-const double kMirkFogAtmosphericDriftZNear = 0.075;
+///
+/// 2026-04-26: bumped 0.075 → 0.30 (4×) — see DriftZFar comment.
+const double kMirkFogAtmosphericDriftZNear = 0.30;
 
 /// Heavenly clouds far-octave drift. Heavenly reads as "thinner, faster
 /// clouds" so all three octaves are uniformly faster.
-const double kMirkFogHeavenlyDriftZFar = 0.028;
+///
+/// 2026-04-26: bumped proportionally with atmospheric (~4×) so the
+/// heavenly-vs-atmospheric speed gap stays consistent.
+const double kMirkFogHeavenlyDriftZFar = 0.11;
 
 /// Heavenly mid-octave drift.
-const double kMirkFogHeavenlyDriftZMid = 0.060;
+const double kMirkFogHeavenlyDriftZMid = 0.24;
 
 /// Heavenly near-octave drift.
-const double kMirkFogHeavenlyDriftZNear = 0.115;
+const double kMirkFogHeavenlyDriftZNear = 0.46;
 
 // Noise scales — spatial frequency per octave. Larger = finer detail.
 // Layer ratios chosen to read as parallax depth (Reference 3 — Ventusky

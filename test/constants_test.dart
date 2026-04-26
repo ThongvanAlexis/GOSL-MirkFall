@@ -235,18 +235,20 @@ void main() {
       expect(kMirkFogHeavenlyShadowColorArgb, equals(0xFF5D6878));
     });
 
-    test('atmospheric drift Z speeds form a 3-tier ladder (far < mid < near)', () {
+    test('atmospheric drift Z speeds form a 3-tier ladder (far < mid < near, all > 0)', () {
+      // Structural test — exact values are tuning knobs revised on UAT
+      // walks. The ladder ordering is the contract the shader assumes.
+      expect(kMirkFogAtmosphericDriftZFar, greaterThan(0));
       expect(kMirkFogAtmosphericDriftZFar, lessThan(kMirkFogAtmosphericDriftZMid));
       expect(kMirkFogAtmosphericDriftZMid, lessThan(kMirkFogAtmosphericDriftZNear));
-      expect(kMirkFogAtmosphericDriftZFar, equals(0.018));
-      expect(kMirkFogAtmosphericDriftZMid, equals(0.035));
-      expect(kMirkFogAtmosphericDriftZNear, equals(0.075));
     });
 
     test('heavenly drift Z speeds form a 3-tier ladder (far < mid < near, all > atmospheric)', () {
       expect(kMirkFogHeavenlyDriftZFar, lessThan(kMirkFogHeavenlyDriftZMid));
       expect(kMirkFogHeavenlyDriftZMid, lessThan(kMirkFogHeavenlyDriftZNear));
       expect(kMirkFogHeavenlyDriftZFar, greaterThan(kMirkFogAtmosphericDriftZFar));
+      expect(kMirkFogHeavenlyDriftZMid, greaterThan(kMirkFogAtmosphericDriftZMid));
+      expect(kMirkFogHeavenlyDriftZNear, greaterThan(kMirkFogAtmosphericDriftZNear));
     });
 
     test('atmospheric scale ladder (far < mid < near)', () {
