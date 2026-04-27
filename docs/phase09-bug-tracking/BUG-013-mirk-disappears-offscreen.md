@@ -1,6 +1,6 @@
 # BUG-013 — Fog disappears when blue dot is off-screen
 
-**Status:** fixed
+**Status:** fixed -- `743750d`
 **Reported:** 2026-04-27 (UAT walk on `c0c14a6` after BUG-010 Option B disc refactor shipped)
 **Platform:** cross-platform (all 4 renderers affected: atmospheric, heavenly_clouds, candlelight, solid_fill)
 
