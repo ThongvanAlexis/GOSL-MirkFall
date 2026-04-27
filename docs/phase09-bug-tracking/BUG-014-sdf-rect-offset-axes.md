@@ -1,6 +1,6 @@
 # BUG-014 — SDF rect offset rotated 90 degrees during pan at low zoom
 
-**Status:** ✅ fixed — `d05dbb2` (initial), follow-up TBD (combined zoom+pan)
+**Status:** ✅ fixed — `d05dbb2` (initial), `bf6532b` (combined zoom+pan follow-up)
 **Reported:** 2026-04-27 (UAT walk at zoom ~12.28 on iOS, testing BUG-012 sdfRect fix)
 **Platform:** iOS (Impeller/Metal) — Android (Skia/OpenGL) was not affected
 
@@ -68,11 +68,12 @@ sdfRect values are visible in the device log for future debugging.
 
 ```
 d05dbb2  fix(09-bug-014): correct sdfRect axis mapping (X↔Y swap during pan)
+bf6532b  fix(09-bug-014): decompose uSdfRect vec4 into four scalar floats (combined zoom+pan)
 ```
 
 ## Files modified
 
-- `assets/shaders/atmospheric_fog.frag` — reorder uSdfRect before sampler
+- `assets/shaders/atmospheric_fog.frag` — reorder uSdfRect before sampler (d05dbb2); decompose vec4 to four floats (bf6532b)
 - `lib/infrastructure/mirk/atmospheric_mirk_renderer.dart` — diagnostic log in `_computeSdfRect`
 - `lib/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart` — parallel diagnostic log
 
@@ -100,7 +101,7 @@ Dart-side slot indices (37-40) and the `FogShaderUniforms.setAll` logic are unch
 
 ### Commits
 
-See main commit list below.
+`bf6532b` — decompose `uSdfRect` vec4 into four scalar floats.
 
 ## Known follow-ups
 
