@@ -146,10 +146,12 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
       _logEarlyReturnTransition('disposed');
       return;
     }
-    if (context.discs.isEmpty) {
-      _logEarlyReturnTransition('discs empty');
-      return;
-    }
+    // BUG-013 fix: do NOT early-return on empty discs. When the user pans
+    // away from the revealed area, all discs fall outside the viewport →
+    // discsInBbox returns []. The correct behaviour is FULL FOG (entire
+    // viewport covered), not "skip rendering" which shows a clear map.
+    // buildViewportFogClipPathFromDiscs handles empty discs correctly by
+    // returning the viewport rect (= everything is fog, nothing revealed).
     final path = buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
     if (path.getBounds().isEmpty) {
       _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible region fully revealed?)');

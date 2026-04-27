@@ -34,16 +34,17 @@ void main() {
       await renderer.dispose();
     });
 
-    test('paint() with empty discs list issues no draw calls (no-op)', () async {
+    test('paint() with empty discs list paints full fog (BUG-013 fix)', () async {
       final renderer = SolidFillMirkRenderer(const MirkStyleConfig.solid() as SolidConfig);
-      // Override discs with an empty list — paint should early-return.
+      // Override discs with an empty list — fog should cover the entire
+      // viewport rect (user panned away from revealed area).
       final ctx = fakeContext(discs: const <RevealDisc>[]);
-      // Use renderToPicture so we can ask the picture for an
-      // approximate byte size; an empty picture is < 200 bytes
-      // (recorder header only).
       final pic = renderToPicture(renderer, context: ctx);
-      // ApproximateBytesUsed reflects native command-buffer size.
-      expect(pic.approximateBytesUsed, lessThan(500), reason: 'Empty discs list should produce a near-empty picture');
+      // BUG-013: empty discs = user panned away from revealed area →
+      // entire viewport must be fog, not transparent/clear. The fallback
+      // path emits a single drawPath (~300 bytes); a true no-op produces
+      // ~120 bytes (recorder header only).
+      expect(pic.approximateBytesUsed, greaterThan(200), reason: 'Empty discs list should produce full-fog picture, not a no-op');
       pic.dispose();
       await renderer.dispose();
     });

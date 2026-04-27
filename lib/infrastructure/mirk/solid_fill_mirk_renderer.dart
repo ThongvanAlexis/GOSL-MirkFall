@@ -101,10 +101,13 @@ class SolidFillMirkRenderer implements MirkRenderer {
       _logEarlyReturnTransition('disposed');
       return;
     }
-    if (context.discs.isEmpty) {
-      _logEarlyReturnTransition('discs empty');
-      return;
-    }
+    // BUG-013 fix: do NOT early-return on empty discs. When the user pans
+    // away from the revealed area, all discs fall outside the viewport →
+    // discsInBbox returns []. The correct behaviour is FULL FOG (entire
+    // viewport covered), not "skip rendering" which shows a clear map.
+    // buildViewportFogClipPathFromDiscs handles empty discs correctly by
+    // returning the viewport rect (= everything is fog, nothing revealed).
+    //
     // Solid renderer adopts the same viewport-level disc clip path as the
     // 3 animated renderers — BUG-010 Option B Commit 5 collapsed the 4
     // builtins onto a single canonical clip helper. Solid never showed

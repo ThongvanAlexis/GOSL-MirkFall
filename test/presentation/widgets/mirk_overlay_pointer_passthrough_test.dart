@@ -36,9 +36,10 @@ import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 import '../../fakes/fake_mirk_renderer.dart';
 
 /// Single 100 m disc — gives the overlay non-trivial reveal geometry
-/// so the renderer's `paint` actually fires (instead of bailing on
-/// the empty-discs guard). BUG-010 Option B Commit 5 — replaces the
-/// `_allUnrevealedTile()` bitmap fixture.
+/// so the renderer's `paint` produces a fog-with-hole clip path (not
+/// the full-viewport-rect all-fog path that empty discs yield).
+/// BUG-010 Option B Commit 5 — replaces the `_allUnrevealedTile()`
+/// bitmap fixture.
 RevealDisc _disc() =>
     RevealDisc(id: 'rvd_pointer_passthrough', sessionId: 'sess_test', lat: 43.6, lon: 5.4, radiusMeters: 100.0, fixedAtUtc: DateTime.utc(2026, 4, 26));
 

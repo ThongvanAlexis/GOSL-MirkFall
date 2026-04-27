@@ -64,8 +64,8 @@ MirkPaintContext _fullyFoggedContext({int elapsedMs = 0}) {
         id: 'rvd_test_tinyfog',
         sessionId: 'sess_test',
         // Off-centre + tiny radius → fog covers the canvas centre at (128, 128)
-        // where the test samples alpha. The disc exists only so the
-        // renderer's `discs.isEmpty` early-return does not fire.
+        // where the test samples alpha. The disc exists so the renderer
+        // has a non-trivial clip path with a visible revealed/fog boundary.
         lat: 43.05,
         lon: 5.05,
         radiusMeters: 1.0,
