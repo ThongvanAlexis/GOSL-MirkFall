@@ -11,11 +11,9 @@
 // to stdout so the run log carries the actual measurement even when the
 // assertion passes.
 //
-// Disc cases sweep 100 / 1000 / 5000 / 10000 — the upper bound covers a
-// long single-session walk before compaction collapses GPS-jitter
-// clusters. Every case uses a deterministic uniform distribution inside
-// a ~1 km square viewport at mid-latitudes (radius 25 m each, the
-// production default).
+// BUG-014 iteration 4: the builder now returns [SdfBuildResult] containing
+// both the image and the disc bbox. The perf test is updated to unwrap
+// the result.
 
 import 'dart:math' as math;
 
@@ -26,42 +24,25 @@ import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/sdf/revealed_sdf_builder.dart';
 
 /// 0.01° viewport span at mid-latitudes (Paris ≈ 48.86° N) corresponds
-/// to roughly 1 km on the lon axis and 1.1 km on the lat axis — the
-/// "typical city walk" frame the SDF builder is tuned for.
+/// to roughly 1 km on the lon axis and 1.1 km on the lat axis.
 const double _kPerfViewportLatSpan = 0.01;
 const double _kPerfViewportLonSpan = 0.01;
 
-/// Mid-latitude reference point. Paris-ish; the exact location does not
-/// affect the perf shape, only the cos(lat) factor in metres-per-pixel.
+/// Mid-latitude reference point.
 const double _kPerfViewportSouth = 48.86;
 const double _kPerfViewportWest = 2.34;
 
-/// Number of warm-up runs before the timed iterations. The first build
-/// pays for cold caches + JIT and is excluded from the median.
+/// Number of warm-up runs before the timed iterations.
 const int _kWarmupIterations = 1;
 
-/// Number of timed iterations per disc-count case. The median is what
-/// the assertion compares against — robust against single-sample noise.
+/// Number of timed iterations per disc-count case.
 const int _kTimedIterations = 10;
 
 /// Generous ceiling for the median build time at 5 k discs.
-///
-/// Calibration (2026-04-26, Commit 6 dev box, Windows 10): local median
-/// at 5 k discs landed near 430 ms with the original pixel-space distance,
-/// ~550 ms after the BUG-011 metre-space fix (extra per-pixel multiply).
-/// Shared CI Ubuntu hosts are typically 1.5–3× slower, so the threshold
-/// is set at 3000 ms — high enough to absorb CI variance + the BUG-011
-/// overhead, low enough to catch a 10× regression.
-///
-/// The point of this test is regression detection, not device readiness;
-/// per-frame paints would never accept this latency, but the SDF rebuild
-/// only fires on session-disc-list changes (≤ once per second from GPS
-/// fix cadence) and on viewport changes (debounced 200 ms per BUG-012).
 const int _kMedianBudgetMs5000Discs = 3000;
 
 /// Builds a list of [count] reveal discs uniformly distributed inside
-/// the perf viewport. Deterministic via a seeded [math.Random] so the
-/// median across runs is reproducible.
+/// the perf viewport.
 List<RevealDisc> _buildPerfDiscs(int count) {
   final random = math.Random(0xC0FFEE);
   final List<RevealDisc> discs = <RevealDisc>[];
@@ -70,8 +51,6 @@ List<RevealDisc> _buildPerfDiscs(int count) {
     final lon = _kPerfViewportWest + random.nextDouble() * _kPerfViewportLonSpan;
     discs.add(
       RevealDisc(
-        // 26-char placeholder ULID body — the SDF builder does not parse
-        // it, so a left-padded index is fine for perf-shape testing.
         id: 'rvd_${i.toString().padLeft(26, '0')}',
         sessionId: 'sess_perf',
         lat: lat,
@@ -84,8 +63,7 @@ List<RevealDisc> _buildPerfDiscs(int count) {
   return discs;
 }
 
-/// Returns the median of [values] in milliseconds. Caller-side sort —
-/// values list is not mutated by the caller.
+/// Returns the median of [values] in milliseconds.
 double _median(List<int> values) {
   final sorted = List<int>.from(values)..sort();
   final n = sorted.length;
@@ -93,22 +71,19 @@ double _median(List<int> values) {
   return (sorted[n ~/ 2 - 1] + sorted[n ~/ 2]) / 2.0;
 }
 
-/// Runs [_kWarmupIterations] + [_kTimedIterations] builds and returns
-/// the timed elapsed-millisecond samples. The actual median is logged
-/// to stdout so a CI run captures the measurement even when the
-/// assertion passes.
+/// Runs warm-up + timed builds and returns elapsed-millisecond samples.
 Future<List<int>> _measureBuildTimes(RevealedSdfBuilder builder, MirkViewportBbox viewport, List<RevealDisc> discs) async {
   for (var i = 0; i < _kWarmupIterations; i++) {
-    final img = await builder.buildFromDiscs(discs: discs, viewport: viewport);
-    img.dispose();
+    final result = await builder.buildFromDiscs(discs: discs, viewport: viewport);
+    result.image.dispose();
   }
   final List<int> elapsedMillisecondSamples = <int>[];
   for (var i = 0; i < _kTimedIterations; i++) {
     final stopwatch = Stopwatch()..start();
-    final img = await builder.buildFromDiscs(discs: discs, viewport: viewport);
+    final result = await builder.buildFromDiscs(discs: discs, viewport: viewport);
     stopwatch.stop();
     elapsedMillisecondSamples.add(stopwatch.elapsedMilliseconds);
-    img.dispose();
+    result.image.dispose();
   }
   return elapsedMillisecondSamples;
 }

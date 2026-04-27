@@ -14,9 +14,29 @@ import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
 final Logger _log = Logger('infrastructure.mirk.sdf');
 
+/// Result of a [RevealedSdfBuilder.buildFromDiscs] invocation: the SDF
+/// image and the geographic bounding box it was built for.
+///
+/// BUG-014 iteration 4: the SDF is now built in DISC-BBOX coordinates
+/// (the bounding box of all input discs + padding), NOT viewport
+/// coordinates. The renderer uses [bbox] to compute the screen-to-SDF
+/// UV mapping every frame — a trivial 4-division operation that tracks
+/// the camera in real time without rebuilding the texture.
+class SdfBuildResult {
+  /// The SDF image (R-channel, midpoint-128 signed distance).
+  final ui.Image image;
+
+  /// The geographic bounding box the SDF was normalised to. The image's
+  /// pixel (0, 0) maps to (bbox.north, bbox.west) and pixel (n-1, n-1)
+  /// maps to (bbox.south, bbox.east).
+  final MirkViewportBbox bbox;
+
+  const SdfBuildResult({required this.image, required this.bbox});
+}
+
 /// Builds a CPU-side signed distance field (SDF) of the revealed area
-/// for a given viewport, encoded as a `ui.Image` ready to be passed to
-/// the fog shader as `sampler2D`.
+/// in DISC-BBOX coordinates, encoded as a `ui.Image` ready to be passed
+/// to the fog shader as `sampler2D`.
 ///
 /// Phase 09 BUG-009 (TIER 2). The SDF lets the shader's two-stop
 /// watercolour boundary, curl-rotated edge field, and density-modulation
@@ -27,6 +47,14 @@ final Logger _log = Logger('infrastructure.mirk.sdf');
 /// continuous-geometry path. Reveals are now exclusively a list of
 /// [RevealDisc]s; the cell-bitmap chamfer path (and its `_markTileInSeed` /
 /// `_chamferSignedDistance` helpers) are gone.
+///
+/// Phase 09 BUG-014 iteration 4: the SDF is now built in a fixed
+/// "disc bbox" coordinate space — the bounding box of all input discs,
+/// padded by [kSdfBboxPaddingMeters]. The shader maps from screen UV to
+/// SDF UV every fragment via a per-frame affine transform (the 4 sdfRect
+/// uniforms). This means the SDF only rebuilds when the DISC LIST
+/// changes (new GPS fix), NOT when the viewport changes (pan/zoom).
+/// Camera movement changes the UV mapping, not the fog texture.
 ///
 /// ## Sign convention
 ///
@@ -51,17 +79,12 @@ final Logger _log = Logger('infrastructure.mirk.sdf');
 ///
 /// ## When to rebuild
 ///
-/// The SDF only depends on the union of revealed discs + the viewport
-/// bbox. The renderer should rebuild it when EITHER changes:
+/// The SDF only depends on the union of revealed discs. The renderer
+/// should rebuild it when the DISC LIST changes:
 ///
 ///   - The user walks → new disc fixed_at → disc list changes.
-///   - The user pans/zooms → viewport bbox changes → projection of the
-///     same discs onto the SDF plane shifts.
-///
-/// Rebuilding every frame is wasted work because GPS fixes arrive at
-/// most once per second and viewport changes are throttled. The
-/// renderer hashes both inputs and reuses the cached `ui.Image` when
-/// the hash matches.
+///   - The user pans/zooms → viewport bbox changes → NO REBUILD needed.
+///     The renderer recomputes the screen-to-SDF UV mapping every frame.
 class RevealedSdfBuilder {
   /// Constructs a builder. Stateless — exists only as a class so tests
   /// can mock it via constructor injection in the renderer (Phase 09
@@ -72,76 +95,64 @@ class RevealedSdfBuilder {
   /// constant so callers can size their cache keys without recomputing.
   static const int resolution = kMirkFogSdfResolution;
 
-  /// Builds an SDF `ui.Image` from a list of [RevealDisc]s — the
-  /// continuous-geometry input replaced the chamfer/bitmap path in
-  /// BUG-010 Option B Commit 5. The returned image follows the SAME
-  /// byte encoding as the prior bitmap path (R-channel, midpoint-128,
-  /// distance scaled to `[0..255]` via `distMaxPixels = resolution * 0.5`)
-  /// so the consuming shader needs no change.
+  /// Padding in metres added to all sides of the disc bounding box.
+  /// Ensures the SDF covers the watercolour bleed band beyond the
+  /// outermost disc edge. 500 m is generous — the bleed band at typical
+  /// zoom levels is < 100 m in world coordinates.
+  static const double kSdfBboxPaddingMeters = 500.0;
+
+  /// Builds an SDF [SdfBuildResult] from a list of [RevealDisc]s.
+  ///
+  /// BUG-014 iteration 4: the SDF is normalised to the DISC BBOX
+  /// (bounding box of all input discs + [kSdfBboxPaddingMeters] padding),
+  /// not the viewport. The returned [SdfBuildResult.bbox] tells the
+  /// renderer what geographic region the SDF covers so it can compute
+  /// the screen-to-SDF UV mapping every frame.
+  ///
+  /// The [viewport] parameter is retained for the empty-discs / no-disc
+  /// fallback (all-fog SDF needs a bbox to return).
   ///
   /// Algorithm (analytic, no chamfer):
   ///
-  ///   1. Empty `discs` → return all-fog SDF (`_emptySdfImage()`).
-  ///   2. For each disc whose extent intersects [viewport]:
-  ///       a. Project its centre to seed-grid coordinates.
-  ///       b. Compute an anisotropic padded bounding box that accounts
-  ///          for the latitude-dependent difference between
-  ///          `metersPerPixelX` and `metersPerPixelY`.
-  ///       c. Iterate the padded bbox and compute distance in METRES
-  ///          (`dxMeters`, `dyMeters`, `distMeters`), then convert
-  ///          back to pixel-equivalent units for the encoding step:
-  ///          `candidate = (distMeters - disc.radiusMeters) / metersPerPixel`.
-  ///   3. Encode `signed` to bytes using the same midpoint-128 mapping.
-  ///
-  /// BUG-011 fix: the inner loop used to compute pixel-space Euclidean
-  /// distance (`sqrt(dx² + dy²)`), which produced a north-south oval at
-  /// non-equatorial latitudes. Switching to metric-space distance makes
-  /// the reveal boundary a true circle.
-  ///
-  /// Cost: per disc ≈ `(2·padPixels)²` pixel updates. For
-  /// typical viewport scales (city-wide to building-scale), the pad is
-  /// dominated by `distMaxPixels = 128`, so ~67 k updates per disc. A 4-hour
-  /// session post-compaction holds < 1 k discs in viewport → ~67 M ops,
-  /// well under 16 ms on Flutter's 2026 hardware. A spatial index would
-  /// help for very large sessions; tagged in a TODO below for follow-up.
+  ///   1. Empty `discs` → return all-fog SDF with [viewport] as bbox.
+  ///   2. Compute disc bbox: bounding box of all disc centres ± radius,
+  ///      padded by [kSdfBboxPaddingMeters].
+  ///   3. For each disc:
+  ///       a. Project its centre to SDF-grid coordinates (normalised to
+  ///          the disc bbox, not the viewport).
+  ///       b. Compute distance in METRES and encode as before.
+  ///   4. Encode `signed` to bytes using the midpoint-128 mapping.
   ///
   /// [discs] iteration order does not affect the output (commutative `min`).
-  // TODO(perf): for sessions with > a few thousand viewport-resident discs,
-  // index discs in a uniform grid keyed by seed-grid pixel and only update
-  // pixels in cells the disc actually touches. The current padded-bbox loop
-  // is already cheap enough for the 4-hour-session budget but will dominate
-  // once compaction is loosened or sessions span hours.
-  Future<ui.Image> buildFromDiscs({required Iterable<RevealDisc> discs, required MirkViewportBbox viewport}) async {
+  Future<SdfBuildResult> buildFromDiscs({required Iterable<RevealDisc> discs, required MirkViewportBbox viewport}) async {
     final discList = discs.toList(growable: false);
     final stopwatch = Stopwatch()..start();
-    _log.fine(
-      'buildFromDiscs(): start — ${discList.length} discs · viewport=[${viewport.south.toStringAsFixed(4)}, ${viewport.west.toStringAsFixed(4)} → ${viewport.north.toStringAsFixed(4)}, ${viewport.east.toStringAsFixed(4)}]',
-    );
+    _log.fine('buildFromDiscs(): start — ${discList.length} discs');
     if (discList.isEmpty) {
       _log.fine('buildFromDiscs(): empty disc list → all-fog SDF');
-      return _emptySdfImage();
-    }
-    final n = resolution;
-    final dLat = viewport.north - viewport.south;
-    final dLon = viewport.east - viewport.west;
-    if (dLat == 0 || dLon == 0) {
-      _log.warning('buildFromDiscs(): degenerate viewport (dLat=$dLat dLon=$dLon) → all-fog SDF');
-      return _emptySdfImage();
+      final image = await _emptySdfImage();
+      return SdfBuildResult(image: image, bbox: viewport);
     }
 
-    // Metres-per-pixel along each axis at the viewport's mean latitude.
-    // Using the mean latitude (not the disc's own latitude) keeps the
-    // metres-to-pixel mapping consistent across all discs in this build —
-    // the SDF is rendered in viewport-normalised pixel space, so the
-    // pixel cost of a metre is a property of the viewport, not the disc.
-    final meanLatRad = (viewport.south + viewport.north) * 0.5 * math.pi / 180.0;
+    // Compute disc bbox: geographic bounding box of all discs + padding.
+    final discBbox = _computeDiscBbox(discList);
+    final dLat = discBbox.north - discBbox.south;
+    final dLon = discBbox.east - discBbox.west;
+    if (dLat <= 0 || dLon <= 0) {
+      _log.warning('buildFromDiscs(): degenerate disc bbox (dLat=$dLat dLon=$dLon) → all-fog SDF');
+      final image = await _emptySdfImage();
+      return SdfBuildResult(image: image, bbox: discBbox);
+    }
+
+    final n = resolution;
+
+    // Metres-per-pixel along each axis at the disc bbox's mean latitude.
+    final meanLatRad = (discBbox.south + discBbox.north) * 0.5 * math.pi / 180.0;
     final metersPerDegreeLon = kMetersPerDegreeLat * math.cos(meanLatRad);
     final metersPerPixelY = (dLat * kMetersPerDegreeLat) / n;
     final metersPerPixelX = (dLon * metersPerDegreeLon) / n;
     // Geometric mean: preserves disc area at the cost of a small
-    // aspect-ratio compromise far from the equator. At MirkFall's
-    // city-scale viewports (dLat ≪ 1°) the two axes agree to within a
-    // fraction of a percent at any latitude north of the polar clamp.
+    // aspect-ratio compromise far from the equator.
     final metersPerPixel = math.sqrt(metersPerPixelX * metersPerPixelY);
 
     final distMaxPixels = n * 0.5;
@@ -155,17 +166,17 @@ class RevealedSdfBuilder {
 
     var intersectingDiscCount = 0;
     for (final disc in discList) {
-      if (!disc.intersectsBbox(viewport)) continue;
+      // All discs are within the disc bbox by construction, but skip any
+      // that somehow fall outside (degenerate input).
+      if (!disc.intersectsBbox(discBbox)) continue;
       intersectingDiscCount++;
 
-      // Project disc centre to seed-grid pixel coordinates. North → row 0.
-      final cx = (disc.lon - viewport.west) / dLon * n;
-      final cy = (viewport.north - disc.lat) / dLat * n;
+      // Project disc centre to SDF-grid pixel coordinates. North → row 0.
+      final cx = (disc.lon - discBbox.west) / dLon * n;
+      final cy = (discBbox.north - disc.lat) / dLat * n;
       // Anisotropic padding: at non-equatorial latitudes, one pixel of
       // latitude covers more metres than one pixel of longitude (by
-      // 1/cos(lat)). The padded bbox must account for this difference
-      // so that the distance computation reaches all pixels that could
-      // be within (disc.radiusMeters + distMaxMeters) in metric space.
+      // 1/cos(lat)). The padded bbox must account for this difference.
       final paddedMeters = disc.radiusMeters + distMaxPixels * metersPerPixel;
       final xPadPixels = paddedMeters / metersPerPixelX;
       final yPadPixels = paddedMeters / metersPerPixelY;
@@ -176,9 +187,7 @@ class RevealedSdfBuilder {
       if (xMin >= xMax || yMin >= yMax) continue;
 
       for (var y = yMin; y < yMax; y++) {
-        // Pixel-centre sampling — distance computed in METRES, not pixels,
-        // so the SDF boundary is a true metric circle at any latitude
-        // (BUG-011 fix: pixel-space distance produced a north-south oval).
+        // Pixel-centre sampling — distance computed in METRES, not pixels.
         final dy = (y + 0.5) - cy;
         final dyMeters = dy * metersPerPixelY;
         final rowOffset = y * n;
@@ -217,9 +226,51 @@ class RevealedSdfBuilder {
     _log.fine(
       'buildFromDiscs(): done in ${stopwatch.elapsedMilliseconds}ms — '
       '${discList.length} discs · $intersectingDiscCount intersected · '
-      'inside=$insidePct% · ui.Image ${image.width}x${image.height}',
+      'inside=$insidePct% · ui.Image ${image.width}x${image.height} · '
+      'discBbox=[${discBbox.south.toStringAsFixed(4)}, ${discBbox.west.toStringAsFixed(4)} → ${discBbox.north.toStringAsFixed(4)}, ${discBbox.east.toStringAsFixed(4)}]',
     );
-    return image;
+    return SdfBuildResult(image: image, bbox: discBbox);
+  }
+
+  /// Computes the geographic bounding box of all discs, padded by
+  /// [kSdfBboxPaddingMeters] on all sides. Each disc's extent is its
+  /// centre ± radius converted to degrees.
+  MirkViewportBbox _computeDiscBbox(List<RevealDisc> discs) {
+    var minLat = double.infinity;
+    var maxLat = double.negativeInfinity;
+    var minLon = double.infinity;
+    var maxLon = double.negativeInfinity;
+
+    for (final disc in discs) {
+      final latDegPerMeter = 1.0 / kMetersPerDegreeLat;
+      final clampedLatRad = disc.lat.abs() < 85.0 ? disc.lat * math.pi / 180.0 : (disc.lat > 0 ? 85.0 : -85.0) * math.pi / 180.0;
+      final lonDegPerMeter = 1.0 / (kMetersPerDegreeLat * math.cos(clampedLatRad));
+
+      final discMinLat = disc.lat - disc.radiusMeters * latDegPerMeter;
+      final discMaxLat = disc.lat + disc.radiusMeters * latDegPerMeter;
+      final discMinLon = disc.lon - disc.radiusMeters * lonDegPerMeter;
+      final discMaxLon = disc.lon + disc.radiusMeters * lonDegPerMeter;
+
+      if (discMinLat < minLat) minLat = discMinLat;
+      if (discMaxLat > maxLat) maxLat = discMaxLat;
+      if (discMinLon < minLon) minLon = discMinLon;
+      if (discMaxLon > maxLon) maxLon = discMaxLon;
+    }
+
+    // Add padding in metres, converted to degrees at the mean latitude.
+    final meanLat = (minLat + maxLat) * 0.5;
+    final latDegPerMeter = 1.0 / kMetersPerDegreeLat;
+    final clampedMeanLatRad = meanLat.abs() < 85.0 ? meanLat * math.pi / 180.0 : (meanLat > 0 ? 85.0 : -85.0) * math.pi / 180.0;
+    final lonDegPerMeter = 1.0 / (kMetersPerDegreeLat * math.cos(clampedMeanLatRad));
+    final latPaddingDeg = kSdfBboxPaddingMeters * latDegPerMeter;
+    final lonPaddingDeg = kSdfBboxPaddingMeters * lonDegPerMeter;
+
+    final south = (minLat - latPaddingDeg).clamp(-90.0, 90.0);
+    final north = (maxLat + latPaddingDeg).clamp(-90.0, 90.0);
+    final west = minLon - lonPaddingDeg;
+    final east = maxLon + lonPaddingDeg;
+
+    return MirkViewportBbox(south: south, west: west, north: north, east: east);
   }
 
   /// Returns an all-fog SDF (every byte = 255). Used for empty inputs
