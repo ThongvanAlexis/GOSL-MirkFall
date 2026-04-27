@@ -1,6 +1,6 @@
 # BUG-014 — SDF rect offset rotated 90 degrees during pan at low zoom
 
-**Status:** ✅ fixed — `d05dbb2` (initial), `bf6532b` (combined zoom+pan follow-up)
+**Status:** ✅ fixed — `d05dbb2` (initial), `bf6532b` (scalar decomposition), final fix below (drop sdfRect entirely)
 **Reported:** 2026-04-27 (UAT walk at zoom ~12.28 on iOS, testing BUG-012 sdfRect fix)
 **Platform:** iOS (Impeller/Metal) — Android (Skia/OpenGL) was not affected
 
@@ -103,10 +103,36 @@ Dart-side slot indices (37-40) and the `FogShaderUniforms.setAll` logic are unch
 
 `bf6532b` — decompose `uSdfRect` vec4 into four scalar floats.
 
+## Iteration 3 — drop dynamic sdfRect entirely (combined zoom+pan fix)
+
+**Reported:** 2026-04-27 — "BUG-014 : no change, zooming+moving at the same time will still displace the revealed area to another location"
+
+### Analysis
+
+Two shader-side fixes (slot reorder in `d05dbb2`, scalar decomposition in `bf6532b`) corrected pure pan and pure zoom but not combined pinch-zoom+pan. The `_computeSdfRect` Dart-side math was verified analytically correct (affine UV transform between sdfViewport and currentViewport produces exact expected values for all tested cases).
+
+Device logs showed the sdfRect values during combined gestures were mathematically correct but **extreme** — origin values like `y0=-1.5079`, sizes like `xSize=1.8644, ySize=2.4140`. These arise because the SDF was built for a viewport that differs significantly from the current one (the debounce window allows the viewport to diverge during a fast pinch-zoom).
+
+The root cause is **not** bad math or shader slot misalignment — it is that the sdfRect remapping approach itself is unreliable during combined gestures. The async viewport bbox (from the platform channel at 20 Hz) lags behind the actual camera state. During a pure pan the lag is a small translation; during a pure zoom the lag is a small scale change. But during a combined pinch-zoom+pan, the translation AND scale change interact, and the remapping amplifies the lag into a visible displacement.
+
+### Fix
+
+Dropped the dynamic sdfRect mechanism entirely. Both renderers now always pass identity `(0.0, 0.0, 1.0, 1.0)` as the sdfRect, meaning the SDF image maps 1:1 to the screen UV space. The `_sdfViewport` tracking field and `_computeSdfRect` method were removed from both `atmospheric_mirk_renderer.dart` and `heavenly_clouds_mirk_renderer.dart`.
+
+The SDF watercolour boundary now drifts slightly during gestures (the SDF was built for a previous viewport position), but this drift is bounded by the debounce window (~200ms of gesture movement). The **clip path** — computed every frame from current discs + current viewport — still provides the correct hard fog boundary. The visual trade-off is: slightly stale soft boundary vs. wildly displaced hard boundary. The former is vastly preferable.
+
+The shader's `uSdfRect*` uniforms are retained at their existing slot positions (37-40) to avoid changing the shader's uniform layout. They always receive identity values.
+
+### Files modified
+
+- `lib/infrastructure/mirk/atmospheric_mirk_renderer.dart` — removed `_sdfViewport`, `_computeSdfRect`; pass identity sdfRect
+- `lib/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart` — same changes
+
 ## Known follow-ups
 
 - [ ] Consider adding a CI shader compilation smoke test for Impeller/Metal to catch uniform slot misalignment at build time rather than runtime
 - [ ] Document the "float uniforms before samplers" rule in a shader authoring guide if more shaders are added
+- [ ] The SDF watercolour boundary drifts during fast gestures. A future optimisation could make the SDF build synchronous (fast-path disc reprojection without pixel-loop recomputation) so the SDF stays fresh every frame without the debounce window
 
 ## Links
 
