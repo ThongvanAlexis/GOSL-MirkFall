@@ -1,6 +1,6 @@
 # BUG-015 — Wisp burst "rose" pattern on map open and pan
 
-**Status:** fixed (iteration 2) — see Commits below
+**Status:** ✅ fixed (iteration 2) — `723984c`, `8b1318b`. User UAT 2026-04-27: "fixed."
 **Reported:** 2026-04-27 (UAT walk on `743750d` after BUG-013 fix shipped)
 **Re-reported:** 2026-04-27 — still visible after iteration 1 (`723984c`)
 **Introduced in:** `d47e5ab` (BUG-010 Option B Commit 5 — disc-based wisp emergence)

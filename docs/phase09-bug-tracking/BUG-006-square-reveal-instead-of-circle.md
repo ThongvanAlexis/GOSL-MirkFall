@@ -1,6 +1,6 @@
 # BUG-006 — Le reveal s'affiche en grille de carrés au lieu d'un cercle smooth
 
-**Status:** ✅ closed — same root cause as BUG-010 (cell-grid quantisation in the bitmap data layer). Resolved end-to-end by the BUG-010 Option B continuous-geometry refactor shipped 2026-04-26.
+**Status:** ✅ closed — same root cause as BUG-010 (cell-grid quantisation in the bitmap data layer). Resolved end-to-end by the BUG-010 Option B continuous-geometry refactor shipped 2026-04-26 (`9bd0c93`…`f9b6f1a`). Closure documented in `e231df7`.
 
 ## Resolution
 

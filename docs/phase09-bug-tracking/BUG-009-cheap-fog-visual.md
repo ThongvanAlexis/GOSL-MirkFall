@@ -1,28 +1,17 @@
 # BUG-009 — Le rendu fog est "Temu / cheap", besoin d'un visuel premium
 
-**Status:** iterating — décision pending entre BUG-010 (Option B, refonte data layer continue) et un hack stop-gap intermédiaire (BUG-010 Option D, cells rasterisées en circles)
+**Status:** ✅ closed — TIER 2 shader + BUG-010 Option B (disc-based SDF) shipped. Remaining boundary-stepping symptom structurally resolved by BUG-010 continuous geometry (`9bd0c93`…`f9b6f1a`). User UAT 2026-04-27 on `97d5978` confirmed volumetric fog visible and strobing solved (see BUG-012). No further iteration planned.
 **Reported:** 2026-04-25 (iOS UAT walk après build `632a210`)
 **Platform:** iOS sideloaded (mais le bug est cross-platform — c'est un défaut de design)
 **Phase context:** L'effet livré par BUG-004 fix (commit `632a210`) consiste en : noise grayscale 256×256 pré-rasterisé tilé, qui drift à 30/50 px/s en ligne droite via translateMatrix, par-dessus un fog uni avec mask filter. Visuel inspecté par l'utilisateur : ressemble à "bruit qui slide vers la gauche", pas à du brouillard.
 
-## Current state (2026-04-26 N+M, post-`118b95a`)
+## Final state (2026-04-27, post-BUG-010 Option B)
 
-**Visuel.** Le corps du fog s'anime correctement avec le curl-scale animation (triangle wave 0..4 sur 60 s, "ambient breathing"), drift Z bumpé ×4 visible, hue/light single-applied après les 3 fix math (`76dfca4`), opacity contrôlable par le user (slider burger-menu, default 0.58, persiste). Le watercolour boundary est restauré (`4736342`) avec dither 1-byte + smoothstep inside edge + density-boost pigment pool — plus de hard white line, fog visiblement "thicker" sur l'inside edge.
+**Visuel.** TIER 2 shader active with volumetric fog body (curl-scale triangle wave 0..4 over 60 s), watercolour boundary restored (`4736342`), opacity user-controllable (burger-menu slider, default 0.58, persisted). The boundary-stepping symptom that remained after `118b95a` was **structurally resolved** by the BUG-010 Option B disc-based SDF refactor (`9bd0c93`…`f9b6f1a`) — reveals are now analytic circles, not cell-grid rectangles.
 
-**Symptôme persistant.** Le boundary reste **subtil mais encore steppy** parce que les cells du SDF source sont rasterisées en rectangles binaires sur la grille 19 m. Ni la Gaussian post-chamfer (testée puis reverted dans `a9c7ced`/`118b95a`), ni la dither shader-side ne cachent complètement le caractère rectangulaire — chaque cell projette sur 20-30 px du SDF, un blur radius 3-5 lisse les corners mais pas le character. **Le seul vrai fix est en amont, pas en aval du bitmap → BUG-010.**
+**Pipeline-level.** Confirmed healthy — shader path active, ~96 fps, SDF rebuilds 1-9 ms from disc list. Logger functional (`RandomAccessFile.flushSync` in `16db03c`).
 
-**Pipeline-level.** Confirmé sain — instrumentation `7b6d819` produit des logs propres : `MapScreen.initState`, `MirkOverlay.initState/build`, `paint()` first-invocation + heartbeat 60-frames + early-return state, `path transition → shader`, ~96 fps, SDF rebuilds 1-9 ms. Pas de fallback path silencieux, pas de `paint()` qui n'est jamais appelé. Le shader path est actif et le shader produit le pattern volumétrique attendu.
-
-**Logger.** Confirmé fonctionnel — `RandomAccessFile.flushSync` dans `16db03c` capture des centaines de lignes par walk, plus de 99 % de loss silencieux post-pmtiles. Postmortem complet dans `docs/flutter-discoveries.md` §2.
-
-**Décision pending (caller-context).** Le user demande "BUG-010 next? ou hack D first?" :
-
-1. **Voie A — skip Option D, attaquer BUG-010 Option B directement.** Refonte data layer en géométrie continue (liste de discs `(lat, lon, radius, ts)` + union-of-discs SDF builder). Estimé 3-5 jours. Résout définitivement le caractère blocky à tous les rayons + le boundary stepping.
-2. **Voie B — ship Option D first comme stop-gap pretty-but-hack.** ~30 lignes dans `_markTileInSeed` du SDF builder : remplacer le rectangle-fill par une coverage-based circle rasterisation (chaque cell révélée → circle de rayon cell-diagonal/2 centré sur la projection). Le chamfer SDF voit alors des shapes inhérence-circulaires → boundary smooth round naturellement. Visual win immédiat ; data layer rework peut prendre son temps après.
-
-Voir BUG-010 pour la trade-off analysis détaillée d'Option D.
-
-**Ce que le prochain walk doit valider** dépend de la voie choisie : (A) walk de validation après le data layer rework, (B) walk de validation après le 30-line patch d'Option D — le boundary doit lire comme un disque smooth à 25 m de rayon sans "+" résiduel.
+**Decision taken.** User chose Voie A (skip Option D, ship BUG-010 Option B directly). Option B shipped 2026-04-26. BUG-009's remaining boundary symptom resolved as a side-effect.
 
 ## Comportement attendu
 

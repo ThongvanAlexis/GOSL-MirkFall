@@ -17,6 +17,9 @@ c91098d  feat(09-bug-010): add RevealedSdfBuilder.buildFromDiscs (analytic SDF)
 7f7bee6  feat(09-bug-010): rewire writes + reads to disc path
 d47e5ab  refactor(09-bug-010): delete dead bitmap reveal path; spawn wisps on disc emergence
 f9b6f1a  feat(09-bug-010): hook compactSession at session stop + add SDF perf test
+c41f31d  fix(09-bug-010): bump 10k-disc perf test timeout to 2 min
+ed88100  chore(09-bug-010): remove orphan "Check mirk fixture fresh" CI step
+e231df7  docs(09-bug-010): close BUG-010 + BUG-006; document disc-based reveal architecture
 ```
 
 ## Perf reality vs estimate (warrants follow-up)
@@ -147,7 +150,12 @@ Phase 10 = Review Gate Fog : l'utilisateur valide la qualité visuelle du fog su
 ## Lien vers les bugs cousins
 
 - **BUG-006** — boundary smoothing (closed sur ce périmètre, le reste migre ici)
-- **BUG-009** — TIER 2 fog visual (en cours de validation device, blocker pour démarrer BUG-010)
+- **BUG-009** — TIER 2 fog visual (closed — boundary stepping resolved by this refactor)
+- **BUG-011** — oval boundary (metre-space SDF fix, discovered in UAT walk on `c41f31d`)
+- **BUG-012** — strobe on pan (debounce + sdfRect + widget cache, discovered same UAT session)
+- **BUG-013** — mirk disappears offscreen (empty-disc early-return regression from this refactor)
+- **BUG-014** — sdfRect axis offset (sdfRect mechanism introduced in BUG-012 iteration 2)
+- **BUG-015** — wisp burst on open (disc-based wisp emergence regression from `d47e5ab`)
 - **CLAUDE.md "préférer la déduction au tracking"** — la liste de discs est la vraie state, le bitmap actuel en est une déduction ; donc le rework est aligné avec la philosophie projet.
 
 **Compaction:** `compactSession` is now invoked at session stop (Commit 6). Compaction tolerance configurable via `kRevealedDiscCompactionContainmentTolerance` in `lib/config/constants.dart`.

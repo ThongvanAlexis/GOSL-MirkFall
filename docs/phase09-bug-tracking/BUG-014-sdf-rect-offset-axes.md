@@ -1,6 +1,6 @@
 # BUG-014 — SDF rect offset rotated 90 degrees during pan at low zoom
 
-**Status:** ✅ fixed — `d05dbb2` (initial), `bf6532b` (scalar decomposition), final fix below (drop sdfRect entirely)
+**Status:** ✅ fixed — 3 iterations: `d05dbb2` (slot reorder), `bf6532b` (scalar decomposition), `af15c12` (drop sdfRect entirely). User UAT 2026-04-27 on `d05dbb2`: "presque resolu"; on `bf6532b`: "no change" for combined zoom+pan. Awaiting final UAT on `af15c12`.
 **Reported:** 2026-04-27 (UAT walk at zoom ~12.28 on iOS, testing BUG-012 sdfRect fix)
 **Platform:** iOS (Impeller/Metal) — Android (Skia/OpenGL) was not affected
 
@@ -69,6 +69,9 @@ sdfRect values are visible in the device log for future debugging.
 ```
 d05dbb2  fix(09-bug-014): correct sdfRect axis mapping (X↔Y swap during pan)
 bf6532b  fix(09-bug-014): decompose uSdfRect vec4 into four scalar floats (combined zoom+pan)
+         (Note: git message reads "docs(09-bug-015): stamp commit SHA 8b1318b in BUG-015 tracker"
+          because the shader change was bundled with the BUG-015 doc stamp)
+af15c12  fix(09-bug-014): drop dynamic sdfRect; use identity mapping to fix combined zoom+pan displacement
 ```
 
 ## Files modified
@@ -123,10 +126,18 @@ The SDF watercolour boundary now drifts slightly during gestures (the SDF was bu
 
 The shader's `uSdfRect*` uniforms are retained at their existing slot positions (37-40) to avoid changing the shader's uniform layout. They always receive identity values.
 
+### Commit
+
+`af15c12` — drop dynamic sdfRect; pass identity `(0, 0, 1, 1)` always.
+
 ### Files modified
 
 - `lib/infrastructure/mirk/atmospheric_mirk_renderer.dart` — removed `_sdfViewport`, `_computeSdfRect`; pass identity sdfRect
 - `lib/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart` — same changes
+
+### UAT status
+
+User reported "presque resolu" after iteration 1 (`d05dbb2`), then "no change" for combined zoom+pan after iteration 2 (`bf6532b`). Iteration 3 (`af15c12`) dropped sdfRect entirely. **Awaiting UAT confirmation on `af15c12`.**
 
 ## Known follow-ups
 

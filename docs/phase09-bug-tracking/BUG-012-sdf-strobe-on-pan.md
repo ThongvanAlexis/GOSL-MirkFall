@@ -1,6 +1,6 @@
 # BUG-012 — Fog strobes during map pan/zoom
 
-**Status:** ✅ fixed — `8486d3e`, `c0c14a6`, `d6784a4` (3 iterations)
+**Status:** ✅ fixed — `8486d3e`, `c0c14a6`, `d6784a4` (3 iterations). User UAT 2026-04-27 on `97d5978`: "strobing is solved."
 **Reported:** 2026-04-26 (UAT walk on `c41f31d` after BUG-010 disc refactor shipped)
 **Platform:** cross-platform (renderer CPU-side + widget layer, same on iOS + Android)
 
