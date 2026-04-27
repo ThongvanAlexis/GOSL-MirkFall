@@ -27,17 +27,6 @@ import 'wisp/wisp_particle_system.dart';
 
 final Logger _log = Logger('infrastructure.mirk.atmospheric');
 
-/// Identity SDF rect — origin (0,0), size (1,1). The SDF image maps 1:1
-/// to the screen viewport. BUG-014 fix: the previous dynamic sdfRect
-/// remapping (computing the affine transform between stale-SDF viewport
-/// and current viewport) produced displacement artefacts during combined
-/// pinch-zoom+pan because the async viewport bbox lagged behind the
-/// actual camera state. With identity mapping the SDF watercolour
-/// boundary drifts slightly during gestures (bounded by the debounce
-/// window) but the clip path — computed every frame from current
-/// discs+viewport — still provides the correct hard fog boundary.
-const (double, double, double, double) _kIdentitySdfRect = (0.0, 0.0, 1.0, 1.0);
-
 /// Atmospheric volumetric fog — TIER 2 shader-driven (BUG-009 fix).
 ///
 /// MIRK-04 default builtin. Reads `context.sessionElapsed` for animation
@@ -152,6 +141,12 @@ class AtmosphericMirkRenderer implements MirkRenderer {
 
   /// Cached SDF image. Rebuilt when disc-list or viewport hash changes.
   ui.Image? _sdfImage;
+
+  /// The viewport the current [_sdfImage] was built for. Used by
+  /// [_computeSdfRect] to map the SDF onto the current viewport each
+  /// frame so the reveal stays pinned at its true lat/lon position
+  /// during pan/zoom instead of sliding with the viewport.
+  MirkViewportBbox? _sdfViewport;
 
   /// Whether an SDF rebuild is currently in flight. Prevents redundant
   /// concurrent rebuilds when paint is called many times during the
@@ -442,16 +437,10 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       boundaryBleedDistance: t.boundaryBleedDistance,
       boundaryEdgeBand: t.boundaryEdgeBand,
       boundaryDensityBoost: t.boundaryDensityBoost,
-      // SDF rect: identity mapping — the SDF is always consumed at 1:1
-      // screen UV. BUG-014 fix: the previous dynamic sdfRect remapping
-      // (pin stale SDF at its true lat/lon position during pan/zoom)
-      // produced wild displacements during combined pinch-zoom+pan because
-      // the async viewport bbox lagged behind the actual camera state.
-      // With identity, the SDF watercolour boundary drifts slightly
-      // during gestures (bounded by the debounce window) but the clip
-      // path — computed every frame from current discs+viewport — still
-      // provides the correct hard boundary. Acceptable trade-off.
-      sdfRect: _kIdentitySdfRect,
+      // SDF rect: shader maps screen-normalised [0,1] uv to SDF uv via
+      // (uv - rect.xy) / rect.zw. Dynamically computed to pin the SDF
+      // at its true lat/lon position during pan/zoom (BUG-012 follow-up).
+      sdfRect: _computeSdfRect(context.viewportBbox),
       sdfImage: sdf,
     );
 
@@ -549,6 +538,9 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// picks it up on the shader path.
   void _triggerSdfRebuild(List<RevealDisc> discs, MirkViewportBbox viewport) {
     _sdfBuildInFlight = true;
+    // Capture the viewport at trigger time so we can pin the SDF to its
+    // true lat/lon position when the build completes (BUG-012 follow-up).
+    final viewportForThisBuild = viewport;
     _log.fine('_triggerSdfRebuild: scheduling rebuild (discs=${discs.length})');
     _sdfBuilder
         .buildFromDiscs(discs: discs, viewport: viewport)
@@ -559,6 +551,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
           }
           _sdfImage?.dispose();
           _sdfImage = image;
+          _sdfViewport = viewportForThisBuild;
           _log.fine('_triggerSdfRebuild: rebuild complete — _sdfImage now set (${image.width}x${image.height})');
         })
         .catchError((Object e, StackTrace st) {
@@ -567,6 +560,42 @@ class AtmosphericMirkRenderer implements MirkRenderer {
         .whenComplete(() {
           _sdfBuildInFlight = false;
         });
+  }
+
+  /// Maps the SDF's reference viewport onto the current viewport's
+  /// screen-normalised [0,1] space. Returns `(originX, originY, sizeX,
+  /// sizeY)` for the four `uSdfRect*` shader uniforms.
+  ///
+  /// When the viewport hasn't moved since the SDF was built, returns
+  /// `(0, 0, 1, 1)` — the existing behaviour. When the viewport pans,
+  /// the origin shifts. When the viewport zooms, the size scales. The
+  /// shader's `clamp(sdfUv, 0.0, 1.0)` ensures pixels outside the
+  /// SDF's coverage read as all-fog.
+  (double, double, double, double) _computeSdfRect(MirkViewportBbox currentViewport) {
+    final sdfVp = _sdfViewport;
+    if (sdfVp == null) return (0.0, 0.0, 1.0, 1.0);
+    final dLon = currentViewport.east - currentViewport.west;
+    final dLat = currentViewport.north - currentViewport.south;
+    if (dLon == 0 || dLat == 0) return (0.0, 0.0, 1.0, 1.0);
+    // X axis: longitude. SDF west edge -> screen UV.x, SDF east edge -> screen UV.x.
+    final x0 = (sdfVp.west - currentViewport.west) / dLon;
+    final xSize = (sdfVp.east - sdfVp.west) / dLon;
+    // Y axis: latitude. North -> top (y=0), south -> bottom (y=1).
+    final y0 = (currentViewport.north - sdfVp.north) / dLat;
+    final ySize = (sdfVp.north - sdfVp.south) / dLat;
+    // BUG-014 diagnostic: log the SDF rect when it deviates from identity
+    // so future axis-mapping issues are traceable from the device log.
+    if (_paintCallCount % 60 == 0 && (x0 != 0 || y0 != 0 || xSize != 1 || ySize != 1)) {
+      _log.info(
+        '_computeSdfRect: x0=${x0.toStringAsFixed(4)} y0=${y0.toStringAsFixed(4)} '
+        'xSize=${xSize.toStringAsFixed(4)} ySize=${ySize.toStringAsFixed(4)} · '
+        'sdfVp=[${sdfVp.south.toStringAsFixed(4)},${sdfVp.west.toStringAsFixed(4)}'
+        '→${sdfVp.north.toStringAsFixed(4)},${sdfVp.east.toStringAsFixed(4)}] '
+        'curVp=[${currentViewport.south.toStringAsFixed(4)},${currentViewport.west.toStringAsFixed(4)}'
+        '→${currentViewport.north.toStringAsFixed(4)},${currentViewport.east.toStringAsFixed(4)}]',
+      );
+    }
+    return (x0, y0, xSize, ySize);
   }
 
   /// FNV-1a hash of the disc list (id + lat + lon + radius per entry).
@@ -618,6 +647,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     _shader = null;
     _sdfImage?.dispose();
     _sdfImage = null;
+    _sdfViewport = null;
     _wispSystem.clear();
     _previousDiscIdSet = <String>{};
     _warmingUp = true;
