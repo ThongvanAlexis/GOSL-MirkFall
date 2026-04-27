@@ -108,12 +108,19 @@ uniform float uBoundaryEdgeBand;
 // bleed band so the nearby fog visibly reacts to the boundary. Slot 36.
 uniform float uBoundaryDensityBoost;
 
-// SDF sampler — R channel encodes signed distance via midpoint-128.
-uniform sampler2D uSdf;
-
 // SDF rectangle on screen — uv mapped from FlutterFragCoord/uResolution
 // to SDF space via this rect. (xy = origin, zw = size). Slot 37..40.
+//
+// BUG-014 fix: declared BEFORE the sampler so all float-consuming
+// uniforms are contiguous in the declaration order. On some
+// Impeller/Metal compilation paths, a sampler2D interleaved between
+// float uniforms could cause the slot counter to skip or misalign,
+// producing a subtle X↔Y rotation of the dynamic SDF rect during
+// pan/zoom.
 uniform vec4  uSdfRect;
+
+// SDF sampler — R channel encodes signed distance via midpoint-128.
+uniform sampler2D uSdf;
 
 out vec4 fragColor;
 

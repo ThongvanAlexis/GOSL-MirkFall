@@ -568,6 +568,18 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     // Y axis: latitude. North -> top (y=0), south -> bottom (y=1).
     final y0 = (currentViewport.north - sdfVp.north) / dLat;
     final ySize = (sdfVp.north - sdfVp.south) / dLat;
+    // BUG-014 diagnostic: log the SDF rect when it deviates from identity
+    // so future axis-mapping issues are traceable from the device log.
+    if (_paintCallCount % 60 == 0 && (x0 != 0 || y0 != 0 || xSize != 1 || ySize != 1)) {
+      _log.info(
+        '_computeSdfRect: x0=${x0.toStringAsFixed(4)} y0=${y0.toStringAsFixed(4)} '
+        'xSize=${xSize.toStringAsFixed(4)} ySize=${ySize.toStringAsFixed(4)} · '
+        'sdfVp=[${sdfVp.south.toStringAsFixed(4)},${sdfVp.west.toStringAsFixed(4)}'
+        '→${sdfVp.north.toStringAsFixed(4)},${sdfVp.east.toStringAsFixed(4)}] '
+        'curVp=[${currentViewport.south.toStringAsFixed(4)},${currentViewport.west.toStringAsFixed(4)}'
+        '→${currentViewport.north.toStringAsFixed(4)},${currentViewport.east.toStringAsFixed(4)}]',
+      );
+    }
     return (x0, y0, xSize, ySize);
   }
 
