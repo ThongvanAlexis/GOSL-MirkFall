@@ -2,17 +2,16 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-// BUG-014 iteration 4 — SDF rebuild tests (replaces BUG-012 debounce tests).
+// BUG-012 regression tests: SDF rebuild debounce on viewport-only changes.
 //
 // Verifies:
-// 1. First paint triggers an immediate SDF build.
-// 2. Viewport-only changes do NOT trigger a rebuild (the SDF is in disc-bbox
-//    coordinates now — camera movement only changes the UV mapping).
-// 3. Disc-list changes trigger an IMMEDIATE rebuild regardless of viewport.
+// 1. Viewport-only changes do NOT trigger an immediate SDF rebuild (debounced).
+// 2. After the debounce window (200 ms), the build IS triggered.
+// 3. Disc-list changes trigger an IMMEDIATE build regardless of viewport.
 // 4. The fix applies identically to atmospheric + heavenly_clouds renderers.
 //
 // Strategy: inject a spy [RevealedSdfBuilder] that counts `buildFromDiscs`
-// calls and returns a minimal SdfBuildResult. The renderer's `paint()` is
+// calls and returns a minimal 1x1 SDF image. The renderer's `paint()` is
 // the public entry point; each call drives `_refreshSdfIfNeeded` internally.
 
 import 'dart:async';
@@ -20,6 +19,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
@@ -32,7 +32,7 @@ import 'package:mirkfall/infrastructure/mirk/sdf/revealed_sdf_builder.dart';
 import '_render_helpers.dart';
 
 // ---------------------------------------------------------------------------
-// Spy SDF builder — counts build calls and completes with a stub result.
+// Spy SDF builder — counts build calls and completes with a 1x1 stub image.
 // ---------------------------------------------------------------------------
 
 /// Spy that records how many times [buildFromDiscs] was called and
@@ -44,17 +44,17 @@ class _SpySdfBuilder extends RevealedSdfBuilder {
   static int buildCallCount = 0;
 
   /// Completers the test can complete to resolve each build.
-  static List<Completer<SdfBuildResult>> completers = <Completer<SdfBuildResult>>[];
+  static List<Completer<ui.Image>> completers = <Completer<ui.Image>>[];
 
   static void reset() {
     buildCallCount = 0;
-    completers = <Completer<SdfBuildResult>>[];
+    completers = <Completer<ui.Image>>[];
   }
 
   @override
-  Future<SdfBuildResult> buildFromDiscs({required Iterable<RevealDisc> discs, required MirkViewportBbox viewport}) {
+  Future<ui.Image> buildFromDiscs({required Iterable<RevealDisc> discs, required MirkViewportBbox viewport}) {
     buildCallCount++;
-    final completer = Completer<SdfBuildResult>();
+    final completer = Completer<ui.Image>();
     completers.add(completer);
     return completer.future;
   }
@@ -69,16 +69,15 @@ Future<ui.Image> _stubImage() async {
   return completer.future;
 }
 
-/// Completes the oldest pending spy builder future with a stub result.
+/// Completes the oldest pending spy builder future with a stub image.
 Future<void> _completePendingBuild() async {
   if (_SpySdfBuilder.completers.isEmpty) return;
   final completer = _SpySdfBuilder.completers.removeAt(0);
   if (!completer.isCompleted) {
-    final image = await _stubImage();
-    final bbox = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
-    completer.complete(SdfBuildResult(image: image, bbox: bbox));
+    completer.complete(await _stubImage());
   }
-  // Let microtasks propagate.
+  // Let microtasks propagate (the .then / .whenComplete chains inside
+  // the renderer execute as microtasks after the future resolves).
   await Future<void>.delayed(Duration.zero);
 }
 
@@ -117,7 +116,7 @@ void main() {
     _SpySdfBuilder.reset();
   });
 
-  group('BUG-014 iteration 4 — SDF rebuild (AtmosphericMirkRenderer)', () {
+  group('BUG-012 — SDF debounce (AtmosphericMirkRenderer)', () {
     late AtmosphericMirkRenderer renderer;
 
     setUp(() {
@@ -134,7 +133,7 @@ void main() {
       expect(_SpySdfBuilder.buildCallCount, 1, reason: 'First paint must trigger an immediate SDF build');
     });
 
-    test('same discs + different viewport does NOT trigger rebuild (BUG-014)', () async {
+    test('same discs + different viewport does NOT trigger immediate rebuild', () async {
       final bbox1 = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
       final bbox2 = MirkViewportBbox(south: 43.1, west: 5.1, north: 44.1, east: 6.1);
       final discs = <RevealDisc>[_disc()];
@@ -148,15 +147,36 @@ void main() {
       // Complete the first build so _sdfBuildInFlight clears.
       await _completePendingBuild();
 
-      // Second paint with different viewport, same discs → NO rebuild.
-      // BUG-014 iteration 4: the SDF is in disc-bbox coordinates, so
-      // viewport changes don't affect it at all.
+      // Second paint with different viewport, same discs → should NOT
+      // trigger an immediate build (debounce timer started instead).
       _paintOnce(renderer, context: ctx2);
-      expect(_SpySdfBuilder.buildCallCount, 1, reason: 'Viewport-only change must NOT trigger any rebuild');
+      expect(_SpySdfBuilder.buildCallCount, 1, reason: 'Viewport-only change should debounce, not rebuild immediately');
+    });
 
-      // Even after waiting — no delayed rebuild either.
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      expect(_SpySdfBuilder.buildCallCount, 1, reason: 'No debounced rebuild either — viewport changes are free');
+    test('viewport-only change triggers build after debounce delay', () async {
+      final bbox1 = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+      final bbox2 = MirkViewportBbox(south: 43.1, west: 5.1, north: 44.1, east: 6.1);
+      final discs = <RevealDisc>[_disc()];
+
+      // First paint → triggers build.
+      _paintOnce(
+        renderer,
+        context: _ctx(viewport: bbox1, discs: discs),
+      );
+      await _completePendingBuild();
+      expect(_SpySdfBuilder.buildCallCount, 1);
+
+      // Second paint → viewport changed, debounce timer starts.
+      _paintOnce(
+        renderer,
+        context: _ctx(viewport: bbox2, discs: discs),
+      );
+      expect(_SpySdfBuilder.buildCallCount, 1, reason: 'Debounce has not fired yet');
+
+      // Wait for debounce to fire.
+      await Future<void>.delayed(const Duration(milliseconds: kMirkFogSdfViewportDebounceMs + 50));
+
+      expect(_SpySdfBuilder.buildCallCount, 2, reason: 'Debounce timer should have triggered a rebuild');
     });
 
     test('new disc triggers IMMEDIATE rebuild even when viewport also changed', () async {
@@ -188,35 +208,34 @@ void main() {
       expect(_SpySdfBuilder.buildCallCount, 2, reason: 'New disc in the list must trigger an immediate rebuild');
     });
 
-    test('multiple viewport changes without disc changes → zero rebuilds after initial', () async {
+    test('dispose cancels pending debounce timer (no late rebuild after dispose)', () async {
+      final bbox1 = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+      final bbox2 = MirkViewportBbox(south: 43.1, west: 5.1, north: 44.1, east: 6.1);
       final discs = <RevealDisc>[_disc()];
 
-      // Initial build.
       _paintOnce(
         renderer,
-        context: _ctx(viewport: MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0), discs: discs),
+        context: _ctx(viewport: bbox1, discs: discs),
       );
       await _completePendingBuild();
+
+      // Trigger debounce.
+      _paintOnce(
+        renderer,
+        context: _ctx(viewport: bbox2, discs: discs),
+      );
       expect(_SpySdfBuilder.buildCallCount, 1);
 
-      // Simulate a pan gesture: 10 viewport changes, same discs.
-      for (var i = 1; i <= 10; i++) {
-        final offset = i * 0.01;
-        _paintOnce(
-          renderer,
-          context: _ctx(
-            viewport: MirkViewportBbox(south: 43.0 + offset, west: 5.0 + offset, north: 44.0 + offset, east: 6.0 + offset),
-            discs: discs,
-          ),
-        );
-      }
+      // Dispose before the timer fires.
+      await renderer.dispose();
 
-      // No rebuilds should have been triggered.
-      expect(_SpySdfBuilder.buildCallCount, 1, reason: '10 viewport changes with same discs must NOT trigger any rebuilds');
+      // Wait past the debounce window — no new build should fire.
+      await Future<void>.delayed(const Duration(milliseconds: kMirkFogSdfViewportDebounceMs + 50));
+      expect(_SpySdfBuilder.buildCallCount, 1, reason: 'Dispose must cancel the debounce timer');
     });
   });
 
-  group('BUG-014 iteration 4 — SDF rebuild (HeavenlyCloudsMirkRenderer)', () {
+  group('BUG-012 — SDF debounce (HeavenlyCloudsMirkRenderer)', () {
     late HeavenlyCloudsMirkRenderer renderer;
 
     setUp(() {
@@ -227,7 +246,7 @@ void main() {
       await renderer.dispose();
     });
 
-    test('viewport-only change does NOT trigger rebuild', () async {
+    test('viewport-only change does NOT trigger immediate rebuild', () async {
       final bbox1 = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
       final bbox2 = MirkViewportBbox(south: 43.1, west: 5.1, north: 44.1, east: 6.1);
       final discs = <RevealDisc>[_disc()];
@@ -244,7 +263,7 @@ void main() {
         renderer,
         context: _ctx(viewport: bbox2, discs: discs),
       );
-      expect(_SpySdfBuilder.buildCallCount, 1, reason: 'Heavenly clouds: viewport-only change must NOT trigger rebuild');
+      expect(_SpySdfBuilder.buildCallCount, 1, reason: 'Heavenly clouds: viewport-only change should debounce');
     });
 
     test('new disc triggers immediate rebuild', () async {

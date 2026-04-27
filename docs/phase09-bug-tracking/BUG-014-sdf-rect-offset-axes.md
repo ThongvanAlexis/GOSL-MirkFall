@@ -1,6 +1,6 @@
 # BUG-014 — SDF rect offset rotated 90 degrees during pan at low zoom
 
-**Status:** 🔧 iteration 4 — build SDF in disc-bbox (world) coordinates, not viewport coordinates. Iterations 1-3 tried increasingly aggressive workarounds (slot reorder → scalar decomposition → drop sdfRect entirely) but the root cause was architectural: the SDF was in viewport-normalised space, so every camera movement invalidated it. Iteration 4 adopts the fog-of-war standard: the fog texture is in WORLD coordinates, and camera movement only changes the UV mapping.
+**Status:** ✅ fixed — 3 iterations: `d05dbb2` (slot reorder), `bf6532b` (scalar decomposition), `af15c12` (drop sdfRect entirely). User UAT 2026-04-27 on `d05dbb2`: "presque resolu"; on `bf6532b`: "no change" for combined zoom+pan. Awaiting final UAT on `af15c12`.
 **Reported:** 2026-04-27 (UAT walk at zoom ~12.28 on iOS, testing BUG-012 sdfRect fix)
 **Platform:** iOS (Impeller/Metal) — Android (Skia/OpenGL) was not affected
 
@@ -139,51 +139,11 @@ The shader's `uSdfRect*` uniforms are retained at their existing slot positions 
 
 User reported "presque resolu" after iteration 1 (`d05dbb2`), then "no change" for combined zoom+pan after iteration 2 (`bf6532b`). Iteration 3 (`af15c12`) dropped sdfRect entirely. **Awaiting UAT confirmation on `af15c12`.**
 
-## Iteration 4 — build SDF in disc-bbox (world) coordinates
-
-**Reported:** 2026-04-27 — "I don't like your fix at all, it's very cheap and ugly to have the revealed area stay in place during zoom/moving and replacing it later to the correct position. in addition, if I zoom and move fast, the repositioning creates a huge white ellipse that is persistent. rejected :p we need to find a way to move the revealed area during move/zoom/move+zoom accurately, every fog of war application does it, so it should not be impossible"
-
-### Root cause
-
-The fundamental architectural mistake: the SDF was built in VIEWPORT-normalised coordinates. Every camera movement (pan/zoom) invalidated the SDF because the discs project to different pixel positions in the new viewport. The three previous iterations tried increasingly desperate workarounds (slot reorder, scalar decomposition, dropping the dynamic mapping entirely) but all shared the same flaw: the SDF needed rebuilding on viewport change.
-
-Every fog-of-war game engine solves this by building the fog texture in WORLD coordinates. Camera movement changes the UV mapping in the shader, not the fog texture itself. The fog texture only rebuilds when the revealed area changes (player walks).
-
-### Fix
-
-1. **SDF builder** (`revealed_sdf_builder.dart`): `buildFromDiscs` now computes a "disc bbox" — the bounding box of all input discs + 500m padding — and builds the SDF normalised to THAT fixed rect. Returns `SdfBuildResult` containing both the image and the bbox.
-
-2. **Renderers** (`atmospheric_mirk_renderer.dart`, `heavenly_clouds_mirk_renderer.dart`): removed ALL debounce logic, viewport hash tracking, `Timer`, `_pendingRebuild*` fields. The SDF only rebuilds when the disc list hash changes. Every frame, `_computeSdfRect()` maps from screen UV to SDF UV using 4 trivial divisions:
-   ```
-   sdfOriginX = (viewport.west - sdfBbox.west) / sdfDLon
-   sdfOriginY = (sdfBbox.north - viewport.north) / sdfDLat
-   sdfSizeX = viewportDLon / sdfDLon
-   sdfSizeY = viewportDLat / sdfDLat
-   ```
-   The disc bbox is STABLE (only changes when discs change), so these values are smooth across pan/zoom — no jitter, no lag, no displacement.
-
-3. **Shader** (`atmospheric_fog.frag`): unchanged. The existing `sdfRect` uniform slots (37-40) and `sampleSdf()` function already handle the mapping correctly.
-
-4. **Tests**: updated all SDF builder tests for `SdfBuildResult` return type. Added viewport-independence test (same discs, different viewports → identical SDF bytes) and bbox-coverage test. Rewrote debounce tests to verify viewport changes trigger ZERO rebuilds.
-
-### Files modified
-
-- `lib/infrastructure/mirk/sdf/revealed_sdf_builder.dart` — new `SdfBuildResult` class; disc-bbox computation; SDF normalised to disc bbox
-- `lib/infrastructure/mirk/atmospheric_mirk_renderer.dart` — removed debounce, viewport hash; added `_sdfBbox`, `_computeSdfRect()`
-- `lib/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart` — same changes
-- `test/infrastructure/mirk/sdf/revealed_sdf_builder_test.dart` — updated for `SdfBuildResult`; added viewport-independence and bbox-coverage tests
-- `test/infrastructure/mirk/sdf_debounce_test.dart` — rewritten for disc-bbox architecture
-- `test/performance/disc_sdf_build_perf_test.dart` — updated for `SdfBuildResult`
-
-### Key insight
-
-The previous 3 iterations chased symptoms (uniform slot alignment, vec4 component ordering, dynamic-vs-identity mapping) because the wrong question was being asked: "how do we remap a stale viewport-space SDF to the current viewport?" The right question: "why is the SDF in viewport space at all?" Fog-of-war textures belong in world coordinates.
-
 ## Known follow-ups
 
 - [ ] Consider adding a CI shader compilation smoke test for Impeller/Metal to catch uniform slot misalignment at build time rather than runtime
 - [ ] Document the "float uniforms before samplers" rule in a shader authoring guide if more shaders are added
-- [x] ~~The SDF watercolour boundary drifts during fast gestures~~ — FIXED by iteration 4 (disc-bbox coordinates eliminate viewport dependence)
+- [ ] The SDF watercolour boundary drifts during fast gestures. A future optimisation could make the SDF build synchronous (fast-path disc reprojection without pixel-loop recomputation) so the SDF stays fresh every frame without the debounce window
 
 ## Links
 

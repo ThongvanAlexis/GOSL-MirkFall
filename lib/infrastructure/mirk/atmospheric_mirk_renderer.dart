@@ -2,6 +2,7 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'dart:async' show Timer;
 import 'dart:math' as math;
 import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
 import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Rect, Size;
@@ -26,6 +27,17 @@ import 'wisp/wisp_particle_system.dart';
 
 final Logger _log = Logger('infrastructure.mirk.atmospheric');
 
+/// Identity SDF rect — origin (0,0), size (1,1). The SDF image maps 1:1
+/// to the screen viewport. BUG-014 fix: the previous dynamic sdfRect
+/// remapping (computing the affine transform between stale-SDF viewport
+/// and current viewport) produced displacement artefacts during combined
+/// pinch-zoom+pan because the async viewport bbox lagged behind the
+/// actual camera state. With identity mapping the SDF watercolour
+/// boundary drifts slightly during gestures (bounded by the debounce
+/// window) but the clip path — computed every frame from current
+/// discs+viewport — still provides the correct hard fog boundary.
+const (double, double, double, double) _kIdentitySdfRect = (0.0, 0.0, 1.0, 1.0);
+
 /// Atmospheric volumetric fog — TIER 2 shader-driven (BUG-009 fix).
 ///
 /// MIRK-04 default builtin. Reads `context.sessionElapsed` for animation
@@ -37,8 +49,8 @@ final Logger _log = Logger('infrastructure.mirk.atmospheric');
 /// ## Two-path rendering
 ///
 /// 1. **Shader path** (preferred): when [FogShaderService.load] succeeds
-///    AND the SDF for the current disc-list hash is built, the renderer
-///    issues ONE `canvas.drawRect(viewport, Paint()..shader =
+///    AND the SDF for the current viewport+disc-list hash is built,
+///    the renderer issues ONE `canvas.drawRect(viewport, Paint()..shader =
 ///    fragmentShader)` clipped to the fog path. The shader handles all
 ///    7 TIER 2 quality dimensions; the boundary watercolour falloff
 ///    inside the shader supersedes the previous `MaskFilter.blur` on
@@ -47,23 +59,18 @@ final Logger _log = Logger('infrastructure.mirk.atmospheric');
 /// 2. **Fallback path**: when the shader load fails (invalid asset,
 ///    Impeller blocklist, etc.) OR while waiting for the first SDF
 ///    build, the renderer paints a uniform solid fog using the base
-///    palette colour at the configured baseline alpha.
-///
-/// ## SDF in disc-bbox coordinates (BUG-014 iteration 4)
-///
-/// The SDF is built in a fixed coordinate space: the bounding box of all
-/// current discs + padding. Camera movement does NOT trigger an SDF
-/// rebuild — instead, each frame the renderer computes the UV mapping
-/// from screen coordinates to SDF coordinates (4 trivial divisions).
-/// This is how every fog-of-war game does it: the fog texture is in
-/// WORLD coordinates, and camera movement only changes the UV mapping.
+///    palette colour at the configured baseline alpha. No noise, no
+///    animation — see class docstring history before BUG-010 Option B
+///    Commit 5 collapsed the dual visibleTiles/discs input.
 ///
 /// ## Wisp emergence (BUG-010 Option B Commit 5)
 ///
 /// Wisps spawn on the per-frame diff of the disc id set. When a fix
 /// lands, the disc-list provider gains exactly one new id; the renderer
 /// detects the new id and spawns N evenly-spaced wisps along the disc
-/// perimeter.
+/// perimeter. First-paint guard: the very first paint populates
+/// `_previousDiscIdSet` from the current input WITHOUT spawning, so
+/// resuming a session does not spray wisps over already-revealed area.
 class AtmosphericMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config], an optional [seed] for
   /// deterministic noise / shader perturbation, an injected
@@ -128,7 +135,10 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   int _paintCallCount = 0;
 
   /// BUG-009 follow-up diagnostic (2026-04-26). Tracks the last reason
-  /// `paint()` early-returned so we only log INFO on transitions.
+  /// `paint()` early-returned so we only log INFO on transitions
+  /// (`null` → `disposed`, `disposed` → `noDiscs`, `noDiscs` → `none`,
+  /// etc.). Without this, the file logger would never confirm whether
+  /// `paint()` is even being called.
   String? _lastEarlyReturnReason;
   bool _firstPaintLogged = false;
 
@@ -140,14 +150,8 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// program when it first becomes available; reused across frames.
   ui.FragmentShader? _shader;
 
-  /// Cached SDF image. Rebuilt only when the disc list changes (NOT when
-  /// the viewport changes — BUG-014 iteration 4 architectural fix).
+  /// Cached SDF image. Rebuilt when disc-list or viewport hash changes.
   ui.Image? _sdfImage;
-
-  /// Geographic bounding box the [_sdfImage] was built for. Used every
-  /// frame to compute the screen-to-SDF UV mapping. Stable across
-  /// viewport changes — only updated when the disc list changes.
-  MirkViewportBbox? _sdfBbox;
 
   /// Whether an SDF rebuild is currently in flight. Prevents redundant
   /// concurrent rebuilds when paint is called many times during the
@@ -159,6 +163,25 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// trigger IMMEDIATE rebuilds — the reveal must appear now.
   int _lastDiscHash = 0;
 
+  /// Hash of the viewport bbox that produced [_sdfImage]. Changes during
+  /// pan/zoom gestures. Viewport-only changes are debounced to avoid the
+  /// strobe described in BUG-012.
+  int _lastViewportHash = 0;
+
+  /// Debounce timer for viewport-only SDF rebuilds (BUG-012 fix). When
+  /// only the viewport hash changes (pan/zoom, no new disc), we restart
+  /// this timer. The old SDF is reused during the wait — slightly
+  /// misaligned but visually stable. When the timer fires, we rebuild
+  /// with the latest captured viewport.
+  Timer? _viewportDebounceTimer;
+
+  /// Pending rebuild inputs captured when the viewport debounce timer is
+  /// active. On timer fire these feed [_triggerSdfRebuild].
+  List<RevealDisc>? _pendingRebuildDiscs;
+
+  /// Pending viewport captured alongside [_pendingRebuildDiscs].
+  MirkViewportBbox? _pendingRebuildViewport;
+
   /// Public future used by tests to wait until the shader has loaded
   /// (or failed to load). Mirrors the previous `noiseReady` shape.
   Future<void> get shaderReady => _shaderLoadFuture.then((_) {});
@@ -168,7 +191,9 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
     // BUG-009 follow-up diagnostic (2026-04-26). Log the first paint()
-    // invocation unconditionally + heartbeat every 60 frames AT INFO.
+    // invocation unconditionally + heartbeat every 60 frames AT INFO so
+    // we can prove paint() is firing irrespective of which path we end
+    // up on.
     if (!_firstPaintLogged) {
       _log.info(
         'paint(): first invocation — disposed=$_disposed discs=${context.discs.length} canvasSize=${size.width.toStringAsFixed(1)}x${size.height.toStringAsFixed(1)}',
@@ -185,6 +210,8 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     // away from the revealed area, all discs fall outside the viewport →
     // discsInBbox returns []. The correct behaviour is FULL FOG (entire
     // viewport covered), not "skip rendering" which shows a clear map.
+    // buildViewportFogClipPathFromDiscs handles empty discs correctly by
+    // returning the viewport rect (= everything is fog, nothing revealed).
 
     // BUG-010 Option B Commit 5: single canonical disc-based clip path.
     final path = buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
@@ -194,11 +221,14 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     }
     _logEarlyReturnTransition('none');
 
-    // Try to materialise the shader.
+    // Try to materialise the shader. The first frames after construction
+    // may see `_shader == null` while the program is loading; subsequent
+    // frames pick it up.
     _shader ??= _shaderService.obtainShaderSync();
 
-    // Make sure the SDF for the current disc list is up to date.
-    _refreshSdfIfNeeded(context: context);
+    // Make sure the SDF for the current frame is up to date. This may
+    // schedule an async rebuild whose result we'll see on the NEXT paint.
+    _refreshSdfIfNeeded(context: context, canvasSize: size);
 
     // Diff against last frame's disc-id set to find newly-emerged discs →
     // spawn wisps along their perimeter.
@@ -219,6 +249,8 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       );
       _lastLoggedPath = pathThisFrame;
     } else if (_paintCallCount % 60 == 0) {
+      // Heartbeat at ~1 Hz when in steady state — confirms paint() is
+      // still being called, useful when investigating "no fog visible".
       _log.info(
         'paint(): post-paint heartbeat path=$pathThisFrame · frame=$_paintCallCount discs=${context.discs.length} sessionElapsed=${context.sessionElapsed.inMilliseconds}ms',
       );
@@ -227,7 +259,8 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     if (shader != null && sdf != null) {
       _paintShaderPath(canvas, size, context, path, shader, sdf);
     } else {
-      // Fallback: solid fog at base palette colour.
+      // Fallback: solid fog at base palette colour. No noise, no
+      // animation — the shader path is what produces texture in TIER 2.
       _paintFallbackPath(canvas, size, context, path);
     }
 
@@ -239,7 +272,9 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   }
 
   /// BUG-009 follow-up diagnostic (2026-04-26) — emits an INFO log only
-  /// when the early-return reason transitions.
+  /// when the early-return reason transitions (so we don't flood the
+  /// file logger at 60 Hz). [reason] is `'none'` when paint() proceeds
+  /// past every guard; otherwise the textual gate that fired.
   void _logEarlyReturnTransition(String reason) {
     if (reason == _lastEarlyReturnReason) return;
     _log.info('paint(): early-return state ${_lastEarlyReturnReason ?? "(initial)"} → $reason · frame=$_paintCallCount');
@@ -254,15 +289,39 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   ///
   /// For the first [kMirkFogWispWarmUpSeconds] seconds after the renderer
   /// is created, ALL disc IDs that enter the viewport are silently
-  /// ingested into [_previousDiscIdSet] WITHOUT spawning wisps.
+  /// ingested into [_previousDiscIdSet] WITHOUT spawning wisps. This
+  /// covers two distinct race windows:
+  ///
+  ///   1. **First frames with async-delayed discs.** On map open the disc
+  ///      provider may resolve with 0 discs for one or more frames. If
+  ///      we consumed the empty set and left warm-up, the next frame's
+  ///      real discs would all appear "new" → burst.
+  ///
+  ///   2. **Viewport animation scroll-in.** When the map opens, MapLibre
+  ///      animates the camera (zoom-out settling, initial fly-to). During
+  ///      the ~5 s animation, previously-existing discs that were outside
+  ///      the initial narrow viewport scroll into view and appear "new" to
+  ///      the frame-diff logic → massive wisp burst forming the visible
+  ///      "rose of ellipses" on the boundary. The time-based warm-up
+  ///      absorbs ALL these discs without spawning.
+  ///
+  /// After the warm-up elapses, the normal per-frame diff activates:
+  /// only discs not yet in [_previousDiscIdSet] (genuinely new GPS-fix
+  /// reveals) spawn wisps. The set remains append-only so discs that
+  /// leave the viewport (pan away) are still remembered.
   void _spawnWispsForNewlyEmergedDiscs({required MirkPaintContext context, required Size canvasSize}) {
     final currentIds = <String>{for (final disc in context.discs) disc.id};
 
+    // During warm-up: ingest all disc IDs without spawning. Skip empty
+    // frames entirely (the disc provider hasn't resolved yet).
     if (_warmingUp) {
       if (currentIds.isNotEmpty) {
         _previousDiscIdSet.addAll(currentIds);
       }
       final elapsedSec = context.sessionElapsed.inMilliseconds / 1000.0;
+      // Stay in warm-up until both conditions are met:
+      //   a) enough time has passed for the viewport animation to settle
+      //   b) we have seen at least one non-empty disc list
       if (elapsedSec >= kMirkFogWispWarmUpSeconds && _previousDiscIdSet.isNotEmpty) {
         _warmingUp = false;
       }
@@ -277,13 +336,25 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   }
 
   /// Emits one wisp at each evenly-spaced sample point along [disc]'s
-  /// perimeter.
+  /// perimeter. Sample count is `ceil(circumference / kMirkFogMetersPerWisp)`,
+  /// floored to 1 so a tiny disc still gets a single puff.
   void _spawnWispsAlongDiscPerimeter({required RevealDisc disc, required MirkViewportBbox viewport, required Size canvasSize}) {
+    // Circumference-driven sample count: keeps the wisp density along
+    // the perimeter constant regardless of disc radius. At the 25 m
+    // default radius and kMirkFogMetersPerWisp = 8 m, this produces
+    // ~20 wisps per emergence.
     final circumferenceMeters = 2.0 * math.pi * disc.radiusMeters;
     final sampleCount = math.max(1, (circumferenceMeters / kMirkFogMetersPerWisp).ceil());
+
+    // Local equirectangular conversion factors at the disc's centre lat.
+    // 1 m of latitude ≈ 1 / kMetersPerDegreeLat degrees; 1 m of longitude
+    // is the same scaled by cos(lat).
     final latRad = disc.lat * math.pi / 180.0;
     final cosLat = math.cos(latRad);
     final degPerMeterLat = 1.0 / kMetersPerDegreeLat;
+    // Polar guard: at ±90° cos drops to 0 and divides explode. The disc
+    // skip-on-bbox check above already guards the SDF builder; here we
+    // guard the conversion math too.
     final degPerMeterLon = cosLat.abs() < 1e-6 ? degPerMeterLat : 1.0 / (kMetersPerDegreeLat * cosLat);
 
     for (var k = 0; k < sampleCount; k++) {
@@ -291,35 +362,57 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       final perimeterLat = disc.lat + (disc.radiusMeters * degPerMeterLat) * math.sin(theta);
       final perimeterLon = disc.lon + (disc.radiusMeters * degPerMeterLon) * math.cos(theta);
       final screen = MirkProjection.latLonToScreen(lat: perimeterLat, lon: perimeterLon, viewport: viewport, size: canvasSize);
+      // Skip if this perimeter point is far off-screen — saves wisp
+      // budget for visible action. 50 px slack matches the cell-spawn
+      // bound from the pre-Commit-5 code.
       if (screen.dx < -50 || screen.dx > canvasSize.width + 50 || screen.dy < -50 || screen.dy > canvasSize.height + 50) {
         continue;
       }
+      // Outward direction at this perimeter point: `(cos(theta), -sin(theta))`
+      // — `-sin` because screen-y grows southward while `sin(theta)` in our
+      // lat-offset above grows northward (positive theta = north when k=π/2).
       final direction = Offset(math.cos(theta), -math.sin(theta));
       _wispSystem.spawnAtPosition(position: screen, direction: direction);
     }
   }
 
   /// Shader path — clip to fog path, draw a viewport-filling rect with
-  /// the FragmentShader-bound Paint.
+  /// the FragmentShader-bound Paint. The shader handles all visual
+  /// dimensions internally.
   void _paintShaderPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path, ui.FragmentShader shader, ui.Image sdf) {
     final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
+
+    // Per-instance perturbation: feed `_seed * 0.137` as a uTime offset
+    // so different-seed renderers produce different shader output. The
+    // 0.137 factor is arbitrary but coprime with typical drift speeds,
+    // ensuring no aliasing.
     final tUniform = tSec + _seed * 0.137;
 
+    // World pan: derive from viewport centre lat/lon. Same noise UV
+    // space the shader internally evaluates the FBM in. Conservative
+    // coupling — pans the fog with the camera at a slow rate.
     final centreLat = (context.viewportBbox.north + context.viewportBbox.south) * 0.5;
     final centreLon = (context.viewportBbox.east + context.viewportBbox.west) * 0.5;
     final offsetX = centreLon * 0.05;
     final offsetY = -centreLat * 0.05;
 
+    // Configure all uniforms via the FogShaderUniforms helper. Slot
+    // indices are hand-counted there — single source of truth.
+    //
+    // Read every shader-tunable parameter from [MirkRuntimeTunables.instance]
+    // instead of the const literal, so the in-app tuner sheet (Phase 09
+    // BUG-009 follow-up) can scrub each value live without rebuilding the
+    // app. The tunables singleton is initialised from the same `kMirkFog*`
+    // defaults; production builds with the tuner closed see byte-identical
+    // output.
     final t = MirkRuntimeTunables.instance;
+    // Effective curlScale: triangle-wave animation by default (UAT
+    // 2026-04-26 — slowly varying curlScale gives the fog a "really
+    // alive" volumetric feel). Falls back to the static t.curlScale
+    // when the dev tuner toggles the animation off.
     final double effectiveCurlScale = t.curlScaleAnimationEnabled
         ? triangleWave(tSec: tSec, period: t.curlScaleAnimationPeriodSec, minV: t.curlScaleAnimationMin, maxV: t.curlScaleAnimationMax)
         : t.curlScale;
-
-    // BUG-014 iteration 4: compute sdfRect from the stable disc bbox
-    // and the current viewport. The disc bbox is fixed (only changes when
-    // disc list changes), so these values are smooth across pan/zoom.
-    final sdfRect = _computeSdfRect(context.viewportBbox);
-
     FogShaderUniforms.setAll(
       shader,
       resolution: size,
@@ -349,7 +442,16 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       boundaryBleedDistance: t.boundaryBleedDistance,
       boundaryEdgeBand: t.boundaryEdgeBand,
       boundaryDensityBoost: t.boundaryDensityBoost,
-      sdfRect: sdfRect,
+      // SDF rect: identity mapping — the SDF is always consumed at 1:1
+      // screen UV. BUG-014 fix: the previous dynamic sdfRect remapping
+      // (pin stale SDF at its true lat/lon position during pan/zoom)
+      // produced wild displacements during combined pinch-zoom+pan because
+      // the async viewport bbox lagged behind the actual camera state.
+      // With identity, the SDF watercolour boundary drifts slightly
+      // during gestures (bounded by the debounce window) but the clip
+      // path — computed every frame from current discs+viewport — still
+      // provides the correct hard boundary. Acceptable trade-off.
+      sdfRect: _kIdentitySdfRect,
       sdfImage: sdf,
     );
 
@@ -360,49 +462,29 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     canvas.restore();
   }
 
-  /// Computes the sdfRect (originX, originY, sizeX, sizeY) that maps
-  /// screen-normalised UV [0,1] to SDF-normalised UV [0,1].
-  ///
-  /// BUG-014 iteration 4: the SDF is built in disc-bbox coordinates.
-  /// The screen UV (0,0)=(north,west) maps to some position within the
-  /// disc bbox. This function computes where.
-  ///
-  /// If no SDF bbox is available yet (first frame before build completes),
-  /// returns identity (0, 0, 1, 1) as a safe fallback.
-  (double, double, double, double) _computeSdfRect(MirkViewportBbox currentViewport) {
-    final sdfBbox = _sdfBbox;
-    if (sdfBbox == null) return (0.0, 0.0, 1.0, 1.0);
-
-    final currentDLon = currentViewport.east - currentViewport.west;
-    final currentDLat = currentViewport.north - currentViewport.south;
-    if (currentDLon <= 0 || currentDLat <= 0) return (0.0, 0.0, 1.0, 1.0);
-
-    final sdfDLon = sdfBbox.east - sdfBbox.west;
-    final sdfDLat = sdfBbox.north - sdfBbox.south;
-    if (sdfDLon <= 0 || sdfDLat <= 0) return (0.0, 0.0, 1.0, 1.0);
-
-    // Screen UV (0,0) is at (currentViewport.north, currentViewport.west).
-    // SDF UV (0,0) is at (sdfBbox.north, sdfBbox.west).
-    // We need: sdfUv = (screenUv - origin) / size
-    // where origin is the SDF UV of the screen's (0,0) corner,
-    // and size is the SDF UV span of the screen.
-    final sdfOriginX = (currentViewport.west - sdfBbox.west) / sdfDLon;
-    final sdfOriginY = (sdfBbox.north - currentViewport.north) / sdfDLat;
-    final sdfSizeX = currentDLon / sdfDLon;
-    final sdfSizeY = currentDLat / sdfDLat;
-
-    return (sdfOriginX, sdfOriginY, sdfSizeX, sdfSizeY);
-  }
-
-  /// Fallback path — solid base palette colour with feather.
+  /// Fallback path — solid base palette colour with feather. No
+  /// animation, no noise. Pre-BUG-009 the renderer painted a tileable
+  /// noise-image overlay here (BUG-004 fix), but that was the very
+  /// "cheap noise sliding" the TIER 2 shader replaces — keeping it as
+  /// a fallback would re-introduce the cosmetic regression.
   void _paintFallbackPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path) {
     final r = (kMirkFogAtmosphericBaseColorArgb >> 16) & 0xFF;
     final g = (kMirkFogAtmosphericBaseColorArgb >> 8) & 0xFF;
     final b = kMirkFogAtmosphericBaseColorArgb & 0xFF;
 
+    // Feather sigma — pre-Commit-5 this scaled to the bitmap cell size
+    // (canvas.height / 64) so the soft edge matched a single grid cell.
+    // Post-Commit-5 the reveal silhouette is continuous geometry, so the
+    // feather scales to a small fraction of the canvas dimension. The
+    // numerator (canvas height / kRevealedTileParentZoom heuristic) is
+    // gone; we use a fixed 4 px base and let `featherRadiusFraction`
+    // tune the actual blur.
     const baseFeatherPx = 4.0;
     final featherSigma = baseFeatherPx * config.featherRadiusFraction * context.pixelRatio;
 
+    // Tiny per-frame alpha jitter sourced from the CPU noise generator
+    // — gives the regression test "different seeds produce different
+    // output" a real signal to discriminate on the fallback path.
     final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
     final radians = config.driftDirectionDeg * math.pi / 180.0;
     final driftX = math.cos(radians);
@@ -416,44 +498,68 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     canvas.drawPath(path, paint);
   }
 
-  /// Checks whether the SDF needs rebuilding. BUG-014 iteration 4:
-  /// the SDF only rebuilds when the DISC LIST changes (new GPS fix).
-  /// Viewport changes do NOT trigger a rebuild — the renderer recomputes
-  /// the screen-to-SDF UV mapping every frame instead.
-  void _refreshSdfIfNeeded({required MirkPaintContext context}) {
+  /// Checks whether the SDF needs rebuilding and either triggers an
+  /// immediate rebuild (disc list changed — GPS fix landed) or starts /
+  /// restarts a debounce timer (viewport-only change — pan/zoom gesture).
+  ///
+  /// BUG-012 fix: the previous implementation hashed disc-list AND
+  /// viewport into a single hash. Every pan/zoom frame changed the hash →
+  /// triggered a 200+ ms async build → the SDF was shown for the build's
+  /// viewport while the map showed the current viewport → strobe. Now the
+  /// two inputs have separate hashes: disc changes rebuild immediately,
+  /// viewport-only changes are debounced.
+  void _refreshSdfIfNeeded({required MirkPaintContext context, required Size canvasSize}) {
     if (_sdfBuildInFlight) return;
 
     final discHash = _hashDiscList(context.discs);
+    final viewportHash = _hashViewport(context.viewportBbox);
 
     if (discHash != _lastDiscHash) {
-      // Disc list changed → rebuild immediately.
+      // Disc list changed → rebuild immediately. The user walked, the
+      // new reveal must appear now.
       _lastDiscHash = discHash;
+      _lastViewportHash = viewportHash;
+      _viewportDebounceTimer?.cancel();
+      _pendingRebuildDiscs = null;
+      _pendingRebuildViewport = null;
       _triggerSdfRebuild(context.discs, context.viewportBbox);
+    } else if (viewportHash != _lastViewportHash) {
+      // Only viewport changed (pan/zoom) → debounce. Keep the old SDF
+      // (slightly misaligned but stable — no strobe). When the timer
+      // fires, rebuild with the LATEST viewport captured here.
+      _lastViewportHash = viewportHash;
+      _pendingRebuildDiscs = context.discs;
+      _pendingRebuildViewport = context.viewportBbox;
+      _viewportDebounceTimer?.cancel();
+      _viewportDebounceTimer = Timer(const Duration(milliseconds: kMirkFogSdfViewportDebounceMs), () {
+        if (!_disposed && !_sdfBuildInFlight && _pendingRebuildDiscs != null && _pendingRebuildViewport != null) {
+          _triggerSdfRebuild(_pendingRebuildDiscs!, _pendingRebuildViewport!);
+          _pendingRebuildDiscs = null;
+          _pendingRebuildViewport = null;
+        }
+      });
     } else if (_sdfImage == null) {
       // Same inputs but no SDF yet (first frame) → build now.
       _triggerSdfRebuild(context.discs, context.viewportBbox);
     }
   }
 
-  /// Kicks off an async SDF build for [discs]. The viewport is passed
-  /// as a fallback bbox for the empty-discs case only.
+  /// Kicks off an async SDF build for [discs] at [viewport]. On
+  /// completion the result is stored in [_sdfImage] and the next paint
+  /// picks it up on the shader path.
   void _triggerSdfRebuild(List<RevealDisc> discs, MirkViewportBbox viewport) {
     _sdfBuildInFlight = true;
     _log.fine('_triggerSdfRebuild: scheduling rebuild (discs=${discs.length})');
     _sdfBuilder
         .buildFromDiscs(discs: discs, viewport: viewport)
-        .then((SdfBuildResult result) {
+        .then((ui.Image image) {
           if (_disposed) {
-            result.image.dispose();
+            image.dispose();
             return;
           }
           _sdfImage?.dispose();
-          _sdfImage = result.image;
-          _sdfBbox = result.bbox;
-          _log.fine(
-            '_triggerSdfRebuild: rebuild complete — _sdfImage now set (${result.image.width}x${result.image.height}) '
-            'sdfBbox=[${result.bbox.south.toStringAsFixed(4)}, ${result.bbox.west.toStringAsFixed(4)} → ${result.bbox.north.toStringAsFixed(4)}, ${result.bbox.east.toStringAsFixed(4)}]',
-          );
+          _sdfImage = image;
+          _log.fine('_triggerSdfRebuild: rebuild complete — _sdfImage now set (${image.width}x${image.height})');
         })
         .catchError((Object e, StackTrace st) {
           _log.severe('_triggerSdfRebuild: build FAILED — fallback path will activate', e, st);
@@ -464,6 +570,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   }
 
   /// FNV-1a hash of the disc list (id + lat + lon + radius per entry).
+  /// Cheap — sub-microsecond for a few-hundred-entry list.
   int _hashDiscList(List<RevealDisc> discs) {
     var hash = 0x811C9DC5;
     hash = _mix(hash, discs.length);
@@ -473,6 +580,16 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       hash = _mix(hash, disc.lon.hashCode);
       hash = _mix(hash, disc.radiusMeters.hashCode);
     }
+    return hash;
+  }
+
+  /// FNV-1a hash of the viewport bbox edges.
+  int _hashViewport(MirkViewportBbox bbox) {
+    var hash = 0x811C9DC5;
+    hash = _mix(hash, bbox.south.hashCode);
+    hash = _mix(hash, bbox.west.hashCode);
+    hash = _mix(hash, bbox.north.hashCode);
+    hash = _mix(hash, bbox.east.hashCode);
     return hash;
   }
 
@@ -493,11 +610,14 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    _viewportDebounceTimer?.cancel();
+    _viewportDebounceTimer = null;
+    _pendingRebuildDiscs = null;
+    _pendingRebuildViewport = null;
     _shader?.dispose();
     _shader = null;
     _sdfImage?.dispose();
     _sdfImage = null;
-    _sdfBbox = null;
     _wispSystem.clear();
     _previousDiscIdSet = <String>{};
     _warmingUp = true;
