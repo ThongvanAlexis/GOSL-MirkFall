@@ -43,7 +43,10 @@ import 'dart:ui' show Size;
 /// | 34    | uBoundaryBleedDistance   | float  |
 /// | 35    | uBoundaryEdgeBand        | float  |
 /// | 36    | uBoundaryDensityBoost    | float  |
-/// | 37..40| uSdfRect                 | vec4   |
+/// | 37    | uSdfRectOriginX          | float  |
+/// | 38    | uSdfRectOriginY          | float  |
+/// | 39    | uSdfRectSizeX            | float  |
+/// | 40    | uSdfRectSizeY            | float  |
 ///
 /// Sampler 0: uSdf — set via `setImageSampler(0, sdfImage)`.
 class FogShaderUniforms {
@@ -147,7 +150,8 @@ class FogShaderUniforms {
     shader.setFloat(35, boundaryEdgeBand);
     // Boundary density boost — slot 36 (BUG-009 follow-up 2026-04-26)
     shader.setFloat(36, boundaryDensityBoost);
-    // SDF rect — slots 37..40
+    // SDF rect — slots 37..40 (BUG-014 follow-up: decomposed from vec4
+    // to four floats to avoid Impeller/Metal vec4 component reordering)
     shader.setFloat(37, sdfRect.$1);
     shader.setFloat(38, sdfRect.$2);
     shader.setFloat(39, sdfRect.$3);

@@ -109,15 +109,21 @@ uniform float uBoundaryEdgeBand;
 uniform float uBoundaryDensityBoost;
 
 // SDF rectangle on screen — uv mapped from FlutterFragCoord/uResolution
-// to SDF space via this rect. (xy = origin, zw = size). Slot 37..40.
+// to SDF space via this rect. (originX, originY, sizeX, sizeY).
 //
-// BUG-014 fix: declared BEFORE the sampler so all float-consuming
-// uniforms are contiguous in the declaration order. On some
-// Impeller/Metal compilation paths, a sampler2D interleaved between
-// float uniforms could cause the slot counter to skip or misalign,
-// producing a subtle X↔Y rotation of the dynamic SDF rect during
-// pan/zoom.
-uniform vec4  uSdfRect;
+// BUG-014 follow-up: decomposed from a single vec4 into four scalar
+// floats. On Impeller/Metal, the SPIR-V → MSL transpilation can
+// reorder vec4 components when a sampler2D sits nearby in the
+// declaration, causing the SDF rect to read with swapped axes during
+// combined pan+zoom gestures. Four explicit floats bypass the vec4
+// component-ordering ambiguity entirely — each uniform occupies exactly
+// one slot with no room for transpiler reinterpretation.
+//
+// Slots 37..40 (unchanged from the Dart side).
+uniform float uSdfRectOriginX;   // Slot 37
+uniform float uSdfRectOriginY;   // Slot 38
+uniform float uSdfRectSizeX;     // Slot 39
+uniform float uSdfRectSizeY;     // Slot 40
 
 // SDF sampler — R channel encodes signed distance via midpoint-128.
 uniform sampler2D uSdf;
@@ -208,8 +214,13 @@ vec2 curl2(vec2 p) {
 // break visible banding.
 float sampleSdf(vec2 fragUv) {
     // fragUv is in screen-normalised [0, 1] space. Map to SDF UV via
-    // uSdfRect (origin + size in screen-normalised coords).
-    vec2 sdfUv = (fragUv - uSdfRect.xy) / uSdfRect.zw;
+    // the four scalar SDF-rect uniforms (origin + size in
+    // screen-normalised coords). BUG-014 follow-up: explicit per-axis
+    // construction avoids any vec4 component-reordering ambiguity on
+    // Impeller/Metal.
+    vec2 sdfOrigin = vec2(uSdfRectOriginX, uSdfRectOriginY);
+    vec2 sdfSize   = vec2(uSdfRectSizeX,   uSdfRectSizeY);
+    vec2 sdfUv = (fragUv - sdfOrigin) / sdfSize;
     sdfUv = clamp(sdfUv, 0.0, 1.0);
     float r = texture(uSdf, sdfUv).r;
     // Hashed white-noise dither in [-0.5/256, +0.5/256] keyed on screen

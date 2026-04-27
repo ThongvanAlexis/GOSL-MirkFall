@@ -94,7 +94,7 @@ animation, session resume) in a single mechanism.
 
 ```
 723984c  fix(09-bug-015): prevent wisp burst on renderer (re)creation (iteration 1)
-<TBD>    fix(09-bug-015): time-based warm-up replaces boolean first-paint guard (iteration 2)
+8b1318b  fix(09-bug-015): time-based warm-up replaces boolean first-paint guard (iteration 2)
 ```
 
 ## Files modified

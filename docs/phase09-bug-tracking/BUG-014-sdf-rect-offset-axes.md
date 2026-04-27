@@ -1,6 +1,6 @@
 # BUG-014 — SDF rect offset rotated 90 degrees during pan at low zoom
 
-**Status:** ✅ fixed — `d05dbb2`
+**Status:** ✅ fixed — `d05dbb2` (initial), follow-up TBD (combined zoom+pan)
 **Reported:** 2026-04-27 (UAT walk at zoom ~12.28 on iOS, testing BUG-012 sdfRect fix)
 **Platform:** iOS (Impeller/Metal) — Android (Skia/OpenGL) was not affected
 
@@ -81,6 +81,26 @@ d05dbb2  fix(09-bug-014): correct sdfRect axis mapping (X↔Y swap during pan)
 No automated regression test was added because the bug is Impeller/Metal-specific and requires GPU shader compilation to reproduce. The diagnostic logging (throttled to ~1 Hz) serves as a runtime assertion — non-identity sdfRect values are now visible in device logs, making future axis-mapping regressions immediately diagnosable.
 
 Verification was done manually: rebuild and test on iOS at zoom ~12.28, pan in all 4 cardinal directions, confirm the reveal stays geo-pinned (no offset, no rotation).
+
+## Follow-up: combined zoom+pan residual offset
+
+**Reported:** 2026-04-27 — pure pan and pure zoom work, but simultaneous zoom+translate (pinch gesture) still offsets the reveal.
+
+### Analysis
+
+The initial BUG-014 fix (moving `uniform vec4 uSdfRect` before `uniform sampler2D uSdf`) corrected the slot alignment for simple cases. However, on Impeller/Metal the SPIR-V -> MSL transpilation can also reorder **components within a vec4** when the uniform is near a sampler boundary. For pure pan, only `uSdfRect.xy` (origin) deviate from 0 while `uSdfRect.zw` (size) stay at 1.0 — a component swap between z and w is invisible. For pure zoom, the origin and size values tend to be similar in magnitude — swaps produce nearly-correct output. For combined zoom+pan, all four components carry distinct, dissimilar values, making any component reordering visible as a position offset.
+
+The `_computeSdfRect` Dart-side math is provably correct (verified analytically: the affine UV transform correctly maps between SDF-viewport and current-viewport geographic coordinates for any combination of translation and scaling). The bug is in how the GPU-side shader consumes the vec4 components on Metal.
+
+### Fix
+
+Decomposed `uniform vec4 uSdfRect` into four scalar `uniform float` declarations (`uSdfRectOriginX`, `uSdfRectOriginY`, `uSdfRectSizeX`, `uSdfRectSizeY`). Each float uniform occupies exactly one slot with no room for transpiler component reinterpretation. The `sampleSdf` function reconstructs the `vec2` origin and size from the four scalars.
+
+Dart-side slot indices (37-40) and the `FogShaderUniforms.setAll` logic are unchanged — the tuple `(x0, y0, xSize, ySize)` writes to the same slots. Only the GLSL declaration changes.
+
+### Commits
+
+See main commit list below.
 
 ## Known follow-ups
 
