@@ -48,6 +48,16 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
   late final Ticker _ticker;
   Duration _tickerElapsed = Duration.zero;
 
+  /// BUG-012 fix: last known disc list from a successful provider read.
+  /// When the viewport changes, the family provider creates a new instance
+  /// that starts in `AsyncLoading` (no previous value). Without this
+  /// field, the overlay would bail out with `SizedBox.shrink()` for one
+  /// frame on every viewport update — the user sees the fog strobe off/on
+  /// at ~20 Hz during pan/zoom gestures. By retaining the last successful
+  /// disc list, the overlay keeps painting the fog with stale-but-stable
+  /// data until the fresh query resolves (typically < 2 ms).
+  List<RevealDisc>? _lastKnownDiscs;
+
   /// BUG-009 follow-up diagnostic (2026-04-25) — frame counter used to
   /// throttle the per-build log to roughly once per second (60 Hz
   /// Ticker → log every 60th frame). Drops the log volume from
@@ -111,6 +121,16 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
     }
     _buildCallCount++;
 
+    // BUG-012 fix: when the disc provider has data, cache it. When the
+    // provider is loading (viewport just changed → new family instance →
+    // AsyncLoading with no previous value), fall back to the cached list
+    // so the fog keeps painting with stale-but-stable data instead of
+    // disappearing for one frame (the strobe).
+    if (discsAsync.hasValue) {
+      _lastKnownDiscs = discsAsync.value;
+    }
+    final List<RevealDisc>? effectiveDiscs = discsAsync.hasValue ? discsAsync.value : _lastKnownDiscs;
+
     // Bail out cheaply when any prerequisite is not ready. The overlay
     // becomes invisible — the underlying RepaintBoundary keeps the
     // pipeline cold.
@@ -121,8 +141,8 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
       bailoutReason = 'viewport==null';
     } else if (zoom == null) {
       bailoutReason = 'zoom==null';
-    } else if (!discsAsync.hasValue) {
-      bailoutReason = 'discsAsync not hasValue (${discsAsync.runtimeType})';
+    } else if (effectiveDiscs == null) {
+      bailoutReason = 'discsAsync not hasValue and no cached discs (${discsAsync.runtimeType})';
     } else {
       bailoutReason = 'rendering';
     }
@@ -136,7 +156,7 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
       return const SizedBox.shrink();
     }
     final renderer = rendererAsync.value!;
-    final discs = discsAsync.value!;
+    final discs = effectiveDiscs!;
     final Tracking? tracking = sessionState.value is Tracking ? sessionState.value as Tracking : null;
     final Fix? currentFix = tracking?.lastFix;
 
