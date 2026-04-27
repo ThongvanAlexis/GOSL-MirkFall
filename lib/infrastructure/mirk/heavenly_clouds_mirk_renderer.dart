@@ -314,10 +314,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
       boundaryBleedDistance: t.boundaryBleedDistance,
       boundaryEdgeBand: t.boundaryEdgeBand,
       boundaryDensityBoost: t.boundaryDensityBoost,
-      // BUG-014 fix: SDF rect is now identity. The Canvas-level affine
-      // transform in the overlay handles viewport remapping as a single
-      // GPU matrix op instead of per-pixel UV remapping in the shader.
-      sdfRect: (0.0, 0.0, 1.0, 1.0),
+      sdfRect: _computeSdfRect(context.viewportBbox),
       sdfImage: sdf,
     );
     canvas.save();
@@ -427,7 +424,6 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// the origin shifts. When the viewport zooms, the size scales. The
   /// shader's `clamp(sdfUv, 0.0, 1.0)` ensures pixels outside the
   /// SDF's coverage read as all-fog.
-  // ignore: unused_element — retained for diagnostics (BUG-014).
   (double, double, double, double) _computeSdfRect(MirkViewportBbox currentViewport) {
     final sdfVp = _sdfViewport;
     if (sdfVp == null) return (0.0, 0.0, 1.0, 1.0);

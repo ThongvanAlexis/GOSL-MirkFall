@@ -15,7 +15,6 @@ import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
-import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
 final Logger _log = Logger('presentation.mirk_overlay');
@@ -195,47 +194,7 @@ class _MirkPainter extends CustomPainter {
   final MirkPaintContext paintContext;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    // BUG-014 fix: apply a Canvas-level affine transform to compensate for
-    // camera movement since the SDF was built. This handles combined
-    // zoom+pan as a single GPU matrix op instead of per-pixel UV remapping
-    // in the shader, eliminating the 1-3 frame lag that caused visible fog
-    // displacement during gestures.
-    final MirkViewportBbox? sdfVp = renderer.sdfViewport;
-    final MirkViewportBbox curVp = paintContext.viewportBbox;
-
-    if (sdfVp != null) {
-      final double sdfDLon = sdfVp.east - sdfVp.west;
-      final double sdfDLat = sdfVp.north - sdfVp.south;
-      final double curDLon = curVp.east - curVp.west;
-      final double curDLat = curVp.north - curVp.south;
-
-      if (sdfDLon > 0 && sdfDLat > 0 && curDLon > 0 && curDLat > 0) {
-        // Scale: ratio of SDF viewport span to current viewport span. When
-        // the user zooms in (curDLon < sdfDLon), scaleX > 1 — the SDF
-        // covers a larger area than the screen and must be scaled up.
-        final double scaleX = sdfDLon / curDLon;
-        final double scaleY = sdfDLat / curDLat;
-
-        // Translation in screen pixels: how much the SDF viewport's origin
-        // shifted relative to the current viewport, expressed in the
-        // current viewport's coordinate system.
-        final double tx = (sdfVp.west - curVp.west) / curDLon * size.width;
-        final double ty = (curVp.north - sdfVp.north) / curDLat * size.height;
-
-        canvas.save();
-        canvas.translate(tx, ty);
-        canvas.scale(scaleX, scaleY);
-        renderer.paint(canvas, size, paintContext);
-        canvas.restore();
-        return;
-      }
-    }
-
-    // Fallback: no SDF viewport yet (first frames, non-SDF renderer),
-    // paint without transform.
-    renderer.paint(canvas, size, paintContext);
-  }
+  void paint(Canvas canvas, Size size) => renderer.paint(canvas, size, paintContext);
 
   /// Always returns true: the Ticker drives the rebuild via setState,
   /// so the painter's repaint signal is gated by the widget tree
