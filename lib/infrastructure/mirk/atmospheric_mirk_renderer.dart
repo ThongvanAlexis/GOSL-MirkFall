@@ -283,10 +283,28 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// resuming a session would spawn wisps for every existing disc all at
   /// once — typically a few hundred — flooding the visible viewport with
   /// puffs over already-revealed area.
+  ///
+  /// BUG-015 fix: [_previousDiscIdSet] is append-only (grows via
+  /// `addAll`, never replaced). Previously, when the user panned away
+  /// from the revealed area, `discs` dropped to 0 because
+  /// `discsInBbox` returned nothing in the viewport. The old code
+  /// replaced `_previousDiscIdSet` with the empty set. When the user
+  /// panned back, all existing discs appeared "new" → massive wisp
+  /// burst forming a visible "rose" pattern. Similarly, on first open
+  /// the disc provider could resolve with 0 discs for the first frame
+  /// (async timing), poisoning `_previousDiscIdSet` to empty. The
+  /// append-only semantic means discs that leave the viewport are still
+  /// remembered — only genuinely new GPS-fix discs trigger wisps.
   void _spawnWispsForNewlyEmergedDiscs({required MirkPaintContext context, required Size canvasSize}) {
     final currentIds = <String>{for (final disc in context.discs) disc.id};
     if (_firstPaint) {
-      _previousDiscIdSet = currentIds;
+      // BUG-015 fix: wait for the first NON-EMPTY disc list before
+      // leaving first-paint state. On map open the disc provider may
+      // deliver an empty list for the first few frames (async timing).
+      // If we consumed that empty set and flipped _firstPaint off, the
+      // next frame's real discs would all appear "new" → massive burst.
+      if (currentIds.isEmpty) return;
+      _previousDiscIdSet = Set<String>.of(currentIds);
       _firstPaint = false;
       return;
     }
@@ -294,7 +312,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       if (_previousDiscIdSet.contains(disc.id)) continue;
       _spawnWispsAlongDiscPerimeter(disc: disc, viewport: context.viewportBbox, canvasSize: canvasSize);
     }
-    _previousDiscIdSet = currentIds;
+    _previousDiscIdSet.addAll(currentIds);
   }
 
   /// Emits one wisp at each evenly-spaced sample point along [disc]'s

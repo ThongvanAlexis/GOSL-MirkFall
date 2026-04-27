@@ -211,10 +211,19 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// [WispParticleSystem] and previous-id set; pulling into a shared
   /// helper would impose a state-management coupling that doesn't
   /// simplify the call sites.
+  ///
+  /// BUG-015 fix: see `AtmosphericMirkRenderer._spawnWispsForNewlyEmergedDiscs`
+  /// for the full rationale. [_previousDiscIdSet] is append-only to
+  /// prevent viewport-exit / viewport-reenter from being misread as
+  /// disc emergence.
   void _spawnWispsForNewlyEmergedDiscs({required MirkPaintContext context, required Size canvasSize}) {
     final currentIds = <String>{for (final disc in context.discs) disc.id};
     if (_firstPaint) {
-      _previousDiscIdSet = currentIds;
+      // BUG-015 fix: wait for the first NON-EMPTY disc list before
+      // leaving first-paint state. See atmospheric renderer for the
+      // full rationale.
+      if (currentIds.isEmpty) return;
+      _previousDiscIdSet = Set<String>.of(currentIds);
       _firstPaint = false;
       return;
     }
@@ -222,7 +231,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
       if (_previousDiscIdSet.contains(disc.id)) continue;
       _spawnWispsAlongDiscPerimeter(disc: disc, viewport: context.viewportBbox, canvasSize: canvasSize);
     }
-    _previousDiscIdSet = currentIds;
+    _previousDiscIdSet.addAll(currentIds);
   }
 
   void _spawnWispsAlongDiscPerimeter({required RevealDisc disc, required MirkViewportBbox viewport, required Size canvasSize}) {

@@ -16,6 +16,11 @@
 //  (b) second paint with the same disc list → no new wisps.
 //  (c) third paint with one new disc → wisps spawned only for the new
 //      disc.
+//  (d) BUG-015: discs leave viewport (discs=[]) then re-enter → no
+//      spurious wisps spawned. The append-only previous-id set remembers
+//      disc IDs even when they are temporarily absent from the viewport.
+//  (e) BUG-015: first paint with 0 discs (async provider not yet
+//      resolved) then discs arrive → no spurious wisps spawned.
 //
 // We exercise the atmospheric renderer directly (heavenly mirrors the
 // same logic — keeping the test count tight). The renderer's
@@ -122,6 +127,58 @@ void main() {
         wispSystem.activeCount,
         lessThanOrEqualTo(expectedSampleCount),
         reason: 'wisp count for a single disc emergence is bounded by its perimeter sample count',
+      );
+    });
+
+    test('BUG-015: discs leave viewport then re-enter — no spurious wisps', () async {
+      final wispSystem = WispParticleSystem(rngSeed: 42);
+      final renderer = AtmosphericMirkRenderer(const MirkStyleConfig.atmospheric() as AtmosphericConfig, wispSystem: wispSystem);
+      addTearDown(renderer.dispose);
+      final discs = [_disc('rvd_a'), _disc('rvd_b', lat: 43.6)];
+
+      // First paint — seeds previous-id set with {rvd_a, rvd_b}.
+      var recorder = PictureRecorder();
+      renderer.paint(Canvas(recorder), _canvasSize, _ctx(discs: discs));
+      recorder.endRecording().dispose();
+      expect(wispSystem.activeCount, 0);
+
+      // User pans away — discs fall outside viewport bbox → empty list.
+      recorder = PictureRecorder();
+      renderer.paint(Canvas(recorder), _canvasSize, _ctx(discs: <RevealDisc>[], elapsedMs: 16));
+      recorder.endRecording().dispose();
+      expect(wispSystem.activeCount, 0);
+
+      // User pans back — same discs re-enter viewport. Must NOT spawn
+      // wisps because these discs were already seen.
+      recorder = PictureRecorder();
+      renderer.paint(Canvas(recorder), _canvasSize, _ctx(discs: discs, elapsedMs: 32));
+      recorder.endRecording().dispose();
+      expect(wispSystem.activeCount, 0, reason: 'BUG-015: discs leaving and re-entering the viewport must not be treated as newly emerged');
+    });
+
+    test('BUG-015: first paint with 0 discs then discs arrive — no spurious wisps', () async {
+      final wispSystem = WispParticleSystem(rngSeed: 42);
+      final renderer = AtmosphericMirkRenderer(const MirkStyleConfig.atmospheric() as AtmosphericConfig, wispSystem: wispSystem);
+      addTearDown(renderer.dispose);
+
+      // First paint — disc provider has not resolved yet, context has 0 discs.
+      var recorder = PictureRecorder();
+      renderer.paint(Canvas(recorder), _canvasSize, _ctx(discs: <RevealDisc>[]));
+      recorder.endRecording().dispose();
+      expect(wispSystem.activeCount, 0);
+
+      // Second paint — disc provider resolves with existing discs. These
+      // are NOT new reveals; the session had them before the map opened.
+      // Before BUG-015 fix, the empty _previousDiscIdSet from frame 0
+      // caused these to be treated as "newly emerged" → wisp burst.
+      final existingDiscs = [_disc('rvd_a'), _disc('rvd_b', lat: 43.6)];
+      recorder = PictureRecorder();
+      renderer.paint(Canvas(recorder), _canvasSize, _ctx(discs: existingDiscs, elapsedMs: 16));
+      recorder.endRecording().dispose();
+      expect(
+        wispSystem.activeCount,
+        0,
+        reason: 'BUG-015: discs arriving after an empty first paint must not spawn wisps — they are pre-existing, not newly emerged',
       );
     });
   });
