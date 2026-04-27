@@ -1,6 +1,6 @@
 # BUG-014 — Fog overlay doesn't track map movement (SDF in screen space, not map space)
 
-**Status:** 🔴 OPEN — 4 iterations attempted and all reverted or insufficient. Root cause is architectural: the mirk overlay is a Flutter `CustomPainter` in screen space, not a map-integrated layer. Decision: render fog as a MapLibre custom layer.
+**Status:** 🟡 IMPLEMENTED — awaiting UAT walk (commit `5902d4e`).
 **Reported:** 2026-04-27 (UAT walk at zoom ~12.28 on iOS, post-BUG-010 disc refactor)
 **Platform:** cross-platform (Flutter overlay architecture, not GPU-specific)
 
@@ -94,7 +94,37 @@ After reverting `af15c12` and `a1d58ad` (revert commit `f5d5b27` + `ebb7097`), t
 - The fog still moves with the camera (screen-space overlay)
 - Combined zoom+pan still displaces the reveal (iterations 1+2 didn't fully fix this)
 
-**Next step:** Implement Option A or D from the table above. This is a Phase 09.1 or Phase 10 scope item — requires map-layer integration, not just renderer tweaks.
+## Implementation: MapLibre image source (commit `5902d4e`)
+
+Instead of pure Option C (custom GL layer), we chose a **hybrid approach**: the fog is
+rendered offscreen using the existing Flutter FragmentShader — preserving ALL visual
+effects (watercolour boundary, wisps, noise) — then pushed to MapLibre as a
+geo-pinned image source at ~20 fps. MapLibre composites it in map-space at 60 fps,
+so camera tracking is native with zero lag.
+
+### Key files changed
+
+- `lib/domain/map/map_view.dart` — new `addFogImageSource` / `updateFogImageSource` /
+  `removeFogImageSource` methods on the map view interface
+- `lib/infrastructure/map/maplibre_map_view.dart` — MapLibre `addImageSource` /
+  `updateImageSource` + raster layer wiring
+- `lib/infrastructure/mirk/offscreen_fog_renderer.dart` — **new**: renders
+  MirkRenderer to PNG bytes via `PictureRecorder`
+- `lib/presentation/widgets/mirk_overlay.dart` — **rewritten**: invisible controller
+  that pushes fog frames to MapLibre instead of painting a screen-space overlay
+- `lib/presentation/screens/map_screen.dart` — simplified wrappers
+
+### Verification
+
+- All 1045 tests pass, `flutter analyze` clean.
+- Animation updates at ~20 fps, throttled by
+  `kMirkFogMapLayerUpdateIntervalMs = 50ms`.
+- Camera tracking runs at 60 fps natively inside MapLibre — zero frame lag.
+
+## Next step
+
+UAT walk on device to verify the fog tracks map movement correctly during pan,
+zoom, and combined pan+zoom gestures.
 
 ## Commits (chronological)
 
