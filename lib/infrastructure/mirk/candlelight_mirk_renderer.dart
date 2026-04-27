@@ -9,6 +9,7 @@ import 'package:logging/logging.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 
 import 'mirk_projection.dart';
 import 'noise/simplex_noise_2d.dart';
@@ -66,6 +67,10 @@ class CandlelightMirkRenderer implements MirkRenderer {
   final SimplexNoise2D _noise;
 
   bool _disposed = false;
+
+  /// Candlelight has no SDF — always returns null (BUG-014 contract stub).
+  @override
+  MirkViewportBbox? get sdfViewport => null;
 
   /// BUG-009 follow-up diagnostic (2026-04-26) — see the atmospheric
   /// renderer for the rationale. Mirrored here because the user MAY

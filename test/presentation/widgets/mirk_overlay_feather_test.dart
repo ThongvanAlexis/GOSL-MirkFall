@@ -93,10 +93,7 @@ void main() {
       // canonical reveal input post-Commit-5).
       final ctx = fakeRenderer.paintContexts.last;
       expect(ctx.zoomLevel, 14.0);
-      // BUG-014 padded viewport: the overlay renders for a padded bbox
-      // (3x the visible area) so the fog stays map-locked during panning.
-      // The original viewport north=44, dLat=1, padded north=44+1*1.0=45.
-      expect(ctx.viewportBbox.north, 45.0);
+      expect(ctx.viewportBbox.north, 44.0);
       expect(ctx.discs, hasLength(1), reason: 'overlay routes the discsInViewportProvider list verbatim');
       expect(ctx.discs.single.id, 'rvd_feather_centre');
     });

@@ -6,6 +6,7 @@ import 'dart:ui' show Canvas, Size;
 
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 
 /// Observable fake `MirkRenderer` for widget + controller suites that
 /// need to assert how many times paint/update/dispose were invoked
@@ -46,6 +47,10 @@ class FakeMirkRenderer implements MirkRenderer {
   /// [StateError]. Used by error-path tests to validate the SUT's
   /// surfacing behaviour without changing the renderer's surface.
   bool throwOnNextCall = false;
+
+  /// Fake has no SDF — always returns null (BUG-014 contract stub).
+  @override
+  MirkViewportBbox? get sdfViewport => null;
 
   /// Resets all counters + recorded contexts. Helpful between sub-cases
   /// inside a single test that wants to share the fake instance.

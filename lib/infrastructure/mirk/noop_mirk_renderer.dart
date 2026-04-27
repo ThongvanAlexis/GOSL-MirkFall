@@ -6,6 +6,7 @@ import 'dart:ui' show Canvas, Size;
 
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 
 /// Phase 07 stub implementation of [MirkRenderer] — paints nothing,
 /// updates nothing, disposes immediately.
@@ -19,6 +20,10 @@ import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 /// Dart-level renderer simply mirrors the map-side no-op.
 final class NoopMirkRenderer implements MirkRenderer {
   const NoopMirkRenderer();
+
+  /// Noop has no SDF — always returns null (BUG-014 contract stub).
+  @override
+  MirkViewportBbox? get sdfViewport => null;
 
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) {

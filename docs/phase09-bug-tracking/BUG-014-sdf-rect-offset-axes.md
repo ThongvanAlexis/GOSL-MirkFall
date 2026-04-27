@@ -1,6 +1,6 @@
 # BUG-014 — Fog overlay doesn't track map movement (SDF in screen space, not map space)
 
-**Status:** 🟡 IMPLEMENTED — awaiting UAT walk (commit `5902d4e`).
+**Status:** 🟡 IN PROGRESS — image source approach failed (iteration 5), pivoting to Canvas transform (iteration 6)
 **Reported:** 2026-04-27 (UAT walk at zoom ~12.28 on iOS, post-BUG-010 disc refactor)
 **Platform:** cross-platform (Flutter overlay architecture, not GPU-specific)
 
@@ -120,6 +120,37 @@ so camera tracking is native with zero lag.
 - Animation updates at ~20 fps, throttled by
   `kMirkFogMapLayerUpdateIntervalMs = 50ms`.
 - Camera tracking runs at 60 fps natively inside MapLibre — zero frame lag.
+
+## Iteration 5 — MapLibre image source (commits `5902d4e`, `cbd25ba`, `045143f`)
+
+**Hypothesis:** Render the fog offscreen and push it to MapLibre as a geo-pinned image source. MapLibre composites it in map-space at 60fps — zero camera lag.
+
+**Implementation:** 
+- MirkOverlay rewritten as invisible controller pushing PNG to MapLibre's `addImageSource`/`updateImageSource`
+- OffscreenFogRenderer: renders MirkRenderer to PNG via PictureRecorder
+- Padded viewport (3x visible area) to allow panning without edge exposure
+
+**Result:** Three fundamental raster-image issues:
+1. **Pixelated boundary** — 512×512 image covering 3x the viewport = ~170 effective pixels per screen dimension. The watercolour boundary became thick and blocky.
+2. **Zoom stretching** — image source is geo-pinned, so zooming stretches/compresses the raster image. The fog noise pattern scales unnaturally.
+3. **Re-pin snapping** — when the camera drifts past 50% of the padding, the image is re-pinned to new coordinates, causing a visible snap/jump.
+
+**Root cause:** The image source approach is fundamentally wrong for animated, resolution-dependent fog. A raster image pinned to geo-coordinates will always degrade on zoom and look pixelated when covering a large area. The fog NEEDS to be rendered per-pixel at screen resolution every frame — that's what the shader does beautifully.
+
+**Status:** ⬅️ REVERTED. Pivoting to Option B (Canvas transform).
+
+## Iteration 6 — Canvas-level affine transform (Option B)
+
+**Hypothesis:** Keep the Flutter CustomPaint overlay with the existing shader at full screen resolution. Instead of remapping the SDF per-pixel in the shader (which created compound errors during combined zoom+pan), apply a Canvas-level affine transform (translate + scale) BEFORE the renderer paints. The GPU's matrix pipeline handles the combined zoom+pan as a single operation.
+
+**Fix:**
+- `_MirkPainter.paint()` computes the affine transform from the SDF viewport → current viewport
+- Canvas.translate(tx, ty) + Canvas.scale(sx, sy) applied before renderer.paint()
+- Shader's sdfRect always identity (0,0,1,1) — the Canvas handles all remapping
+- ~1 frame lag (16ms) remains inherent to Flutter-on-top-of-MapLibre architecture
+- All visual effects preserved at full screen resolution (curl, drift, hue, watercolour boundary)
+
+**Status:** 🟡 IMPLEMENTING
 
 ## Next step
 

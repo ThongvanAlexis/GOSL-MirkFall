@@ -7,6 +7,7 @@ import 'dart:ui' show Canvas, Size;
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 
 /// GPU shader-backed fog renderer.
 ///
@@ -33,6 +34,10 @@ class ShaderMirkRenderer implements MirkRenderer {
   /// The originating shader-style config — `shaderAssetPath` is the
   /// asset Phase 13 will load.
   final ShaderConfig config;
+
+  /// Shader stub has no SDF — always returns null (BUG-014 contract stub).
+  @override
+  MirkViewportBbox? get sdfViewport => null;
 
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) => throw UnimplementedError('Phase 13 — ShaderConfig body');

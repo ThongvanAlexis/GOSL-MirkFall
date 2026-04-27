@@ -163,44 +163,8 @@ void main() {
       expect(ctx.discs, isEmpty, reason: 'override seeds an empty disc list — fog covers the whole viewport rect');
     });
 
-    testWidgets('offscreen render pushes PNG to MapView image source', (tester) async {
-      final fakeRenderer = FakeMirkRenderer();
-      final fakeMapView = FakeMapView();
-      final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            activeSessionControllerProvider.overrideWith(
-              () => _FakeActiveSessionController(
-                Tracking(sessionId: const SessionId('sess_push'), startedAtUtc: DateTime.utc(2026, 4, 25), fixCount: 0, distanceFilterMeters: 5),
-              ),
-            ),
-            activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
-            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
-            mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
-            mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
-            mapViewHolderProvider.overrideWithValue(fakeMapView),
-          ],
-          child: const Directionality(
-            textDirection: TextDirection.ltr,
-            child: SizedBox(width: 256, height: 256, child: MirkOverlay()),
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 51));
-
-      // Renderer paint fires synchronously inside the render pipeline.
-      expect(fakeRenderer.paintCallCount, greaterThan(0));
-
-      // Flush the async toImage() + addFogImageSource chain via runAsync.
-      await tester.runAsync(() async {
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-      });
-
-      // BUG-014 pipeline: the fog PNG was pushed to the FakeMapView's
-      // image source. The first push uses addFogImageSource.
-      expect(fakeMapView.methodLog, contains(contains('addFogImageSource')), reason: 'First offscreen render must call addFogImageSource on the MapView');
-    });
+    // Image-source pipeline test removed — BUG-014 iteration 5 (image
+    // source approach) was reverted in favour of Canvas-level affine
+    // transform (iteration 6). The overlay is back to CustomPaint.
   });
 }

@@ -5,17 +5,18 @@
 // Interface-shape regression guard for [MirkRenderer].
 //
 // Phase 07 locks [MirkRenderer] at exactly 3 public methods (paint,
-// update, dispose). Phase 09 supplies the first real renderer without
-// expanding this surface — new inputs must ride through
-// [MirkPaintContext] rather than as separate methods.
+// update, dispose) + 1 getter (sdfViewport, added BUG-014). Phase 09
+// supplies the first real renderer without further expanding this
+// surface — new inputs must ride through [MirkPaintContext] rather
+// than as separate methods.
 //
 // Dart lacks a runtime reflection API under the flutter_test / pure-Dart
 // runners (`dart:mirrors` is unavailable on AOT + Flutter). Instead, we
 // use a **compile-time witness** [_MinimalWitness] that implements
-// [MirkRenderer] by overriding exactly 3 methods. If a future dev adds a
-// 4th abstract method to the interface, the analyzer refuses to compile
-// the witness (`missing_concrete_implementation`) — the gate fires at
-// compile time, not at test run time, which is strictly stronger.
+// [MirkRenderer] by overriding exactly 4 abstract members. If a future dev
+// adds a 5th abstract member to the interface, the analyzer refuses to
+// compile the witness (`missing_concrete_implementation`) — the gate fires
+// at compile time, not at test run time, which is strictly stronger.
 //
 // The test body itself calls each method on an instance of the witness
 // and asserts the side-effects flipped the expected flags, proving the
@@ -34,16 +35,19 @@ import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 
-/// Compile-time witness that [MirkRenderer] has exactly 3 abstract
-/// methods: `paint`, `update`, `dispose`. The analyzer enforces the
-/// contract — if a 4th method is added to [MirkRenderer] upstream, this
-/// class stops compiling with `missing_concrete_implementation`, which
-/// fires inside `flutter analyze` and `dart test` before this test even
-/// starts.
+/// Compile-time witness that [MirkRenderer] has exactly 4 abstract
+/// members: `sdfViewport` (getter), `paint`, `update`, `dispose`. The
+/// analyzer enforces the contract — if a 5th member is added to
+/// [MirkRenderer] upstream, this class stops compiling with
+/// `missing_concrete_implementation`, which fires inside `flutter analyze`
+/// and `dart test` before this test even starts.
 class _MinimalWitness implements MirkRenderer {
   int paintCalls = 0;
   int updateCalls = 0;
   int disposeCalls = 0;
+
+  @override
+  MirkViewportBbox? get sdfViewport => null;
 
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
@@ -63,9 +67,9 @@ class _MinimalWitness implements MirkRenderer {
 
 void main() {
   group('MirkRenderer public surface', () {
-    test('_MinimalWitness compiles — interface has exactly 3 abstract methods', () {
+    test('_MinimalWitness compiles — interface has exactly 4 abstract members', () {
       // The compile-time guarantee is the analyzer refusing
-      // `missing_concrete_implementation` if a 4th abstract method lands.
+      // `missing_concrete_implementation` if a 5th abstract member lands.
       // The runtime assertion below is a sanity check that the witness
       // instance is constructable — if the witness were missing an
       // override it would fail at compile time, not here.
@@ -73,13 +77,14 @@ void main() {
       expect(w, isA<MirkRenderer>());
     });
 
-    test('paint / update / dispose are the only methods exercised', () async {
+    test('sdfViewport / paint / update / dispose are the only members exercised', () async {
       final _MinimalWitness w = _MinimalWitness();
 
-      // Exercise each of the 3 methods with the narrowest valid inputs
-      // the signatures allow. `Canvas` / `Size` come from `dart:ui`;
+      // Exercise each of the 4 abstract members with the narrowest valid
+      // inputs the signatures allow. `Canvas` / `Size` come from `dart:ui`;
       // a test-only `PictureRecorder` gives us a live Canvas without a
       // Flutter widget tree.
+      expect(w.sdfViewport, isNull);
       final PictureRecorder recorder = PictureRecorder();
       final Canvas canvas = Canvas(recorder);
       w.paint(

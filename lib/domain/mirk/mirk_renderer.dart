@@ -5,17 +5,18 @@
 import 'dart:ui' show Canvas, Size;
 
 import 'mirk_paint_context.dart';
+import 'mirk_viewport_bbox.dart';
 
 /// Abstract port over the fog-of-war (mirk) rendering surface.
 ///
-/// Exactly 3 methods, frozen in Phase 07 — see CONTEXT.md §MirkRenderer
-/// seam (decision D6). Phase 09 supplies the first non-stub
-/// implementation without expanding the surface: any new feature needs a
-/// new argument on an existing method (plumbed through
+/// 3 methods + 1 getter, frozen in Phase 07 (getter added BUG-014) — see
+/// CONTEXT.md §MirkRenderer seam (decision D6). Phase 09 supplies the
+/// first non-stub implementation without expanding the surface: any new
+/// feature needs a new argument on an existing method (plumbed through
 /// [MirkPaintContext]) or lives outside the rendering hot path
 /// (settings, state, etc.).
 ///
-/// The `mirk_renderer_contract_test` asserts that these 3 methods are
+/// The `mirk_renderer_contract_test` asserts that these 4 members are
 /// the *only* public surface, guarding against accidental growth.
 ///
 /// ## Import rationale
@@ -31,6 +32,11 @@ import 'mirk_paint_context.dart';
 /// painting primitives that every renderer (MapLibre, custom, or
 /// offscreen test harness) needs to interoperate with.
 abstract class MirkRenderer {
+  /// The viewport the current SDF image was built for, or null if no SDF
+  /// has been built yet. Used by the overlay's Canvas transform to
+  /// compensate for camera movement between SDF rebuilds (BUG-014 fix).
+  MirkViewportBbox? get sdfViewport;
+
   /// Draws the mirk for the current frame. Called inside a Flutter
   /// painting pass (Phase 09 wires the widget). Must NOT retain [canvas]
   /// past the call — the underlying picture recorder is short-lived.

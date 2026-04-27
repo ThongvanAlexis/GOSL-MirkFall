@@ -183,6 +183,12 @@ class AtmosphericMirkRenderer implements MirkRenderer {
 
   bool _disposed = false;
 
+  /// The viewport the current SDF image was built for. Used by the overlay's
+  /// Canvas transform to compensate for camera movement since the SDF was
+  /// built (BUG-014 fix).
+  @override
+  MirkViewportBbox? get sdfViewport => _sdfViewport;
+
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
     // BUG-009 follow-up diagnostic (2026-04-26). Log the first paint()
@@ -437,10 +443,10 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       boundaryBleedDistance: t.boundaryBleedDistance,
       boundaryEdgeBand: t.boundaryEdgeBand,
       boundaryDensityBoost: t.boundaryDensityBoost,
-      // SDF rect: shader maps screen-normalised [0,1] uv to SDF uv via
-      // (uv - rect.xy) / rect.zw. Dynamically computed to pin the SDF
-      // at its true lat/lon position during pan/zoom (BUG-012 follow-up).
-      sdfRect: _computeSdfRect(context.viewportBbox),
+      // BUG-014 fix: SDF rect is now identity. The Canvas-level affine
+      // transform in the overlay handles viewport remapping as a single
+      // GPU matrix op instead of per-pixel UV remapping in the shader.
+      sdfRect: (0.0, 0.0, 1.0, 1.0),
       sdfImage: sdf,
     );
 
@@ -566,11 +572,16 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// screen-normalised [0,1] space. Returns `(originX, originY, sizeX,
   /// sizeY)` for the four `uSdfRect*` shader uniforms.
   ///
+  /// BUG-014: no longer called in the shader path — the overlay's Canvas
+  /// transform handles viewport remapping now. Retained for diagnostics
+  /// and potential future use.
+  ///
   /// When the viewport hasn't moved since the SDF was built, returns
   /// `(0, 0, 1, 1)` — the existing behaviour. When the viewport pans,
   /// the origin shifts. When the viewport zooms, the size scales. The
   /// shader's `clamp(sdfUv, 0.0, 1.0)` ensures pixels outside the
   /// SDF's coverage read as all-fog.
+  // ignore: unused_element — retained for diagnostics (BUG-014).
   (double, double, double, double) _computeSdfRect(MirkViewportBbox currentViewport) {
     final sdfVp = _sdfViewport;
     if (sdfVp == null) return (0.0, 0.0, 1.0, 1.0);

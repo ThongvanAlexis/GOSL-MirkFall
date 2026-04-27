@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 
 import 'tile_cell_iteration.dart';
 
@@ -60,6 +61,10 @@ class SolidFillMirkRenderer implements MirkRenderer {
   late final Color _color = _computeColor(config);
 
   bool _disposed = false;
+
+  /// Solid fill has no SDF — always returns null (BUG-014 contract stub).
+  @override
+  MirkViewportBbox? get sdfViewport => null;
 
   /// BUG-009 follow-up diagnostic (2026-04-26) — see the atmospheric
   /// renderer. Tracks the last `paint()` early-return reason so silent
