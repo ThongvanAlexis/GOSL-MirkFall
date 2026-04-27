@@ -104,10 +104,12 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// wisp burst on a fresh GPS fix is local to the new disc only.
   Set<String> _previousDiscIdSet = <String>{};
 
-  /// First-paint sentinel — see [_spawnWispsForNewlyEmergedDiscs] for the
-  /// guard that suppresses the initial spawn so resuming a session does
-  /// not spray wisps over already-revealed area.
-  bool _firstPaint = true;
+  /// Whether the renderer is still in its warm-up phase. During warm-up,
+  /// all disc IDs are ingested into [_previousDiscIdSet] without spawning
+  /// wisps. The warm-up ends when `sessionElapsed` exceeds
+  /// [kMirkFogWispWarmUpSeconds]. See [_spawnWispsForNewlyEmergedDiscs]
+  /// for the full rationale (BUG-015 fix).
+  bool _warmingUp = true;
 
   /// Last-paint sessionElapsed in seconds. Used to compute dt for the
   /// wisp system's advance step.
@@ -278,36 +280,49 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// just emerged this frame. For each new disc, spawn N evenly-spaced
   /// wisps along its perimeter (N ∝ circumference / [kMirkFogMetersPerWisp]).
   ///
-  /// First-paint guard: the very first invocation ingests the current
-  /// disc-id set into [_previousDiscIdSet] WITHOUT spawning. Otherwise
-  /// resuming a session would spawn wisps for every existing disc all at
-  /// once — typically a few hundred — flooding the visible viewport with
-  /// puffs over already-revealed area.
+  /// ## Warm-up phase (BUG-015 root-cause fix)
   ///
-  /// BUG-015 fix: [_previousDiscIdSet] is append-only (grows via
-  /// `addAll`, never replaced). Previously, when the user panned away
-  /// from the revealed area, `discs` dropped to 0 because
-  /// `discsInBbox` returned nothing in the viewport. The old code
-  /// replaced `_previousDiscIdSet` with the empty set. When the user
-  /// panned back, all existing discs appeared "new" → massive wisp
-  /// burst forming a visible "rose" pattern. Similarly, on first open
-  /// the disc provider could resolve with 0 discs for the first frame
-  /// (async timing), poisoning `_previousDiscIdSet` to empty. The
-  /// append-only semantic means discs that leave the viewport are still
-  /// remembered — only genuinely new GPS-fix discs trigger wisps.
+  /// For the first [kMirkFogWispWarmUpSeconds] seconds after the renderer
+  /// is created, ALL disc IDs that enter the viewport are silently
+  /// ingested into [_previousDiscIdSet] WITHOUT spawning wisps. This
+  /// covers two distinct race windows:
+  ///
+  ///   1. **First frames with async-delayed discs.** On map open the disc
+  ///      provider may resolve with 0 discs for one or more frames. If
+  ///      we consumed the empty set and left warm-up, the next frame's
+  ///      real discs would all appear "new" → burst.
+  ///
+  ///   2. **Viewport animation scroll-in.** When the map opens, MapLibre
+  ///      animates the camera (zoom-out settling, initial fly-to). During
+  ///      the ~5 s animation, previously-existing discs that were outside
+  ///      the initial narrow viewport scroll into view and appear "new" to
+  ///      the frame-diff logic → massive wisp burst forming the visible
+  ///      "rose of ellipses" on the boundary. The time-based warm-up
+  ///      absorbs ALL these discs without spawning.
+  ///
+  /// After the warm-up elapses, the normal per-frame diff activates:
+  /// only discs not yet in [_previousDiscIdSet] (genuinely new GPS-fix
+  /// reveals) spawn wisps. The set remains append-only so discs that
+  /// leave the viewport (pan away) are still remembered.
   void _spawnWispsForNewlyEmergedDiscs({required MirkPaintContext context, required Size canvasSize}) {
     final currentIds = <String>{for (final disc in context.discs) disc.id};
-    if (_firstPaint) {
-      // BUG-015 fix: wait for the first NON-EMPTY disc list before
-      // leaving first-paint state. On map open the disc provider may
-      // deliver an empty list for the first few frames (async timing).
-      // If we consumed that empty set and flipped _firstPaint off, the
-      // next frame's real discs would all appear "new" → massive burst.
-      if (currentIds.isEmpty) return;
-      _previousDiscIdSet = Set<String>.of(currentIds);
-      _firstPaint = false;
+
+    // During warm-up: ingest all disc IDs without spawning. Skip empty
+    // frames entirely (the disc provider hasn't resolved yet).
+    if (_warmingUp) {
+      if (currentIds.isNotEmpty) {
+        _previousDiscIdSet.addAll(currentIds);
+      }
+      final elapsedSec = context.sessionElapsed.inMilliseconds / 1000.0;
+      // Stay in warm-up until both conditions are met:
+      //   a) enough time has passed for the viewport animation to settle
+      //   b) we have seen at least one non-empty disc list
+      if (elapsedSec >= kMirkFogWispWarmUpSeconds && _previousDiscIdSet.isNotEmpty) {
+        _warmingUp = false;
+      }
       return;
     }
+
     for (final disc in context.discs) {
       if (_previousDiscIdSet.contains(disc.id)) continue;
       _spawnWispsAlongDiscPerimeter(disc: disc, viewport: context.viewportBbox, canvasSize: canvasSize);
@@ -549,7 +564,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
 
   /// Maps the SDF's reference viewport onto the current viewport's
   /// screen-normalised [0,1] space. Returns `(originX, originY, sizeX,
-  /// sizeY)` for `uSdfRect`.
+  /// sizeY)` for the four `uSdfRect*` shader uniforms.
   ///
   /// When the viewport hasn't moved since the SDF was built, returns
   /// `(0, 0, 1, 1)` — the existing behaviour. When the viewport pans,
@@ -635,5 +650,6 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     _sdfViewport = null;
     _wispSystem.clear();
     _previousDiscIdSet = <String>{};
+    _warmingUp = true;
   }
 }

@@ -773,6 +773,20 @@ const double kMirkFogWispDeathRadiusPx = 22.0;
 /// non-overwhelming peak.
 const double kMirkFogWispPeakAlpha = 0.35;
 
+/// Grace period (seconds) after the renderer is created during which ALL
+/// discs entering the viewport are ingested into the "already-seen" set
+/// WITHOUT spawning wisps. Covers the map-open viewport animation (~6 s
+/// on iOS MapLibre) during which pre-existing discs scroll into view and
+/// would otherwise be misread as "newly emerged" by the frame-diff logic.
+///
+/// BUG-015 root-cause fix: the previous first-paint boolean guard only
+/// captured the FIRST non-empty disc set (the initial viewport). Discs
+/// that entered the viewport during the subsequent zoom/pan animation
+/// were each treated as new → massive wisp burst forming the visible
+/// "rose of ellipses" on the boundary. The time-based warm-up ingests
+/// all discs that appear during the animation without spawning.
+const double kMirkFogWispWarmUpSeconds = 5.0;
+
 /// DIAGNOSTIC TOGGLE (BUG-009 follow-up, 2026-04-25). When true, the
 /// atmospheric fog shader replaces its final colour mix with a raw
 /// density visualisation: `fragColor = vec4(dN, dN, dN, 1.0)` where dN

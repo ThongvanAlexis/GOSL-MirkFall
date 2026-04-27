@@ -76,9 +76,12 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
 
   /// Disc id set as seen on the previous paint pass — see
   /// [`AtmosphericMirkRenderer`] for the BUG-010 Option B Commit 5
-  /// emergence-diff rationale + first-paint guard.
+  /// emergence-diff rationale + warm-up guard.
   Set<String> _previousDiscIdSet = <String>{};
-  bool _firstPaint = true;
+
+  /// Whether the renderer is still in its warm-up phase. See
+  /// [AtmosphericMirkRenderer._warmingUp] for the full BUG-015 rationale.
+  bool _warmingUp = true;
   double _lastTSec = 0.0;
 
   /// BUG-009 follow-up diagnostic: last path tag we INFO-logged
@@ -213,20 +216,22 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// simplify the call sites.
   ///
   /// BUG-015 fix: see `AtmosphericMirkRenderer._spawnWispsForNewlyEmergedDiscs`
-  /// for the full rationale. [_previousDiscIdSet] is append-only to
-  /// prevent viewport-exit / viewport-reenter from being misread as
-  /// disc emergence.
+  /// for the full rationale. Time-based warm-up absorbs the viewport
+  /// animation's disc scroll-in without spawning.
   void _spawnWispsForNewlyEmergedDiscs({required MirkPaintContext context, required Size canvasSize}) {
     final currentIds = <String>{for (final disc in context.discs) disc.id};
-    if (_firstPaint) {
-      // BUG-015 fix: wait for the first NON-EMPTY disc list before
-      // leaving first-paint state. See atmospheric renderer for the
-      // full rationale.
-      if (currentIds.isEmpty) return;
-      _previousDiscIdSet = Set<String>.of(currentIds);
-      _firstPaint = false;
+
+    if (_warmingUp) {
+      if (currentIds.isNotEmpty) {
+        _previousDiscIdSet.addAll(currentIds);
+      }
+      final elapsedSec = context.sessionElapsed.inMilliseconds / 1000.0;
+      if (elapsedSec >= kMirkFogWispWarmUpSeconds && _previousDiscIdSet.isNotEmpty) {
+        _warmingUp = false;
+      }
       return;
     }
+
     for (final disc in context.discs) {
       if (_previousDiscIdSet.contains(disc.id)) continue;
       _spawnWispsAlongDiscPerimeter(disc: disc, viewport: context.viewportBbox, canvasSize: canvasSize);
@@ -404,7 +409,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
 
   /// Maps the SDF's reference viewport onto the current viewport's
   /// screen-normalised [0,1] space. Returns `(originX, originY, sizeX,
-  /// sizeY)` for `uSdfRect`.
+  /// sizeY)` for the four `uSdfRect*` shader uniforms.
   ///
   /// When the viewport hasn't moved since the SDF was built, returns
   /// `(0, 0, 1, 1)` — the existing behaviour. When the viewport pans,
@@ -485,5 +490,6 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     _sdfViewport = null;
     _wispSystem.clear();
     _previousDiscIdSet = <String>{};
+    _warmingUp = true;
   }
 }
