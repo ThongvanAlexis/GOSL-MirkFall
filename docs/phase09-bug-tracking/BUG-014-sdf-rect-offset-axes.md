@@ -1,151 +1,116 @@
-# BUG-014 — SDF rect offset rotated 90 degrees during pan at low zoom
+# BUG-014 — Fog overlay doesn't track map movement (SDF in screen space, not map space)
 
-**Status:** ✅ fixed — 3 iterations: `d05dbb2` (slot reorder), `bf6532b` (scalar decomposition), `af15c12` (drop sdfRect entirely). User UAT 2026-04-27 on `d05dbb2`: "presque resolu"; on `bf6532b`: "no change" for combined zoom+pan. Awaiting final UAT on `af15c12`.
-**Reported:** 2026-04-27 (UAT walk at zoom ~12.28 on iOS, testing BUG-012 sdfRect fix)
-**Platform:** iOS (Impeller/Metal) — Android (Skia/OpenGL) was not affected
+**Status:** 🔴 OPEN — 4 iterations attempted and all reverted or insufficient. Root cause is architectural: the mirk overlay is a Flutter `CustomPainter` in screen space, not a map-integrated layer. Decision: render fog as a MapLibre custom layer.
+**Reported:** 2026-04-27 (UAT walk at zoom ~12.28 on iOS, post-BUG-010 disc refactor)
+**Platform:** cross-platform (Flutter overlay architecture, not GPU-specific)
 
 ## Symptoms
 
-When zoomed out to ~12.28 and panning, the revealed area (fog hole) offsets
-from its correct geo-position in a direction rotated 90 degrees from the
-expected one:
+1. **Offset during pan/zoom/combined gestures:** The revealed area displaces from its correct geo-position. Pure pan and pure zoom were partially fixed, but combined pinch-zoom+pan still displaces.
+2. **Fog moves with the camera:** The fog overlay moves as if painted on the screen, not as actual fog on the map. When you pan, the fog slides with the camera for 1-2 frames then snaps back. This is the ROOT symptom — the offset bugs are consequences.
+3. **White ellipse artefact:** Fast zoom+move creates a persistent large white ellipse on the boundary.
 
-- Pan left  -> reveal shifts up   (expected: stays in place / shifts right)
-- Pan right -> reveal shifts down
-- Pan up    -> reveal shifts right
-- Pan down  -> reveal shifts left
+## Root cause (architectural)
 
-Centering with the centre button puts the reveal back to its correct place
-(triggers SDF rebuild at current viewport -> identity sdfRect).
+The mirk (fog) is rendered as a **Flutter `CustomPainter` widget overlaid on top of the MapLibre map widget**. It lives in screen space, not map space.
 
-At high zoom (~15) the bug is imperceptible because the SDF debounce
-window is short relative to viewport size, so the dynamic `sdfRect` never
-deviates far from identity.
+- MapLibre renders map tiles natively at 60fps via Metal/Vulkan/OpenGL.
+- The Flutter overlay repaints when: (a) the viewport provider delivers a new bbox, (b) the widget tree rebuilds.
+- There is inherent **latency** between the map's native camera movement and the Flutter overlay catching up — the overlay bbox comes from a platform channel query at ~20 Hz, not synced to the map's GPU frame.
 
-## Root cause
+Every fog-of-war application solves this by rendering the fog **as part of the map's rendering pipeline** (a map layer), not as an overlay. The fog texture is in world coordinates; camera movement changes the UV sampling, not the texture.
 
-The GLSL shader `assets/shaders/atmospheric_fog.frag` declared the
-`sampler2D uSdf` uniform BETWEEN the last float uniform
-(`uBoundaryDensityBoost`, slot 36) and the `vec4 uSdfRect` (slots 37-40).
+## Iterations attempted (all insufficient)
 
-On certain Impeller/Metal compilation paths, the interleaved sampler caused
-the SPIR-V -> MSL transpilation to misalign the float slot counter for
-`uSdfRect`, producing an off-by-one or axis-swap in how the shader read
-the four rect components. The Dart side wrote `(x0, y0, xSize, ySize)` to
-slots 37-40, but the shader consumed them with a shifted mapping that
-rotated the dynamic offset by 90 degrees.
+### Iteration 1 — Shader slot reorder (`d05dbb2`)
 
-The identity rect `(0, 0, 1, 1)` masked the issue because all four
-components are either 0 or 1 — the misalignment produced the same values
-under many rotation/shift patterns. The bug only surfaced when the rect
-carried non-trivial fractional origin values during active panning with a
-stale SDF.
+**Hypothesis:** Impeller's SPIR-V→MSL transpiler misaligned the `uSdfRect` float slots because `uniform sampler2D uSdf` was declared between float uniforms.
+**Fix:** Moved `uSdfRect` declaration before the sampler.
+**Result:** Fixed pure pan + pure zoom. Combined zoom+pan still broke.
+**Status:** Kept (the slot ordering fix is correct regardless).
 
-## Investigation findings
+### Iteration 2 — vec4 → 4 scalar uniforms (`bf6532b`)
 
-The 90-degree rotation symptom was the key diagnostic clue. The sdfRect has 4 components: `(x0, y0, xSize, ySize)`. A 90-degree rotation of the offset direction means X and Y components were being swapped or shifted by one slot.
+**Hypothesis:** Metal reorders vec4 components near a sampler boundary.
+**Fix:** Decomposed `uniform vec4 uSdfRect` into 4 scalar `uniform float`.
+**Result:** No change for combined zoom+pan.
+**Status:** Kept (scalar uniforms are more robust regardless).
 
-The Dart-side code was verified to write the correct values to the correct slot indices (37-40) via the diagnostic logging added in BUG-012 iteration 2. The mismatch had to be on the shader consumption side.
+### Iteration 3 — Drop dynamic sdfRect entirely (`af15c12`)
 
-Inspection of the GLSL source revealed the `sampler2D uSdf` declaration sitting between float uniforms. On Skia/OpenGL (Android/desktop), the GLSL compiler handles this correctly — samplers are in a separate binding namespace. On Impeller/Metal, the SPIR-V -> MSL transpilation path counts float slots sequentially, and the interleaved sampler caused the slot counter to drift by one, swapping the X and Y components of `uSdfRect`.
+**Hypothesis:** The sdfRect remapping math is unreliable due to viewport bbox platform-channel lag.
+**Fix:** Always pass identity sdfRect `(0, 0, 1, 1)`. Accept that the SDF watercolour boundary drifts during gestures, let the clip path provide the hard boundary, rebuild SDF when gesture settles (200ms debounce).
+**Result:** User rejected. The revealed area stays in place during gestures (stale SDF) and snaps to position after rebuild — ugly. Fast zoom+move creates a persistent white ellipse.
+**Status:** ⬅️ REVERTED (`f5d5b27`).
 
-This was confirmed by the observation that Android never exhibited the bug, and that the identity rect `(0, 0, 1, 1)` masked the issue — the swapped identity is still identity.
+### Iteration 4 — Build SDF in disc-bbox coordinates (`a1d58ad`)
 
-## Strategy / Fix
+**Hypothesis:** Building the SDF in world coordinates (disc bounding box) instead of viewport coordinates — the fog-of-war standard approach. SDF rebuilds only on disc-list change, not viewport change. Per-frame UV remapping from screen to disc-bbox space.
+**Fix:** `buildFromDiscs` returns `SdfBuildResult` with both image + disc bbox. Renderers compute `_computeSdfRect` per frame mapping disc bbox onto current viewport.
+**Result:** Made things worse — weird ellipse boundary, no correct repositioning.
+**Status:** ⬅️ REVERTED (`f5d5b27`).
 
-Moved `uniform vec4 uSdfRect` declaration BEFORE `uniform sampler2D uSdf`
-in the shader so all float-consuming uniforms are contiguous. The Dart-side
-slot indices (37-40) and sampler index (0) are unchanged — the reorder
-only affects the GLSL-to-SPIRV-to-MSL compilation path.
+## Why all 4 iterations failed
 
-This approach was chosen over alternatives (e.g. swapping the Dart-side slot assignments) because keeping all float uniforms contiguous before any sampler declarations is the documented best practice for cross-backend shader compatibility. It prevents the issue from recurring if more float uniforms are added later.
+All attempts tried to keep the fog as a **Flutter screen-space overlay** and compensate for the mismatch between screen space and map space via SDF coordinate tricks. The fundamental problem is that:
 
-Added diagnostic logging in `_computeSdfRect` (both atmospheric and
-heavenly renderers) at INFO level, throttled to ~1 Hz, so non-identity
-sdfRect values are visible in the device log for future debugging.
+1. The viewport bbox arrives via platform channel with 1-2 frame lag.
+2. During combined gestures (pinch-zoom+pan), both translation AND scale change per frame — any remapping amplifies the lag.
+3. The `CustomPainter` is repainted after the map's native rendering, so the fog is always 1+ frames behind the map.
 
-## Commits
+**No amount of SDF coordinate trickery can fix a screen-space overlay lagging behind a native map renderer.**
+
+## Decision: render fog as a MapLibre custom layer
+
+**Decided:** 2026-04-27, after iteration 4 revert.
+
+The fog must be rendered **inside MapLibre's rendering pipeline** so it moves with the map natively at 60fps, with zero lag.
+
+### Options evaluated
+
+| Option | Description | Effort | Lag |
+|--------|-------------|--------|-----|
+| **(A) MapLibre raster tile source** | Generate fog as raster tiles (256×256 per tile), inject as a MapLibre raster source. MapLibre composites them with the map natively. | Medium (~3-5 days) | Zero |
+| **(B) `onCameraMove` transform** | Keep Flutter overlay but apply an affine `Transform` widget matching the map's camera delta. | Small (~1 day) | Low (1 frame) |
+| **(C) MapLibre custom GL layer** | Inject a custom OpenGL/Metal draw call via MapLibre's custom layer API. | Large (~1 week) | Zero |
+| **(D) MapLibre fill-extrusion or fill layer** | Use MapLibre's built-in polygon fill layers with the revealed area as inverted GeoJSON. | Medium (~2-3 days) | Zero |
+
+**Recommended: Option A (raster tile source)** — MapLibre is designed to composite raster tiles. We generate the fog as tiles on the CPU (reusing the SDF builder logic), inject them as a raster source, and MapLibre handles compositing, caching, and camera tracking. No shader porting needed — the fog texture IS the tile.
+
+**Option D** is the simplest if the fog doesn't need the watercolour/noise visual effects (just a solid semi-transparent fill with a smooth boundary). Worth prototyping first.
+
+**Option B** is a quick win for reducing lag from ~3 frames to ~1 frame, but doesn't eliminate it. Could be a stop-gap while Option A is built.
+
+### Performance (user question: "can the phone handle 60fps?")
+
+Yes. The GPU is ALREADY rendering the fog shader at ~60fps in the current Flutter overlay. Moving it to MapLibre's pipeline is the same GPU work in a different pipeline. The SDF texture (256×256) is tiny. The heavy CPU work (`buildFromDiscs`) only runs on disc-list change (~1/sec), not per frame. Mobile games render fog-of-war over 3D terrain with lighting + shadows + particles at 60fps on the same hardware.
+
+## Current state after reverts
+
+After reverting `af15c12` and `a1d58ad` (revert commit `f5d5b27` + `ebb7097`), the codebase is back to the state after iteration 1+2:
+- Shader has correct scalar uniform slots (iterations 1+2 kept)
+- SDF builds in viewport coordinates (original architecture)
+- Viewport-only changes debounced 200ms (BUG-012 fix kept)
+- The fog still moves with the camera (screen-space overlay)
+- Combined zoom+pan still displaces the reveal (iterations 1+2 didn't fully fix this)
+
+**Next step:** Implement Option A or D from the table above. This is a Phase 09.1 or Phase 10 scope item — requires map-layer integration, not just renderer tweaks.
+
+## Commits (chronological)
 
 ```
-d05dbb2  fix(09-bug-014): correct sdfRect axis mapping (X↔Y swap during pan)
-bf6532b  fix(09-bug-014): decompose uSdfRect vec4 into four scalar floats (combined zoom+pan)
-         (Note: git message reads "docs(09-bug-015): stamp commit SHA 8b1318b in BUG-015 tracker"
-          because the shader change was bundled with the BUG-015 doc stamp)
-af15c12  fix(09-bug-014): drop dynamic sdfRect; use identity mapping to fix combined zoom+pan displacement
+d05dbb2  fix(09-bug-014): correct sdfRect axis mapping (X↔Y swap during pan) [kept]
+bf6532b  fix(09-bug-014): decompose vec4 into scalar uniforms [kept]
+af15c12  fix(09-bug-014): drop dynamic sdfRect; identity mapping [REVERTED]
+a1d58ad  fix(09-bug-014): build SDF in disc-bbox coordinates [REVERTED]
+f5d5b27  Revert a1d58ad
+ebb7097  Revert af15c12
 ```
-
-## Files modified
-
-- `assets/shaders/atmospheric_fog.frag` — reorder uSdfRect before sampler (d05dbb2); decompose vec4 to four floats (bf6532b)
-- `lib/infrastructure/mirk/atmospheric_mirk_renderer.dart` — diagnostic log in `_computeSdfRect`
-- `lib/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart` — parallel diagnostic log
-
-## Test coverage
-
-No automated regression test was added because the bug is Impeller/Metal-specific and requires GPU shader compilation to reproduce. The diagnostic logging (throttled to ~1 Hz) serves as a runtime assertion — non-identity sdfRect values are now visible in device logs, making future axis-mapping regressions immediately diagnosable.
-
-Verification was done manually: rebuild and test on iOS at zoom ~12.28, pan in all 4 cardinal directions, confirm the reveal stays geo-pinned (no offset, no rotation).
-
-## Follow-up: combined zoom+pan residual offset
-
-**Reported:** 2026-04-27 — pure pan and pure zoom work, but simultaneous zoom+translate (pinch gesture) still offsets the reveal.
-
-### Analysis
-
-The initial BUG-014 fix (moving `uniform vec4 uSdfRect` before `uniform sampler2D uSdf`) corrected the slot alignment for simple cases. However, on Impeller/Metal the SPIR-V -> MSL transpilation can also reorder **components within a vec4** when the uniform is near a sampler boundary. For pure pan, only `uSdfRect.xy` (origin) deviate from 0 while `uSdfRect.zw` (size) stay at 1.0 — a component swap between z and w is invisible. For pure zoom, the origin and size values tend to be similar in magnitude — swaps produce nearly-correct output. For combined zoom+pan, all four components carry distinct, dissimilar values, making any component reordering visible as a position offset.
-
-The `_computeSdfRect` Dart-side math is provably correct (verified analytically: the affine UV transform correctly maps between SDF-viewport and current-viewport geographic coordinates for any combination of translation and scaling). The bug is in how the GPU-side shader consumes the vec4 components on Metal.
-
-### Fix
-
-Decomposed `uniform vec4 uSdfRect` into four scalar `uniform float` declarations (`uSdfRectOriginX`, `uSdfRectOriginY`, `uSdfRectSizeX`, `uSdfRectSizeY`). Each float uniform occupies exactly one slot with no room for transpiler component reinterpretation. The `sampleSdf` function reconstructs the `vec2` origin and size from the four scalars.
-
-Dart-side slot indices (37-40) and the `FogShaderUniforms.setAll` logic are unchanged — the tuple `(x0, y0, xSize, ySize)` writes to the same slots. Only the GLSL declaration changes.
-
-### Commits
-
-`bf6532b` — decompose `uSdfRect` vec4 into four scalar floats.
-
-## Iteration 3 — drop dynamic sdfRect entirely (combined zoom+pan fix)
-
-**Reported:** 2026-04-27 — "BUG-014 : no change, zooming+moving at the same time will still displace the revealed area to another location"
-
-### Analysis
-
-Two shader-side fixes (slot reorder in `d05dbb2`, scalar decomposition in `bf6532b`) corrected pure pan and pure zoom but not combined pinch-zoom+pan. The `_computeSdfRect` Dart-side math was verified analytically correct (affine UV transform between sdfViewport and currentViewport produces exact expected values for all tested cases).
-
-Device logs showed the sdfRect values during combined gestures were mathematically correct but **extreme** — origin values like `y0=-1.5079`, sizes like `xSize=1.8644, ySize=2.4140`. These arise because the SDF was built for a viewport that differs significantly from the current one (the debounce window allows the viewport to diverge during a fast pinch-zoom).
-
-The root cause is **not** bad math or shader slot misalignment — it is that the sdfRect remapping approach itself is unreliable during combined gestures. The async viewport bbox (from the platform channel at 20 Hz) lags behind the actual camera state. During a pure pan the lag is a small translation; during a pure zoom the lag is a small scale change. But during a combined pinch-zoom+pan, the translation AND scale change interact, and the remapping amplifies the lag into a visible displacement.
-
-### Fix
-
-Dropped the dynamic sdfRect mechanism entirely. Both renderers now always pass identity `(0.0, 0.0, 1.0, 1.0)` as the sdfRect, meaning the SDF image maps 1:1 to the screen UV space. The `_sdfViewport` tracking field and `_computeSdfRect` method were removed from both `atmospheric_mirk_renderer.dart` and `heavenly_clouds_mirk_renderer.dart`.
-
-The SDF watercolour boundary now drifts slightly during gestures (the SDF was built for a previous viewport position), but this drift is bounded by the debounce window (~200ms of gesture movement). The **clip path** — computed every frame from current discs + current viewport — still provides the correct hard fog boundary. The visual trade-off is: slightly stale soft boundary vs. wildly displaced hard boundary. The former is vastly preferable.
-
-The shader's `uSdfRect*` uniforms are retained at their existing slot positions (37-40) to avoid changing the shader's uniform layout. They always receive identity values.
-
-### Commit
-
-`af15c12` — drop dynamic sdfRect; pass identity `(0, 0, 1, 1)` always.
-
-### Files modified
-
-- `lib/infrastructure/mirk/atmospheric_mirk_renderer.dart` — removed `_sdfViewport`, `_computeSdfRect`; pass identity sdfRect
-- `lib/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart` — same changes
-
-### UAT status
-
-User reported "presque resolu" after iteration 1 (`d05dbb2`), then "no change" for combined zoom+pan after iteration 2 (`bf6532b`). Iteration 3 (`af15c12`) dropped sdfRect entirely. **Awaiting UAT confirmation on `af15c12`.**
-
-## Known follow-ups
-
-- [ ] Consider adding a CI shader compilation smoke test for Impeller/Metal to catch uniform slot misalignment at build time rather than runtime
-- [ ] Document the "float uniforms before samplers" rule in a shader authoring guide if more shaders are added
-- [ ] The SDF watercolour boundary drifts during fast gestures. A future optimisation could make the SDF build synchronous (fast-path disc reprojection without pixel-loop recomputation) so the SDF stays fresh every frame without the debounce window
 
 ## Links
 
-- **BUG-012** — the sdfRect mechanism that exposed this bug was introduced in BUG-012 iteration 2 (`c0c14a6`)
-- **BUG-011** — another coordinate-space issue in the SDF pipeline (oval distortion from pixel-vs-metre space)
+- **BUG-010** — the disc-based reveal refactor that surfaced this bug
+- **BUG-011** — oval boundary (fixed, metre-space distance)
+- **BUG-012** — strobing (fixed, widget-layer disc cache + debounce)
+- **BUG-013** — mirk disappears off-screen (fixed, removed empty-disc early-return)
+- **BUG-015** — wisp burst on open (fixed, time-based warm-up)
