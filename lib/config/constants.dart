@@ -839,6 +839,18 @@ const double kMirkFogOpacityMax = 1.0;
 /// for fine adjustment).
 const int kMirkFogOpacitySliderDivisions = 16;
 
+/// MapLibre source ID for the geo-referenced fog-of-war image source.
+/// Namespaced with `mirkfall_` to avoid style-id collisions. The source
+/// carries a single RGBA PNG that MapLibre composites at 60 fps in the
+/// map pipeline — BUG-014 architectural fix (replaces the Flutter
+/// CustomPaint screen-space overlay that lagged behind camera motion).
+const String kFogImageSourceId = 'mirkfall_fog_image_source';
+
+/// MapLibre layer ID for the raster layer that renders the fog image
+/// source ([kFogImageSourceId]). Sits above map tiles but below the
+/// user-location puck so the blue dot is always visible on top of fog.
+const String kFogImageLayerId = 'mirkfall_fog_image_layer';
+
 /// Debounce delay (milliseconds) for SDF rebuilds triggered by
 /// viewport-only changes (pan/zoom gesture without new disc emergence).
 /// During the debounce window the old SDF is reused — slightly
@@ -850,3 +862,12 @@ const int kMirkFogOpacitySliderDivisions = 16;
 /// a stale viewport position — the fog boundary "strobed" between old
 /// and new positions on every build-completion.
 const int kMirkFogSdfViewportDebounceMs = 200;
+
+/// Resolution of the offscreen fog image pushed to MapLibre's image source.
+/// 512x512 balances visual fidelity with encode/upload throughput at ~20 fps.
+const int kMirkFogMapLayerResolution = 512;
+
+/// Target interval between fog-layer image updates in milliseconds. 50 ms
+/// (20 fps) keeps the animated effects smooth without saturating the
+/// platform channel. Camera tracking is 60 fps natively via MapLibre.
+const int kMirkFogMapLayerUpdateIntervalMs = 50;

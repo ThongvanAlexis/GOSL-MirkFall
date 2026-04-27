@@ -2,6 +2,9 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'dart:typed_data';
+import 'dart:ui' as ui show Size;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,31 +15,38 @@ import 'package:mirkfall/application/providers/discs_in_viewport_provider.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/providers/map_viewport_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
+import 'package:mirkfall/domain/map/map_view.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
+import 'package:mirkfall/infrastructure/mirk/offscreen_fog_renderer.dart';
 
 final Logger _log = Logger('presentation.mirk_overlay');
 
-/// Stateful Riverpod overlay that hosts the mirk Ticker + CustomPainter.
+/// Invisible controller widget that pushes fog-of-war images to MapLibre's
+/// geo-pinned image source on every tick.
 ///
-/// Mounted as a sibling of the MapLibre platform view in
-/// [`MapScreen`]'s Stack — wrapped in a [RepaintBoundary] (set up by the
-/// caller, see plan 09-07 Task 5) so the noise tick does not invalidate
-/// the map's display list.
+/// BUG-014 architectural fix: replaces the previous `CustomPaint` screen-space
+/// overlay (which lagged 1-3 frames behind camera motion) with an offscreen
+/// PNG render pushed to MapLibre's image source. MapLibre composites the fog
+/// in map-space at 60 fps with zero camera lag — the image source tracks the
+/// camera natively between updates.
 ///
 /// Lifecycle:
-/// * `initState` creates a `Ticker` and starts it. Every `onTick` saves
-///   the elapsed Duration and calls `setState` to schedule a repaint.
-/// * `build` watches the active renderer + visible-tile list +
-///   viewport bbox + zoom. Any of those becoming null (loading, no
-///   session, viewport not yet ready) renders an empty `SizedBox.shrink`.
-/// * `dispose` releases the Ticker. The active renderer is owned by
-///   `activeMirkRendererProvider` (via `ref.onDispose`) — the widget
-///   is NOT responsible for the renderer's lifecycle.
+/// * `initState` creates a `Ticker` and starts it. Every tick checks the
+///   throttle gate ([kMirkFogMapLayerUpdateIntervalMs]), then renders the fog
+///   offscreen via [OffscreenFogRenderer] and pushes the PNG to [MapView].
+/// * `build` always returns [SizedBox.shrink] — this widget is purely a
+///   side-effect controller with no visible output.
+/// * `dispose` tears down the Ticker and removes the fog image source from
+///   the map if it was previously added.
 ///
-/// Plan 09-07 Task 2.
+/// The active renderer is owned by `activeMirkRendererProvider`
+/// (via `ref.onDispose`) — this widget is NOT responsible for the renderer's
+/// lifecycle.
 class MirkOverlay extends ConsumerStatefulWidget {
   const MirkOverlay({super.key});
 
@@ -51,90 +61,105 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
   /// BUG-012 fix: last known disc list from a successful provider read.
   /// When the viewport changes, the family provider creates a new instance
   /// that starts in `AsyncLoading` (no previous value). Without this
-  /// field, the overlay would bail out with `SizedBox.shrink()` for one
-  /// frame on every viewport update — the user sees the fog strobe off/on
-  /// at ~20 Hz during pan/zoom gestures. By retaining the last successful
-  /// disc list, the overlay keeps painting the fog with stale-but-stable
-  /// data until the fresh query resolves (typically < 2 ms).
+  /// field, the overlay would bail out for one frame on every viewport
+  /// update — the fog disappears briefly. By retaining the last successful
+  /// disc list, the overlay keeps pushing fog with stale-but-stable data
+  /// until the fresh query resolves (typically < 2 ms).
   List<RevealDisc>? _lastKnownDiscs;
 
-  /// BUG-009 follow-up diagnostic (2026-04-25) — frame counter used to
-  /// throttle the per-build log to roughly once per second (60 Hz
-  /// Ticker → log every 60th frame). Drops the log volume from
-  /// ~3600/min to ~60/min, well below the FileLogger flush budget.
-  int _buildCallCount = 0;
+  /// BUG-009 follow-up diagnostic — frame counter used to throttle the
+  /// per-tick log to roughly once per second (60 Hz Ticker -> log every
+  /// 60th tick). Drops the log volume from ~3600/min to ~60/min.
+  int _tickCallCount = 0;
 
-  /// BUG-009 follow-up diagnostic (2026-04-26) — last bail-out reason we
-  /// INFO-logged ("rendererAsync", "discsAsync", "viewport", "zoom", or
-  /// "rendering") so we can pinpoint WHICH prerequisite was gating the
-  /// overlay when the user observed "flat grey sheet" on commit dcffede.
+  /// BUG-009 follow-up diagnostic — last bail-out reason we INFO-logged so
+  /// we can pinpoint which prerequisite was gating the overlay.
   String? _lastBailoutReason;
+
+  /// Tracks whether the fog image source + raster layer have been added to
+  /// the MapLibre map. `addFogImageSource` on first render,
+  /// `updateFogImageSource` on subsequent renders.
+  bool _fogSourceAdded = false;
+
+  /// Elapsed milliseconds of the last successful render push. Used to
+  /// throttle updates to [kMirkFogMapLayerUpdateIntervalMs] (~20 fps)
+  /// instead of running at the Ticker's native 60 fps.
+  int _lastRenderTimeMs = 0;
+
+  /// Guard preventing concurrent offscreen renders. The tick callback is
+  /// synchronous but [OffscreenFogRenderer.renderToPng] and the MapView
+  /// image source calls are async — without this flag a slow PNG encode
+  /// could stack up multiple in-flight renders.
+  bool _renderInFlight = false;
+
+  /// Stateless offscreen renderer — all mutable state lives in the
+  /// [MirkRenderer] and [MirkPaintContext] passed per frame.
+  final OffscreenFogRenderer _offscreenRenderer = const OffscreenFogRenderer();
+
+  /// Reference to the [MapView] used when removing the fog source on
+  /// dispose. Captured during the render loop so `dispose` can call
+  /// `removeFogImageSource` even if the provider has already been torn down.
+  MapView? _lastMapView;
 
   @override
   void initState() {
     super.initState();
-    _log.info('MirkOverlay: initState — Ticker started');
+    _log.info('MirkOverlay: initState — Ticker started (BUG-014 image-source mode)');
     _ticker = createTicker(_onTick)..start();
   }
 
   void _onTick(Duration elapsed) {
     _tickerElapsed = elapsed;
-    if (mounted) setState(() {});
+    // Throttle: only render when enough time has passed since the last push.
+    final int elapsedMs = elapsed.inMilliseconds;
+    if (elapsedMs - _lastRenderTimeMs < kMirkFogMapLayerUpdateIntervalMs) {
+      return;
+    }
+    if (_renderInFlight) return;
+
+    _scheduleRender(elapsedMs);
   }
 
-  @override
-  void dispose() {
-    _log.info('MirkOverlay: dispose — Ticker stopped');
-    _ticker.dispose();
-    super.dispose();
-  }
+  /// Reads all Riverpod providers, checks prerequisites, and fires the
+  /// async render + push pipeline. Called from [_onTick] when the throttle
+  /// gate is open and no render is in flight.
+  void _scheduleRender(int elapsedMs) {
+    // --- read providers (synchronous) ---
+    final AsyncValue<MirkRenderer> rendererAsync = ref.read(activeMirkRendererProvider);
+    final MirkViewportBbox? viewport = ref.read(mapViewportProvider);
+    final ActiveSessionState? sessionState = ref.read(activeSessionControllerProvider).value;
+    final double? zoom = ref.read(mapViewportZoomProvider);
+    final MapView? mapView = ref.read(mapViewProvider);
 
-  @override
-  Widget build(BuildContext context) {
-    final AsyncValue<MirkRenderer> rendererAsync = ref.watch(activeMirkRendererProvider);
-    final viewport = ref.watch(mapViewportProvider);
-    final sessionState = ref.watch(activeSessionControllerProvider);
-    final double? zoom = ref.watch(mapViewportZoomProvider);
-    // BUG-010 Option B Commit 5 — disc-list is the canonical reveal
-    // input. The renderers consume `MirkPaintContext.discs` and feed it
-    // to [`RevealedSdfBuilder.buildFromDiscs`] (continuous geometry).
     final AsyncValue<List<RevealDisc>> discsAsync = viewport != null
-        ? ref.watch(discsInViewportProvider(viewport: viewport))
+        ? ref.read(discsInViewportProvider(viewport: viewport))
         : const AsyncData<List<RevealDisc>>(<RevealDisc>[]);
 
-    // BUG-009 follow-up diagnostic (2026-04-25) — confirm the overlay
-    // is actually being built and inspect which prerequisite (if any)
-    // is gating the early bail-out. Throttled to ~1 Hz (every 60th
-    // build at 60 Hz Ticker rebuild) so we don't drown the log file in
-    // heartbeats. Logged at FINE so it only shows when the debug
-    // logger threshold is set to FINE; the renderer's existing
-    // path-transition logs at INFO carry the user-relevant signal.
-    if (_buildCallCount == 0) {
-      // BUG-009 follow-up (2026-04-26) — log the FIRST build at INFO
-      // so the user's file logger captures it without a root-level
-      // threshold change. Pairs with the renderer's first-paint log.
+    // BUG-009 diagnostic — throttled to ~1 Hz
+    if (_tickCallCount == 0) {
       _log.info(
-        'build: first invocation — rendererAsync=${rendererAsync.runtimeType} discsAsync=${discsAsync.runtimeType} viewport=${viewport != null} zoom=$zoom',
+        'tick: first invocation — rendererAsync=${rendererAsync.runtimeType} '
+        'discsAsync=${discsAsync.runtimeType} viewport=${viewport != null} '
+        'zoom=$zoom mapView=${mapView != null}',
       );
-    } else if (_buildCallCount % 60 == 0) {
-      _log.fine('build: rendererAsync=${rendererAsync.runtimeType} discsAsync=${discsAsync.runtimeType} viewport=${viewport != null} zoom=$zoom');
+    } else if (_tickCallCount % 60 == 0) {
+      _log.fine(
+        'tick: rendererAsync=${rendererAsync.runtimeType} '
+        'discsAsync=${discsAsync.runtimeType} viewport=${viewport != null} '
+        'zoom=$zoom mapView=${mapView != null}',
+      );
     }
-    _buildCallCount++;
+    _tickCallCount++;
 
-    // BUG-012 fix: when the disc provider has data, cache it. When the
-    // provider is loading (viewport just changed → new family instance →
-    // AsyncLoading with no previous value), fall back to the cached list
-    // so the fog keeps painting with stale-but-stable data instead of
-    // disappearing for one frame (the strobe).
+    // BUG-012 fix: cache disc list on success, fall back to stale data on
+    // loading transitions.
     if (discsAsync.hasValue) {
       _lastKnownDiscs = discsAsync.value;
     }
     final List<RevealDisc>? effectiveDiscs = discsAsync.hasValue ? discsAsync.value : _lastKnownDiscs;
 
-    // Bail out cheaply when any prerequisite is not ready. The overlay
-    // becomes invisible — the underlying RepaintBoundary keeps the
-    // pipeline cold.
-    String bailoutReason;
+    // --- prerequisite checks ---
+    final String bailoutReason;
     if (!rendererAsync.hasValue) {
       bailoutReason = 'rendererAsync not hasValue (${rendererAsync.runtimeType})';
     } else if (viewport == null) {
@@ -143,62 +168,122 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
       bailoutReason = 'zoom==null';
     } else if (effectiveDiscs == null) {
       bailoutReason = 'discsAsync not hasValue and no cached discs (${discsAsync.runtimeType})';
+    } else if (mapView == null) {
+      bailoutReason = 'mapView==null';
     } else {
-      bailoutReason = 'rendering';
+      bailoutReason = 'pushing';
     }
     if (bailoutReason != _lastBailoutReason) {
-      // BUG-009 follow-up (2026-04-26) — INFO transition so we capture
-      // the gate that's stuck without flooding at 60 Hz.
-      _log.info('build: prerequisite state ${_lastBailoutReason ?? "(initial)"} → $bailoutReason');
+      _log.info('tick: prerequisite state ${_lastBailoutReason ?? "(initial)"} → $bailoutReason');
       _lastBailoutReason = bailoutReason;
     }
-    if (bailoutReason != 'rendering') {
-      return const SizedBox.shrink();
+    if (bailoutReason != 'pushing') {
+      return;
     }
-    final renderer = rendererAsync.value!;
-    final discs = effectiveDiscs!;
-    final Tracking? tracking = sessionState.value is Tracking ? sessionState.value as Tracking : null;
+
+    final MirkRenderer renderer = rendererAsync.value!;
+    final List<RevealDisc> discs = effectiveDiscs!;
+    final Tracking? tracking = sessionState is Tracking ? sessionState : null;
     final Fix? currentFix = tracking?.lastFix;
 
-    return CustomPaint(
-      size: Size.infinite,
-      painter: _MirkPainter(
-        renderer: renderer,
-        paintContext: MirkPaintContext(
-          zoomLevel: zoom!,
-          pixelRatio: MediaQuery.of(context).devicePixelRatio,
-          // Ticker.elapsed measures time since the overlay mounted, which
-          // is operationally aligned with "time since session started"
-          // for the noise-based renderers' animation phase. The Phase 09
-          // research consolidated on a single `sessionElapsed` field
-          // rather than a separate per-frame Ticker time — see plan
-          // 09-02 SUMMARY for the rationale.
-          sessionElapsed: _tickerElapsed,
-          // The bail-out branch above guarantees viewport / zoom are
-          // non-null when bailoutReason == 'rendering', but Dart's null
-          // promotion can't see across the local-string check. Asserted
-          // non-null with `!` — safe by construction.
-          viewportBbox: viewport!,
-          discs: discs,
-          currentFix: currentFix,
-        ),
-      ),
+    _lastMapView = mapView;
+
+    final MirkPaintContext paintContext = MirkPaintContext(
+      zoomLevel: zoom!,
+      // pixelRatio: the offscreen render is in logical pixels at
+      // kMirkFogMapLayerResolution — use 1.0 so the renderer paints at
+      // 1:1 into the offscreen canvas rather than scaling for device DPR.
+      pixelRatio: 1.0,
+      sessionElapsed: _tickerElapsed,
+      viewportBbox: viewport!,
+      discs: discs,
+      currentFix: currentFix,
+    );
+
+    _renderInFlight = true;
+    _lastRenderTimeMs = elapsedMs;
+
+    _renderAndPush(renderer, paintContext, mapView!, viewport).then(
+      (_) {
+        _renderInFlight = false;
+      },
+      onError: (Object e, StackTrace st) {
+        _renderInFlight = false;
+        _log.severe('render-and-push failed', e, st);
+      },
     );
   }
-}
 
-class _MirkPainter extends CustomPainter {
-  _MirkPainter({required this.renderer, required this.paintContext});
+  /// Offscreen-renders the fog to PNG and pushes it to MapLibre's image
+  /// source. Async — guarded by [_renderInFlight].
+  Future<void> _renderAndPush(MirkRenderer renderer, MirkPaintContext paintContext, MapView mapView, MirkViewportBbox viewport) async {
+    const double resolution = kMirkFogMapLayerResolution * 1.0;
+    const ui.Size renderSize = ui.Size(resolution, resolution);
 
-  final MirkRenderer renderer;
-  final MirkPaintContext paintContext;
+    final Uint8List? pngBytes = await _offscreenRenderer.renderToPng(renderer: renderer, context: paintContext, size: renderSize);
+
+    if (pngBytes == null) {
+      _log.fine('renderToPng returned null — skipping this frame');
+      return;
+    }
+
+    if (!mounted) return;
+
+    final double south = viewport.south;
+    final double west = viewport.west;
+    final double north = viewport.north;
+    final double east = viewport.east;
+
+    if (!_fogSourceAdded) {
+      await mapView.addFogImageSource(south: south, west: west, north: north, east: east, pngBytes: pngBytes);
+      _fogSourceAdded = true;
+      _log.info(
+        'fog image source added to map (${pngBytes.length} bytes, '
+        'bounds: S=$south W=$west N=$north E=$east)',
+      );
+    } else {
+      await mapView.updateFogImageSource(south: south, west: west, north: north, east: east, pngBytes: pngBytes);
+    }
+  }
 
   @override
-  void paint(Canvas canvas, Size size) => renderer.paint(canvas, size, paintContext);
+  void dispose() {
+    _log.info('MirkOverlay: dispose — Ticker stopped');
+    _ticker.dispose();
 
-  /// Always returns true: the Ticker drives the rebuild via setState,
-  /// so the painter's repaint signal is gated by the widget tree
-  /// already. A more selective predicate would be redundant.
+    if (_fogSourceAdded) {
+      final MapView? mapView = _lastMapView;
+      if (mapView != null) {
+        // Fire-and-forget: the map surface may already be tearing down,
+        // but removeFogImageSource is idempotent per the MapView contract.
+        mapView.removeFogImageSource().catchError((Object e, StackTrace st) {
+          _log.warning('removeFogImageSource failed during dispose', e, st);
+        });
+      }
+      _fogSourceAdded = false;
+    }
+
+    super.dispose();
+  }
+
   @override
-  bool shouldRepaint(_MirkPainter old) => true;
+  Widget build(BuildContext context) {
+    // Watch providers so Riverpod keeps them alive while this widget is
+    // mounted. The actual values are read synchronously in _scheduleRender
+    // via ref.read — the watch here is purely for lifecycle subscription.
+    ref.watch(activeMirkRendererProvider);
+    ref.watch(mapViewportProvider);
+    ref.watch(activeSessionControllerProvider);
+    ref.watch(mapViewportZoomProvider);
+    ref.watch(mapViewProvider);
+
+    final MirkViewportBbox? viewport = ref.watch(mapViewportProvider);
+    if (viewport != null) {
+      ref.watch(discsInViewportProvider(viewport: viewport));
+    }
+
+    // Invisible — this widget is purely a controller that pushes fog images
+    // to MapLibre's image source. No Flutter painting occurs here.
+    return const SizedBox.shrink();
+  }
 }

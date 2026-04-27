@@ -18,6 +18,7 @@ import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/atmospheric_mirk_renderer.dart';
 import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 
+import '../../fakes/fake_map_view.dart';
 import '../../fakes/fake_mirk_renderer.dart';
 
 /// Single 100 m disc at the centre of the test viewport — gives the
@@ -56,6 +57,7 @@ void main() {
   group('09-07 — MirkOverlay feather (MIRK-01)', () {
     testWidgets('paints via the active renderer when prerequisites resolved', (tester) async {
       final fakeRenderer = FakeMirkRenderer();
+      final fakeMapView = FakeMapView();
       final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
 
       await tester.pumpWidget(
@@ -70,6 +72,7 @@ void main() {
             discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
+            mapViewHolderProvider.overrideWithValue(fakeMapView),
           ],
           child: const Directionality(
             textDirection: TextDirection.ltr,
@@ -77,11 +80,12 @@ void main() {
           ),
         ),
       );
-      // Cannot use pumpAndSettle — the Ticker keeps the tree
-      // animating forever. Two pumps suffice: first to flush the
-      // FutureProvider resolutions, second to drive a Ticker tick.
+      // First pump resolves the FutureProvider overrides. Second pump
+      // advances past the 50 ms throttle gate so the Ticker fires
+      // _scheduleRender → _renderAndPush. renderer.paint() is
+      // synchronous and fires before the async toImage() call.
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 51));
 
       expect(fakeRenderer.paintCallCount, greaterThan(0), reason: 'overlay must invoke renderer.paint at least once after mount');
       // Painted with the right ingredients. BUG-010 Option B Commit 5:
@@ -96,13 +100,14 @@ void main() {
 
     testWidgets('AtmosphericMirkRenderer paints without throwing when wired through the overlay', (tester) async {
       // End-to-end smoke: an atmospheric renderer driven through the
-      // overlay's paint pass produces no exception (feather mask
-      // application + simplex sampling all functional). Use the
+      // overlay's offscreen render pipeline produces no exception (feather
+      // mask application + simplex sampling all functional). Use the
       // const default config — every field already defaults to the
       // canonical Phase 09 constants, so there is nothing to override.
       final renderer = AtmosphericMirkRenderer(const AtmosphericConfig());
       addTearDown(renderer.dispose);
 
+      final fakeMapView = FakeMapView();
       final viewport = MirkViewportBbox(south: 43.5, west: 5.3, north: 43.7, east: 5.5);
 
       await tester.pumpWidget(
@@ -117,6 +122,7 @@ void main() {
             discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
+            mapViewHolderProvider.overrideWithValue(fakeMapView),
           ],
           child: const Directionality(
             textDirection: TextDirection.ltr,
@@ -125,15 +131,16 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 51));
       // No throw == success — Atmospheric is the renderer that owns the
       // BlurStyle.inner mask filter (feather) so this also exercises
-      // that code path through the overlay's CustomPainter.
+      // that code path through the offscreen render pipeline.
     });
   });
 
   testWidgets('Ticker drives paint calls across multiple frames', (tester) async {
     final fakeRenderer = FakeMirkRenderer();
+    final fakeMapView = FakeMapView();
     final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
     await tester.pumpWidget(
       ProviderScope(
@@ -147,6 +154,7 @@ void main() {
           discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
           mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
           mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
+          mapViewHolderProvider.overrideWithValue(fakeMapView),
         ],
         child: const Directionality(
           textDirection: TextDirection.ltr,
@@ -154,21 +162,26 @@ void main() {
         ),
       ),
     );
-    // Pump several frames — the Ticker should fire setState each one.
-    await tester.pump(const Duration(milliseconds: 16));
-    await tester.pump(const Duration(milliseconds: 16));
-    await tester.pump(const Duration(milliseconds: 16));
-    final paintsAfter3Frames = fakeRenderer.paintCallCount;
-    expect(
-      paintsAfter3Frames,
-      greaterThanOrEqualTo(2),
-      reason:
-          'Ticker should drive at least 2 paints across 3 frames '
-          '(tolerant for CustomPainter shouldRepaint policy)',
-    );
-    // sessionElapsed should advance from 0 between calls.
+
+    // Pump to resolve providers, then past the 50 ms throttle gate.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 51));
+    final paintsAfterFirstRender = fakeRenderer.paintCallCount;
+    expect(paintsAfterFirstRender, greaterThanOrEqualTo(1), reason: 'First render must fire after the throttle gate passes');
+
+    // Flush the async toImage() pipeline so _renderInFlight resets.
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+
+    // Pump another throttle window to trigger a second render.
+    await tester.pump(const Duration(milliseconds: 51));
+    final paintsAfterSecondRender = fakeRenderer.paintCallCount;
+    expect(paintsAfterSecondRender, greaterThan(paintsAfterFirstRender), reason: 'Ticker should drive additional paint calls after the async pipeline flushes');
+
+    // sessionElapsed should advance between paint calls.
     final firstElapsed = fakeRenderer.paintContexts.first.sessionElapsed;
     final lastElapsed = fakeRenderer.paintContexts.last.sessionElapsed;
-    expect(lastElapsed.inMicroseconds, greaterThanOrEqualTo(firstElapsed.inMicroseconds), reason: 'sessionElapsed monotonically increases with the Ticker');
+    expect(lastElapsed.inMicroseconds, greaterThan(firstElapsed.inMicroseconds), reason: 'sessionElapsed monotonically increases with the Ticker');
   });
 }

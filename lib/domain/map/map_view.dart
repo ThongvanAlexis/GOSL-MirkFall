@@ -2,6 +2,8 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'dart:typed_data';
+
 import '../fixes/fix.dart';
 import '../mirk/mirk_viewport_bbox.dart';
 import 'country_code.dart';
@@ -108,6 +110,25 @@ abstract class MapView {
 
   /// Removes a point of interest by [id]. No-op when [id] is unknown.
   Future<void> removePointOfInterest(String id);
+
+  /// Initialises the fog-of-war image source + raster layer inside the
+  /// map renderer. Call once after the map style has loaded. The source is
+  /// a single geo-referenced image; the renderer composites it into the
+  /// map pipeline so it tracks camera movement natively at 60 fps.
+  ///
+  /// [south], [west], [north], [east] define the initial geo-extent of the
+  /// fog image. [pngBytes] is the initial RGBA PNG payload.
+  ///
+  /// BUG-014 architectural fix: replaces the Flutter CustomPaint
+  /// screen-space overlay with a map-integrated layer (zero camera lag).
+  Future<void> addFogImageSource({required double south, required double west, required double north, required double east, required Uint8List pngBytes});
+
+  /// Updates the fog image source with new image data and/or new geo-extent.
+  /// Either parameter may be null to keep the existing value.
+  Future<void> updateFogImageSource({double? south, double? west, double? north, double? east, Uint8List? pngBytes});
+
+  /// Removes the fog image source + its raster layer. Call on dispose.
+  Future<void> removeFogImageSource();
 
   /// Tears down the map surface, cancels listeners, flushes pending
   /// camera moves. Idempotent — safe to call multiple times.

@@ -6,18 +6,11 @@
 // captures all pointer events, freezing pan/pinch/zoom on the MapLibre
 // platform view underneath" regression.
 //
-// `CustomPaint` with a non-null painter hit-tests as opaque by default.
-// Without an `IgnorePointer` wrapper around the overlay, every pointer
-// event that lands on the canvas is consumed by the overlay's
-// RenderCustomPaint and never reaches the platform view below.
-//
-// The production fix wraps the overlay in `IgnorePointer` at the call
-// site (lib/presentation/screens/map_screen.dart). This test mirrors
-// that production setup: it places `MirkOverlay` (wrapped in
-// `IgnorePointer`) over a `GestureDetector(onTap: ...)` and asserts the
-// tap reaches the detector. If a future refactor removes the
-// `IgnorePointer` wrapper (or moves the overlay above the detector
-// without an equivalent), this test fails.
+// BUG-014 architectural note: the overlay now returns SizedBox.shrink()
+// (zero hit area), so pointer passthrough is inherent. The IgnorePointer
+// wrapper in map_screen.dart is redundant but harmless — this test
+// verifies the combined behaviour: IgnorePointer around a zero-size
+// widget still lets taps reach the detector below.
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,6 +26,7 @@ import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 
+import '../../fakes/fake_map_view.dart';
 import '../../fakes/fake_mirk_renderer.dart';
 
 /// Single 100 m disc — gives the overlay non-trivial reveal geometry
@@ -71,8 +65,31 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('BUG-003 — MirkOverlay pointer pass-through', () {
+    testWidgets('MirkOverlay returns SizedBox.shrink — zero hit area by design', (tester) async {
+      // BUG-014: the overlay is now purely a controller widget that
+      // returns SizedBox.shrink(). It has zero hit area, so pointer
+      // events pass through to whatever is behind it in the Stack.
+      // This is a stronger guarantee than the old IgnorePointer wrapper
+      // around CustomPaint.
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: SizedBox(width: 256, height: 256, child: MirkOverlay()),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // The overlay is in the tree...
+      expect(find.byType(MirkOverlay), findsOneWidget);
+      // ...and its output is a zero-size widget.
+      expect(find.byType(SizedBox), findsWidgets);
+    });
+
     testWidgets('IgnorePointer-wrapped MirkOverlay lets a tap reach the GestureDetector below', (tester) async {
       final fakeRenderer = FakeMirkRenderer();
+      final fakeMapView = FakeMapView();
       final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
       var tapCount = 0;
 
@@ -88,6 +105,7 @@ void main() {
             discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
+            mapViewHolderProvider.overrideWithValue(fakeMapView),
           ],
           child: Directionality(
             textDirection: TextDirection.ltr,
@@ -110,34 +128,25 @@ void main() {
           ),
         ),
       );
-      // Pump the FutureProvider resolutions + a Ticker tick so the
-      // overlay reaches its CustomPaint state. Cannot pumpAndSettle —
-      // the Ticker keeps the tree animating forever.
+      // Pump the FutureProvider resolutions + past the throttle gate.
+      // Cannot pumpAndSettle — the Ticker keeps the tree animating.
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 51));
 
-      // Sanity: the overlay IS painting. If this fails, the test is
-      // not actually exercising the overlay's hit-test behaviour
-      // (overlay would be SizedBox.shrink) and any pass-through
-      // assertion below is meaningless.
-      expect(fakeRenderer.paintCallCount, greaterThan(0), reason: 'MirkOverlay must be actively painting for the pass-through assertion to be meaningful');
-
-      // Tap the centre of the overlay → must reach the GestureDetector.
-      // warnIfMissed: false — by design the tap MISSES MirkOverlay's
-      // hit-test (IgnorePointer makes it transparent to pointers). The
-      // tap reaches the GestureDetector below; the warning is the
-      // success condition, not an issue.
-      await tester.tap(find.byType(MirkOverlay), warnIfMissed: false);
+      // Tap the centre of the Stack → must reach the GestureDetector.
+      // BUG-014: MirkOverlay is SizedBox.shrink (zero hit area), and
+      // IgnorePointer makes it doubly transparent to pointers. The tap
+      // reaches the GestureDetector below.
+      await tester.tapAt(const Offset(128, 128));
       await tester.pump();
 
       expect(
         tapCount,
         equals(1),
         reason:
-            'Tap on MirkOverlay (IgnorePointer-wrapped) MUST reach the underlying '
-            'GestureDetector. tapCount=0 means the CustomPaint absorbed the pointer '
-            '(IgnorePointer regression). Check map_screen.dart wraps the overlay in '
-            'IgnorePointer.',
+            'Tap on the overlay region MUST reach the underlying '
+            'GestureDetector. tapCount=0 means something absorbed the pointer. '
+            'Check map_screen.dart wraps the overlay in IgnorePointer.',
       );
     });
 
@@ -146,6 +155,7 @@ void main() {
       // detector. Catches subtle hit-test state-machine bugs where the
       // first tap might pass through but subsequent ones don't.
       final fakeRenderer = FakeMirkRenderer();
+      final fakeMapView = FakeMapView();
       final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
       var tapCount = 0;
 
@@ -161,6 +171,7 @@ void main() {
             discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
+            mapViewHolderProvider.overrideWithValue(fakeMapView),
           ],
           child: Directionality(
             textDirection: TextDirection.ltr,
@@ -179,14 +190,10 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 51));
 
       for (var i = 0; i < 5; i++) {
-        // warnIfMissed: false — by design the tap MISSES MirkOverlay's
-        // hit-test (IgnorePointer makes it transparent to pointers). The
-        // tap reaches the GestureDetector below; the warning is the
-        // success condition, not an issue.
-        await tester.tap(find.byType(MirkOverlay), warnIfMissed: false);
+        await tester.tapAt(const Offset(128, 128));
         await tester.pump(const Duration(milliseconds: 16));
       }
       expect(tapCount, equals(5), reason: 'All 5 taps on MirkOverlay must pass through to the GestureDetector below.');

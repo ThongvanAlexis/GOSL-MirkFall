@@ -16,6 +16,7 @@ import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 
+import '../../fakes/fake_map_view.dart';
 import '../../fakes/fake_mirk_renderer.dart';
 
 class _FakeActiveSessionController extends ActiveSessionController {
@@ -48,6 +49,7 @@ void main() {
   group('09-07 — MirkOverlay composition (MAP-04)', () {
     testWidgets('renders SizedBox.shrink while session is Idle', (tester) async {
       final fakeRenderer = FakeMirkRenderer();
+      final fakeMapView = FakeMapView();
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -56,6 +58,7 @@ void main() {
             discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(null)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(null)),
+            mapViewHolderProvider.overrideWithValue(fakeMapView),
           ],
           child: const Directionality(
             textDirection: TextDirection.ltr,
@@ -64,14 +67,15 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 51));
 
-      // No CustomPaint subtree under the overlay → renderer not called.
+      // Overlay bails out: viewport and zoom are null → no render fires.
       expect(fakeRenderer.paintCallCount, 0);
     });
 
     testWidgets('renders SizedBox.shrink while viewport is null', (tester) async {
       final fakeRenderer = FakeMirkRenderer();
+      final fakeMapView = FakeMapView();
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -84,6 +88,7 @@ void main() {
             discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(null)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
+            mapViewHolderProvider.overrideWithValue(fakeMapView),
           ],
           child: const Directionality(
             textDirection: TextDirection.ltr,
@@ -92,7 +97,9 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 51));
+
+      // Overlay bails out: viewport is null → no render fires.
       expect(fakeRenderer.paintCallCount, 0);
     });
 
@@ -117,6 +124,7 @@ void main() {
 
     testWidgets('paints with empty disc list (entire viewport = fog)', (tester) async {
       final fakeRenderer = FakeMirkRenderer();
+      final fakeMapView = FakeMapView();
       final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
       await tester.pumpWidget(
         ProviderScope(
@@ -130,6 +138,7 @@ void main() {
             discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
             mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
             mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
+            mapViewHolderProvider.overrideWithValue(fakeMapView),
           ],
           child: const Directionality(
             textDirection: TextDirection.ltr,
@@ -137,8 +146,12 @@ void main() {
           ),
         ),
       );
+      // First pump resolves the FutureProvider overrides.
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      // Second pump advances past the 50 ms throttle gate so the Ticker
+      // fires _scheduleRender → _renderAndPush. The renderer's paint()
+      // is synchronous and fires before the async toImage() call.
+      await tester.pump(const Duration(milliseconds: 51));
 
       // Renderer was invoked. BUG-010 Option B Commit 5: the overlay
       // feeds the disc list through `MirkPaintContext.discs`. The
@@ -148,6 +161,46 @@ void main() {
       expect(fakeRenderer.paintCallCount, greaterThan(0));
       final ctx = fakeRenderer.paintContexts.last;
       expect(ctx.discs, isEmpty, reason: 'override seeds an empty disc list — fog covers the whole viewport rect');
+    });
+
+    testWidgets('offscreen render pushes PNG to MapView image source', (tester) async {
+      final fakeRenderer = FakeMirkRenderer();
+      final fakeMapView = FakeMapView();
+      final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeSessionControllerProvider.overrideWith(
+              () => _FakeActiveSessionController(
+                Tracking(sessionId: const SessionId('sess_push'), startedAtUtc: DateTime.utc(2026, 4, 25), fixCount: 0, distanceFilterMeters: 5),
+              ),
+            ),
+            activeMirkRendererProvider.overrideWith((ref) async => fakeRenderer),
+            discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => const <RevealDisc>[]),
+            mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
+            mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
+            mapViewHolderProvider.overrideWithValue(fakeMapView),
+          ],
+          child: const Directionality(
+            textDirection: TextDirection.ltr,
+            child: SizedBox(width: 256, height: 256, child: MirkOverlay()),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 51));
+
+      // Renderer paint fires synchronously inside the render pipeline.
+      expect(fakeRenderer.paintCallCount, greaterThan(0));
+
+      // Flush the async toImage() + addFogImageSource chain via runAsync.
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+
+      // BUG-014 pipeline: the fog PNG was pushed to the FakeMapView's
+      // image source. The first push uses addFogImageSource.
+      expect(fakeMapView.methodLog, contains(contains('addFogImageSource')), reason: 'First offscreen render must call addFogImageSource on the MapView');
     });
   });
 }

@@ -3,6 +3,7 @@
 // See LICENSE file for details
 
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
@@ -173,6 +174,30 @@ class FakeMapView implements MapView {
     if (_noopIfDisposed('removePointOfInterest')) return;
     methodLog.add('removePointOfInterest($id)');
     poiRemoveObservations.add(id);
+  }
+
+  @override
+  Future<void> addFogImageSource({
+    required double south,
+    required double west,
+    required double north,
+    required double east,
+    required Uint8List pngBytes,
+  }) async {
+    if (_noopIfDisposed('addFogImageSource')) return;
+    methodLog.add('addFogImageSource(south=$south, west=$west, north=$north, east=$east)');
+  }
+
+  @override
+  Future<void> updateFogImageSource({double? south, double? west, double? north, double? east, Uint8List? pngBytes}) async {
+    if (_noopIfDisposed('updateFogImageSource')) return;
+    methodLog.add('updateFogImageSource(hasBytes=${pngBytes != null}, hasQuad=${south != null})');
+  }
+
+  @override
+  Future<void> removeFogImageSource() async {
+    if (_noopIfDisposed('removeFogImageSource')) return;
+    methodLog.add('removeFogImageSource');
   }
 
   @override

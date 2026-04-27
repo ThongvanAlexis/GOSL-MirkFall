@@ -23,7 +23,6 @@ import 'package:mirkfall/infrastructure/map/style_rewriter.dart';
 import '../widgets/map_attribution_icon.dart';
 import '../widgets/map_country_banner.dart';
 import '../widgets/map_follow_me_fab.dart';
-import '../widgets/mirk_initial_reveal_fade.dart';
 import '../widgets/mirk_overlay.dart';
 import '../widgets/mirk_tuner_sheet.dart';
 import '../widgets/session_burger_menu.dart';
@@ -260,25 +259,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return Stack(
       children: <Widget>[
         Positioned.fill(child: mapWidget),
-        // Phase 09 mirk overlay — sibling of the MapLibre platform view
-        // (per 09-RESEARCH §Pitfall 2 — MapLibre is a platform view,
-        // opaque to Flutter's paint pipeline; the overlay must sit
-        // ABOVE it in the Stack, NOT inside it). Wrapped in
-        // MirkInitialRevealFade so the initial 20 m reveal fades from
-        // opacity 0 → 1 over 500 ms at session start.
-        // RepaintBoundary isolates the noise tick from the rest of the
-        // Stack — the map's display list is never invalidated by the
-        // mirk Ticker.
-        // IgnorePointer: the mirk overlay is purely visual — pan, pinch
-        // and zoom must reach the MapLibre platform view underneath.
-        // Without this wrapper, CustomPaint's default opaque hit-test
-        // (when a painter is supplied) swallows every gesture, freezing
-        // the map. Caught during BUG-003 UAT walk on 2026-04-25.
-        const Positioned.fill(
-          child: IgnorePointer(
-            child: RepaintBoundary(child: MirkInitialRevealFade(child: MirkOverlay())),
-          ),
-        ),
+        // BUG-014 architectural fix: MirkOverlay is now an invisible
+        // controller (SizedBox.shrink) that pushes fog images to MapLibre's
+        // geo-pinned image source. No RepaintBoundary / MirkInitialRevealFade
+        // wrappers needed — the fog lives inside MapLibre's rendering pipeline.
+        // IgnorePointer retained as a defensive guard: if the overlay ever
+        // returns a non-zero-size widget (e.g. debug mode overlay), gestures
+        // must still reach the map platform view underneath.
+        const Positioned.fill(child: IgnorePointer(child: MirkOverlay())),
         // Top-left controls: back button (when poppable) + burger menu.
         // Back stays left-most so the iOS pattern "back = top-left" is
         // preserved. Android also gets the button — harmless next to the

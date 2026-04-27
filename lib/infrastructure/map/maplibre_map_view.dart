@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
@@ -290,6 +291,12 @@ class _MapLibreMapViewAdapter implements MapView {
   bool _followMe = false;
   bool _disposed = false;
 
+  /// Whether the fog image source + raster layer have been installed on
+  /// the current MapLibre style. Reset to `false` by [removeFogImageSource]
+  /// and on dispose. Guards [updateFogImageSource] and [removeFogImageSource]
+  /// against no-op calls before [addFogImageSource].
+  bool _fogLayerInstalled = false;
+
   @override
   Future<void> showMap(CountryCode? country) async {
     if (!_aliveOrLog('showMap')) return;
@@ -458,9 +465,82 @@ class _MapLibreMapViewAdapter implements MapView {
   }
 
   @override
+  Future<void> addFogImageSource({
+    required double south,
+    required double west,
+    required double north,
+    required double east,
+    required Uint8List pngBytes,
+  }) async {
+    if (!_aliveOrLog('addFogImageSource')) return;
+
+    final LatLngQuad quad = LatLngQuad(
+      topLeft: LatLng(north, west),
+      topRight: LatLng(north, east),
+      bottomRight: LatLng(south, east),
+      bottomLeft: LatLng(south, west),
+    );
+
+    await _controller.addImageSource(kFogImageSourceId, pngBytes, quad);
+
+    // Place the raster layer below the user-location puck when it exists,
+    // otherwise on top (the puck, added later, will sit above). This
+    // ensures the fog is always ABOVE map tiles but BELOW the blue dot.
+    final String? belowLayer = _puckState.layerInstalled ? kUserLocationLayerId : null;
+    await _controller.addLayer(kFogImageSourceId, kFogImageLayerId, const RasterLayerProperties(rasterOpacity: 1.0), belowLayerId: belowLayer);
+    _fogLayerInstalled = true;
+    _log.info('addFogImageSource: image source + raster layer INSTALLED (south=$south, west=$west, north=$north, east=$east)');
+  }
+
+  @override
+  Future<void> updateFogImageSource({double? south, double? west, double? north, double? east, Uint8List? pngBytes}) async {
+    if (!_aliveOrLog('updateFogImageSource')) return;
+    if (!_fogLayerInstalled) {
+      _log.fine('updateFogImageSource called before addFogImageSource — silently ignored');
+      return;
+    }
+
+    // Build LatLngQuad only when ALL four coordinates are provided (the
+    // caller either updates the full bbox or leaves it unchanged).
+    LatLngQuad? quad;
+    if (south != null && west != null && north != null && east != null) {
+      quad = LatLngQuad(topLeft: LatLng(north, west), topRight: LatLng(north, east), bottomRight: LatLng(south, east), bottomLeft: LatLng(south, west));
+    }
+
+    await _controller.updateImageSource(kFogImageSourceId, pngBytes, quad);
+    _log.fine('updateFogImageSource: source updated (hasBytes=${pngBytes != null}, hasQuad=${quad != null})');
+  }
+
+  @override
+  Future<void> removeFogImageSource() async {
+    if (!_aliveOrLog('removeFogImageSource')) return;
+    if (!_fogLayerInstalled) {
+      _log.fine('removeFogImageSource called but fog layer not installed — no-op');
+      return;
+    }
+
+    await _controller.removeLayer(kFogImageLayerId);
+    await _controller.removeSource(kFogImageSourceId);
+    _fogLayerInstalled = false;
+    _log.info('removeFogImageSource: image source + raster layer REMOVED');
+  }
+
+  @override
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+
+    // Tear down the fog image source if it was installed — the adapter
+    // owns the lifecycle of layers it added dynamically.
+    if (_fogLayerInstalled) {
+      try {
+        await removeFogImageSource();
+      } on Object catch (e, st) {
+        // Controller may already be torn down — swallow; dispose is idempotent.
+        _log.fine('removeFogImageSource during dispose failed (expected if controller already disposed): $e', e, st);
+      }
+    }
+
     try {
       _controller.removeListener(_cameraListener);
     } on Object catch (_) {

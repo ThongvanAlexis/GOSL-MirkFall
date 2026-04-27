@@ -17,6 +17,7 @@ import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 
+import '../../fakes/fake_map_view.dart';
 import '../../fakes/fake_mirk_renderer.dart';
 
 /// Single 100 m disc — gives the overlay non-trivial reveal geometry
@@ -60,6 +61,7 @@ void main() {
       // container.invalidate(...).
       final firstRenderer = FakeMirkRenderer();
       final secondRenderer = FakeMirkRenderer();
+      final fakeMapView = FakeMapView();
       var rendererSwapped = false;
 
       final container = ProviderContainer(
@@ -85,6 +87,7 @@ void main() {
           discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
           mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
           mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
+          mapViewHolderProvider.overrideWithValue(fakeMapView),
         ],
       );
       addTearDown(container.dispose);
@@ -98,20 +101,27 @@ void main() {
           ),
         ),
       );
+      // Resolve providers then pass the 50 ms throttle gate.
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 51));
 
       expect(firstRenderer.paintCallCount, greaterThan(0));
       expect(firstRenderer.disposeCallCount, 0);
       expect(secondRenderer.paintCallCount, 0);
 
+      // Flush the async toImage() pipeline so _renderInFlight resets,
+      // enabling the next render cycle after the swap.
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+
       // Trigger the swap.
       rendererSwapped = true;
       container.invalidate(activeMirkRendererProvider);
-      // Drain provider rebuild + a Ticker tick so the new renderer
-      // gets at least one paint.
+      // Drain provider rebuild + pass the throttle gate so the new
+      // renderer gets at least one paint.
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 51));
 
       // Old renderer was disposed via ref.onDispose (plan 09-05).
       expect(firstRenderer.disposeCallCount, 1);
@@ -121,6 +131,7 @@ void main() {
 
     testWidgets('overlay continues painting across multiple swaps', (tester) async {
       final renderers = <FakeMirkRenderer>[FakeMirkRenderer(), FakeMirkRenderer(), FakeMirkRenderer()];
+      final fakeMapView = FakeMapView();
       var index = 0;
       MirkRenderer current() => renderers[index];
 
@@ -143,6 +154,7 @@ void main() {
           discsInViewportProvider.overrideWith((ref, MirkViewportBbox _) async => <RevealDisc>[_disc()]),
           mapViewportProvider.overrideWith(() => _SeededMapViewport(viewport)),
           mapViewportZoomProvider.overrideWith(() => _SeededMapViewportZoom(14.0)),
+          mapViewHolderProvider.overrideWithValue(fakeMapView),
         ],
       );
       addTearDown(container.dispose);
@@ -157,18 +169,29 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 51));
 
-      // Two consecutive swaps.
+      // Flush the async pipeline so _renderInFlight resets before swap.
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+
+      // First swap.
       index = 1;
       container.invalidate(activeMirkRendererProvider);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 51));
 
+      // Flush again before second swap.
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+
+      // Second swap.
       index = 2;
       container.invalidate(activeMirkRendererProvider);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 51));
 
       // First two were disposed; last is alive.
       expect(renderers[0].disposeCallCount, 1);
