@@ -317,11 +317,12 @@ class _MapLibreMapViewAdapter implements MapView {
     await _controller.moveCamera(CameraUpdate.newCameraPosition(preserved));
     _log.info('showMap(${country?.value ?? 'world'}): camera re-applied after setStyle');
 
-    // Flip the installed flag — setStyle wiped every non-initial
-    // source + layer. The next setUserLocation call will re-install
-    // the GeoJSON source + circle layer from scratch. Preserve
-    // [lastFix] so it can be re-applied below.
+    // Flip the installed flags — setStyle wiped every non-initial
+    // source + layer. The next setUserLocation / addFogImageSource call
+    // will re-install from scratch.
     _puckState = _puckState.markLayerWiped();
+    _fogLayerInstalled = false;
+    _log.info('showMap(${country?.value ?? 'world'}): _fogLayerInstalled reset to false after setStyle');
     final Fix? restore = _puckState.lastFix;
     if (restore != null) {
       _log.info('showMap(${country?.value ?? 'world'}): re-applying user-location puck');
@@ -495,8 +496,18 @@ class _MapLibreMapViewAdapter implements MapView {
   @override
   Future<void> updateFogImageSource({double? south, double? west, double? north, double? east, Uint8List? pngBytes}) async {
     if (!_aliveOrLog('updateFogImageSource')) return;
+
+    // Self-healing: if the source was wiped (e.g. setStyle in showMap),
+    // re-add it instead of silently ignoring the update. The caller
+    // always provides pngBytes + full bbox on every tick, so we have
+    // everything needed to re-create the source from scratch.
     if (!_fogLayerInstalled) {
-      _log.fine('updateFogImageSource called before addFogImageSource — silently ignored');
+      if (pngBytes != null && south != null && west != null && north != null && east != null) {
+        _log.info('updateFogImageSource: source was wiped (setStyle?) — re-adding');
+        await addFogImageSource(south: south, west: west, north: north, east: east, pngBytes: pngBytes);
+        return;
+      }
+      _log.fine('updateFogImageSource called before addFogImageSource and missing required params — ignored');
       return;
     }
 

@@ -214,8 +214,21 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
     );
   }
 
+  /// The viewport bbox that the image source is currently pinned to.
+  /// Updated only when the source is first added or when the viewport
+  /// provider changes — NOT on every tick. Between updates, MapLibre
+  /// tracks the image natively at 60 fps in map-space.
+  MirkViewportBbox? _pinnedViewport;
+
   /// Offscreen-renders the fog to PNG and pushes it to MapLibre's image
   /// source. Async — guarded by [_renderInFlight].
+  ///
+  /// Bounds update strategy (BUG-014 elasticity fix): the image source
+  /// bounds are only updated when the viewport has CHANGED since the last
+  /// pin. Between viewport changes, only the PNG bytes are pushed (for
+  /// animation). This prevents the "rubber-band" stutter caused by
+  /// repeatedly snapping the image to slightly-different viewport bounds
+  /// on every tick while the camera is still moving.
   Future<void> _renderAndPush(MirkRenderer renderer, MirkPaintContext paintContext, MapView mapView, MirkViewportBbox viewport) async {
     const double resolution = kMirkFogMapLayerResolution * 1.0;
     const ui.Size renderSize = ui.Size(resolution, resolution);
@@ -229,20 +242,30 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
 
     if (!mounted) return;
 
-    final double south = viewport.south;
-    final double west = viewport.west;
-    final double north = viewport.north;
-    final double east = viewport.east;
-
     if (!_fogSourceAdded) {
-      await mapView.addFogImageSource(south: south, west: west, north: north, east: east, pngBytes: pngBytes);
+      await mapView.addFogImageSource(south: viewport.south, west: viewport.west, north: viewport.north, east: viewport.east, pngBytes: pngBytes);
       _fogSourceAdded = true;
+      _pinnedViewport = viewport;
       _log.info(
         'fog image source added to map (${pngBytes.length} bytes, '
-        'bounds: S=$south W=$west N=$north E=$east)',
+        'bounds: S=${viewport.south} W=${viewport.west} N=${viewport.north} E=${viewport.east})',
       );
     } else {
-      await mapView.updateFogImageSource(south: south, west: west, north: north, east: east, pngBytes: pngBytes);
+      // Only update bounds when the viewport has changed from the pinned
+      // one. Between viewport provider updates, push ONLY the PNG so
+      // MapLibre tracks the existing geo-pinned image natively.
+      final bool viewportChanged =
+          _pinnedViewport == null ||
+          _pinnedViewport!.south != viewport.south ||
+          _pinnedViewport!.west != viewport.west ||
+          _pinnedViewport!.north != viewport.north ||
+          _pinnedViewport!.east != viewport.east;
+      if (viewportChanged) {
+        await mapView.updateFogImageSource(south: viewport.south, west: viewport.west, north: viewport.north, east: viewport.east, pngBytes: pngBytes);
+        _pinnedViewport = viewport;
+      } else {
+        await mapView.updateFogImageSource(pngBytes: pngBytes);
+      }
     }
   }
 
