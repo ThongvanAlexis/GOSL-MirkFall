@@ -1,6 +1,6 @@
 # BUG-013 — Fog disappears when blue dot is off-screen
 
-**Status:** fixed -- `743750d`
+**Status:** ✅ fixed — `743750d`
 **Reported:** 2026-04-27 (UAT walk on `c0c14a6` after BUG-010 Option B disc refactor shipped)
 **Platform:** cross-platform (all 4 renderers affected: atmospheric, heavenly_clouds, candlelight, solid_fill)
 
@@ -22,13 +22,26 @@ When the user pans away from the walk path, ALL revealed discs fall outside the 
 
 The SDF builder (`buildFromDiscs`) and the clip-path builder (`buildViewportFogClipPathFromDiscs`) both correctly handle empty discs: they produce all-fog output (byte 255 SDF / full viewport rect). The bug was exclusively in the renderers skipping the call entirely.
 
-## Fix
+## Investigation findings
+
+The symptom was immediately diagnosable: panning away from the revealed area makes all discs fall outside the viewport bbox, so `discsInBbox` returns an empty list. The `discs.isEmpty` guard was added during BUG-010 as a "performance optimisation" to skip rendering when there is nothing to reveal — but skipping rendering entirely is the opposite of the correct behaviour. When no discs are in the viewport, the correct output is **all fog** (nothing revealed), not **no fog** (everything revealed).
+
+The SDF builder and clip-path builder were already handling empty disc lists correctly — they produce all-fog output. The bug was purely in the renderers short-circuiting before calling these builders.
+
+No alternative causes were considered because the early-return logic was clearly wrong. The fix was verified by panning away from the walk path on all 4 renderer themes.
+
+## Strategy / Fix
 
 Removed the `discs.isEmpty` early-return from all 4 renderers. With empty discs, `buildViewportFogClipPathFromDiscs` returns the full viewport rect (= everything is fog, nothing revealed). The fallback/shader paint paths then cover the entire viewport with fog — the correct behaviour.
 
 No performance regression: painting a full-fog viewport (no disc holes to subtract) is actually cheaper than the normal disc-subtracted path. The SDF builder's empty-list fast path (`_emptySdfImage()`) runs in sub-millisecond time.
 
-Updated 4 renderer tests to assert `greaterThan(500)` bytes (fog was painted) instead of `lessThan(500)` (no-op).
+## Commits
+
+```
+743750d  fix(09-bug-013): paint full fog when no discs in viewport instead of skipping render
+467bbb5  docs(09-bug-013): stamp commit SHA in BUG-013 tracker
+```
 
 ## Files modified
 
@@ -42,3 +55,17 @@ Updated 4 renderer tests to assert `greaterThan(500)` bytes (fog was painted) in
 - `test/infrastructure/mirk/solid_fill_mirk_renderer_test.dart`
 - `test/infrastructure/mirk/noise_overlay_test.dart` (comment update)
 - `test/presentation/widgets/mirk_overlay_pointer_passthrough_test.dart` (comment update)
+
+## Test coverage
+
+Updated 4 renderer tests to assert `greaterThan(500)` bytes (fog was painted) instead of `lessThan(500)` (no-op) when rendering with an empty disc list. Each renderer's test now verifies that an empty-discs paint call produces full-fog output rather than a blank canvas.
+
+## Known follow-ups
+
+- None. The fix is structurally complete — the empty-disc path now correctly delegates to the builders rather than short-circuiting.
+
+## Links
+
+- **BUG-010** — parent refactor that introduced the `discs.isEmpty` guard as a misguided optimisation
+- **BUG-012** — related viewport-change handling issue (strobe during pan, same family of viewport-triggered bugs)
+- **BUG-015** — wisp burst on map open, another disc-list edge case from the BUG-010 refactor
