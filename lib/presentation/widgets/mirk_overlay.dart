@@ -214,26 +214,78 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
     );
   }
 
-  /// The viewport bbox that the image source is currently pinned to.
-  /// Updated only when the source is first added or when the viewport
-  /// provider changes — NOT on every tick. Between updates, MapLibre
-  /// tracks the image natively at 60 fps in map-space.
-  MirkViewportBbox? _pinnedViewport;
+  /// The PADDED viewport bbox that the image source is currently pinned to.
+  /// Much larger than the visible viewport so the user can pan freely
+  /// without the fog edge becoming visible. Re-pinned only when the
+  /// visible viewport drifts past 50% of the padding margin.
+  MirkViewportBbox? _pinnedBbox;
+
+  /// Expands [visible] by [kMirkFogMapLayerPaddingFactor] in each direction
+  /// so the fog image covers a much larger area than the screen. MapLibre
+  /// tracks this geo-pinned image natively at 60 fps — no stutter.
+  MirkViewportBbox _padViewport(MirkViewportBbox visible) {
+    final dLat = visible.north - visible.south;
+    final dLon = visible.east - visible.west;
+    final padLat = dLat * kMirkFogMapLayerPaddingFactor;
+    final padLon = dLon * kMirkFogMapLayerPaddingFactor;
+    return MirkViewportBbox(south: visible.south - padLat, west: visible.west - padLon, north: visible.north + padLat, east: visible.east + padLon);
+  }
+
+  /// Returns true when the visible viewport has drifted far enough from
+  /// the centre of [_pinnedBbox] that a re-pin is needed. Threshold: the
+  /// visible viewport's edge is within 50% of the padding margin.
+  bool _needsRepin(MirkViewportBbox visible) {
+    final pinned = _pinnedBbox;
+    if (pinned == null) return true;
+    final marginLat = (pinned.north - pinned.south) * 0.25;
+    final marginLon = (pinned.east - pinned.west) * 0.25;
+    return visible.south < pinned.south + marginLat ||
+        visible.north > pinned.north - marginLat ||
+        visible.west < pinned.west + marginLon ||
+        visible.east > pinned.east - marginLon;
+  }
 
   /// Offscreen-renders the fog to PNG and pushes it to MapLibre's image
   /// source. Async — guarded by [_renderInFlight].
   ///
-  /// Bounds update strategy (BUG-014 elasticity fix): the image source
-  /// bounds are only updated when the viewport has CHANGED since the last
-  /// pin. Between viewport changes, only the PNG bytes are pushed (for
-  /// animation). This prevents the "rubber-band" stutter caused by
-  /// repeatedly snapping the image to slightly-different viewport bounds
-  /// on every tick while the camera is still moving.
+  /// ## Pinning strategy (BUG-014 elasticity fix)
+  ///
+  /// The image source is pinned to a PADDED viewport (3x the visible area
+  /// in each direction). MapLibre tracks this geo-pinned image natively at
+  /// 60 fps — the fog stays locked to the map with zero lag. Only the PNG
+  /// bytes are updated on each tick (for animation). The bounds are only
+  /// changed when the visible viewport drifts past 50% of the padding, at
+  /// which point a new padded viewport is computed and re-pinned.
   Future<void> _renderAndPush(MirkRenderer renderer, MirkPaintContext paintContext, MapView mapView, MirkViewportBbox viewport) async {
     const double resolution = kMirkFogMapLayerResolution * 1.0;
     const ui.Size renderSize = ui.Size(resolution, resolution);
 
-    final Uint8List? pngBytes = await _offscreenRenderer.renderToPng(renderer: renderer, context: paintContext, size: renderSize);
+    // Decide whether to re-pin or just update the PNG.
+    final bool repin = _needsRepin(viewport);
+    final MirkViewportBbox renderViewport = repin ? _padViewport(viewport) : _pinnedBbox!;
+
+    // When re-pinning, render the fog for the PADDED viewport so the
+    // image covers the full pinned area. The SDF + clip path + shader
+    // all scale to whatever viewport is passed in the paint context.
+    final MirkPaintContext effectiveContext = repin
+        ? MirkPaintContext(
+            zoomLevel: paintContext.zoomLevel,
+            pixelRatio: paintContext.pixelRatio,
+            sessionElapsed: paintContext.sessionElapsed,
+            viewportBbox: renderViewport,
+            discs: paintContext.discs,
+            currentFix: paintContext.currentFix,
+          )
+        : MirkPaintContext(
+            zoomLevel: paintContext.zoomLevel,
+            pixelRatio: paintContext.pixelRatio,
+            sessionElapsed: paintContext.sessionElapsed,
+            viewportBbox: renderViewport,
+            discs: paintContext.discs,
+            currentFix: paintContext.currentFix,
+          );
+
+    final Uint8List? pngBytes = await _offscreenRenderer.renderToPng(renderer: renderer, context: effectiveContext, size: renderSize);
 
     if (pngBytes == null) {
       _log.fine('renderToPng returned null — skipping this frame');
@@ -243,29 +295,29 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
     if (!mounted) return;
 
     if (!_fogSourceAdded) {
-      await mapView.addFogImageSource(south: viewport.south, west: viewport.west, north: viewport.north, east: viewport.east, pngBytes: pngBytes);
+      final MirkViewportBbox padded = _padViewport(viewport);
+      await mapView.addFogImageSource(south: padded.south, west: padded.west, north: padded.north, east: padded.east, pngBytes: pngBytes);
       _fogSourceAdded = true;
-      _pinnedViewport = viewport;
+      _pinnedBbox = padded;
       _log.info(
-        'fog image source added to map (${pngBytes.length} bytes, '
-        'bounds: S=${viewport.south} W=${viewport.west} N=${viewport.north} E=${viewport.east})',
+        'fog image source ADDED (padded bounds: S=${padded.south.toStringAsFixed(4)} W=${padded.west.toStringAsFixed(4)} N=${padded.north.toStringAsFixed(4)} E=${padded.east.toStringAsFixed(4)})',
+      );
+    } else if (repin) {
+      await mapView.updateFogImageSource(
+        south: renderViewport.south,
+        west: renderViewport.west,
+        north: renderViewport.north,
+        east: renderViewport.east,
+        pngBytes: pngBytes,
+      );
+      _pinnedBbox = renderViewport;
+      _log.info(
+        'fog image source RE-PINNED (padded bounds: S=${renderViewport.south.toStringAsFixed(4)} W=${renderViewport.west.toStringAsFixed(4)} N=${renderViewport.north.toStringAsFixed(4)} E=${renderViewport.east.toStringAsFixed(4)})',
       );
     } else {
-      // Only update bounds when the viewport has changed from the pinned
-      // one. Between viewport provider updates, push ONLY the PNG so
-      // MapLibre tracks the existing geo-pinned image natively.
-      final bool viewportChanged =
-          _pinnedViewport == null ||
-          _pinnedViewport!.south != viewport.south ||
-          _pinnedViewport!.west != viewport.west ||
-          _pinnedViewport!.north != viewport.north ||
-          _pinnedViewport!.east != viewport.east;
-      if (viewportChanged) {
-        await mapView.updateFogImageSource(south: viewport.south, west: viewport.west, north: viewport.north, east: viewport.east, pngBytes: pngBytes);
-        _pinnedViewport = viewport;
-      } else {
-        await mapView.updateFogImageSource(pngBytes: pngBytes);
-      }
+      // Normal tick: only push new PNG bytes. Bounds stay fixed →
+      // MapLibre tracks the image natively at 60 fps.
+      await mapView.updateFogImageSource(pngBytes: pngBytes);
     }
   }
 

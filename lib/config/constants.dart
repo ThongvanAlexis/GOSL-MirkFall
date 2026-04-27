@@ -871,3 +871,11 @@ const int kMirkFogMapLayerResolution = 512;
 /// (20 fps) keeps the animated effects smooth without saturating the
 /// platform channel. Camera tracking is 60 fps natively via MapLibre.
 const int kMirkFogMapLayerUpdateIntervalMs = 50;
+
+/// Padding factor for the fog image source geo-extent. The image covers
+/// `1 + 2 * factor` times the visible viewport in each direction (e.g.
+/// factor 1.0 → 3× the viewport). MapLibre tracks this large geo-pinned
+/// image natively at 60 fps; the fog stays map-locked between re-pins.
+/// The image is re-pinned when the visible viewport drifts past 50% of
+/// the padding margin.
+const double kMirkFogMapLayerPaddingFactor = 1.0;
