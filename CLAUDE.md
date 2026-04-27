@@ -303,6 +303,10 @@ Ne pas découvrir les requirements iOS à la fin du projet.
 - Claude est autorisé à consulter l'état des GitHub Actions via `gh` (`gh run list`, `gh run view`, `gh run watch`, logs des jobs) pour itérer pendant les phases sans attendre un retour manuel
 - Pas de force-push sur `main` sans demande explicite
 
+## Bug investigation workflow
+
+Quand on travaille sur des bugs, utiliser un **subagent dédié par bug** pour préserver le contexte de la conversation principale. Le subagent lit les logs, les fichiers sources, diagnostique, et propose un fix. L'orchestrateur résume le résultat et commite. Ça évite de polluer le contexte principal avec des centaines de lignes de logs et de code.
+
 ## Code Review Phases
 
 Entre chaque phase de code, on a une phase de code review :
