@@ -1,8 +1,9 @@
 # BUG-014 — Fog overlay doesn't track map movement (SDF in screen space, not map space)
 
-**Status:** 🟡 IN PROGRESS — image source approach failed (iteration 5), pivoting to Canvas transform (iteration 6)
+**Status:** 🟡 IN PROGRESS — iterations 1-6 all failed or reverted, POC underway to evaluate `flutter_map` as replacement renderer
 **Reported:** 2026-04-27 (UAT walk at zoom ~12.28 on iOS, post-BUG-010 disc refactor)
-**Platform:** cross-platform (Flutter overlay architecture, not GPU-specific)
+**Tested on:** iOS only (sideload via SideStore). Not yet tested on Android.
+**Platform:** Flutter overlay architecture (not GPU-specific) — root cause is cross-platform but all UAT was iOS
 
 ## Symptoms
 
@@ -150,12 +151,17 @@ so camera tracking is native with zero lag.
 - ~1 frame lag (16ms) remains inherent to Flutter-on-top-of-MapLibre architecture
 - All visual effects preserved at full screen resolution (curl, drift, hue, watercolour boundary)
 
-**Status:** 🟡 IMPLEMENTING
+**Result:** Worse — the Canvas transform moved the clip path and SDF texture in incompatible coordinate spaces. The revealed area moved opposite to camera direction. The fog "window" didn't track the map at all.
 
-## Next step
+**Status:** ⬅️ REVERTED (`d2c4ac1`). Back to iterations 1+2 state.
 
-UAT walk on device to verify the fog tracks map movement correctly during pan,
-zoom, and combined pan+zoom gestures.
+## Current state — POC in progress
+
+After 6 failed iterations, the conclusion is that **no amount of Flutter-side compensation can fix a screen-space overlay lagging behind a native platform-view map renderer**. The two rendering pipelines are physically decoupled.
+
+A POC is underway to evaluate `flutter_map` (pure-Flutter map renderer) as a replacement for `maplibre_gl`. Because `flutter_map` renders everything in Flutter's own Canvas, the fog `CustomPainter` would paint in the **exact same frame** as the map tiles — structurally eliminating the lag. See `docs/POC-flutter-map-mirk.md` for the full spec.
+
+**Decision**: if the POC proves flutter_map can run at 30+ fps on device with the fog shader active, migrate MirkFall from `maplibre_gl` to `flutter_map`.
 
 ## Commits (chronological)
 
