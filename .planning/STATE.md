@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 6
-status: "Plan 09.1-05 shipped 2026-09-09 (task commits e539812 / c2e98aa / 6f17494 / 22ac789): `SdfCache` POC (clé quantifiée discs 1e-6° ⊕ bbox 1e-4°, possède ses images + son `SdfRebuildLogger`, compteur de génération sur dispose) derrière le debounce 200 ms viewport-only des deux renderers shader (signature de contenu de la liste de disques, un seul build en vol + coalescence, image stale conservée) ; wisps en coordonnées monde (`WispParticle.position: GeoPoint`, `velocityMetersPerSecond` dx est / dy nord, `spawnAtNewDisc` idempotent + warm-up 5 s BUG-015 sur le Stopwatch du système, `advanceFromElapsed`, ancre curl = premier disque, `kMirkFogWispInitialSpeedPx` supprimé) ; renderers : spawn à l'émergence, `_renderWisps` APRÈS le drawRect via `context.projectToScreen`, plus de `_warmingUp` ni de `MirkProjection` ; loggers `infrastructure.mirk.sdf` / `.wisp` verbose-only avec timers armés paresseusement (zéro timer hors verbose → widget tests OK) ; firewall wisp/SDF structurel. À HEAD : analyze clean, format clean, 9/9 gates OK, 1217 tests verts, 96 tool tests. Wave 3 close ; next : Wave 4 = 09.1-06 (clip possédé par FogLayer, 4 variants). Previous: Plan 09.1-04 shipped 2026-09-09 (task commits 09a8609 / 797d3d8 / acc518d / 40c930d): `FogLayer` same-canvas porté du POC — StatefulWidget pur enfant de `FlutterMap` (UN `MapCamera.of` par build, seam `debugOnCameraRead`, Ticker → `CustomPainter(repaint:)`, Stopwatch vivant par référence), painter à l'ordre verrouillé (getTransform ×1 → save → translate(-canvasOffset) → clipPath sans canvasOffset → corrections plateforme une fois → zoomScale → `MirkPaintContext` étendu → renderer.update/paint → restore), `fog_clip_geometry.dart` (pur) + `fog_clip_path.dart` (pont caméra, périmètre), `FrameDeltaProbe` / `FogTransformLogger` / `DevMarkerLogger` verbose-only ; keystone FOG-07 ×2 vert (1 → 2 → 3), 12 tests widget `fog_*` + 4 suites infra = 64 tests, 25 fichiers créés. Vérification à 40c930d dans un worktree propre : analyze clean, format clean, 9/9 gates, 96 tool tests, flutter test 1184 verts / 8 rouges hors périmètre (7 × wisp_transform_logger_test RED 09.1-05 + mirk_overlay_feather_test : timer périodique du SdfRebuildLogger()..start() par défaut de l'AtmosphericMirkRenderer 09.1-05 c2e98aa — handoff noté). Wave 3 : 09.1-05 (SdfCache + wisps) toujours en cours en parallèle ; next : Wave 4 = 09.1-06 dès que 09.1-05 est livré."
-stopped_at: Completed 09.1-05-PLAN.md
-last_updated: "2026-09-09T14:46:22.266Z"
+current_plan: 7
+status: "Plan 09.1-06 shipped 2026-09-09 (task commits a6af6bd / 18ea800 / c29d32b / b7393e4 / 959d89c): clip possédé par la couche hôte — `buildViewportFogClipPathFromDiscs` / `tile_cell_iteration.dart` supprimés, aucun des 4 renderers builtin ne calcule ni n'applique de clip (ils peignent `Offset.zero & size` dans le repère identité clippé ; `MirkOverlay._MirkPainter` clippe de la même façon jusqu'à 09.1-07) ; feather partagé `fog_edge_feather.dart` = trait flouté `dstOut` le long du contour des disques dans un `saveLayer` (canvas partagé avec les tuiles : jamais d'effacement direct), le renderer arrondit la découpe mais ne la fait jamais ; `candlelight` centré via `context.projectToScreen(fix)` ; `heavenly_clouds` fallback CPU : tuile `NoiseTexture` (rasterisée en `Isolate.run`) via `ImageShader` ancrée monde (période `kMirkFogNoiseTilePx × zoomScale`, translation `−((raw + drift) % période)`, `rawPixelOriginOf` keyé sur le `sdfRect` Android, `srcATop` + filtre modulate 0.35) ; `solid_fill` bit-identique quel que soit `pixelOrigin` / `zoomScale` ; registre + factory + picker + tuner : 4 variants sélectionnables sous contexte étendu iOS + Android, slots drift par famille ; `MirkRenderer` 3 membres, gate 6 fichiers. À HEAD 959d89c : format clean, analyze clean, 9/9 gates, 96 tool tests, flutter test 1251 verts. Wave 4 close ; next : Wave 5 = 09.1-07 (FogLayerConnector, composition FlutterMap, suppression MirkOverlay). Previous: Plan 09.1-05 shipped 2026-09-09 (e539812 / c2e98aa / 6f17494 / 22ac789): SdfCache derrière le debounce 200 ms, wisps monde GeoPoint + m/s, firewall wisp/SDF, loggers verbose-only ; Plan 09.1-04 shipped 2026-09-09 (09a8609 / 797d3d8 / acc518d / 40c930d): FogLayer same-canvas, fog_clip_geometry / fog_clip_path, diag loggers, keystone FOG-07."
+stopped_at: Completed 09.1-06-PLAN.md
+last_updated: "2026-09-09T15:36:59.007Z"
 last_activity: 2026-09-09
 progress:
   total_phases: 18
   completed_phases: 10
   total_plans: 65
-  completed_plans: 63
-  percent: 94
+  completed_plans: 64
+  percent: 97
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 09.1 (INSERTED 2026-09-09) IN PROGRESS — port-back same-canvas fog from POC `mirk-poc-debug` @ 90c9321. Wave 1 (09.1-01: flutter_map stack + gate + constants) and Wave 2 (09.1-02: flutter_map engine swap, maplibre_gl REMOVED ; 09.1-03: MirkPaintContext seam + 42-slot shader ABI) complete. The map now renders through `FlutterMapMapViewWidget`; the fog is still the `MirkOverlay` Stack sibling (laggy, BUG-014) until 09.1-07 mounts `FogLayer` inside the FlutterMap children. Wave 3: 09.1-04 (FogLayer same-canvas, 25 files, 64 tests) DONE 2026-09-09; 09.1-05 (SdfCache + wisps) still in progress in parallel. Wave 3 (09.1-04 FogLayer same-canvas ; 09.1-05 SdfCache + wisps monde) complete. Next: Wave 4 = 09.1-06 (clip owned by FogLayer, 4 variants adapted), then 09.1-07 mounts FogLayer inside the FlutterMap children and deletes MirkOverlay.
+**Current focus:** Phase 09.1 (INSERTED 2026-09-09) IN PROGRESS — port-back same-canvas fog from POC `mirk-poc-debug` @ 90c9321. Wave 1 (09.1-01: flutter_map stack + gate + constants) and Wave 2 (09.1-02: flutter_map engine swap, maplibre_gl REMOVED ; 09.1-03: MirkPaintContext seam + 42-slot shader ABI) complete. The map now renders through `FlutterMapMapViewWidget`; the fog is still the `MirkOverlay` Stack sibling (laggy, BUG-014) until 09.1-07 mounts `FogLayer` inside the FlutterMap children. Wave 3: 09.1-04 (FogLayer same-canvas, 25 files, 64 tests) DONE 2026-09-09; 09.1-05 (SdfCache + wisps) still in progress in parallel. Wave 3 (09.1-04 FogLayer same-canvas ; 09.1-05 SdfCache + wisps monde) complete. Wave 4 (09.1-06: clip owned by the host layer, 4 variants adapted — shared dstOut feather in a saveLayer, candlelight via projectToScreen, heavenly CPU noise anchored to world px, solid_fill invariant) DONE 2026-09-09. Next: Wave 5 = 09.1-07 mounts FogLayer inside the FlutterMap children and deletes MirkOverlay (which still hosts the renderers, now clipping on their behalf).
 
 ## Current Position
 
-Phase: 09.1 of 16.x (Port-back same-canvas fog — flutter_map migration, INSERTED) — IN PROGRESS — 5 / 8 plans complete (09.1-01 — Wave 1 ; 09.1-02 + 09.1-03 — Wave 2 ; 09.1-04 + 09.1-05 — Wave 3)
-Current Plan: 6
+Phase: 09.1 of 16.x (Port-back same-canvas fog — flutter_map migration, INSERTED) — IN PROGRESS — 6 / 8 plans complete (09.1-01 — Wave 1 ; 09.1-02 + 09.1-03 — Wave 2 ; 09.1-04 + 09.1-05 — Wave 3 ; 09.1-06 — Wave 4)
+Current Plan: 7
 Total Plans in Phase: 8
-Status: Plan 09.1-05 shipped 2026-09-09 (task commits e539812 / c2e98aa / 6f17494 / 22ac789): `SdfCache` POC (clé quantifiée discs 1e-6° ⊕ bbox 1e-4°, possède ses images + son `SdfRebuildLogger`, compteur de génération sur dispose) derrière le debounce 200 ms viewport-only des deux renderers shader (signature de contenu de la liste de disques, un seul build en vol + coalescence, image stale conservée) ; wisps en coordonnées monde (`WispParticle.position: GeoPoint`, `velocityMetersPerSecond` dx est / dy nord, `spawnAtNewDisc` idempotent + warm-up 5 s BUG-015 sur le Stopwatch du système, `advanceFromElapsed`, ancre curl = premier disque, `kMirkFogWispInitialSpeedPx` supprimé) ; renderers : spawn à l'émergence, `_renderWisps` APRÈS le drawRect via `context.projectToScreen`, plus de `_warmingUp` ni de `MirkProjection` ; loggers `infrastructure.mirk.sdf` / `.wisp` verbose-only avec timers armés paresseusement (zéro timer hors verbose → widget tests OK) ; firewall wisp/SDF structurel. À HEAD : analyze clean, format clean, 9/9 gates OK, 1217 tests verts, 96 tool tests. Wave 3 close ; next : Wave 4 = 09.1-06 (clip possédé par FogLayer, 4 variants). Previous: Plan 09.1-04 shipped 2026-09-09 (task commits 09a8609 / 797d3d8 / acc518d / 40c930d): `FogLayer` same-canvas porté du POC — StatefulWidget pur enfant de `FlutterMap` (UN `MapCamera.of` par build, seam `debugOnCameraRead`, Ticker → `CustomPainter(repaint:)`, Stopwatch vivant par référence), painter à l'ordre verrouillé (getTransform ×1 → save → translate(-canvasOffset) → clipPath sans canvasOffset → corrections plateforme une fois → zoomScale → `MirkPaintContext` étendu → renderer.update/paint → restore), `fog_clip_geometry.dart` (pur) + `fog_clip_path.dart` (pont caméra, périmètre), `FrameDeltaProbe` / `FogTransformLogger` / `DevMarkerLogger` verbose-only ; keystone FOG-07 ×2 vert (1 → 2 → 3), 12 tests widget `fog_*` + 4 suites infra = 64 tests, 25 fichiers créés. Vérification à 40c930d dans un worktree propre : analyze clean, format clean, 9/9 gates, 96 tool tests, flutter test 1184 verts / 8 rouges hors périmètre (7 × wisp_transform_logger_test RED 09.1-05 + mirk_overlay_feather_test : timer périodique du SdfRebuildLogger()..start() par défaut de l'AtmosphericMirkRenderer 09.1-05 c2e98aa — handoff noté). Wave 3 : 09.1-05 (SdfCache + wisps) toujours en cours en parallèle ; next : Wave 4 = 09.1-06 dès que 09.1-05 est livré.
+Status: Plan 09.1-06 shipped 2026-09-09 (task commits a6af6bd / 18ea800 / c29d32b / b7393e4 / 959d89c): clip possédé par la couche hôte — `buildViewportFogClipPathFromDiscs` / `tile_cell_iteration.dart` supprimés, aucun des 4 renderers builtin ne calcule ni n'applique de clip (ils peignent `Offset.zero & size` dans le repère identité clippé ; `MirkOverlay._MirkPainter` clippe de la même façon jusqu'à 09.1-07) ; feather partagé `fog_edge_feather.dart` = trait flouté `dstOut` le long du contour des disques dans un `saveLayer` (canvas partagé avec les tuiles : jamais d'effacement direct), le renderer arrondit la découpe mais ne la fait jamais ; `candlelight` centré via `context.projectToScreen(fix)` ; `heavenly_clouds` fallback CPU : tuile `NoiseTexture` (rasterisée en `Isolate.run`) via `ImageShader` ancrée monde (période `kMirkFogNoiseTilePx × zoomScale`, translation `−((raw + drift) % période)`, `rawPixelOriginOf` keyé sur le `sdfRect` Android, `srcATop` + filtre modulate 0.35) ; `solid_fill` bit-identique quel que soit `pixelOrigin` / `zoomScale` ; registre + factory + picker + tuner : 4 variants sélectionnables sous contexte étendu iOS + Android, slots drift par famille ; `MirkRenderer` 3 membres, gate 6 fichiers. À HEAD 959d89c : format clean, analyze clean, 9/9 gates, 96 tool tests, flutter test 1251 verts. Wave 4 close ; next : Wave 5 = 09.1-07 (FogLayerConnector, composition FlutterMap, suppression MirkOverlay). Previous: Plan 09.1-05 shipped 2026-09-09 (e539812 / c2e98aa / 6f17494 / 22ac789): SdfCache derrière le debounce 200 ms, wisps monde GeoPoint + m/s, firewall wisp/SDF, loggers verbose-only ; Plan 09.1-04 shipped 2026-09-09 (09a8609 / 797d3d8 / acc518d / 40c930d): FogLayer same-canvas, fog_clip_geometry / fog_clip_path, diag loggers, keystone FOG-07.
 Last Activity: 2026-09-09
 
-Progress: [██████████] 97% — 63 / 65 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 closed 10/10 ; Phase 09.1 in progress 5/8 — 09.1-01, 09.1-02, 09.1-03, 09.1-04, 09.1-05).
+Progress: [██████████] 98% — 64 / 65 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 closed 10/10 ; Phase 09.1 in progress 6/8 — 09.1-01, 09.1-02, 09.1-03, 09.1-04, 09.1-05, 09.1-06).
 
 ## Performance Metrics
 
@@ -108,6 +108,7 @@ Progress: [██████████] 97% — 63 / 65 plans executed (Phase
 | Phase 09.1 P02 | 55min | 3 tasks | 59 files |
 | Phase 09.1 P04 | ~2h active (3h25m wall-clock) | 3 tasks | 25 files |
 | Phase 09.1 P05 | 3h35m (incl. rate-limit pause; ~1h50m execution) | 3 tasks | 23 files |
+| Phase 09.1 P06 | 35 min | 3 tasks | 24 files |
 
 ## Accumulated Context
 
@@ -408,6 +409,8 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09.1]: Wisps: velocityMetersPerSecond.dy is NORTHWARD (POC math, plan behavior); curl-noise anchor = centre of the first spawned disc (no Melun constant)
 - [Phase 09.1]: No renderer-side warm-up state and no reset hook: activeMirkRendererProvider creates a new renderer (new WispParticleSystem + stopwatch) per Tracking transition / style change and disposes the previous one — proved by provider + two-renderer emergence tests
 - [Phase 09.1]: TDD RED commits stay compilable via throwing stubs; suites that cannot compile against the old API are RED-observed locally and land with GREEN (09.1-01/03 precedent); Tasks 2+3 share one feat commit
+- [Phase 09.1]: 09.1-06: the host layer owns the ONE clipPath per frame (FogLayer; MirkOverlay until 09.1-07); the 4 builtins paint the clipped identity frame, the edge feather is a blurred dstOut stroke inside a saveLayer (shared canvas), never a cut
+- [Phase 09.1]: 09.1-06: heavenly CPU fallback noise anchored to world px via an ImageShader (period kMirkFogNoiseTilePx × zoomScale, raw pixelOrigin through rawPixelOriginOf keyed on the Android sdfRect); NoiseTexture rasterised in Isolate.run; candlelight centred via context.projectToScreen
 
 ### Roadmap Evolution
 
@@ -447,6 +450,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-09T14:46:22.260Z
-Stopped at: Completed 09.1-05-PLAN.md
+Last session: 2026-09-09T15:36:59.002Z
+Stopped at: Completed 09.1-06-PLAN.md
 Resume file: None
