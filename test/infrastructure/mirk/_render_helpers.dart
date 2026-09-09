@@ -11,6 +11,7 @@
 // `VisibleMirkTile` rows to continuous-geometry `RevealDisc`s. The
 // `make*Bitmap` helpers were removed (no caller post-Commit-5).
 
+import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -19,6 +20,7 @@ import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
+import 'package:mirkfall/infrastructure/mirk/sdf/revealed_sdf_builder.dart';
 
 import '../../_helpers/mirk_paint_context_builder.dart';
 
@@ -97,4 +99,25 @@ Picture renderToPicture(MirkRenderer renderer, {required MirkPaintContext contex
   final canvas = Canvas(recorder);
   renderer.paint(canvas, size, context);
   return recorder.endRecording();
+}
+
+/// Minimal 1×1 RGBA `ui.Image` (R = 128, the SDF midpoint) — enough for a
+/// renderer to consider its SDF "resolved" and take the shader path.
+Future<Image> stubSdfImage() {
+  final Completer<Image> completer = Completer<Image>();
+  final Uint8List bytes = Uint8List.fromList(<int>[128, 0, 0, 255]);
+  decodeImageFromPixels(bytes, 1, 1, PixelFormat.rgba8888, completer.complete);
+  return completer.future;
+}
+
+/// [RevealedSdfBuilder] that resolves immediately with [stubSdfImage].
+///
+/// The Phase 09.1 shader-seam idiom: paint once (the renderer schedules its
+/// SDF build), `await pumpEventQueue()`, paint again — the second paint sees
+/// a resolved SDF and goes through the injected `FogShaderRenderer`.
+class ImmediateStubSdfBuilder extends RevealedSdfBuilder {
+  const ImmediateStubSdfBuilder();
+
+  @override
+  Future<Image> buildFromDiscs({required Iterable<RevealDisc> discs, required MirkViewportBbox viewport}) => stubSdfImage();
 }

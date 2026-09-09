@@ -24,10 +24,14 @@
 // `test/constants_test.dart` is owned by plan 09.1-02 in Wave 2.
 
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/config/constants.dart';
+import 'package:mirkfall/infrastructure/mirk/shader/fog_shader_renderer.dart';
 import 'package:mirkfall/infrastructure/mirk/shader/fog_shader_uniforms.dart';
+
+import '../../../_helpers/recording_fog_shader_renderer.dart';
 
 /// Repo-relative paths — `flutter test` runs with the package root as cwd
 /// (same idiom as `test/presentation/map_style_layer_order_test.dart`).
@@ -117,4 +121,97 @@ void main() {
       expect(frag, contains('MIRK_FOG_DEBUG_OUTPUT_DENSITY'));
     });
   });
+
+  group('09.1-03 — FogShaderRenderer seam (POC pixelOrigin / zoomScale contract)', () {
+    // `ui.FragmentShader` is `base` → cannot be faked. The achievable equivalent at
+    // the seam boundary: the recording renderer preserves a high-magnitude
+    // pixelOrigin record verbatim (no Dart-side `% 1.0` — FOG-18), and the production
+    // renderer forwards the SAME value to `FogShaderUniforms.setAll` (source-reflection
+    // group above), so the contract is locked end to end.
+    test('RecordingFogShaderRenderer captures full-precision pixelOrigin verbatim (no Dart-side modulo)', () {
+      final RecordingFogShaderRenderer renderer = RecordingFogShaderRenderer();
+      const double px = 4255934.927218;
+      const double py = 1234567.890123;
+      final bool painted = renderer.render(
+        canvas: ui.Canvas(ui.PictureRecorder()),
+        shader: null,
+        size: const ui.Size(400, 800),
+        timeSeconds: 0,
+        pixelOrigin: (x: px, y: py),
+        zoomScale: 1.0,
+        sdfRect: const (0, 0, 1, 1),
+        sdfImage: _NullImage(),
+        baseArgb: kMirkFogAtmosphericBaseColorArgb,
+        baseAlpha: 1,
+        highlightArgb: kMirkFogAtmosphericHighlightColorArgb,
+        shadowArgb: kMirkFogAtmosphericShadowColorArgb,
+        tunables: const <String, double>{},
+      );
+      expect(painted, isTrue);
+      expect(renderer.renders, hasLength(1));
+      expect(renderer.renders.last.pixelOrigin, (x: px, y: py));
+      // Defence-in-depth: a future regression re-introducing a Dart-side `% 1.0`
+      // would compress these into [0, 1) and trip this.
+      expect(renderer.renders.last.pixelOrigin.x, greaterThan(1e6));
+      expect(renderer.renders.last.pixelOrigin.y, greaterThan(1e6));
+    });
+
+    test('RecordingFogShaderRenderer captures zoomScale verbatim across the seam (FOG-19)', () {
+      final RecordingFogShaderRenderer renderer = RecordingFogShaderRenderer();
+      const double zoomScaleAtZoom15 = 4.0; // pow(2, 15 - 13)
+      renderer.render(
+        canvas: ui.Canvas(ui.PictureRecorder()),
+        shader: null,
+        size: const ui.Size(400, 800),
+        timeSeconds: 0,
+        pixelOrigin: (x: 1.0, y: 1.0),
+        zoomScale: zoomScaleAtZoom15,
+        sdfRect: const (0, 0, 1, 1),
+        sdfImage: _NullImage(),
+        baseArgb: kMirkFogAtmosphericBaseColorArgb,
+        baseAlpha: 1,
+        highlightArgb: kMirkFogAtmosphericHighlightColorArgb,
+        shadowArgb: kMirkFogAtmosphericShadowColorArgb,
+        tunables: const <String, double>{},
+      );
+      expect(renderer.renders.last.zoomScale, closeTo(zoomScaleAtZoom15, 1e-9));
+    });
+
+    test('FragmentShaderFogRenderer.render returns false and draws nothing when the shader is null (fallback trigger)', () {
+      final ui.PictureRecorder recorder = ui.PictureRecorder();
+      final ui.Canvas canvas = ui.Canvas(recorder);
+      final bool painted = const FragmentShaderFogRenderer().render(
+        canvas: canvas,
+        shader: null,
+        size: const ui.Size(64, 64),
+        timeSeconds: 0,
+        pixelOrigin: (x: 0.0, y: 0.0),
+        zoomScale: 1.0,
+        sdfRect: const (0, 0, 1, 1),
+        sdfImage: _NullImage(),
+        baseArgb: kMirkFogAtmosphericBaseColorArgb,
+        baseAlpha: 1,
+        highlightArgb: kMirkFogAtmosphericHighlightColorArgb,
+        shadowArgb: kMirkFogAtmosphericShadowColorArgb,
+        tunables: const <String, double>{},
+      );
+      expect(painted, isFalse);
+      final ui.Picture picture = recorder.endRecording();
+      // An untouched recorder yields a near-empty picture (header only).
+      expect(picture.approximateBytesUsed, lessThan(200));
+      picture.dispose();
+    });
+
+    test('FogShaderTunableKey.all lists the 20 keys in slot order 17..36', () {
+      expect(FogShaderTunableKey.all, hasLength(20));
+      expect(FogShaderTunableKey.all.first, 'driftZFar');
+      expect(FogShaderTunableKey.all.last, 'boundaryDensityBoost');
+      expect(FogShaderTunableKey.all.toSet(), hasLength(20));
+    });
+  });
 }
+
+/// Minimal `ui.Image` stand-in — the recording renderer only stores the
+/// reference and never inspects it. `Fake implements` works because `ui.Image`
+/// is NOT `base` (only `FragmentShader` is).
+class _NullImage extends Fake implements ui.Image {}

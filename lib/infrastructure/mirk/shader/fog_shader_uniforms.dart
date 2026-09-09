@@ -8,10 +8,13 @@ import 'dart:ui' show Size;
 /// Sets all uniforms on a `ui.FragmentShader` instance for the
 /// volumetric fog `.frag`.
 ///
-/// Phase 09 BUG-009 (TIER 2). Hand-counted slot indices match the
-/// uniform declaration order in `assets/shaders/atmospheric_fog.frag`.
-/// The single source of truth for the shader's uniform layout — if
-/// either side changes, BOTH update together.
+/// Phase 09 BUG-009 (TIER 2), ABI ported verbatim from the POC in Phase
+/// 09.1 (42 slots). Hand-counted slot indices match the uniform
+/// declaration order in `assets/shaders/atmospheric_fog.frag`. The
+/// single source of truth for the shader's uniform layout — if either
+/// side changes, BOTH update together, and
+/// `test/infrastructure/mirk/shader/fog_shader_uniforms_test.dart`
+/// (source reflection over this file + the `.frag`) is the lock.
 ///
 /// ## Slot layout (must match `.frag` uniform order)
 ///
@@ -19,7 +22,7 @@ import 'dart:ui' show Size;
 /// |-------|--------------------------|--------|
 /// | 0..1  | uResolution              | vec2   |
 /// | 2     | uTime                    | float  |
-/// | 3..4  | uOffset                  | vec2   |
+/// | 3..4  | uPixelOrigin             | vec2   |
 /// | 5..8  | uBase                    | vec4   |
 /// | 9..12 | uHighlight               | vec4   |
 /// | 13..16| uShadow                  | vec4   |
@@ -47,22 +50,36 @@ import 'dart:ui' show Size;
 /// | 38    | uSdfRectOriginY          | float  |
 /// | 39    | uSdfRectSizeX            | float  |
 /// | 40    | uSdfRectSizeY            | float  |
+/// | 41    | uZoomScale               | float  |
 ///
-/// Sampler 0: uSdf — set via `setImageSampler(0, sdfImage)`.
+/// Sampler 0: uSdf — set via `setImageSampler(0, sdfImage)`, declared
+/// AFTER every float uniform (BUG-014 it. 1: a sampler adjacent to a
+/// vec4 corrupted the Metal transpilation; the four `uSdfRect*` scalars
+/// and the trailing `uZoomScale` keep the sampler last).
 class FogShaderUniforms {
   const FogShaderUniforms._();
 
   /// Total number of float uniform slots. Useful for tests that want
   /// to assert the layout shape.
-  static const int totalFloatSlots = 41;
+  ///
+  /// FOG-19 bumped from 41 to 42 to accommodate the `uZoomScale`
+  /// uniform at slot 41 (between `uSdfRectSizeY` at slot 40 and the
+  /// SDF sampler at sampler index 0).
+  static const int totalFloatSlots = 42;
 
   /// Sets every uniform on [shader] in one call. Caller supplies
   /// already-decoded scalars / colours / records — no re-parsing inside.
+  ///
+  /// [pixelOrigin] is forwarded verbatim (full-precision world pixels,
+  /// FOG-18: no Dart-side modulo — the shader samples world coordinates
+  /// directly). [zoomScale] is `pow(2, zoom - kMirkFogReferenceZoom)`
+  /// (FOG-19). [sdfRect] is the platform-static identity / V-flip tuple
+  /// (FOG-21), never a viewport remapping.
   static void setAll(
     ui.FragmentShader shader, {
     required Size resolution,
     required double time,
-    required (double, double) offset,
+    required ({double x, double y}) pixelOrigin,
     required int baseArgb,
     required double baseAlpha,
     required int highlightArgb,
@@ -88,6 +105,7 @@ class FogShaderUniforms {
     required double boundaryEdgeBand,
     required double boundaryDensityBoost,
     required (double, double, double, double) sdfRect,
+    required double zoomScale,
     required ui.Image sdfImage,
   }) {
     // uResolution — slots 0, 1
@@ -95,9 +113,9 @@ class FogShaderUniforms {
     shader.setFloat(1, resolution.height);
     // uTime — slot 2
     shader.setFloat(2, time);
-    // uOffset — slots 3, 4
-    shader.setFloat(3, offset.$1);
-    shader.setFloat(4, offset.$2);
+    // uPixelOrigin — slots 3, 4 (verbatim, FOG-18; .y already sign-flipped on Android, FOG-23)
+    shader.setFloat(3, pixelOrigin.x);
+    shader.setFloat(4, pixelOrigin.y);
     // uBase — slots 5..8 (RGB from ARGB int + supplied alpha)
     final baseR = ((baseArgb >> 16) & 0xFF) / 255.0;
     final baseG = ((baseArgb >> 8) & 0xFF) / 255.0;
@@ -156,6 +174,10 @@ class FogShaderUniforms {
     shader.setFloat(38, sdfRect.$2);
     shader.setFloat(39, sdfRect.$3);
     shader.setFloat(40, sdfRect.$4);
+    // FOG-19 — uZoomScale slot 41. At the reference zoom (13.0)
+    // zoomScale = 1.0 → the shader's noise sampling is bit-identical to
+    // the pre-FOG-19 formulation (visual-identity preservation).
+    shader.setFloat(41, zoomScale);
     // SDF sampler — index 0
     shader.setImageSampler(0, sdfImage);
   }

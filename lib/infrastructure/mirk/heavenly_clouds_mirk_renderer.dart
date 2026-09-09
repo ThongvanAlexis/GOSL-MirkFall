@@ -5,7 +5,7 @@
 import 'dart:async' show Timer;
 import 'dart:math' as math;
 import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
-import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Rect, Size;
+import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Size;
 
 import 'package:logging/logging.dart';
 import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
@@ -20,12 +20,16 @@ import 'animation_helpers.dart';
 import 'mirk_projection.dart';
 import 'noise/simplex_noise_2d.dart';
 import 'sdf/revealed_sdf_builder.dart';
+import 'shader/fog_shader_renderer.dart';
 import 'shader/fog_shader_service.dart';
-import 'shader/fog_shader_uniforms.dart';
 import 'tile_cell_iteration.dart';
 import 'wisp/wisp_particle_system.dart';
 
 final Logger _log = Logger('infrastructure.mirk.heavenly_clouds');
+
+/// `uTime` offset per seed unit — arbitrary but coprime with typical drift
+/// speeds so two seeds never alias onto the same animation phase.
+const double _kSeedTimeJitter = 0.137;
 
 /// Heavenly clouds — TIER 2 shader-driven (BUG-009 fix).
 ///
@@ -48,11 +52,13 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     this.config, {
     int seed = 91,
     FogShaderService? shaderService,
+    FogShaderRenderer shaderRenderer = const FragmentShaderFogRenderer(),
     RevealedSdfBuilder sdfBuilder = const RevealedSdfBuilder(),
     WispParticleSystem? wispSystem,
   }) : _seed = seed,
        _noise = SimplexNoise2D(seed: seed),
        _shaderService = shaderService ?? FogShaderService(),
+       _shaderRenderer = shaderRenderer,
        _sdfBuilder = sdfBuilder,
        _wispSystem = wispSystem ?? WispParticleSystem(rngSeed: seed) {
     _shaderLoadFuture = _shaderService.load();
@@ -71,6 +77,10 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   final SimplexNoise2D _noise;
 
   final FogShaderService _shaderService;
+
+  /// GPU seam (Phase 09.1): populates the 42 uniform slots and draws the
+  /// viewport rect. `RecordingFogShaderRenderer` in tests.
+  final FogShaderRenderer _shaderRenderer;
   final RevealedSdfBuilder _sdfBuilder;
   final WispParticleSystem _wispSystem;
 
@@ -99,12 +109,6 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   late final Future<ui.FragmentProgram?> _shaderLoadFuture;
   ui.FragmentShader? _shader;
   ui.Image? _sdfImage;
-
-  /// The viewport the current [_sdfImage] was built for. Used by
-  /// [_computeSdfRect] to map the SDF onto the current viewport each
-  /// frame so the reveal stays pinned at its true lat/lon position
-  /// during pan/zoom instead of sliding with the viewport.
-  MirkViewportBbox? _sdfViewport;
 
   bool _sdfBuildInFlight = false;
 
@@ -171,25 +175,28 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     _wispSystem.advance(dt);
     _lastTSec = tSec;
 
-    final shader = _shader;
     final sdf = _sdfImage;
-    final pathThisFrame = (shader != null && sdf != null) ? 'shader' : 'fallback';
+    // Shader path needs a resolved SDF; the seam reports `false` when the
+    // shader itself is unavailable (still loading / load failed) → CPU
+    // fallback: solid fog at base palette colour, no noise, no animation.
+    final bool painted = sdf != null && _paintShaderPath(canvas, size, context, path, sdf);
+    if (!painted) {
+      _paintFallbackPath(canvas, size, context, path);
+    }
+    final pathThisFrame = painted ? 'shader' : 'fallback';
     if (pathThisFrame != _lastLoggedPath) {
       _log.info(
-        'paint(): path transition ${_lastLoggedPath ?? "(initial)"} → $pathThisFrame · shader=${shader != null} sdf=${sdf != null} sdfBuildInFlight=$_sdfBuildInFlight discs=${context.discs.length}',
+        'paint(): path transition ${_lastLoggedPath ?? "(initial)"} → $pathThisFrame · shader=${_shader != null} sdf=${sdf != null} sdfBuildInFlight=$_sdfBuildInFlight discs=${context.discs.length}',
       );
       _lastLoggedPath = pathThisFrame;
     } else if (_paintCallCount % 60 == 0) {
+      // Heartbeat at ~1 Hz when in steady state — confirms paint() is
+      // still being called, useful when investigating "no fog visible".
       _log.info(
         'paint(): post-paint heartbeat path=$pathThisFrame · frame=$_paintCallCount discs=${context.discs.length} sessionElapsed=${context.sessionElapsed.inMilliseconds}ms',
       );
     }
     _paintCallCount++;
-    if (shader != null && sdf != null) {
-      _paintShaderPath(canvas, size, context, path, shader, sdf);
-    } else {
-      _paintFallbackPath(canvas, size, context, path);
-    }
 
     // Wisps render last — additive over the fog body. Heavenly uses a
     // warmer wisp tint to read as "sunlit cloud puff".
@@ -259,63 +266,74 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     }
   }
 
-  void _paintShaderPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path, ui.FragmentShader shader, ui.Image sdf) {
-    final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
-    final tUniform = tSec + _seed * 0.137;
-    final centreLat = (context.viewportBbox.north + context.viewportBbox.south) * 0.5;
-    final centreLon = (context.viewportBbox.east + context.viewportBbox.west) * 0.5;
-    final offsetX = centreLon * 0.05;
-    final offsetY = -centreLat * 0.05;
-    // Read every shader uniform from [MirkRuntimeTunables.instance] (see
-    // atmospheric renderer for rationale).
+  /// Shader path — clips to the fog path and delegates uniform population +
+  /// the viewport-filling `drawRect` to the injected [FogShaderRenderer].
+  /// Returns `false` when nothing was drawn (shader still loading / failed)
+  /// so [paint] falls back to the CPU path.
+  ///
+  /// Reads every runtime-tunable parameter from [MirkRuntimeTunables.instance]
+  /// (not the const literal) so the in-app tuner scrubs each value live;
+  /// production builds with the tuner closed see byte-identical output.
+  /// `pixelOrigin` / `zoomScale` / `sdfRect` come from the context verbatim —
+  /// the FogLayer already applied the platform corrections (FOG-21 / FOG-23),
+  /// and there is no viewport → SDF remapping any more (BUG-014 closed by
+  /// construction, not by a rect).
+  bool _paintShaderPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path, ui.Image sdf) {
+    final tSec = context.sessionElapsed.inMicroseconds / Duration.microsecondsPerSecond;
+    // Per-instance perturbation: a seed-dependent uTime offset so
+    // different-seed renderers produce different shader output.
+    final tUniform = tSec + _seed * _kSeedTimeJitter;
     final t = MirkRuntimeTunables.instance;
-    // Effective curlScale: triangle-wave animation by default — same
-    // helper as atmospheric so both palettes breathe in lockstep.
+    // Effective curlScale: triangle-wave animation by default (UAT
+    // 2026-04-26 — slowly varying curlScale gives the fog a "really
+    // alive" volumetric feel). Falls back to the static t.curlScale
+    // when the dev tuner toggles the animation off.
     final double effectiveCurlScale = t.curlScaleAnimationEnabled
         ? triangleWave(tSec: tSec, period: t.curlScaleAnimationPeriodSec, minV: t.curlScaleAnimationMin, maxV: t.curlScaleAnimationMax)
         : t.curlScale;
-    FogShaderUniforms.setAll(
-      shader,
-      resolution: size,
-      time: tUniform,
-      offset: (offsetX, offsetY),
-      // Heavenly palette — Hebridean dawn (warm highlight, cool shadow).
+    // Heavenly palette (Hebridean dawn) + faster drift / bigger puffs; opacity
+    // weights shared with atmospheric so the parallax depth signature matches.
+    final Map<String, double> tunables = <String, double>{
+      FogShaderTunableKey.driftZFar: t.heavenlyDriftZFar,
+      FogShaderTunableKey.driftZMid: t.heavenlyDriftZMid,
+      FogShaderTunableKey.driftZNear: t.heavenlyDriftZNear,
+      FogShaderTunableKey.scaleFar: t.heavenlyScaleFar,
+      FogShaderTunableKey.scaleMid: t.heavenlyScaleMid,
+      FogShaderTunableKey.scaleNear: t.heavenlyScaleNear,
+      FogShaderTunableKey.opacityFar: t.opacityFar,
+      FogShaderTunableKey.opacityMid: t.opacityMid,
+      FogShaderTunableKey.opacityNear: t.opacityNear,
+      FogShaderTunableKey.curlAmplitude: t.curlAmplitude,
+      FogShaderTunableKey.curlScale: effectiveCurlScale,
+      FogShaderTunableKey.lightDirRadians: t.lightDirRadians,
+      FogShaderTunableKey.lightOffset: t.lightOffset,
+      FogShaderTunableKey.lightStrength: t.lightStrength,
+      FogShaderTunableKey.hueNoiseScale: t.hueNoiseScale,
+      FogShaderTunableKey.hueStrength: t.hueStrength,
+      FogShaderTunableKey.boundarySharpDistance: t.boundarySharpDistance,
+      FogShaderTunableKey.boundaryBleedDistance: t.boundaryBleedDistance,
+      FogShaderTunableKey.boundaryEdgeBand: t.boundaryEdgeBand,
+      FogShaderTunableKey.boundaryDensityBoost: t.boundaryDensityBoost,
+    };
+    canvas.save();
+    canvas.clipPath(path);
+    final bool painted = _shaderRenderer.render(
+      canvas: canvas,
+      shader: _shader,
+      size: size,
+      timeSeconds: tUniform,
+      pixelOrigin: context.pixelOrigin,
+      zoomScale: context.zoomScale,
+      sdfRect: context.sdfRect,
+      sdfImage: sdf,
       baseArgb: kMirkFogHeavenlyBaseColorArgb,
       baseAlpha: config.baselineAlpha,
       highlightArgb: kMirkFogHeavenlyHighlightColorArgb,
       shadowArgb: kMirkFogHeavenlyShadowColorArgb,
-      // Faster drift than atmospheric — clouds evolve visibly faster.
-      driftZFar: t.heavenlyDriftZFar,
-      driftZMid: t.heavenlyDriftZMid,
-      driftZNear: t.heavenlyDriftZNear,
-      // Bigger puffs (finer near-octave for cloud detail).
-      scaleFar: t.heavenlyScaleFar,
-      scaleMid: t.heavenlyScaleMid,
-      scaleNear: t.heavenlyScaleNear,
-      // Same opacity weights as atmospheric — the parallax depth
-      // signature stays consistent across builtins.
-      opacityFar: t.opacityFar,
-      opacityMid: t.opacityMid,
-      opacityNear: t.opacityNear,
-      curlAmplitude: t.curlAmplitude,
-      curlScale: effectiveCurlScale,
-      lightDirRadians: t.lightDirRadians,
-      lightOffset: t.lightOffset,
-      lightStrength: t.lightStrength,
-      hueNoiseScale: t.hueNoiseScale,
-      hueStrength: t.hueStrength,
-      boundarySharpDistance: t.boundarySharpDistance,
-      boundaryBleedDistance: t.boundaryBleedDistance,
-      boundaryEdgeBand: t.boundaryEdgeBand,
-      boundaryDensityBoost: t.boundaryDensityBoost,
-      sdfRect: _computeSdfRect(context.viewportBbox),
-      sdfImage: sdf,
+      tunables: tunables,
     );
-    canvas.save();
-    canvas.clipPath(path);
-    final paint = Paint()..shader = shader;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
     canvas.restore();
+    return painted;
   }
 
   void _paintFallbackPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path) {
@@ -381,9 +399,6 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// Kicks off an async SDF build for [discs] at [viewport].
   void _triggerSdfRebuild(List<RevealDisc> discs, MirkViewportBbox viewport) {
     _sdfBuildInFlight = true;
-    // Capture the viewport at trigger time so we can pin the SDF to its
-    // true lat/lon position when the build completes (BUG-012 follow-up).
-    final viewportForThisBuild = viewport;
     _log.fine('_triggerSdfRebuild: scheduling rebuild (discs=${discs.length})');
     _sdfBuilder
         .buildFromDiscs(discs: discs, viewport: viewport)
@@ -394,7 +409,6 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
           }
           _sdfImage?.dispose();
           _sdfImage = image;
-          _sdfViewport = viewportForThisBuild;
           _log.fine('_triggerSdfRebuild: rebuild complete — _sdfImage now set (${image.width}x${image.height})');
         })
         .catchError((Object e, StackTrace st) {
@@ -403,46 +417,6 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
         .whenComplete(() {
           _sdfBuildInFlight = false;
         });
-  }
-
-  /// Maps the SDF's reference viewport onto the current viewport's
-  /// screen-normalised [0,1] space. Returns `(originX, originY, sizeX,
-  /// sizeY)` for the four `uSdfRect*` shader uniforms.
-  ///
-  /// BUG-014: no longer called in the shader path — the overlay's Canvas
-  /// transform handles viewport remapping now. Retained for diagnostics
-  /// and potential future use.
-  ///
-  /// When the viewport hasn't moved since the SDF was built, returns
-  /// `(0, 0, 1, 1)` — the existing behaviour. When the viewport pans,
-  /// the origin shifts. When the viewport zooms, the size scales. The
-  /// shader's `clamp(sdfUv, 0.0, 1.0)` ensures pixels outside the
-  /// SDF's coverage read as all-fog.
-  (double, double, double, double) _computeSdfRect(MirkViewportBbox currentViewport) {
-    final sdfVp = _sdfViewport;
-    if (sdfVp == null) return (0.0, 0.0, 1.0, 1.0);
-    final dLon = currentViewport.east - currentViewport.west;
-    final dLat = currentViewport.north - currentViewport.south;
-    if (dLon == 0 || dLat == 0) return (0.0, 0.0, 1.0, 1.0);
-    // X axis: longitude. SDF west edge -> screen UV.x, SDF east edge -> screen UV.x.
-    final x0 = (sdfVp.west - currentViewport.west) / dLon;
-    final xSize = (sdfVp.east - sdfVp.west) / dLon;
-    // Y axis: latitude. North -> top (y=0), south -> bottom (y=1).
-    final y0 = (currentViewport.north - sdfVp.north) / dLat;
-    final ySize = (sdfVp.north - sdfVp.south) / dLat;
-    // BUG-014 diagnostic: log the SDF rect when it deviates from identity
-    // so future axis-mapping issues are traceable from the device log.
-    if (_paintCallCount % 60 == 0 && (x0 != 0 || y0 != 0 || xSize != 1 || ySize != 1)) {
-      _log.info(
-        '_computeSdfRect: x0=${x0.toStringAsFixed(4)} y0=${y0.toStringAsFixed(4)} '
-        'xSize=${xSize.toStringAsFixed(4)} ySize=${ySize.toStringAsFixed(4)} · '
-        'sdfVp=[${sdfVp.south.toStringAsFixed(4)},${sdfVp.west.toStringAsFixed(4)}'
-        '→${sdfVp.north.toStringAsFixed(4)},${sdfVp.east.toStringAsFixed(4)}] '
-        'curVp=[${currentViewport.south.toStringAsFixed(4)},${currentViewport.west.toStringAsFixed(4)}'
-        '→${currentViewport.north.toStringAsFixed(4)},${currentViewport.east.toStringAsFixed(4)}]',
-      );
-    }
-    return (x0, y0, xSize, ySize);
   }
 
   /// FNV-1a hash of the disc list.
@@ -489,7 +463,6 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     _shader = null;
     _sdfImage?.dispose();
     _sdfImage = null;
-    _sdfViewport = null;
     _wispSystem.clear();
     _previousDiscIdSet = <String>{};
     _warmingUp = true;

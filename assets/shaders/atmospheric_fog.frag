@@ -59,10 +59,15 @@ uniform vec2  uResolution;
 // Time in seconds since session start. Slot 2.
 uniform float uTime;
 
-// World pan offset (in noise UV units). Lets the fog drift with the
-// MapLibre camera so static fixtures don't appear to move when the user
-// only pans. Slot 3..4.
-uniform vec2  uOffset;
+// World pixel-origin from MapCamera.pixelOrigin (full-precision world
+// pixel units). At zoom 13 magnitudes are ~1e6; at zoom 15 ~4e6. The
+// per-fragment `fract(uPixelOrigin / uResolution)` below moves the
+// modulo wrap from CPU to GPU — pre-Plan-03.1-04 the Dart call site
+// applied `% 1.0` and produced visible single-frame discontinuities at
+// the wrap boundary (03.1-FALSIFICATION.md Finding 3 — the modulo wrap
+// produced the "seed changing" shimmer 5-10× per second during gesture).
+// Slot 3..4 (unchanged).
+uniform vec2  uPixelOrigin;
 
 // Fog colour palette: base / highlight / shadow as RGBA. Alpha
 // component of uBase carries the overall fog opacity. Slot 5..16.
@@ -124,6 +129,16 @@ uniform float uSdfRectOriginX;   // Slot 37
 uniform float uSdfRectOriginY;   // Slot 38
 uniform float uSdfRectSizeX;     // Slot 39
 uniform float uSdfRectSizeY;     // Slot 40
+
+// World-pixel zoom scale factor — `pow(2, camera.zoom -
+// kMirkFogReferenceZoom)`. At reference zoom (13.0), uZoomScale = 1.0
+// and the noise sampling is bit-identical to the pre-FOG-19
+// formulation `noiseUv = worldPx / kNoiseTilePx`. At other zooms,
+// dividing by uZoomScale anchors noise samples to lat/lng (cells
+// stay put during zoom; visible cell size grows with zoom-in,
+// shrinks with zoom-out — natural "zooming into a fixed-resolution
+// texture" behavior). Slot 41 (FOG-19 / Plan 03.1-14 Task B).
+uniform float uZoomScale;
 
 // SDF sampler — R channel encodes signed distance via midpoint-128.
 uniform sampler2D uSdf;
@@ -253,9 +268,56 @@ void main() {
         fragUv.y = 1.0 - fragUv.y;
     #endif
 
-    // Apply world pan to the noise UV space (NOT to fragUv — fragUv is
-    // screen-local for SDF sampling).
-    vec2 noiseUv = fragUv + uOffset;
+    // Plan 03.1-10 — FOG-17 world-coordinate noise sampling.
+    //
+    // Walk #3 (Plan 03.1-09 Sub-section B) confirmed the Plan 03.1-07
+    // Branch B-3 partial-fix outcome: the wrap period moved from
+    // viewport-width (~390 px) to noise-tile period (~16-65 px), so
+    // panning is smooth between wrap events but stepping persists at
+    // wrap events (every ~16-65 raw px of pan triggers a discontinuity).
+    // Walk #3b marker analysis quantitatively anchored this — 8
+    // markers over ~24 sec walk window, median 39 raw px between
+    // markers, 2.4 wrap events per perceived step.
+    //
+    // The fix: sample noise at the fragment's WORLD position, not at
+    // (fragUv + fract-offset). Each fragment computes its own world-
+    // pixel coordinate by adding fragUv*uResolution (its viewport
+    // position in raw pixels) to uPixelOrigin (the camera's world-
+    // pixel origin). As the camera pans, NEW world coordinates enter
+    // the viewport edges, so NEW noise scrolls in — there is no
+    // sliding offset to fract-wrap. This is the developer's
+    // correctly-intuited iteration path from Walk #3 Q1 verbatim
+    // ("if I pan right forever the shader should not be moved to be
+    // where I'm going, I should see a new area of the shader").
+    //
+    // Precision: pure world-coordinate sampling exposes fp32
+    // degradation at high zoom (pixelOrigin.x up to 4.26M at zoom 16
+    // per POC Walk #2; fp32 ULP at 4.26M is ≈0.5 raw px). FOG-18
+    // removed every Dart-side wrap / decomposition of `uPixelOrigin`
+    // (each one produced visible single-frame discontinuities): the
+    // FogLayer forwards `camera.pixelOrigin` verbatim and the residual
+    // sub-pixel jitter at high zoom is accepted (validated on device,
+    // POC walks #4-#5).
+    //
+    // kNoiseTilePx is constant-folded here as a `const float` (NOT a
+    // uniform) so `FogShaderUniforms.totalFloatSlots` stays at 42 —
+    // the uniform count is the ABI locked by
+    // `test/infrastructure/mirk/shader/fog_shader_uniforms_test.dart`.
+    // MUST stay in lockstep with `kMirkFogNoiseTilePx` in
+    // `lib/config/constants.dart` (currently 384.0) — the same test
+    // greps this value and compares. Value chosen so
+    // on-screen noise cell ≈ kNoiseTilePx / maxScale ≈ 384 / 10.5 ≈
+    // 36.6 raw px, matching pre-fix B-3 cell ≈ 37 raw px (visual
+    // character continuity preserved across the fix). If the Dart
+    // constant changes, this shader must be hand-edited to match.
+    // FOG-19 (Plan 03.1-14 Task B) — divide by uZoomScale to anchor noise
+    // samples to lat/lng. At uZoomScale == 1.0 (reference zoom), the
+    // formula is bit-identical to pre-fix. At other zooms, the noise
+    // pattern's spatial frequency relative to map-features stays
+    // constant across zoom transitions — Q1b residual resolved.
+    const float kNoiseTilePx = 384.0;
+    vec2 worldPx = fragUv * uResolution + uPixelOrigin;
+    vec2 noiseUv = worldPx / (kNoiseTilePx * uZoomScale);
 
     // ---------- 7. Curl-rotated edge field ----------
     // Sample the SDF; near the boundary, locally rotate the curl-noise
@@ -383,7 +445,7 @@ void main() {
     #ifdef MIRK_FOG_DEBUG_OUTPUT_DENSITY
         // DIAGNOSTIC: visualise raw density spatially. Should show a clear
         // noise pattern if the FBM stack is healthy. A uniform grey here
-        // means the noise itself is degenerate (uTime stuck, uOffset
+        // means the noise itself is degenerate (uTime stuck, uPixelOrigin
         // suspect, FBM sum collapsing). See lib/config/constants.dart
         // §kMirkFogDebugOutputDensity for the toggle protocol.
         fragColor = vec4(dN, dN, dN, 1.0);

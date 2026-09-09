@@ -10,11 +10,17 @@
 // "all-revealed" → "viewport-spanning disc" rationale).
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
+import 'package:mirkfall/config/constants.dart';
+import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart';
+import 'package:mirkfall/infrastructure/mirk/shader/fog_shader_renderer.dart';
 
+import '../../_helpers/mirk_paint_context_builder.dart';
+import '../../_helpers/recording_fog_shader_renderer.dart';
 import '_render_helpers.dart';
 
 void main() {
@@ -99,6 +105,89 @@ void main() {
       await renderer.dispose();
       final ctx = fakeContext();
       expect(() => renderToPicture(renderer, context: ctx).dispose(), returnsNormally);
+    });
+  });
+
+  group('09.1-03 — shader seam (FogShaderRenderer injected)', () {
+    final MirkViewportBbox bbox = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+
+    /// Context with deliberately non-neutral camera inputs so verbatim
+    /// forwarding is distinguishable from the builder defaults.
+    MirkPaintContext seamContext({int elapsedMs = 1000}) => buildTestMirkPaintContext(
+      sessionElapsed: Duration(milliseconds: elapsedMs),
+      viewportBbox: bbox,
+      discs: <RevealDisc>[singleCentreDisc(bbox: bbox)],
+      pixelOrigin: (x: 4255934.927218, y: -1234567.890123),
+      zoomScale: 4.0,
+      sdfRect: (0.0, 1.0, 1.0, -1.0),
+    );
+
+    HeavenlyCloudsMirkRenderer newRenderer(RecordingFogShaderRenderer recorder) => HeavenlyCloudsMirkRenderer(
+      const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig,
+      sdfBuilder: const ImmediateStubSdfBuilder(),
+      shaderRenderer: recorder,
+    );
+
+    /// First paint schedules the (immediate) SDF build; after one event-queue
+    /// pump the image is resolved and the next paint takes the shader path.
+    Future<void> paintUntilShaderPath(HeavenlyCloudsMirkRenderer renderer, RecordingFogShaderRenderer recorder, {int elapsedMs = 1000}) async {
+      renderToPicture(renderer, context: seamContext(elapsedMs: elapsedMs)).dispose();
+      await pumpEventQueue();
+      renderToPicture(renderer, context: seamContext(elapsedMs: elapsedMs)).dispose();
+      expect(recorder.renders, isNotEmpty, reason: 'second paint must go through the seam once the SDF resolved');
+    }
+
+    test('forwards pixelOrigin / zoomScale / sdfRect verbatim, 20 tunables (31 observed slots), heavenly palette', () async {
+      final RecordingFogShaderRenderer recorder = RecordingFogShaderRenderer();
+      final HeavenlyCloudsMirkRenderer renderer = newRenderer(recorder);
+      await paintUntilShaderPath(renderer, recorder);
+      final RecordedFogRender last = recorder.renders.last;
+      final MirkPaintContext context = seamContext();
+      expect(last.pixelOrigin, context.pixelOrigin);
+      expect(last.zoomScale, context.zoomScale);
+      expect(last.sdfRect, context.sdfRect);
+      expect(last.resolution, kTestCanvasSize);
+      expect(last.namedFloatArgs.keys.toSet(), FogShaderTunableKey.all.toSet());
+      expect(last.namedFloatArgs, hasLength(20));
+      expect(last.totalFloatSlotsObserved, 31);
+      expect(last.baseArgb, kMirkFogHeavenlyBaseColorArgb);
+      expect(last.highlightArgb, kMirkFogHeavenlyHighlightColorArgb);
+      expect(last.shadowArgb, kMirkFogHeavenlyShadowColorArgb);
+      await renderer.dispose();
+    });
+
+    test('timeSeconds is strictly increasing across paints at increasing sessionElapsed', () async {
+      final RecordingFogShaderRenderer recorder = RecordingFogShaderRenderer();
+      final HeavenlyCloudsMirkRenderer renderer = newRenderer(recorder);
+      await paintUntilShaderPath(renderer, recorder);
+      final double first = recorder.renders.last.timeSeconds;
+      renderToPicture(renderer, context: seamContext(elapsedMs: 2500)).dispose();
+      final double second = recorder.renders.last.timeSeconds;
+      expect(second, greaterThan(first));
+      expect(second - first, closeTo(1.5, 1e-9), reason: 'uTime tracks sessionElapsed 1:1 (seed jitter is a constant offset)');
+      await renderer.dispose();
+    });
+
+    test('a tunable changed via MirkRuntimeTunables.instance between two paints reaches the seam (tuner stays live)', () async {
+      addTearDown(MirkRuntimeTunables.instance.reset);
+      final RecordingFogShaderRenderer recorder = RecordingFogShaderRenderer();
+      final HeavenlyCloudsMirkRenderer renderer = newRenderer(recorder);
+      await paintUntilShaderPath(renderer, recorder);
+      final double before = recorder.renders.last.namedFloatArgs[FogShaderTunableKey.opacityFar]!;
+      MirkRuntimeTunables.instance.opacityFar = before + 0.11;
+      renderToPicture(renderer, context: seamContext(elapsedMs: 1500)).dispose();
+      expect(recorder.renders.last.namedFloatArgs[FogShaderTunableKey.opacityFar], closeTo(before + 0.11, 1e-9));
+      await renderer.dispose();
+    });
+
+    test('every render carries the same sdfImage reference until the disc list changes (SDF resolved once)', () async {
+      final RecordingFogShaderRenderer recorder = RecordingFogShaderRenderer();
+      final HeavenlyCloudsMirkRenderer renderer = newRenderer(recorder);
+      await paintUntilShaderPath(renderer, recorder);
+      renderToPicture(renderer, context: seamContext(elapsedMs: 1200)).dispose();
+      expect(recorder.renders, hasLength(2));
+      expect(identical(recorder.renders.first.sdfImage, recorder.renders.last.sdfImage), isTrue);
+      await renderer.dispose();
     });
   });
 }
