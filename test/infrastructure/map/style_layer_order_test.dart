@@ -11,17 +11,17 @@ import 'package:test/test.dart';
 
 void main() {
   group('kStyleLayerOrder — constant invariants', () {
-    test('declares exactly 7 layer IDs', () {
-      expect(kStyleLayerOrder.length, 7);
+    test('declares exactly 6 layer IDs', () {
+      expect(kStyleLayerOrder.length, 6);
     });
 
-    test('first layer is background, last is mirk_fog', () {
+    test('first layer is background, last is pois', () {
       expect(kStyleLayerOrder.first, 'background');
-      expect(kStyleLayerOrder.last, 'mirk_fog');
+      expect(kStyleLayerOrder.last, 'pois');
     });
 
-    test('mirk_fog is the top-most layer (blue-dot puck is managed via the addCircle annotation manager, not a style layer)', () {
-      expect(kStyleLayerOrder.last, 'mirk_fog');
+    test('mirk_fog is NOT a style layer any more (Phase 09.1 C7: the fog is a FlutterMap child painted above the tile layer)', () {
+      expect(kStyleLayerOrder, isNot(contains('mirk_fog')));
     });
   });
 

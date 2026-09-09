@@ -31,11 +31,16 @@ void main() {
       expect(f.lengthSync(), greaterThan(0));
     });
 
-    test('assets/maps/style.json exists and declares the mirk_fog layer', () {
+    test('assets/maps/style.json exists, declares the pois layer and NO mirk_fog layer (Phase 09.1 C7)', () {
       final File f = File('assets/maps/style.json');
-      expect(f.existsSync(), isTrue, reason: 'Protomaps-derived style must be bundled (Phase 07 plan 07-06 consumer).');
+      expect(f.existsSync(), isTrue, reason: 'Protomaps-derived style must be bundled (MapThemeLoader consumer).');
       final String contents = f.readAsStringSync();
-      expect(contents, contains('"id": "mirk_fog"'), reason: 'Frozen 8-layer order includes mirk_fog (Phase 09 replaces the paint with a real fill layer).');
+      expect(contents, contains('"id": "pois"'), reason: 'Frozen 6-layer order ends with pois.');
+      expect(
+        contents,
+        isNot(contains('"id": "mirk_fog"')),
+        reason: 'vector_tile_renderer ignores background-opacity: a mirk_fog background layer would paint the map black. The fog is a FlutterMap child.',
+      );
     });
 
     test('assets/maps/polygons/ carries at least one <alpha3>.geo.json with a FeatureCollection', () {
