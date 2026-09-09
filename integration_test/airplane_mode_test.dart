@@ -5,18 +5,26 @@
 // Airplane-mode network-zero verification (MAP-01 unit-test subset of
 // QUAL-05).
 //
-// Wraps the pump body in an [HttpOverrides.runZoned] scope whose
-// [createHttpClient] returns a [_FailAllHttpClient] — every
-// method invocation on that client increments `invocationCount` then
-// throws. The test pumps MapScreen under a FakeMapView override,
-// exercises pan + zoom + country-switch paths, and asserts the counter
-// is zero at the end.
+// Both scenarios wrap the pump body in an [HttpOverrides.runZoned] scope
+// whose [createHttpClient] returns a [_FailAllHttpClient] — every method
+// invocation on that client increments `invocationCount` then throws — and
+// count the client constructions as well.
 //
-// The device-level QUAL-05 (real airplane mode toggle on a real
-// device) is covered by the Phase 07 smoke walk (Pixel 4a + iOS
-// sideload). The present test is a regression guard for the code-level
-// contract: no HTTP request can sneak in from any Phase 07 code path
-// under normal operation.
+// 1. FAKE engine (Phase 07 shape, kept): MapScreen under a FakeMapView
+//    stand-in that mounts the `fogLayers` in a tile-less `FlutterMap`,
+//    pan + zoom + country-switch paths through the port, zero HTTP.
+// 2. REAL engine (Phase 09.1 plan 09.1-07): MapScreen on the production
+//    `FlutterMapMapViewWidget` over `assets/maps/world.pmtiles` copied where
+//    `PmtilesSource` resolves the world bundle, the style compiled from the
+//    repository asset, the `FogLayer` mounted as a child of the `FlutterMap`
+//    (same canvas as the tiles): first render, three camera moves, a
+//    country switch, unmount — not a single `HttpClient` constructed
+//    (`PmTilesArchive.from(path)` → `FileAt`, RESEARCH §8).
+//
+// The device-level QUAL-05 (real airplane mode toggle on a real device) is
+// covered by the smoke walks (Pixel 4a + iOS sideload). The present suite
+// is a regression guard for the code-level contract: no HTTP request can
+// sneak in from any map / fog code path under normal operation.
 //
 // Moved from `test/phase_07_integration/airplane_mode_test.dart` to
 // `integration_test/` in Plan 08-04 (adversarial wave). Tagged
@@ -35,21 +43,40 @@
 @Tags(<String>['integration'])
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 import 'package:mirkfall/application/controllers/country_resolver_controller.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_view.dart';
+import 'package:mirkfall/infrastructure/map/flutter_map_map_view.dart';
+import 'package:mirkfall/infrastructure/map/map_theme_loader.dart';
+import 'package:mirkfall/infrastructure/map/pmtiles_source.dart';
 import 'package:mirkfall/presentation/screens/map_screen.dart';
+import 'package:mirkfall/presentation/widgets/fog_layer.dart';
+import 'package:path/path.dart' as p;
+import 'package:vector_map_tiles/vector_map_tiles.dart';
 
+import '../test/_helpers/tile_cancellation_noise.dart';
 import '../test/fakes/fake_installed_manifest_repository.dart';
 import '../test/fakes/fake_map_view.dart';
+
+/// Melun at a country-level zoom — a handful of world tiles on the small viewport.
+const CameraLatLngZoom _realEngineCamera = CameraLatLngZoom(latitude: 48.5397, longitude: 2.6553, zoom: 5.0);
+const Duration _readyTimeout = Duration(seconds: 20);
+const Duration _readyPollRealDelay = Duration(milliseconds: 10);
+const Duration _teardownDrain = Duration(milliseconds: 150);
+const String _worldAssetPath = 'assets/maps/world.pmtiles';
 
 /// HTTP client that refuses every call. Any use — even property
 /// reads — is logged on [invocationCount] and throws a SocketException
@@ -136,6 +163,12 @@ class _FailAllHttpClient implements HttpClient {
   void addProxyCredentials(String host, int port, String realm, HttpClientCredentials credentials) {}
 }
 
+/// Serves the repository's real `assets/maps/style.json` from disk.
+class _FileAssetBundle extends CachingAssetBundle {
+  @override
+  Future<ByteData> load(String key) async => ByteData.sublistView(await File(key).readAsBytes());
+}
+
 /// Override for the CountryResolverController that keeps the build
 /// result deterministic so the airplane-mode walk can drive
 /// activeCountry / viewportCountry state without the 500 ms debounce
@@ -148,13 +181,15 @@ class _FakeResolverController extends CountryResolverController {
   CountryResolverState build() => seed;
 }
 
-/// Stub fake-map widget that publishes [FakeMapView] via [onReady]
-/// after the first post-frame callback. Identical pattern to
+/// Stand-in for the engine widget (fake scenario): a tile-less `FlutterMap`
+/// hosting the `fogLayers` MapScreen passes, publishing [FakeMapView] via
+/// [onReady] after the first post-frame callback. Same pattern as
 /// map_screen_test.dart.
 class _FakeMapWidget extends StatefulWidget {
-  const _FakeMapWidget({required this.onReady, required this.fakeMapView});
+  const _FakeMapWidget({required this.onReady, required this.fakeMapView, required this.fogLayers});
   final ValueChanged<MapView> onReady;
   final FakeMapView fakeMapView;
+  final List<Widget> fogLayers;
 
   @override
   State<_FakeMapWidget> createState() => _FakeMapWidgetState();
@@ -170,7 +205,10 @@ class _FakeMapWidgetState extends State<_FakeMapWidget> {
   }
 
   @override
-  Widget build(BuildContext context) => const ColoredBox(color: Color(0xFFEFEFEF));
+  Widget build(BuildContext context) => FlutterMap(
+    options: const MapOptions(initialCenter: LatLng(0, 0), initialZoom: kMapWorldOverviewZoom),
+    children: widget.fogLayers,
+  );
 }
 
 CountryCatalog _oneCountryCatalog() {
@@ -198,6 +236,7 @@ void main() {
   });
 
   tearDown(() async {
+    await fakeRepo.close();
     try {
       if (tmpDir.existsSync()) await tmpDir.delete(recursive: true);
     } on Object {
@@ -205,7 +244,7 @@ void main() {
     }
   });
 
-  Widget wrapScreen({required FakeMapView fakeMapView, CountryResolverState? resolverSeed}) {
+  Widget wrapScreen({required MapViewWidgetBuilder builder, CountryResolverState? resolverSeed}) {
     return ProviderScope(
       overrides: [
         appSupportDirProvider.overrideWith((ref) async => tmpDir.path),
@@ -213,13 +252,7 @@ void main() {
         countryCatalogProvider.overrideWith((ref) async => _oneCountryCatalog()),
         if (resolverSeed != null) countryResolverControllerProvider.overrideWith(() => _FakeResolverController(seed: resolverSeed)),
       ],
-      child: MaterialApp(
-        home: MapScreen(
-          mapViewBuilderForTest: ({required ValueChanged<MapView> onReady, required List<Widget> fogLayers}) {
-            return _FakeMapWidget(onReady: onReady, fakeMapView: fakeMapView);
-          },
-        ),
-      ),
+      child: MaterialApp(home: MapScreen(mapViewBuilderForTest: builder)),
     );
   }
 
@@ -233,7 +266,14 @@ void main() {
       final fakeMapView = FakeMapView();
       final CountryResolverState seed = CountryResolverState(viewportCountry: CountryCode.parse('deu'));
 
-      await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed));
+      await tester.pumpWidget(
+        wrapScreen(
+          resolverSeed: seed,
+          builder: ({required ValueChanged<MapView> onReady, required List<Widget> fogLayers}) {
+            return _FakeMapWidget(onReady: onReady, fakeMapView: fakeMapView, fogLayers: fogLayers);
+          },
+        ),
+      );
       // Phase 09.1 — the FogLayer's Ticker runs forever, so a bare
       // pumpAndSettle never settles. Fixed-cadence pumps suffice
       // here: the route bootstrap + post-frame callbacks land in a
@@ -267,5 +307,87 @@ void main() {
     }, createHttpClient: (SecurityContext? ctx) => failClient);
 
     expect(failClient.invocationCount, 0, reason: 'Expected no HTTP request from the Phase 07 code path under airplane conditions');
+  });
+
+  testWidgets('airplane mode (real engine): MapScreen on FlutterMapMapViewWidget + world.pmtiles from disk + FogLayer child constructs no HttpClient', (
+    tester,
+  ) async {
+    final _FailAllHttpClient failClient = _FailAllHttpClient();
+    int clientConstructionCount = 0;
+    useSmallViewport(tester);
+    installTileCancellationFilterForBody();
+
+    // world.pmtiles where PmtilesSource resolves the world bundle (<app_support>/maps/world.pmtiles).
+    final String worldPath = p.join(tmpDir.path, kWorldPmtilesInternalPath);
+    await File(worldPath).create(recursive: true);
+    await File(_worldAssetPath).copy(worldPath);
+    final Directory cacheDir = await Directory(p.join(tmpDir.path, 'cache')).create(recursive: true);
+    final PmtilesSource source = PmtilesSource(installedManifestPort: fakeRepo, appSupportDir: tmpDir.path);
+    final MapThemeLoader themeLoader = MapThemeLoader(bundle: _FileAssetBundle());
+    final Completer<MapView> ready = Completer<MapView>();
+
+    await HttpOverrides.runZoned<Future<void>>(
+      () async {
+        // Real I/O (theme asset, PMTiles archive, tile decode) needs the real event loop.
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            wrapScreen(
+              builder: ({required ValueChanged<MapView> onReady, required List<Widget> fogLayers}) {
+                return FlutterMapMapViewWidget(
+                  pmtilesSource: source,
+                  onReady: (MapView view) {
+                    if (!ready.isCompleted) ready.complete(view);
+                    onReady(view);
+                  },
+                  initialCamera: _realEngineCamera,
+                  themeLoader: themeLoader,
+                  cacheFolderOverride: () async => cacheDir,
+                  fogLayers: fogLayers,
+                );
+              },
+            ),
+          );
+          final Stopwatch stopwatch = Stopwatch()..start();
+          while (!ready.isCompleted && stopwatch.elapsed < _readyTimeout) {
+            await tester.pump(kTilePumpStep);
+            await Future<void>.delayed(_readyPollRealDelay);
+          }
+          expect(ready.isCompleted, isTrue, reason: 'onReady never fired within $_readyTimeout');
+          await settleTiles(tester);
+
+          // Inertness guards: the real tile layer rendered AND the fog is one of its siblings on the map canvas.
+          expect(find.byType(VectorTileLayer), findsOneWidget, reason: 'the real engine is mounted');
+          expect(
+            find.descendant(of: find.byType(FlutterMap), matching: find.byType(FogLayer)),
+            findsOneWidget,
+            reason: 'the fog is a child of the FlutterMap',
+          );
+
+          final MapView view = await ready.future;
+          await view.moveCameraTo(latitude: 48.6, longitude: 2.7, zoom: 6.0);
+          await settleTiles(tester);
+          await view.moveCameraTo(latitude: 48.7, longitude: 2.8, zoom: 7.0);
+          await settleTiles(tester);
+          await view.moveCameraTo(latitude: 48.8, longitude: 2.9, zoom: 8.0);
+          await settleTiles(tester);
+          await view.showMap(null);
+          await settleTiles(tester);
+
+          // Unmount INSIDE the zone so the teardown reads (archive close) stay HTTP-guarded.
+          await tester.pumpWidget(const SizedBox.shrink());
+          await tester.pump(kTilePumpStep);
+          await Future<void>.delayed(_teardownDrain);
+          await tester.pump(kTilePumpStep);
+        });
+      },
+      createHttpClient: (SecurityContext? ctx) {
+        clientConstructionCount++;
+        return failClient;
+      },
+    );
+    drainTileCancellationNoise(tester);
+
+    expect(clientConstructionCount, 0, reason: 'no HttpClient constructed at all: PMTiles from disk (FileAt), style from the bundle, fog on the canvas');
+    expect(failClient.invocationCount, 0, reason: 'Expected no HTTP request from the real flutter_map engine under airplane conditions');
   });
 }
