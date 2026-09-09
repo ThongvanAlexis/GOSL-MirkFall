@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 09-08 (closed); Phase 10 Review Gate — Fog now unblocked
-status: completed
-stopped_at: Completed quick-1-01-PLAN.md
-last_updated: "2026-04-25T12:01:52.077Z"
-last_activity: 2026-04-25 - Completed quick task 1: CI stores git commit SHA in app and logger prints it at startup
+current_plan: 09.1-02
+status: in_progress
+stopped_at: Completed 09.1-01-PLAN.md
+last_updated: "2026-09-09T09:44:44.089Z"
+last_activity: 2026-09-09 - Completed 09.1-01: flutter_map 7.0.2 stack + MAP-06 flutter_map gate + Phase 09.1 constants
 progress:
-  total_phases: 17
+  total_phases: 18
   completed_phases: 10
-  total_plans: 57
-  completed_plans: 58
-  percent: 100
+  total_plans: 65
+  completed_plans: 59
+  percent: 91
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 09 Fog Rendering CLOSED 2026-04-25. 10/10 plans complete (revision B5 split: 09-01 → 09-01 + 09-01b + 09-01c). End-to-end visual loop closed: GPS fix → reveal mask → DB → Riverpod provider chain → MirkOverlay paints fog. 4 builtin renderers shipped (atmospheric default + solid + candlelight + heavenly_clouds). MirkRenderer surface frozen at 3 methods. Hand-rolled SimplexNoise2D held throughout — zero new dependencies. Plan 09-08 closed: deterministic 50k-tile gzipped SQL fixture (~4 MB) + freshness CI gate + SC#4 RepaintBoundary isolation regression test + SC#5 viewport filtering regression test + perf probe (avg ~90 ms widget-test, real-device 16 ms target validated by Phase 10) + TestMapScreenHarness + FakeRevealedTileStore extensions + lib/infrastructure/mirk/README.md rewritten + ROADMAP 10/10 Complete + 3 atomic task commits. Phase 10 Review Gate — Fog now unblocked (audits real-device perf, DevTools RepaintBoundary, visual variant approval, seam non-leakage).
+**Current focus:** Phase 09.1 (INSERTED 2026-09-09) IN PROGRESS — port-back same-canvas fog from POC `mirk-poc-debug` @ 90c9321, replaces maplibre_gl with flutter_map 7.0.2 + vector_map_tiles. Plan 09.1-01 (Wave 1) complete: 6 packages pinned + 18-row DEPENDENCIES.md audit, `check_avoid_flutter_map_leak` gate replaces the maplibre gate in CI, Phase 09.1 constants locked. maplibre_gl still in the graph until 09.1-02 Task 2. Next: Wave 2 = 09.1-02 (adapter) + 09.1-03 (seam + shader ABI) in parallel. Phase 09 Fog Rendering CLOSED 2026-04-25 (10/10); BUG-014 (fog lags camera) is the architectural driver of 09.1.
 
 ## Current Position
 
-Phase: 09 of 16.x (Fog Rendering) — CLOSED 2026-04-25 — 10 / 10 plans complete (09-01 + 09-01b + 09-01c — Wave 1 ; 09-02 + 09-03 — Wave 2 ; 09-04 — Wave 3 ; 09-05 — Wave 4 ; 09-06 — Wave 5 ; 09-07 — Wave 6 ; 09-08 — Wave 7)
-Current Plan: 09-08 (closed); Phase 10 Review Gate — Fog now unblocked
-Total Plans in Phase 09: 10 / 10 done
-Status: Phase 09 closed end-to-end. Plan 09-08 shipped: deterministic 50k-tile gzipped SQL fixture (~4 MB, byte-stable across runs) + freshness CI gate (`tool/check_mirk_fixture_fresh.dart`) + paired test covering tamper branch ; SC#4 RepaintBoundary isolation regression test (structural ancestor check + 10-frame Ticker behavioural proof) ; SC#5 viewport filtering regression test (1000 tiles in DB + Paris bbox → ≤ 20 findByParent calls + Paris/Berlin disjoint sets) ; perf probe `flutter test --tags mirk-perf` measures avg ~88-93 ms / median ~87-92 ms / p95 ~109-129 ms on 50k-row fixture (widget-test bound 150 ms; real-device 16 ms target validated by Phase 10) ; TestMapScreenHarness + FakeRevealedTileStore.seed1000TilesEurope() + findByParentCallCount counter shipped (revision S3) ; lib/infrastructure/mirk/README.md rewritten with final 4+1+1 layout + MIRK-05/06 seam doctrine + structural-guards table ; ROADMAP.md Phase 09 row flipped 9/10 → 10/10 Complete (2026-04-25). Zero new dependencies across all 10 Phase 09 plans — hand-rolled SimplexNoise2D held throughout. 3 atomic task commits (a9110fd feat / 87d702d test / 8c1abca docs). 918 tests pass on default suite + 2 perf tests pass under `mirk-perf` tag.
-Last Activity: 2026-04-25
+Phase: 09.1 of 16.x (Port-back same-canvas fog — flutter_map migration, INSERTED) — IN PROGRESS — 1 / 8 plans complete (09.1-01 — Wave 1)
+Current Plan: 02
+Total Plans in Phase: 8
+Status: Plan 09.1-01 shipped 2026-09-09 (4 task commits 68b5207 / 9027dbd / fc40166 / dee75da): flutter_map 7.0.2 + vector_map_tiles 8.0.0 + vector_map_tiles_pmtiles 1.5.0 + vector_tile_renderer 5.2.0 + pmtiles 1.2.0 + latlong2 0.9.1 strictly pinned and resolved with NO new override next to maplibre_gl 0.25.0 (+18 lock entries, 0 removals, 0 drift) ; DEPENDENCIES.md 6 direct + 12 transitive rows dated 2026-09-09 (LICENSE files read from pub cache, verbatim network grep, telemetry 0) ; `tool/check_avoid_flutter_map_leak.dart` + 12-case paired test replace the maplibre gate (perimeter = lib/infrastructure/map/** + fog_layer.dart / fog_clip_path.dart / map_screen.dart), CI step renamed ; Phase 09.1 constants block (kMap* envelope + style source key, kMirkFogReferenceZoom 13 / kMirkFogNoiseTilePx 384, kMirkWisp* world basis, kMirkFogDiag* verbose-only) locked by 11 tests. Every commit: analyze clean, 1055 tests green, 102 tool tests green. Wave 2 next: 09.1-02 (adapter, removes maplibre_gl) ∥ 09.1-03 (seam + 42-slot shader ABI).
+Last Activity: 2026-09-09
 
-Progress: [██████████] 100% — 57 / 57 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 closed 10/10 — 09-01 + 09-01b + 09-01c + 09-02 + 09-03 + 09-04 + 09-05 + 09-06 + 09-07 + 09-08).
+Progress: [█████████░] 91% — 59 / 65 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 closed 10/10 ; Phase 09.1 in progress 1/8 — 09.1-01).
 
 ## Performance Metrics
 
@@ -103,6 +103,7 @@ Progress: [██████████] 100% — 57 / 57 plans executed (Phas
 | Phase 09-fog-rendering P06 | ~34 min | 4 tasks (TDD on Task 1) | 23 files (3 created + 19 modified + 1 deleted) across 4 atomic commits |
 | Phase 09 P07 | 24 min | 5 tasks | 22 files |
 | Phase 09 P08 | 32 min | 3 tasks | 11 files |
+| Phase 09.1 P01 | 18 min | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -381,9 +382,13 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09]: [Phase 09-fog-rendering] Plan 09-08: 50k-tile fixture committed as gzipped .sql.gz (~4 MB) with 1% bit density; uncompressed 60 MB raw is incompressible at 25%. Renderer iterates all 4096 cells unconditionally regardless of density, so density change does not affect perf measurement. Plan-anticipated fallback (RESEARCH §Format).
 - [Phase 09]: [Phase 09-fog-rendering] Plan 09-08: Frame-budget assertion relaxed 25 ms → 150 ms in widget-test env. CPU MaskFilter.blur dominates per-frame cost without Impeller/GPU; observed 88-93 ms avg on Windows dev host. Real-device 16 ms target stays Phase 10 review gate contract.
 - [Phase 09]: [Phase 09-fog-rendering] Phase closure: zero new dependencies across all 10 plans. Hand-rolled SimplexNoise2D (Ken Perlin 2001 public-domain port) held throughout — no DEPENDENCIES.md delta. Plan 09-02 decision validated end-to-end.
+- [Phase 09.1]: maplibre_gl 0.25.0 + flutter_map 7.0.2 coexist one wave with no new override (fallback stub unused); maplibre_gl removed in 09.1-02 Task 2
+- [Phase 09.1]: TDD RED commits kept compilable (gate RED = renamed maplibre gate; constants RED observed locally, landed with GREEN) because tool/ and test/ are analyzer-scoped and every commit must pass flutter analyze
+- [Phase 09.1]: POC rollup cadences unified as kMirkFogDiagRollupSeconds; kMirkFogDiagSmoothCoordinateMaxDelta ported in 09.1-01; frame-delta overlay placement px not ported
 
 ### Roadmap Evolution
 
+- Phase 09.1 inserted after Phase 09: Port-back same-canvas fog (flutter_map migration) (URGENT). BUG-014 (fog lags camera 1-3 frames, CustomPaint over MapLibre platform view) unfixable after 6 iterations; POC `mirk-poc-debug` @ 90c9321 (2026-04-30 → 2026-05-31) validated same-canvas rendering with flutter_map 7.0.2 + vector_map_tiles, verdict PORT BACK. Phase 09.1 replaces maplibre_gl with flutter_map and moves the fog inside the FlutterMap children. Context: `.planning/phases/09.1-port-back-same-canvas-fog-flutter-map-migration/09.1-CONTEXT.md`. Inserted 2026-09-09.
 - Phase 08.1 inserted after Phase 08: Re-Review — Post-Walk Audit (URGENT). Re-review Phase 07 + Phase 08 after successful Android + iOS walks on the CI artifact built from main tip `9d65c4f`. Reuses 08-CONTEXT.md (smell heuristics + 4-agent pattern) narrowed to delta scope (walk findings + Phase 08's 49-fix-loop code areas). Directory: `.planning/phases/08.1-rereview-post-walk/`. Inserted 2026-04-24. Rationale: user's at-work review-gate protocol — review changes aren't truly merged until walk + bug fixes + re-review converge; Phase 08's "closed" status was premature for that standard. Decimal phase keeps Phase 08 artifacts sealed (context-window hygiene) while formalising the re-review leg.
 
 ### Pending Todos
@@ -391,6 +396,8 @@ Recent decisions carried from research (2026-04-17) :
 None yet.
 
 ### Blockers/Concerns
+
+**Phase 09 post-closure (2026-04-26 → 04-30, outside GSD plans):** BUG-003..015 bug loop in `docs/phase09-bug-tracking/`. BUG-010 replaced the sub-tile bitmap reveal with continuous disc geometry (schema v5 `revealed_disc`, v6 drops revealed tiles, analytic SDF). BUG-011/012/013/015 fixed + UAT iOS. **BUG-014 OPEN** (fog does not track camera on pan/zoom) → resolved architecturally by Phase 09.1 (flutter_map same-canvas port-back). Phase 10 SC#1 (sub-tile grid O1 / batch flush O2) is obsolete after BUG-010 and must be rewritten at discuss-phase 10.
 
 **Phase 05 (POC GPS background) — RESOLVED Plan 05-06 (2026-04-19):** ~~Risque #1 projet.~~ VALIDATED empirically — Pixel 4a PASS (342 fixes / 28.6 min screen-off walk) + iPhone 17 Pro PASS-with-caveat (82 fixes / 13.5 min, stable cadence throughout + convergent same-day Android evidence). Evidence committed in `docs/qual-01-02-poc.md` + `docs/poc-artifacts/test2-full.png`. Phase 06 Review Gate to re-litigate if iOS duration caveat unacceptable.
 
@@ -417,6 +424,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-25T12:01:52.071Z
-Stopped at: Completed quick-1-01-PLAN.md
+Last session: 2026-09-09T09:44:44.083Z
+Stopped at: Completed 09.1-01-PLAN.md
 Resume file: None
