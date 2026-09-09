@@ -227,7 +227,7 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
   5. Wisps ancrés monde (`LatLng` + m/s) : pas de dérive au zoom, spawn sur émergence de disque, jamais de contact avec le `SdfCache`
   6. Le seam `MirkRenderer` reste pur (aucun type flutter_map dans `lib/domain`), `MirkPaintContext` étendu une seule fois ; les 4 variants builtin restent sélectionnables ; le gate d'import flutter_map remplace `check_avoid_maplibre_leak`
   7. BUG-014 fermé dans `docs/phase09-bug-tracking/` ; décision "moteur flutter_map same-canvas" enregistrée dans `PROJECT.md` Key Decisions
-**Plans:** 4/8 plans executed
+**Plans:** 5/8 plans executed
 
 Plans:
 - [x] 09.1-01-PLAN.md — Wave 1 : 6 packages flutter_map pinnés + audit DEPENDENCIES.md, gate `check_avoid_flutter_map_leak` (remplace maplibre), constantes Phase 09.1 (maplibre_gl conservé une wave : compile-green)
