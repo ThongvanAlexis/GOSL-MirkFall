@@ -2,6 +2,9 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/config/constants.dart';
 
@@ -360,6 +363,129 @@ void main() {
     test('kMirkFogDebugOutputDensity defaults to false (production output)', () {
       expect(kMirkFogDebugOutputDensity, isFalse);
       expect(kMirkFogDebugOutputDensity, isA<bool>());
+    });
+  });
+
+  // Phase 09.1 (port-back same-canvas fog on flutter_map) — value + type
+  // guards on every constant introduced by plan 09.1-01. Downstream plans
+  // (09.1-02 adapter, 09.1-03 seam + shader ABI, 09.1-04 FogLayer, 09.1-05
+  // wisps) compile against these symbols; a silent rename or retype is
+  // caught here before it reaches a device walk. The `.frag` lockstep for
+  // `kMirkFogNoiseTilePx` is NOT tested here — 09.1-03 Task 2 creates it in
+  // `test/infrastructure/mirk/shader/fog_shader_uniforms_test.dart` once
+  // the POC shader is ported (no `skip` placeholder by design).
+  group('Phase 09.1 — same-canvas fog constants', () {
+    test('kMirkFogReferenceZoom is 13.0 and kMirkFogNoiseTilePx is 384.0 (shader ABI, PORTBACK §5 n°8)', () {
+      expect(kMirkFogReferenceZoom, equals(13.0));
+      expect(kMirkFogReferenceZoom, isA<double>());
+      expect(kMirkFogNoiseTilePx, equals(384.0));
+      expect(kMirkFogNoiseTilePx, isA<double>());
+    });
+
+    test('wisp world-coordinate tunables (metres basis, replaces the px/s basis)', () {
+      expect(kMirkWispDriftMetersPerSecond, equals(1.5));
+      expect(kMirkWispDriftMetersPerSecond, isA<double>());
+      expect(kMirkWispCurlAccelMetersPerSecondSquared, equals(0.5));
+      expect(kMirkWispCurlAccelMetersPerSecondSquared, isA<double>());
+      expect(kMirkWispDragPerSecond, equals(0.30));
+      expect(kMirkWispDragPerSecond, isA<double>());
+      expect(kMirkWispMaxDtSeconds, equals(0.1));
+      expect(kMirkWispMaxDtSeconds, isA<double>());
+      expect(kMirkWispCurlInputScale, equals(50.0));
+      expect(kMirkWispCurlInputScale, isA<double>());
+    });
+
+    test('wisp tints per palette (atmospheric / heavenly)', () {
+      expect(kMirkWispTintAtmosphericArgb, equals(0xFFE0E6F0));
+      expect(kMirkWispTintAtmosphericArgb, isA<int>());
+      expect(kMirkWispTintHeavenlyArgb, equals(0xFFF8F0E2));
+      expect(kMirkWispTintHeavenlyArgb, isA<int>());
+    });
+
+    test('map zoom envelope: min 2.0, max 20.0, world overview 2.0, session zoom 15 unchanged and inside the envelope', () {
+      expect(kMapMinZoom, equals(2.0));
+      expect(kMapMinZoom, isA<double>());
+      expect(kMapMaxZoom, equals(20.0));
+      expect(kMapMaxZoom, isA<double>());
+      expect(kMapWorldOverviewZoom, equals(2.0));
+      expect(kMapWorldOverviewZoom, isA<double>());
+      expect(kMapMinZoom, lessThanOrEqualTo(kMapWorldOverviewZoom));
+      expect(kInitialSessionMapZoom, equals(15));
+      expect(kMapMaxZoom, greaterThanOrEqualTo(kInitialSessionMapZoom));
+    });
+
+    test('kMapStyleSourceKey is mirkfall_map and equals the single `sources` key of assets/maps/style.json', () {
+      expect(kMapStyleSourceKey, equals('mirkfall_map'));
+      final File styleFile = File('assets/maps/style.json');
+      expect(styleFile.existsSync(), isTrue, reason: 'assets/maps/style.json missing — Phase 07-01 asset not in repo');
+      final Map<String, Object?> style = Map<String, Object?>.from(jsonDecode(styleFile.readAsStringSync()) as Map);
+      final Map<String, Object?> sourceByKey = Map<String, Object?>.from(style['sources'] as Map);
+      expect(sourceByKey.keys, equals(<String>[kMapStyleSourceKey]), reason: 'TileProviders key MUST equal the style sources key (vector_map_tiles contract)');
+    });
+
+    test('kMapBackgroundColorArgb is 0xFFF5F1E8 and matches the style background layer paint', () {
+      expect(kMapBackgroundColorArgb, equals(0xFFF5F1E8));
+      expect(kMapBackgroundColorArgb, isA<int>());
+      final Map<String, Object?> style = Map<String, Object?>.from(jsonDecode(File('assets/maps/style.json').readAsStringSync()) as Map);
+      final List<Object?> layers = style['layers'] as List<Object?>;
+      final Map<String, Object?> backgroundLayer = Map<String, Object?>.from(
+        layers.cast<Map<Object?, Object?>>().firstWhere((Map<Object?, Object?> layer) => layer['id'] == 'background'),
+      );
+      final Map<String, Object?> paint = Map<String, Object?>.from(backgroundLayer['paint'] as Map);
+      final String hexRgb = (paint['background-color'] as String).substring(1);
+      const int opaqueAlphaShift = 24;
+      final int expectedArgb = (0xFF << opaqueAlphaShift) | int.parse(hexRgb, radix: 16);
+      expect(kMapBackgroundColorArgb, equals(expectedArgb));
+    });
+
+    test('kMapVectorTileCacheDirName is .vector_map', () {
+      expect(kMapVectorTileCacheDirName, equals('.vector_map'));
+      expect(kMapVectorTileCacheDirName, isA<String>());
+    });
+
+    test('kPmtilesArchiveOpenTimeout is 10 s (CLAUDE.md §Timeouts)', () {
+      expect(kPmtilesArchiveOpenTimeout, equals(const Duration(seconds: 10)));
+      expect(kPmtilesArchiveOpenTimeout, isA<Duration>());
+    });
+
+    test('kMirkFogDiscQueryPaddingFactor is 0.5', () {
+      expect(kMirkFogDiscQueryPaddingFactor, equals(0.5));
+      expect(kMirkFogDiscQueryPaddingFactor, isA<double>());
+    });
+
+    test('verbose-only diagnostics carry the POC values (rollup 1 s, 240-sample buffers, frame-delta thresholds, smooth-coordinate delta)', () {
+      expect(kMirkFogDiagRollupSeconds, equals(1));
+      expect(kMirkFogDiagRollupSeconds, isA<int>());
+      expect(kMirkFogDiagFrameDeltaBufferMaxSamples, equals(240));
+      expect(kMirkFogDiagFogTransformBufferMaxSamples, equals(240));
+      expect(kMirkFogDiagWispTransformBufferMaxSamples, equals(240));
+      expect(kMirkFogDiagFrameDeltaMedianGreenMicros, equals(16000));
+      expect(kMirkFogDiagFrameDeltaMedianYellowMicros, equals(24000));
+      expect(kMirkFogDiagFrameDeltaP95GreenMicros, equals(32000));
+      expect(kMirkFogDiagFrameDeltaP95YellowMicros, equals(48000));
+      expect(kMirkFogDiagFrameDeltaMaxGreenMicros, equals(48000));
+      expect(kMirkFogDiagFrameDeltaMaxYellowMicros, equals(72000));
+      // Ladder ordering the probe overlay assumes: green < yellow on every axis, axes widen median < p95 < max.
+      expect(kMirkFogDiagFrameDeltaMedianGreenMicros, lessThan(kMirkFogDiagFrameDeltaMedianYellowMicros));
+      expect(kMirkFogDiagFrameDeltaP95GreenMicros, lessThan(kMirkFogDiagFrameDeltaP95YellowMicros));
+      expect(kMirkFogDiagFrameDeltaMaxGreenMicros, lessThan(kMirkFogDiagFrameDeltaMaxYellowMicros));
+      expect(kMirkFogDiagFrameDeltaMedianGreenMicros, lessThan(kMirkFogDiagFrameDeltaP95GreenMicros));
+      expect(kMirkFogDiagFrameDeltaP95GreenMicros, lessThan(kMirkFogDiagFrameDeltaMaxGreenMicros));
+      expect(kMirkFogDiagSmoothCoordinateMaxDelta, equals(2000.0));
+      expect(kMirkFogDiagSmoothCoordinateMaxDelta, isA<double>());
+      // A wrap regression would show up as a delta of one noise tile — the threshold must sit well above it.
+      expect(kMirkFogDiagSmoothCoordinateMaxDelta, greaterThan(kMirkFogNoiseTilePx));
+    });
+
+    test('pre-existing wisp + SDF constants inherited by the POC are UNCHANGED', () {
+      expect(kMirkFogWispMaxCount, equals(200));
+      expect(kMirkFogWispLifeSeconds, equals(2.5));
+      expect(kMirkFogMetersPerWisp, equals(8.0));
+      expect(kMirkFogWispWarmUpSeconds, equals(5.0));
+      expect(kMirkFogWispPeakAlpha, equals(0.35));
+      expect(kMirkFogWispBirthRadiusPx, equals(6.0));
+      expect(kMirkFogWispDeathRadiusPx, equals(22.0));
+      expect(kMirkFogSdfViewportDebounceMs, equals(200));
     });
   });
 }

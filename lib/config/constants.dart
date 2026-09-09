@@ -299,6 +299,7 @@ const int kDownloadEnqueueConfirmSnackbarSeconds = 2;
 /// user will want to read the cause before retrying.
 const int kDownloadEnqueueErrorSnackbarSeconds = 5;
 
+// À supprimer au plan 09.1-02 Task 2 avec l'adapter MapLibre (`maplibre_map_view.dart`, seul consommateur).
 /// Style-source ID for the GeoJSON source carrying the user-location
 /// puck's current position. Namespaced with `mirkfall_` so a downstream
 /// style tweak cannot accidentally collide. Hoisted here (rather than
@@ -307,6 +308,7 @@ const int kDownloadEnqueueErrorSnackbarSeconds = 5;
 /// the same string identifier.
 const String kUserLocationSourceId = 'mirkfall_user_location_source';
 
+// À supprimer au plan 09.1-02 Task 2 avec l'adapter MapLibre (`maplibre_map_view.dart`, seul consommateur).
 /// Style-layer ID for the circle layer that renders the user-location
 /// puck. Pairs with [kUserLocationSourceId].
 const String kUserLocationLayerId = 'mirkfall_user_location_layer';
@@ -755,6 +757,8 @@ const double kMirkFogMetersPerWisp = 8.0;
 /// enough that the cap rotation feels organic.
 const double kMirkFogWispLifeSeconds = 2.5;
 
+// À supprimer au plan 09.1-05 Task 2 (wisps passent en base monde m/s — `kMirkWispDriftMetersPerSecond`) ;
+// encore lu par `wisp_particle_system.dart` aujourd'hui.
 /// Wisp initial velocity magnitude (in screen pixels per second).
 /// Slow drift — wisps are cinematic, not bullet trails.
 const double kMirkFogWispInitialSpeedPx = 18.0;
@@ -863,15 +867,19 @@ const String kFogImageLayerId = 'mirkfall_fog_image_layer';
 /// and new positions on every build-completion.
 const int kMirkFogSdfViewportDebounceMs = 200;
 
+// À supprimer au plan 09.1-02 Task 2 (vestige BUG-014 / MapLibre image source — orpheline, aucun appelant ;
+// `offscreen_fog_renderer.dart` part au plan 09.1-03 Task 1).
 /// Resolution of the offscreen fog image pushed to MapLibre's image source.
 /// 512x512 balances visual fidelity with encode/upload throughput at ~20 fps.
 const int kMirkFogMapLayerResolution = 512;
 
+// À supprimer au plan 09.1-02 Task 2 (vestige BUG-014 / MapLibre image source — orpheline, aucun appelant).
 /// Target interval between fog-layer image updates in milliseconds. 50 ms
 /// (20 fps) keeps the animated effects smooth without saturating the
 /// platform channel. Camera tracking is 60 fps natively via MapLibre.
 const int kMirkFogMapLayerUpdateIntervalMs = 50;
 
+// À supprimer au plan 09.1-02 Task 2 (vestige BUG-014 / MapLibre image source — orpheline, aucun appelant).
 /// Padding factor for the fog image source geo-extent. The image covers
 /// `1 + 2 * factor` times the visible viewport in each direction (e.g.
 /// factor 1.0 → 3× the viewport). MapLibre tracks this large geo-pinned
@@ -879,3 +887,141 @@ const int kMirkFogMapLayerUpdateIntervalMs = 50;
 /// The image is re-pinned when the visible viewport drifts past 50% of
 /// the padding margin.
 const double kMirkFogMapLayerPaddingFactor = 1.0;
+
+// ===== Phase 09.1 — Port-back same-canvas fog (flutter_map) =====
+//
+// Constants validated by the POC `mirk-poc-debug` @ 90c9321 (VERDICT.md:
+// PORT BACK) and renamed from the POC `kPoc*` / `kMirkPocWisp*` prefixes
+// to the MirkFall convention. Zoom envelope and style-source key are
+// product decisions from 09.1-CONTEXT (the POC's Melun-only 19/10/20
+// zooms, bbox and walk simulator are deliberately NOT ported).
+
+// --- flutter_map map (09.1-02) ---
+
+/// Minimum map zoom. At z2 the whole world fits in 1024 px: no grey
+/// void outside the map, and still compatible with
+/// [kWorldFallbackZoomCutoff] (the resolver falls back to the world
+/// bundle below z8).
+const double kMapMinZoom = 2.0;
+
+/// Maximum map zoom. The catalog is baked to z15; `vector_map_tiles`
+/// substitutes / over-zooms tiles beyond that (validated POC F1).
+const double kMapMaxZoom = 20.0;
+
+/// Opening zoom without an active session (world overview). Hoisted
+/// from the `zoom: 2` literal previously inline in `map_screen.dart`.
+const double kMapWorldOverviewZoom = 2.0;
+
+/// Style `sources` key AND `TileProviders` key: they MUST be identical.
+/// `vector_map_tiles` only asserts this in debug builds — in release a
+/// wrong key is a silent grey map (POC Pitfall 3). Locked against
+/// `assets/maps/style.json` by `test/constants_test.dart`.
+const String kMapStyleSourceKey = 'mirkfall_map';
+
+/// `MapOptions.backgroundColor` = the style's `background-color`
+/// (#f5f1e8) so no grey shows between tiles while they decode.
+const int kMapBackgroundColorArgb = 0xFFF5F1E8;
+
+/// Sub-directory of the `vector_map_tiles` file cache under
+/// `getTemporaryDirectory()`. One sub-directory per PMTiles archive
+/// (world / `<alpha3>`) so a country hot-swap never serves a stale tile.
+const String kMapVectorTileCacheDirName = '.vector_map';
+
+/// Timeout for opening a PMTiles archive
+/// (`PmTilesVectorTileProvider.fromSource`) — CLAUDE.md §Timeouts.
+const Duration kPmtilesArchiveOpenTimeout = Duration(seconds: 10);
+
+// --- Same-canvas fog (09.1-03 / 09.1-04) ---
+
+/// Reference zoom of the fog noise: at z13 `uZoomScale = 1.0` and the
+/// render is bit-identical to the pre-FOG-19 shader (invariant PORTBACK
+/// §5 n°8 — visual identity of the tuned atmospheric look).
+const double kMirkFogReferenceZoom = 13.0;
+
+/// Noise period in world pixels. MUST stay in lockstep with
+/// `const float kNoiseTilePx` in the `.frag` (constant-folded on the
+/// GLSL side so it does not consume a uniform slot). The lockstep test
+/// lands with the shader port (09.1-03 Task 2).
+const double kMirkFogNoiseTilePx = 384.0;
+
+/// Padding factor of the disc query bbox (half a viewport on each side):
+/// discs at the edge already exist when a pan brings them into view,
+/// between two throttled refreshes (RESEARCH §7).
+const double kMirkFogDiscQueryPaddingFactor = 0.5;
+
+// --- Wisps in world coordinates (09.1-05) — replaces the px/s basis (BUG-014 trap) ---
+
+/// Wisp drift speed in metres per second. World-space basis so the
+/// wisps stay map-locked under pan / zoom instead of drifting in screen
+/// space (the BUG-014 trap of the px/s basis).
+const double kMirkWispDriftMetersPerSecond = 1.5;
+
+/// Curl-noise acceleration applied to each wisp, in metres per second
+/// squared. Gives the tendrils their organic swirl.
+const double kMirkWispCurlAccelMetersPerSecondSquared = 0.5;
+
+/// Velocity drag per second (fraction of velocity removed each second)
+/// so the curl acceleration cannot run away over a wisp's lifetime.
+const double kMirkWispDragPerSecond = 0.30;
+
+/// Maximum dt (seconds) a single advance step integrates over. Bounds
+/// the step on first paint or after a paused painter resumes so wisps
+/// never snap-jump on a stale stopwatch.
+const double kMirkWispMaxDtSeconds = 0.1;
+
+/// Scale applied to world coordinates before sampling the curl noise
+/// (metres per noise unit). Larger = broader, slower eddies.
+const double kMirkWispCurlInputScale = 50.0;
+
+/// Wisp tint for the atmospheric palette (pale blue-grey, ARGB). Kept
+/// as an int so `constants.dart` stays free of `material.dart`.
+const int kMirkWispTintAtmosphericArgb = 0xFFE0E6F0;
+
+/// Wisp tint for the heavenly palette (warm ivory, ARGB).
+const int kMirkWispTintHeavenlyArgb = 0xFFF8F0E2;
+
+// --- Verbose-only diagnostics (09.1-04 / 09.1-05) ---
+//
+// Ported from the POC frame-delta probe (FOG-08), fog-transform logger
+// (FOG-10), SDF rebuild logger and wisp-transform logger (WISP-05). Active
+// only in verbose logging (`--dart-define=DEBUG=true` or the debug-menu
+// toggle) — CLAUDE.md §Logging.
+
+/// Cadence of the per-second JSONL rollup shared by ALL diagnostic
+/// loggers (frame-delta, fog-transform, SDF rebuild, wisp-transform).
+/// A single constant so post-walk grep can join the streams on the same
+/// `epochSecond` boundary (POC CONTEXT §log-timeline-alignment).
+const int kMirkFogDiagRollupSeconds = 1;
+
+/// Ring-buffer cap on raw frame-delta probe samples (2 s × 120 Hz).
+/// FIFO drop-oldest on overflow.
+const int kMirkFogDiagFrameDeltaBufferMaxSamples = 240;
+
+/// Ring-buffer cap on raw fog-transform paint observations (same
+/// 2 s × 120 Hz discipline as the frame-delta probe).
+const int kMirkFogDiagFogTransformBufferMaxSamples = 240;
+
+/// Ring-buffer cap on raw wisp-paint observations (same discipline).
+const int kMirkFogDiagWispTransformBufferMaxSamples = 240;
+
+/// Frame-delta colour-coding thresholds (microseconds) — median axis.
+/// Green ≤ first, yellow ≤ second, red above. Green is the POC
+/// Criterion A target (16 ms); yellow is +50 % over green.
+const int kMirkFogDiagFrameDeltaMedianGreenMicros = 16000;
+const int kMirkFogDiagFrameDeltaMedianYellowMicros = 24000;
+
+/// Frame-delta thresholds (microseconds) — p95 axis (32 ms target).
+const int kMirkFogDiagFrameDeltaP95GreenMicros = 32000;
+const int kMirkFogDiagFrameDeltaP95YellowMicros = 48000;
+
+/// Frame-delta thresholds (microseconds) — max axis (48 ms target).
+const int kMirkFogDiagFrameDeltaMaxGreenMicros = 48000;
+const int kMirkFogDiagFrameDeltaMaxYellowMicros = 72000;
+
+/// Maximum acceptable consecutive-paint delta of `pixelOrigin` (raw
+/// world pixels) before the FOG-11 smooth-noise regression test declares
+/// a discontinuity. Typical deltas are < 1 px even at max-zoom pan
+/// velocity; 2000 px leaves ~3 orders of magnitude of headroom while
+/// still catching a re-introduced wrap (which shows up as a delta of
+/// [kMirkFogNoiseTilePx] or a multiple of it on the wrap frame).
+const double kMirkFogDiagSmoothCoordinateMaxDelta = 2000.0;
