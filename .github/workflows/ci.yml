@@ -192,7 +192,10 @@ jobs:
           # Each directory is optional — the `-d` guard silently skips
           # anything that does not exist yet.
           #
-          # test/domain/mirk/mirk_renderer_contract_test.dart and
+          # test/domain/mirk/mirk_renderer_contract_test.dart,
+          # test/domain/mirk/mirk_paint_context_test.dart (Phase 09.1-03:
+          # MirkPaintContext carries a dart:ui Offset per the ScreenProjector
+          # contract) and
           # test/domain/map/country_catalog_test.dart import dart:ui /
           # package:flutter via flutter_test+rootBundle (Canvas contract +
           # asset bundle loading). They run under `flutter test` but cannot
@@ -201,6 +204,7 @@ jobs:
           if [ -d test/domain ]; then
             mapfile -t _plain_domain_tests < <(find test/domain -name '*_test.dart' \
               ! -path 'test/domain/mirk/mirk_renderer_contract_test.dart' \
+              ! -path 'test/domain/mirk/mirk_paint_context_test.dart' \
               ! -path 'test/domain/map/country_catalog_test.dart' \
               | sort)
             if [ ${#_plain_domain_tests[@]} -gt 0 ]; then
