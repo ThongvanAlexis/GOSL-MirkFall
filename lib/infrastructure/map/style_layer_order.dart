@@ -66,7 +66,7 @@ void assertStyleLayerOrder(String styleJson) {
   }
 }
 
-/// Validates per-layer structural shape (Mapbox/MapLibre style-spec
+/// Validates per-layer structural shape (Mapbox vector-tile style-spec
 /// "layer type required fields" contract, which `vector_tile_renderer`
 /// follows).
 ///

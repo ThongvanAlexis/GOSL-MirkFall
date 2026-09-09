@@ -8,10 +8,11 @@ import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 
 /// Projects lat/lon to a screen offset for the current viewport + canvas size.
 ///
-/// Linear-Mercator within the viewport bbox — sufficient for the fog
-/// overlay because the underlying MapLibre canvas does its own
-/// web-mercator projection at the platform layer. Here we just need
-/// "put this cell rectangle on the screen where MapLibre has it".
+/// Linear-Mercator within the viewport bbox — the Phase 09 screen-space
+/// overlay's projection, kept for the test fixtures
+/// (`buildTestMirkPaintContext`). Production projection now comes from the
+/// `FogLayer`'s camera snapshot through `MirkPaintContext.projectToScreen`
+/// (Phase 09.1); no renderer imports this class any more.
 ///
 /// ## Coordinate convention
 ///
@@ -26,8 +27,7 @@ import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 /// (e.g. negative `dx` for points west of the bbox, `dy > size.height`
 /// for points south). The caller's drawing primitives (`CustomPainter`,
 /// `Canvas` clip) handle off-screen rendering natively — clamping here
-/// would distort the geometry that the MapLibre layer beneath has
-/// already rendered correctly.
+/// would distort the geometry relative to the basemap beneath.
 ///
 /// ## Defensive zero-span guard
 ///

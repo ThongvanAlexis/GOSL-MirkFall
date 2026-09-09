@@ -21,7 +21,7 @@ import 'package:path/path.dart' as p;
 /// Companion to `tool/check_avoid_remote_pmtiles.dart`:
 ///   - `check_avoid_remote_pmtiles` scans every `.dart` / `.json` file
 ///     under `lib/` / `test/` / `assets/` for `pmtiles://http[s]:` URIs
-///     (the MapLibre PMTiles plugin scheme wrapping HTTP).
+///     (the Phase 07 native-engine PMTiles plugin scheme wrapping HTTP).
 ///   - `check_style_no_external_url` scans `assets/maps/style.json`
 ///     specifically for bare `http[s]://…` URLs in the known URL-
 ///     bearing fields. A poisoned style embeds the HTTP URL in a tile
@@ -29,11 +29,11 @@ import 'package:path/path.dart' as p;
 ///     would not catch it.
 ///
 /// Allowed URL patterns:
-///   - `pmtiles://file:///…`         — local PMTiles wrapped for MapLibre
+///   - `pmtiles://file:///…`         — local PMTiles (Phase 07 wrapper scheme)
 ///   - `file:///…`                   — plain local file URI
 ///   - `asset:///assets/…`           — Flutter asset-bundle URI (glyphs / sprites)
 ///   - relative paths `assets/…`     — asset-bundle relative (same origin)
-///   - template placeholders like    — MapLibre's style tokens, not URLs
+///   - template placeholders like    — style-spec tokens, not URLs
 ///     `{fontstack}`, `{z}/{x}/{y}`
 ///
 /// Rejected patterns: any `http://` / `https://` URL in the scanned
@@ -52,7 +52,7 @@ import 'package:path/path.dart' as p;
 ///   - `sources.<name>.tiles[]`      — per-source tile URL array
 ///
 /// The walker ignores other fields (layers, paint, layout, …) — those
-/// do not hold URLs in MapLibre style spec.
+/// do not hold URLs in the vector-tile style spec.
 ///
 /// Paired unit test: `tool/test/check_style_no_external_url_test.dart`
 /// (7 scenarios covering exit codes 0/1/2 + production asset passthrough).
@@ -137,7 +137,7 @@ Future<int> runCheck({String stylePath = _defaultStylePath}) async {
   }
   stderr.writeln();
   stderr.writeln('Rule (MAP-05 / MAP-09): MirkFall renders offline-only. Any http[s]:// URL in');
-  stderr.writeln('the style would let MapLibre stream tiles from a hosted endpoint, breaking');
+  stderr.writeln('the style would let the map engine stream tiles from a hosted endpoint, breaking');
   stderr.writeln('airplane-mode UX + the Phase 08 review-gate QUAL-05 contract. Use');
   stderr.writeln('`pmtiles://file:///…`, `file:///…`, `asset:///…`, or relative asset paths.');
   return 1;

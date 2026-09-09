@@ -19,7 +19,7 @@ import 'style_layer_order.dart';
 /// Building a `Theme` on every widget build is the POC's anti-pattern
 /// n°1 (rebuild churn dominates at z15), so the compiled theme is
 /// memoised per theme for the loader's lifetime. Replaces the Phase 07
-/// `StyleRewriter`: there is no URI rewriting any more — the PMTiles
+/// style rewriter: there is no URI rewriting any more — the PMTiles
 /// path goes straight to the tile provider, the style is static.
 ///
 /// Validation runs BEFORE `ThemeReader`: layer order + per-layer shape

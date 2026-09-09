@@ -4,11 +4,9 @@
 
 // Phase 09 plan 09-04 Task 1 RED test suite for `MirkProjection`.
 //
-// Drives the lat/lon → screen-pixel projection helper consumed by all
-// 4 concrete renderers (atmospheric / solid / candlelight / heavenly).
-// Linear-Mercator within the viewport bbox — sufficient for the fog
-// overlay because the underlying MapLibre canvas does its own
-// web-mercator projection at the platform layer.
+// Drives the lat/lon → screen-pixel projection helper of the Phase 09
+// screen-space overlay, kept for the test fixtures since Phase 09.1
+// (`buildTestMirkPaintContext`). Linear-Mercator within the viewport bbox.
 //
 // Pure-Dart suite — uses `package:test` (not `flutter_test`); the
 // projection helper has no Flutter widget dependency, only `dart:ui`

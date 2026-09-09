@@ -8,8 +8,8 @@
 `tool/generate_tiny_pmtiles.dart`. It starts with the PMTiles v3 magic
 (`"PMTiles"` 7-byte ASCII + version byte `0x03`) followed by 1016 zero
 bytes. Downstream tests (Plan 07-04 download soak) use it for the
-"concat-assembled file looks sane" smoke check — they never load it
-into MapLibre (which would reject the absent directory).
+"concat-assembled file looks sane" smoke check — they never open it
+with the `pmtiles` reader (which would reject the absent directory).
 
 Regenerate whenever the stub structure changes:
 

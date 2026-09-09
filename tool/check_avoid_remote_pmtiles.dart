@@ -11,7 +11,7 @@ import 'package:path/path.dart' as p;
 /// `test/`, or `assets/`:
 ///
 /// - the legacy `pmtiles://http:` / `pmtiles://https:` URI scheme
-///   (Phase 07 MapLibre protocol handler);
+///   (Phase 07 native-engine protocol handler);
 /// - `PmTilesArchive.fromUri(` — the `pmtiles` package's HTTP reader
 ///   (`HttpAt`), Phase 09.1;
 /// - `.fromSource('http…` / `.from('http…` — `PmTilesVectorTileProvider`

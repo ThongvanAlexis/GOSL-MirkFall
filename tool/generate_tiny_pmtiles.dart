@@ -11,10 +11,10 @@ import 'dart:typed_data';
 /// remaining 1016 bytes with zero. Phase 07 plan 07-04 download soak
 /// tests use this for the "concat assembled file looks sane" smoke
 /// check — the binary_concatenator + sha256 verifier need a deterministic
-/// tiny file to reassemble, not a full MapLibre-parseable PMTiles.
+/// tiny file to reassemble, not a full reader-parseable PMTiles.
 ///
-/// Real MapLibre will NOT be able to load this stub (it rejects a PMTiles
-/// with no directory); we do not need it to, the downstream test suite
+/// The `pmtiles` reader will NOT be able to open this stub (it rejects a
+/// PMTiles with no directory); we do not need it to, the downstream test suite
 /// only exercises byte-level checks on the assembled artefact.
 ///
 /// Idempotent: re-running the script overwrites the stub verbatim. The
