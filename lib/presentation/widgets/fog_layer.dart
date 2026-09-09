@@ -38,7 +38,7 @@ import 'package:mirkfall/presentation/widgets/fog_clip_path.dart';
 ///
 /// ## FOG-07 single-MapCamera-snapshot lock (KEYSTONE)
 ///
-/// `MapCamera.of(context)` is called EXACTLY ONCE, in [State.build]. The
+/// `MapCamera.of` is called EXACTLY ONCE, in [State.build]. The
 /// snapshot is passed by constructor to the painter, which never re-reads the
 /// context. Re-reading would re-create BUG-014's white-ellipse symptom (clip
 /// path at zoom Z, shader falloff at zoom Z+ε). `fog_layer_camera_snapshot_test`
@@ -97,7 +97,7 @@ class FogLayer extends StatefulWidget {
   final double? pixelRatio;
 
   /// Keystone FOG-07 seam — invoked exactly once per build, right before
-  /// `MapCamera.of(context)`. Production: `null`, zero overhead.
+  /// `MapCamera.of`. Production: `null`, zero overhead.
   @visibleForTesting
   static void Function()? debugOnCameraRead;
 
@@ -131,7 +131,7 @@ class _FogLayerState extends State<FogLayer> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    // FOG-07 LOCK — exactly one MapCamera.of(context) read per build.
+    // FOG-07 LOCK — exactly one MapCamera.of read per build.
     FogLayer.debugOnCameraRead?.call();
     final MapCamera camera = MapCamera.of(context);
     final int cameraSnapshotMicros = widget.frameDeltaProbe.recordCameraSnapshot();
