@@ -24,10 +24,10 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 - [x] **Phase 06: Review Gate — GPS** - Audit phase 05 (POC background validé sur OEM Android + iOS, permissions, notification) (5/5 plans — 06-REVIEW status=closed, CI green on 96b4a6b, 2 Blockers + 20 Shoulds fixed + 1 Should waived iOS auto-resume Phase 15, 5 permanent unit tests + 1 new CI gate tool/check_platform_manifests.dart live, Phase 07 unblocked)
  (completed 2026-04-20)
 - [x] **Phase 07: Map Integration** - maplibre_gl + `MapView` domain-level + `PmtilesSource` local-only + world bundle copy + per-country download flow (catalog JSON bundlé asset + GitHub Release **chunks binaires multi-parts** + sha256 + concat binaire + atomic commit) + map management screen + attribution + FogOfWarLayer stub (completed 2026-04-23)
-- [x] **Phase 08: Review Gate — Map** - Audit phase 07 (zéro trafic réseau pour les tuiles en airplane mode, robustesse pipeline téléchargement par pays, seam `PmtilesSource` local-only) (5/5 plans — 08-REVIEW status=closed, CI green on 254b5d2, 49 fix+refactor commits via Strategy A per-finding across 5 session relays, 6 over-state-machine + 3 fix-on-fix smell refactors landed, first review-gate encoding of CLAUDE.md 2026-04-23 smell heuristics delta, Phase 09 unblocked)
- (completed 2026-04-24)
+- [x] **Phase 08: Review Gate — Map** - Audit phase 07 (zéro trafic réseau pour les tuiles en airplane mode, robustesse pipeline téléchargement par pays, seam `PmtilesSource` local-only) (5/5 plans — 08-REVIEW status=closed, CI green on 254b5d2, 49 fix+refactor commits via Strategy A per-finding across 5 session relays, 6 over-state-machine + 3 fix-on-fix smell refactors landed, first review-gate encoding of CLAUDE.md 2026-04-23 smell heuristics delta, Phase 09 unblocked) (completed 2026-04-24)
 - [x] **Phase 09: Fog Rendering** - MirkRenderer interface + style atmosphérique animé par défaut + viewport filtering + RevealedAreaController (completed 2026-04-25)
-- [x] **Phase 10: Review Gate — Fog** - Audit phase 09 (perf 50k-tile fixture, RepaintBoundary isolation, seam stable) (completed 2026-04-25)
+- [ ] **Phase 09.1: Port-back same-canvas fog (flutter_map migration)** (INSERTED) - Remplacer maplibre_gl par flutter_map 7.0.2 + vector_map_tiles pour peindre le fog dans le même Canvas que les tuiles ; ferme BUG-014 (fog qui ne suit pas la caméra), validé par le POC `mirk-poc-debug` @ 90c9321
+- [ ] **Phase 10: Review Gate — Fog** - Audit phase 09 + 09.1 (perf rendu same-canvas, coût rebuild SDF vs volume de disques, seam `MirkRenderer` stable, gate import flutter_map)
 - [ ] **Phase 11: Markers & Categories** - MarkerIconPack + default RPG pack + markers CRUD + photos + catégories CRUD + under-mirk visibility
 - [ ] **Phase 12: Review Gate — Markers** - Audit phase 11 (pas d'orphan photos, paths relatifs, EXIF strip, icons pack seam)
 - [ ] **Phase 13: Import/Export, Mirk Styles & Options** - Envelope JSON versionné + ZIP archive + transactional import + style JSON import + écran options global
@@ -213,9 +213,36 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
 - [x] 09-fog-rendering/09-07-PLAN.md — Wave 6: MirkOverlay + MirkInitialRevealFade (500ms fade) + mapViewportProvider + MirkStylePickerSheet + burger menu wire-up + MapScreen integration (completed 2026-04-25)
 - [x] 09-fog-rendering/09-08-PLAN.md — Wave 7: 50k fixture builder + perf test + RepaintBoundary isolation + viewport filtering tests + _harness.dart + fake_revealed_tile_store extensions + docs closure (completed 2026-04-25)
 
+### Phase 09.1: Port-back same-canvas fog (flutter_map migration) (INSERTED)
+
+**Goal:** Le fog suit la caméra sans aucun décalage visible pendant pan / zoom / gestes combinés. Pour ça, remplacer le moteur de carte `maplibre_gl` (platform view, pipeline GL séparé) par `flutter_map 7.0.2` + `vector_map_tiles` + `vector_map_tiles_pmtiles`, et rendre le fog comme enfant direct du `FlutterMap` (même Canvas, même frame). Porter le fix bundle validé par le POC `mirk-poc-debug` @ `90c9321` (VERDICT.md : PORT BACK ; PORTBACK.md : playbook fichier-par-fichier, ABI shader 42 slots, 10 invariants, FOG-23 Android). Ferme BUG-014.
+**Requirements**: MIRK-01..05 (re-validation après changement de moteur), MAP-01 (zéro réseau tuiles), MAP-05..08 (pipeline pays inchangé)
+**Depends on:** Phase 09 (disques BUG-010, `DriftRevealedDiscStore` v6, providers Riverpod, picker de styles)
+**Context:** `09.1-CONTEXT.md` (scope, décisions, invariants, points d'intégration, tests touchés)
+**Success Criteria** (what must be TRUE):
+  1. Plus aucun import `maplibre_gl` dans le repo ; `flutter pub deps` sans MapLibre ; les 6 nouveaux packages pinnés et audités dans `DEPENDENCIES.md` (licences + télémétrie + transitives) ; tous les gates CI verts
+  2. Le fog est rendu par un `FogLayer` enfant du `FlutterMap`, entre la couche tuiles et le blue dot ; les 10 invariants PORTBACK §5 sont préservés ; le test keystone FOG-07 (`fog_layer_camera_snapshot_test`) tourne en CI comme gate de régression
+  3. UAT iPhone (cible primaire) : zéro déplacement visible du fog pendant pan, zoom et gestes combinés, sur une session avec disques persistés (le fog survit à un redémarrage de l'app). UAT Pixel 4a : aucune stripe horizontale (FOG-23), médiane ≥ 30 fps informative
+  4. Aucune régression Phase 07 : airplane mode zéro réseau, hot-swap pays, follow-me, thèmes `standard` / `rpgParchment` rendus via le style MirkFall, téléchargement pays
+  5. Wisps ancrés monde (`LatLng` + m/s) : pas de dérive au zoom, spawn sur émergence de disque, jamais de contact avec le `SdfCache`
+  6. Le seam `MirkRenderer` reste pur (aucun type flutter_map dans `lib/domain`), `MirkPaintContext` étendu une seule fois ; les 4 variants builtin restent sélectionnables ; le gate d'import flutter_map remplace `check_avoid_maplibre_leak`
+  7. BUG-014 fermé dans `docs/phase09-bug-tracking/` ; décision "moteur flutter_map same-canvas" enregistrée dans `PROJECT.md` Key Decisions
+**Plans:** 8 plans (6 waves — planned 2026-09-09)
+
+Plans:
+- [ ] 09.1-01-PLAN.md — Wave 1 : 6 packages flutter_map pinnés + audit DEPENDENCIES.md, gate `check_avoid_flutter_map_leak` (remplace maplibre), constantes Phase 09.1 (maplibre_gl conservé une wave : compile-green)
+- [ ] 09.1-02-PLAN.md — Wave 2 : `MapThemeLoader` + style 6 couches (sans `mirk_fog`), adapter `FlutterMapMapViewWidget` / `MapView` à 13 membres, `PmtilesSource` chemin absolu, retrait de `maplibre_gl` + assets glyphs/sprites
+- [ ] 09.1-03-PLAN.md — Wave 2 : extension unique de `MirkPaintContext`, `MirkRenderer` à 3 membres, ABI shader 42 slots (`uPixelOrigin` + `uZoomScale`), FOG-21/23 en fonction pure, seam `FogShaderRenderer`
+- [ ] 09.1-04-PLAN.md — Wave 3 : `FogLayer` same-canvas (FOG-06/07/12/13/18/19/21/23) + `fog_clip_path` / `fog_clip_geometry`, loggers diag verbose-only, 13 tests widget POC dont le keystone FOG-07
+- [ ] 09.1-05-PLAN.md — Wave 3 : `SdfCache` (debounce 200 ms conservé), wisps en coordonnées monde (`GeoPoint` + m/s, `spawnAtNewDisc`, warm-up), firewall wisp/SDF, rendu wisps après le drawRect
+- [ ] 09.1-06-PLAN.md — Wave 4 : clip possédé par `FogLayer`, 4 variants adaptés (candlelight projection exacte, heavenly noise ancré `pixelOrigin`/`zoomScale`, solid_fill invariant), picker / factory / tunables
+- [ ] 09.1-07-PLAN.md — Wave 5 : `FogLayerConnector` + composition `FlutterMap(children: [VectorTileLayer, MirkInitialRevealFade(FogLayer), CircleLayer])`, suppression `MirkOverlay` + 5 tests, tests d'intégration, CI verte
+- [ ] 09.1-08-PLAN.md — Wave 6 : UAT checkpoint iPhone (primaire) + Pixel 4a, clôture docs (BUG-014 fermé, PROJECT.md, READMEs, deferred-items, REQUIREMENTS amendés)
+
 ### Phase 10: Review Gate — Fog
 **Goal**: Auditer la perf du rendu et la pureté du seam `MirkRenderer`. Le rendu shader V1.x doit pouvoir arriver sans toucher au reste.
-**Depends on**: Phase 09
+**Depends on**: Phase 09.1 (le rendu audité est le rendu same-canvas flutter_map, pas l’overlay MapLibre de Phase 09)
+**Note 2026-09-09**: SC#1 ci-dessous est obsolète (la grille sub-tile + le batch flush ont disparu avec BUG-010 / disques continus). À réécrire pendant `discuss-phase 10` autour de : coût rebuild SDF vs volume de disques persistés, budget frame PERF-07 iPhone + Pixel 4a, pureté du seam après extension de `MirkPaintContext`, gate d’import flutter_map.
 **Requirements**: —
 **Success Criteria** (what must be TRUE):
   1. Profiling DevTools archivé sur la fixture 50k-tiles ; décision finale sur sub-tile grid size (O1) et batch flush threshold (O2) documentée dans PROJECT.md Key Decisions
@@ -345,6 +372,6 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 
 ---
 *Roadmap initial défini: 2026-04-17*
-*Last updated: 2026-04-25 — Phase 09 Fog Rendering closed. 10/10 plans complete (revision B5 split: 09-01 → 09-01 + 09-01b + 09-01c). End-to-end visual loop closed: GPS fix → reveal mask → DB → Riverpod → MirkOverlay paints fog. 4 builtin renderers (atmospheric/solid/candlelight/heavenly_clouds). Hand-rolled simplex held — zero new deps. RepaintBoundary isolation + viewport filtering + 50k-tile perf probe regression-tested. Phase 10 Review Gate — Fog unblocked.*
+*Last updated: 2026-09-09 — Phase 09.1 inserted (port-back same-canvas fog, flutter_map migration, closes BUG-014); Phase 10 un-ticked (never started) and re-based on 09.1. Previous: 2026-04-25 — Phase 09 Fog Rendering closed. 10/10 plans complete (revision B5 split: 09-01 → 09-01 + 09-01b + 09-01c). End-to-end visual loop closed: GPS fix → reveal mask → DB → Riverpod → MirkOverlay paints fog. 4 builtin renderers (atmospheric/solid/candlelight/heavenly_clouds). Hand-rolled simplex held — zero new deps. RepaintBoundary isolation + viewport filtering + 50k-tile perf probe regression-tested. Phase 10 Review Gate — Fog unblocked.*
 *Previous update: 2026-04-24 — Phase 08 Review Gate — Map closed. 5/5 plans complete. 49 fix+refactor commits via Strategy A per-finding atomic strategy across 5 session relays. First review-gate encoding of CLAUDE.md 2026-04-23 smell-heuristics delta (9 smell-tagged refactors shipped). Phase 09 Fog Rendering unblocked.*
 *Previous update: 2026-04-20 — Phase 07 CONTEXT amendments : catalog en asset bundlé (au lieu de `kMapCatalogUrl`), chunks binaires multi-parts (au lieu de "ZIPs multi-parts", pas d'archive à extraire), style carte + mirk par session (amendement MIRK-10 / PROJECT.md Out of Scope). Phase 07 ROADMAP Goal + SC#6/7/9 + Phase 08 Goal + SC#1/3 mis à jour.*
