@@ -234,8 +234,8 @@ void main() {
       final CountryResolverState seed = CountryResolverState(viewportCountry: CountryCode.parse('deu'));
 
       await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed));
-      // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
-      // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+      // Phase 09.1 — the FogLayer's Ticker runs forever, so a bare
+      // pumpAndSettle never settles. Fixed-cadence pumps suffice
       // here: the route bootstrap + post-frame callbacks land in a
       // handful of frames and we don't need the test to wait for
       // animations.

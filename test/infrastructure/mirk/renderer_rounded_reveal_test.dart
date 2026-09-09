@@ -3,9 +3,9 @@
 // See LICENSE file for details
 
 // BUG-006 regression test — guards against the "stair-step grid of squares"
-// pattern around the reveal radius. Moved from
-// `test/presentation/widgets/mirk_overlay_rounded_reveal_test.dart` in Phase
-// 09.1 plan 09.1-06 (C4): the suite never touched `MirkOverlay`; it exercises
+// pattern around the reveal radius. Moved from the overlay-era widget suite
+// (`test/presentation/widgets/`) in Phase 09.1 plan 09.1-06 (C4): the suite
+// never touched the screen-space overlay widget; it exercises
 // the four builtin renderers under the composition the `FogLayer` applies
 // (ONE `clipPath(rect − discs)` per frame, then `renderer.paint`), reproduced
 // by `renderToBytes` / `paintLikeFogLayer` in `_render_helpers.dart`.

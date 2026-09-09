@@ -13,15 +13,21 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../config/constants.dart';
 import '../../infrastructure/logging/file_logger.dart';
+import '../../infrastructure/mirk/dev_marker_logger.dart';
 
 /// Hidden debug menu reached via 7-tap on the `/about` placeholder.
 ///
 /// Phase 01 exposes three controls: a verbose-logging switch (toggles the
 /// SharedPreferences flag read by [FileLogger.bootstrap]), a list of log
 /// files on disk with per-file Share buttons, and a Clear-all action. Phase
-/// 15 (OPT-07) exposes the same verbose toggle as an options entry.
+/// 15 (OPT-07) exposes the same verbose toggle as an options entry. Phase
+/// 09.1 adds the dev-marker entry (a timestamped JSONL line, verbose-only)
+/// so a walk-time observation can be correlated with the fog diagnostics.
 class DebugMenuScreen extends StatefulWidget {
-  const DebugMenuScreen({super.key});
+  const DebugMenuScreen({super.key, this.devMarkerLogger = const DevMarkerLogger()});
+
+  /// Emitter behind the « Marquer une anomalie » entry (injected for tests).
+  final DevMarkerLogger devMarkerLogger;
 
   @override
   State<DebugMenuScreen> createState() => _DebugMenuScreenState();
@@ -36,6 +42,9 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
   // build time, displayed alongside the prefs flag so users / devs can tell
   // which channel is driving the current log level.
   static const bool _debugDefine = bool.fromEnvironment('DEBUG');
+
+  /// `tag` of the dev-marker line written from this menu (POC key).
+  static const String _manualMarkerLabel = 'manual';
 
   @override
   void initState() {
@@ -163,6 +172,14 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
     }
   }
 
+  /// Writes a `dev_marker` line (verbose-only) and tells the user whether it
+  /// was actually emitted, so a marker tapped with verbose off is not silently lost.
+  void _onMarkAnomaly() {
+    widget.devMarkerLogger.mark(_manualMarkerLabel);
+    final bool emitted = _debugDefine || _verbose;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(emitted ? 'Marqueur écrit dans les logs' : 'Verbose désactivé — marqueur ignoré')));
+  }
+
   Future<void> _onClearAll() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -216,6 +233,13 @@ class _DebugMenuScreenState extends State<DebugMenuScreen> {
             title: const Text('Partager la base de données'),
             subtitle: const Text('Exporte mirkfall.db + -wal + -shm via le share sheet (iOS-friendly).'),
             onTap: _onShareDatabase,
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.flag_outlined),
+            title: const Text('Marquer une anomalie (dev marker)'),
+            subtitle: const Text('Écrit un marqueur horodaté dans les logs verbose (corrélation avec les rollups fog).'),
+            onTap: _onMarkAnomaly,
           ),
           const Divider(),
           ListTile(leading: const Icon(Icons.delete_forever), title: const Text('Supprimer tous les logs'), onTap: _onClearAll),

@@ -18,11 +18,11 @@ import 'package:mirkfall/domain/map/map_view.dart';
 import 'package:mirkfall/infrastructure/map/flutter_map_map_view.dart';
 import 'package:mirkfall/infrastructure/map/pmtiles_source.dart';
 
+import '../widgets/fog_layer_connector.dart';
 import '../widgets/map_attribution_icon.dart';
 import '../widgets/map_country_banner.dart';
 import '../widgets/map_follow_me_fab.dart';
 import '../widgets/mirk_initial_reveal_fade.dart';
-import '../widgets/mirk_overlay.dart';
 import '../widgets/mirk_tuner_sheet.dart';
 import '../widgets/session_burger_menu.dart';
 
@@ -31,15 +31,20 @@ final Logger _log = Logger('presentation.map_screen');
 /// Builder signature used for injecting a fake map widget in widget tests
 /// without dragging flutter_map into the test runner. Production code
 /// always goes through the default [FlutterMapMapViewWidget] constructor.
-/// [fogLayers] are the widgets the map mounts on its own canvas above the
-/// tiles (empty until plan 09.1-07 moves the fog there).
+/// [fogLayers] are the widgets the map mounts on its OWN canvas between the
+/// tiles and the user puck — the same-canvas fog
+/// (`MirkInitialRevealFade(child: FogLayerConnector())`). A test builder must
+/// mount them inside a real `FlutterMap` (the fog reads `MapCamera.of`).
 typedef MapViewWidgetBuilder = Widget Function({required ValueChanged<MapView> onReady, required List<Widget> fogLayers});
 
 /// Full-screen map route (`/map`).
 ///
 /// Layers (bottom-to-top):
 /// 1. [FlutterMapMapViewWidget] — sole flutter_map consumer; publishes a
-///    [MapView] adapter via `mapViewProvider` on `onReady`.
+///    [MapView] adapter via `mapViewProvider` on `onReady`. Hosts the fog as
+///    one of its own children (`fogLayers`): [MirkInitialRevealFade] →
+///    [FogLayerConnector] → `FogLayer`, painted on the SAME canvas as the
+///    tiles, between them and the user puck (Phase 09.1 — the BUG-014 fix).
 /// 2. Top-left: burger menu IconButton — opens [SessionBurgerMenu] as a
 ///    [Scaffold]'s drawer. Responsive width (75% portrait / 40% landscape)
 ///    handled by the drawer itself.
@@ -233,31 +238,25 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           .read(countryResolverControllerProvider.notifier)
           .resolveForPoint(latitude: tracking!.lastFix!.latitude, longitude: tracking.lastFix!.longitude, zoom: kInitialSessionMapZoom.toDouble());
     }
-    // `fogLayers` is left at its EMPTY default in plan 09.1-02: the fog
-    // is still the MirkOverlay sibling below. Plan 09.1-07 passes
-    // `fogLayers: [MirkInitialRevealFade(child: FogLayerConnector())]`
-    // here so the fog is painted on the same canvas as the tiles
-    // (BUG-014).
+    // Phase 09.1: the fog is a CHILD of the FlutterMap (`fogLayers`), painted
+    // in the same Canvas / the same frame as the tiles — the architectural
+    // answer to BUG-014. No repaint-boundary widget around it (it would
+    // re-create a one-frame lag) and no pointer-ignoring wrapper (the
+    // FogLayer's CustomPaint does not capture pointers). MirkInitialRevealFade
+    // fades the initial reveal 0 → 1 over 500 ms at session start.
+    const List<Widget> fogLayers = <Widget>[MirkInitialRevealFade(child: FogLayerConnector())];
     final Widget mapWidget = widget.mapViewBuilderForTest != null
-        ? widget.mapViewBuilderForTest!(onReady: _onMapReady, fogLayers: const <Widget>[])
-        : FlutterMapMapViewWidget(pmtilesSource: source, onReady: _onMapReady, initialCamera: initialCamera, initialCountry: initialCountry);
+        ? widget.mapViewBuilderForTest!(onReady: _onMapReady, fogLayers: fogLayers)
+        : FlutterMapMapViewWidget(
+            pmtilesSource: source,
+            onReady: _onMapReady,
+            initialCamera: initialCamera,
+            initialCountry: initialCountry,
+            fogLayers: fogLayers,
+          );
     return Stack(
       children: <Widget>[
         Positioned.fill(child: mapWidget),
-        // Phase 09 mirk overlay — TEMPORARILY still a sibling of the map
-        // (screen-space CustomPaint, lags the camera: BUG-014). Plan
-        // 09.1-07 removes this entry and mounts `FogLayer` inside the
-        // FlutterMap children instead. Wrapped in MirkInitialRevealFade
-        // so the initial 20 m reveal fades from opacity 0 → 1 over
-        // 500 ms at session start. RepaintBoundary isolates the noise
-        // tick from the rest of the Stack. IgnorePointer: the overlay is
-        // purely visual — pan, pinch and zoom must reach the map
-        // underneath (caught during the BUG-003 UAT walk on 2026-04-25).
-        const Positioned.fill(
-          child: IgnorePointer(
-            child: RepaintBoundary(child: MirkInitialRevealFade(child: MirkOverlay())),
-          ),
-        ),
         // Top-left controls: back button (when poppable) + burger menu.
         // Back stays left-most so the iOS pattern "back = top-left" is
         // preserved. Android also gets the button — harmless next to the

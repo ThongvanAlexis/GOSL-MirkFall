@@ -51,8 +51,8 @@ Future<MirkRenderer> activeMirkRenderer(Ref ref) async {
   final factory = ref.watch(mirkRendererFactoryProvider);
 
   // 1. No session → Noop. Loading / error AsyncValue states also
-  //    surface as Noop — the UI's `MirkOverlay` (plan 09-07) is
-  //    expected to be silent on a not-yet-loaded session.
+  //    surface as Noop — the `FogLayerConnector` (plan 09.1-07) renders
+  //    nothing while this provider itself is still loading.
   final sessionState = sessionAsync.value;
   final activeSessionId = switch (sessionState) {
     Tracking(:final sessionId) => sessionId,

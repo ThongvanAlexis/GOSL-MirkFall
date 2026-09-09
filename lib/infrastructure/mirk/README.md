@@ -43,18 +43,18 @@ Phase 13 adds a 5th path — JSON-authored user styles enter through `UnknownCon
 | `tool/check_mirk_variant_file_count.dart` (CI) | Exactly 6 `*_mirk_renderer.dart` files (4 builtins + noop + shader stub) | `.github/workflows/ci.yml` "Check mirk variant file count" step |
 | `test/domain/mirk/mirk_renderer_contract_test.dart` | `MirkRenderer` surface stays at exactly 3 public methods | `flutter test` |
 | `test/infrastructure/mirk/builtin_renderers_visual_distinct_test.dart` | No two built-ins produce identical pixel output | `flutter test` (plan 09-04) |
-| `test/presentation/map_screen_repaint_boundary_test.dart` | `MirkOverlay`'s ticker does not rebuild Stack siblings | `flutter test` (plan 09-08) |
+| `test/presentation/screens/map_screen_fog_composition_test.dart` | The `FogLayer` is a child of the `FlutterMap` (no `RepaintBoundary` / `IgnorePointer` around it), gestures reach the map, an in-session renderer swap repaints, the fog Ticker never rebuilds Stack siblings | `flutter test` (plan 09.1-07) |
 | `test/presentation/map_screen_viewport_filtering_test.dart` | Only viewport-intersecting parent tiles are queried | `flutter test` (plan 09-08) |
 | `test/performance/fog_50k_tiles_perf_test.dart` (`@Tags(['mirk-perf'])`) | 50k-fixture paint pass stays within widget-test budget | `flutter test --tags mirk-perf` (plan 09-08) |
 | `tool/check_mirk_fixture_fresh.dart` (CI) | Committed `fifty_k_tiles_seed.sql.gz` matches the deterministic builder output | `.github/workflows/ci.yml` "Check mirk fixture fresh" step |
 
 ## Rendering strategy
 
-Per `09-RESEARCH.md §Rendering Strategy Decision`: the mirk is rendered as a **Flutter `CustomPainter` overlay above the MapLibre platform view**, NOT as a MapLibre `fill` layer. Trade-off: we gain Flutter's full `Canvas` API (`MaskFilter.blur`, `Path`, custom paints) at the cost of paying for one extra layer composition. The Phase 11 marker-under-mirk (MARK-07) composite-trick is delivered by MapLibre-native `addCircle` / `addSymbol` annotations, NOT by interleaving a markers layer below `mirk_fog`. See `lib/infrastructure/map/style_layer_order.dart` for the layer-order contract.
+Phase 09.1 (`09.1-RESEARCH.md`, port-back of the `mirk-poc-debug` POC): the mirk is painted by a **Flutter `CustomPainter` mounted as a child of the `FlutterMap`** (`FlutterMapMapViewWidget.fogLayers`, between the vector tile layer and the user puck), on the SAME canvas and in the SAME frame as the tiles, from ONE `MapCamera` snapshot per build (FOG-07). The Phase 09 shape — a screen-space overlay above a native platform view, one frame behind the camera — was BUG-014; it is gone. The `FogLayer` owns the single reveal clip per frame and hands the renderers a typed `MirkPaintContext` (projection closures, world-pixel origin, zoom scale); the renderers never see a `MapCamera`. See `lib/infrastructure/map/style_layer_order.dart` for the tile layer-order contract.
 
 ## References
 
 - `.planning/phases/09-fog-rendering/` — full Phase 09 rationale (CONTEXT, RESEARCH, plan series 09-01 → 09-08).
 - `09-RESEARCH §Noise Function Choice` — hand-rolled simplex chosen over `fast_noise` / `open_simplex_noise`; zero new dep.
 - `09-RESEARCH §Registration Pattern Choice` — registry + factory + sealed exhaustiveness.
-- `09-RESEARCH §Pitfall 2` — MapLibre is a platform view, opaque to Flutter's paint pipeline; the overlay must sit ABOVE it in the Stack.
+- `.planning/phases/09.1-port-back-same-canvas-fog-flutter-map-migration/` — same-canvas port-back (CONTEXT, RESEARCH, plans 09.1-01 → 09.1-08): why the fog is a `FlutterMap` child, the `MirkPaintContext` seam, the FOG-07 keystone.

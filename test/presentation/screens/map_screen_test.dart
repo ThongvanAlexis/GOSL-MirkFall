@@ -5,8 +5,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
 import 'package:mirkfall/application/controllers/country_resolver_controller.dart';
 import 'package:mirkfall/application/controllers/map_camera_controller.dart';
@@ -28,14 +30,16 @@ import 'package:mirkfall/presentation/widgets/map_follow_me_fab.dart';
 import '../../fakes/fake_installed_manifest_repository.dart';
 import '../../fakes/fake_map_view.dart';
 
-/// Stub fake builder widget that stands in for the flutter_map surface
-/// (`fogLayers` is ignored — empty in plan 09.1-02). Calls [onReady] with
-/// a [FakeMapView] immediately after the first frame so downstream
-/// controllers see a MapView instance via `mapViewProvider`.
+/// Stand-in for the engine widget: a REAL `FlutterMap` (no tile layer, so
+/// nothing touches the disk or the network) hosting the `fogLayers`
+/// MapScreen passes, exactly where `FlutterMapMapViewWidget` mounts them.
+/// Calls [onReady] with a [FakeMapView] immediately after the first frame so
+/// downstream controllers see a MapView instance via `mapViewProvider`.
 class _FakeMapWidget extends StatefulWidget {
-  const _FakeMapWidget({required this.onReady, required this.fakeMapView});
+  const _FakeMapWidget({required this.onReady, required this.fakeMapView, required this.fogLayers});
   final ValueChanged<MapView> onReady;
   final FakeMapView fakeMapView;
+  final List<Widget> fogLayers;
 
   @override
   State<_FakeMapWidget> createState() => _FakeMapWidgetState();
@@ -51,7 +55,10 @@ class _FakeMapWidgetState extends State<_FakeMapWidget> {
   }
 
   @override
-  Widget build(BuildContext context) => const ColoredBox(color: Color(0xFFEFEFEF));
+  Widget build(BuildContext context) => FlutterMap(
+    options: const MapOptions(initialCenter: LatLng(0, 0), initialZoom: kMapWorldOverviewZoom),
+    children: widget.fogLayers,
+  );
 }
 
 /// Fake resolver controller that seeds the country-resolver state.
@@ -129,7 +136,7 @@ void main() {
       child: MaterialApp(
         home: MapScreen(
           mapViewBuilderForTest: ({required ValueChanged<MapView> onReady, required List<Widget> fogLayers}) {
-            return _FakeMapWidget(onReady: onReady, fakeMapView: fakeMapView);
+            return _FakeMapWidget(onReady: onReady, fakeMapView: fakeMapView, fogLayers: fogLayers);
           },
         ),
       ),
@@ -139,8 +146,8 @@ void main() {
   testWidgets('renders map stack: burger button + follow-me FAB + attribution icon', (tester) async {
     final fakeMapView = FakeMapView();
     await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView));
-    // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
-    // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+    // Phase 09.1 — the FogLayer's Ticker runs forever, so a bare
+    // pumpAndSettle never settles. Fixed-cadence pumps suffice
     // here: the route bootstrap + post-frame callbacks land in 2-3
     // frames and we don't need the test to wait for animations.
     await tester.pump();
@@ -158,8 +165,8 @@ void main() {
     final fakeMapView = FakeMapView();
     final CountryResolverState seed = CountryResolverState(viewportCountry: CountryCode.parse('deu'));
     await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed));
-    // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
-    // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+    // Phase 09.1 — the FogLayer's Ticker runs forever, so a bare
+    // pumpAndSettle never settles. Fixed-cadence pumps suffice
     // here: the route bootstrap + post-frame callbacks land in 2-3
     // frames and we don't need the test to wait for animations.
     await tester.pump();
@@ -177,8 +184,8 @@ void main() {
       viewportInInstalled: true,
     );
     await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, resolverSeed: seed));
-    // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
-    // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+    // Phase 09.1 — the FogLayer's Ticker runs forever, so a bare
+    // pumpAndSettle never settles. Fixed-cadence pumps suffice
     // here: the route bootstrap + post-frame callbacks land in 2-3
     // frames and we don't need the test to wait for animations.
     await tester.pump();
@@ -192,16 +199,16 @@ void main() {
   testWidgets('tap on menu icon opens the drawer', (tester) async {
     final fakeMapView = FakeMapView();
     await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView));
-    // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
-    // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+    // Phase 09.1 — the FogLayer's Ticker runs forever, so a bare
+    // pumpAndSettle never settles. Fixed-cadence pumps suffice
     // here: the route bootstrap + post-frame callbacks land in 2-3
     // frames and we don't need the test to wait for animations.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
     await tester.tap(find.byIcon(Icons.menu));
-    // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
-    // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+    // Phase 09.1 — the FogLayer's Ticker runs forever, so a bare
+    // pumpAndSettle never settles. Fixed-cadence pumps suffice
     // here: the route bootstrap + post-frame callbacks land in 2-3
     // frames and we don't need the test to wait for animations.
     await tester.pump();
@@ -230,8 +237,8 @@ void main() {
 
     final fakeMapView = FakeMapView();
     await tester.pumpWidget(wrapScreen(fakeMapView: fakeMapView, sessionSeed: tracking));
-    // Phase 09 plan 09-07 — MirkOverlay's Ticker runs forever, so a
-    // bare pumpAndSettle never settles. Fixed-cadence pumps suffice
+    // Phase 09.1 — the FogLayer's Ticker runs forever, so a bare
+    // pumpAndSettle never settles. Fixed-cadence pumps suffice
     // here: the route bootstrap + post-frame callbacks land in 2-3
     // frames and we don't need the test to wait for animations.
     await tester.pump();

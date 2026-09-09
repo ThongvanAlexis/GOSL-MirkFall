@@ -11,8 +11,13 @@ import 'package:mirkfall/config/constants.dart';
 /// Fades the initial 20 m reveal from opacity 0 to 1 over
 /// [`kInitialRevealFadeInMs`] (500 ms) at session start.
 ///
-/// Uses a dedicated `AnimationController`, decoupled from the main
-/// [`MirkOverlay`] Ticker — the fade is a one-shot session-open
+/// Mounted INSIDE the `FlutterMap` children around the `FogLayer`
+/// (`fogLayers` slot, plan 09.1-07): `MapCamera.of(context)` resolves
+/// through the [FadeTransition] (an `InheritedModel` lookup), so the
+/// keystone FOG-07 single-snapshot read is unaffected.
+///
+/// Uses a dedicated `AnimationController`, decoupled from the
+/// `FogLayer`'s per-frame Ticker — the fade is a one-shot session-open
 /// animation tied to [`ActiveSessionController`] entering `Tracking`
 /// (research §In-Session Style Swap Lifecycle). Coupling the fade
 /// duration to the noise tick frequency would be the wrong abstraction.
@@ -28,7 +33,7 @@ import 'package:mirkfall/config/constants.dart';
 class MirkInitialRevealFade extends ConsumerStatefulWidget {
   const MirkInitialRevealFade({super.key, required this.child});
 
-  /// Wrapped widget — typically the [`MirkOverlay`].
+  /// Wrapped widget — the `FogLayerConnector` in production.
   final Widget child;
 
   @override

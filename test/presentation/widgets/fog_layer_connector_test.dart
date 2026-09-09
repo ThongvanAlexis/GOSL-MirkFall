@@ -6,7 +6,7 @@
 // same-canvas fog: watches the active renderer, the throttled viewport bbox, the
 // disc query (on the PADDED bbox) and the session fix, and mounts a `FogLayer`
 // inside the `FlutterMap` children. Carries the BUG-012 anti-strobe rule from the
-// deleted `MirkOverlay` (last known discs kept while the query reloads).
+// deleted screen-space overlay (last known discs kept while the query reloads).
 
 import 'dart:async';
 import 'dart:io';

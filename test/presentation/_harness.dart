@@ -3,31 +3,38 @@
 // See LICENSE file for details
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
+import 'package:mirkfall/presentation/widgets/fog_layer_connector.dart';
 import 'package:mirkfall/presentation/widgets/mirk_initial_reveal_fade.dart';
-import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
+
+/// Camera of the harness map — Paris at the in-session zoom.
+const LatLng kHarnessMapCentre = LatLng(48.85, 2.35);
+const double kHarnessMapZoom = 15.0;
 
 /// Test-only harness that mimics the [`MapScreen`] Stack structure with
 /// injection hooks for the sibling widgets (attribution, FAB, banner,
 /// chip).
 ///
-/// Tests pass counter-wrapped builders to verify the mirk Ticker does not
-/// trigger rebuilds of siblings (SC#4 RepaintBoundary isolation
-/// regression — plan 09-08 Task 2). The structure mirrors
-/// [`MapScreen._buildMapStack`] (`lib/presentation/screens/map_screen.dart`):
-/// a `Stack` with a base layer (proxy for the flutter_map surface), a
-/// `RepaintBoundary` wrapping `MirkInitialRevealFade(MirkOverlay)`, and 4
-/// sibling positioned widgets supplied via builders.
+/// The structure mirrors [`MapScreen._buildMapStack`]
+/// (`lib/presentation/screens/map_screen.dart`) after Phase 09.1: the base
+/// layer is a REAL `FlutterMap` (no tile layer) hosting
+/// `MirkInitialRevealFade(FogLayerConnector())` as one of its CHILDREN — the
+/// same-canvas composition — and 4 sibling positioned widgets supplied via
+/// builders. Tests pass counter-wrapped builders to verify the `FogLayer`'s
+/// per-frame Ticker does not rebuild the siblings (it drives the painter's
+/// `repaint:` Listenable, never `setState`, which is why no `RepaintBoundary`
+/// wraps the fog any more).
 ///
 /// Wrap in [`ProviderScope`] (with the necessary overrides for
 /// [`activeSessionControllerProvider`], [`activeMirkRendererProvider`],
-/// [`discsInViewportProvider`], [`mapViewportProvider`], and
-/// [`mapViewportZoomProvider`]) before pumping.
+/// [`discsInViewportProvider`] and [`mapViewportProvider`]) before pumping.
 class TestMapScreenHarness extends StatelessWidget {
-  const TestMapScreenHarness({super.key, this.attributionBuilder, this.fabBuilder, this.bannerBuilder, this.chipBuilder});
+  const TestMapScreenHarness({super.key, this.attributionBuilder, this.fabBuilder, this.bannerBuilder, this.chipBuilder, this.mapController});
 
   /// Counter-wrapped attribution widget. Production uses
   /// [`MapAttributionIcon`]; tests pass a spy that increments a counter
-  /// on each build to assert the mirk Ticker does NOT cascade rebuilds.
+  /// on each build to assert the fog Ticker does NOT cascade rebuilds.
   final WidgetBuilder? attributionBuilder;
 
   /// Counter-wrapped follow-me FAB widget.
@@ -39,20 +46,21 @@ class TestMapScreenHarness extends StatelessWidget {
   /// Counter-wrapped download progress chip widget.
   final WidgetBuilder? chipBuilder;
 
+  /// Optional controller so a test can read / drive the harness camera.
+  final MapController? mapController;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         body: Stack(
           children: <Widget>[
-            // Base map proxy — production hosts a `FlutterMapMapViewWidget`
-            // here. A plain `ColoredBox` is sufficient for the harness
-            // because the boundary isolation test only cares that the
-            // ticker repaint does NOT bleed into siblings; the base
-            // layer's own widget identity is irrelevant.
-            const Positioned.fill(child: ColoredBox(color: Color(0xFF202020))),
-            const Positioned.fill(
-              child: RepaintBoundary(child: MirkInitialRevealFade(child: MirkOverlay())),
+            Positioned.fill(
+              child: FlutterMap(
+                mapController: mapController,
+                options: const MapOptions(initialCenter: kHarnessMapCentre, initialZoom: kHarnessMapZoom),
+                children: const <Widget>[MirkInitialRevealFade(child: FogLayerConnector())],
+              ),
             ),
             if (attributionBuilder != null)
               Align(

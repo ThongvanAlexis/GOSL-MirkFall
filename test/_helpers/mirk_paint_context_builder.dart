@@ -25,7 +25,7 @@ import 'package:mirkfall/infrastructure/mirk/mirk_projection.dart';
 const Size kTestPaintContextCanvasSize = Size(256, 256);
 
 /// Neutral camera inputs: no world-pixel origin, reference zoom, identity SDF rect, no
-/// MobileLayerTransformer translation. Matches what `MirkOverlay` passes until plan 09.1-07.
+/// MobileLayerTransformer translation. What the pre-09.1 screen-space overlay passed.
 const ({double x, double y}) kTestNeutralPixelOrigin = (x: 0.0, y: 0.0);
 const double kTestNeutralZoomScale = 1.0;
 const (double, double, double, double) kTestIdentitySdfRect = (0.0, 0.0, 1.0, 1.0);
@@ -35,7 +35,7 @@ const ({double dx, double dy}) kTestNeutralCanvasOffset = (dx: 0.0, dy: 0.0);
 MirkViewportBbox parisTestViewport() => MirkViewportBbox(south: 48.84, west: 2.34, north: 48.86, east: 2.36);
 
 /// Full paint context for renderer / overlay / domain tests. Defaults: Paris viewport,
-/// 256×256 canvas, linear projection inside the bbox (what `MirkOverlay` did before Phase
+/// 256×256 canvas, linear projection inside the bbox (what the screen-space overlay did before Phase
 /// 09.1), no platform correction. Every field is overridable by named parameter.
 ///
 /// The default [metersToPixels] is the linear latitude-axis scale of the viewport

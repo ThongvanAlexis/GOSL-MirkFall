@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/infrastructure/logging/file_logger.dart';
+import 'package:mirkfall/infrastructure/mirk/dev_marker_logger.dart';
 import 'package:mirkfall/presentation/screens/debug_menu_screen.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
@@ -25,6 +26,14 @@ class _FakePathProvider extends PathProviderPlatform with MockPlatformInterfaceM
 
   @override
   Future<String?> getTemporaryPath() async => _root.path;
+}
+
+/// Records every [mark] label instead of writing a JSONL line.
+class _SpyDevMarkerLogger extends DevMarkerLogger {
+  final List<String> labels = <String>[];
+
+  @override
+  void mark(String label) => labels.add(label);
 }
 
 void main() {
@@ -73,6 +82,26 @@ void main() {
     expect(find.text('Supprimer tous les logs'), findsOneWidget);
     expect(find.textContaining('Active: '), findsOneWidget);
     expect(find.textContaining('(none)'), findsNothing);
+  });
+
+  testWidgets('Tapping « Marquer une anomalie » emits a manual dev marker through the injected logger (09.1-07)', (WidgetTester tester) async {
+    final _SpyDevMarkerLogger spy = _SpyDevMarkerLogger();
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(home: DebugMenuScreen(devMarkerLogger: spy)),
+      ),
+    );
+    await settleRefresh(tester);
+
+    final Finder entry = find.text('Marquer une anomalie (dev marker)');
+    await tester.ensureVisible(entry);
+    await tester.pump();
+    await tester.tap(entry);
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(spy.labels, equals(<String>['manual']));
+    // Verbose is off in this test → the user is told the marker was not written.
+    expect(find.text('Verbose désactivé — marqueur ignoré'), findsOneWidget);
   });
 
   testWidgets('Tapping the verbose switch flips the SharedPreferences flag', (WidgetTester tester) async {
