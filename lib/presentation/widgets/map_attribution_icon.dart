@@ -10,11 +10,10 @@ import 'attribution_link_handler.dart';
 /// an attribution bottom sheet listing the OSM + Protomaps copyright
 /// lines (MAP-03).
 ///
-/// The MapLibre default attribution button is hidden off-screen at the
-/// adapter level (`attributionButtonMargins` — see
-/// `lib/infrastructure/map/maplibre_map_view.dart`); this widget is the
-/// MirkFall-branded replacement that carries the same legal surface
-/// without MapLibre's fixed styling.
+/// flutter_map ships no attribution chrome of its own (the
+/// `RichAttributionWidget` is opt-in and not mounted by
+/// `lib/infrastructure/map/flutter_map_map_view.dart`); this widget is
+/// the MirkFall-branded surface that carries the legal lines.
 ///
 /// Link-handling strategy: copy-to-clipboard + snackbar. Rationale in
 /// `attribution_link_handler.dart` — Phase 07 refuses to pull

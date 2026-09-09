@@ -14,18 +14,19 @@ Pure-Dart domain types for map integration (Phase 07).
 
 - `package:flutter/*` (UI layer)
 - `package:drift/*` (persistence layer)
-- `package:maplibre_gl/*` (infrastructure layer)
+- `package:flutter_map/*`, `package:latlong2/*`, `package:vector_map_tiles*/*`, `package:vector_tile_renderer/*`, `package:pmtiles/*` (infrastructure layer)
 - Any `lib/application/` or `lib/infrastructure/` import
 
 Enforced by `tool/check_domain_purity.dart` (Phase 03) and
-`tool/check_avoid_flutter_map_leak.dart` (Phase 09.1-01; successor of the
-Phase 07-01 maplibre-only gate).
+`tool/check_avoid_flutter_map_leak.dart` (Phase 09.1-01, MAP-06 perimeter
+gate).
 
 **Exports:**
 
 - `MapView` — domain-level abstract port expressing MirkFall vocabulary
-  (`showMap`, `moveCameraTo`, `markVisited`, `addPointOfInterest`…).
-  Infrastructure implementation lives in `lib/infrastructure/map/` (Plan 07-03).
+  (`showMap`, `moveCameraTo`, `setUserLocation`, `queryViewportBounds`,
+  `addPointOfInterest`…). Infrastructure implementation lives in
+  `lib/infrastructure/map/flutter_map_map_view.dart` (Phase 09.1).
 - `CountryCode` — zero-cost extension type wrapping a validated alpha-3
   lowercase string, with `CountryCode.world` sentinel for the bundled
   world basemap.

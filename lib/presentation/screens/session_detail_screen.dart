@@ -345,10 +345,10 @@ class _TrackingDashboard extends ConsumerWidget {
           const SizedBox(height: 16.0),
           // Phase 07 — primary entry point to the full-screen map from a
           // live session. Preserves Phase 05 layout / stop-button
-          // reachability; embedding the MapLibreMapViewWidget directly in
+          // reachability; embedding the FlutterMapMapViewWidget directly in
           // the detail dashboard would require plumbing the map providers
           // through every Phase 05 widget test (they currently don't
-          // override styleRewriter / pmtilesSource). The /map route has
+          // override pmtilesSource). The /map route has
           // its own burger menu + follow-me FAB, so the user workflow
           // carries through without loss.
           OutlinedButton.icon(onPressed: () => context.push('/map'), icon: const Icon(Icons.map_outlined), label: const Text('Carte plein écran')),

@@ -23,8 +23,11 @@ Initial audit date: **2026-04-17**. Re-audit required whenever
 `pubspec.lock` changes.
 
 Phase 09.1 (2026-09-09): migration to the flutter_map same-canvas engine
-(6 direct packages + 12 transitives added, `maplibre_gl` kept until plan
-09.1-02 Task 2) — see ROADMAP Phase 09.1 and the POC `mirk-poc-debug`.
+(6 direct packages + 12 transitives added by plan 09.1-01; `maplibre_gl
+0.25.0` + its transitives `maplibre_gl_platform_interface`,
+`maplibre_gl_web`, `image`, `archive`, `posix` removed by plan 09.1-02
+Task 2 together with the MapLibre adapter) — see ROADMAP Phase 09.1 and
+the POC `mirk-poc-debug`.
 
 ## Direct dependencies
 
@@ -47,7 +50,6 @@ Phase 09.1 (2026-09-09): migration to the flutter_map same-canvas engine
 | json_annotation | 4.11.0 | BSD-3-Clause | https://pub.dev/packages/json_annotation | Annotations-only. Bumped 2026-04-18 from 4.9.0 — json_serializable 6.13.1 requires json_annotation >=4.11.0. | 2026-04-18 |
 | latlong2 | 0.9.1 | Apache-2.0 | https://pub.dev/packages/latlong2 | Phase 09.1 plan 09.1-01 — `LatLng` value type required by the flutter_map API (`MapOptions.initialCenter`, `MapCamera.project`). Same version as the day-1 pin dropped 2026-04-20 for maplibre_gl. Confined to `lib/infrastructure/map/` + the FogLayer boundary by `tool/check_avoid_flutter_map_leak.dart` (MAP-06); domain / wisp code keeps its own `({double lat, double lon})` record. LICENSE file: `Copyright 2015 Michael Mitterer (office@mikemitterer.at)` Apache-2.0 (matches pub.dev). Network audit (`grep -rn "package:http\|HttpClient\|dart:io" lib/`): 0 matches — pure math (Haversine, Vincenty, path utilities). Pulls `intl` for number formatting. Telemetry grep: 0. Pure Dart → iOS + Android + Windows. Maintenance: stable. | 2026-09-09 |
 | logging | 1.3.0 | BSD-3-Clause | https://pub.dev/packages/logging | No outbound HTTP. Sinks defined by user. | 2026-04-17 |
-| maplibre_gl | 0.25.0 | BSD-3-Clause | https://pub.dev/packages/maplibre_gl | Phase 07 plan 07-01 — **replaces `flutter_map 8.3.0` + `latlong2 0.9.1` (both dropped 2026-04-20)** for offline PMTiles rendering. MapLibre-org publisher (verified on pub.dev). Audit 2026-04-20: source github.com/maplibre/flutter-maplibre-gl inspected — no built-in analytics, no crash reporting, no remote config. Tile fetches happen only when a style layer source URL is HTTP(S); Phase 07 enforces `pmtiles://file:///…` local-only via the new `tool/check_avoid_remote_pmtiles.dart` CI gate. Native SDKs bundled: **MapLibre Native Android 12.3.0** (BSD-2-Clause, github.com/maplibre/maplibre-native) and **MapLibre Native iOS 6.14.0** (BSD-2-Clause, github.com/maplibre/maplibre-gl-native-distribution). Both native libraries are pure-rendering SDKs with no telemetry; Protomaps basemaps data (OSM-derived) ships inside the bundled PMTiles files under ODbL 1.0 attribution (see MAP-03 + "Bundled assets" section below). HTTP audit via `grep`: the runtime Dart surface issues `HttpClient` requests only when the style JSON references HTTPS URLs — our style.json uses `asset:///` for glyphs/sprites and `pmtiles://file:///` for tiles, yielding zero outbound traffic. Platform support: Android + iOS + Linux + macOS + Windows + Web (transitive `maplibre_gl_web` 0.25.0 pulls `image 4.8.0`). | 2026-04-20 |
 | path | 1.9.1 | BSD-3-Clause | https://pub.dev/packages/path | Path manipulation. No network. | 2026-04-17 |
 | path_provider | 2.1.5 | BSD-3-Clause | https://pub.dev/packages/path_provider | Wraps native path APIs. No network. | 2026-04-17 |
 | permission_handler | 12.0.1 | MIT | https://pub.dev/packages/permission_handler | OS permissions bridge. No network. | 2026-04-17 |
@@ -90,7 +92,6 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | analyzer | 10.0.1 | BSD-3-Clause | drift_dev, build_runner, riverpod_generator, custom_lint, json_serializable, freezed | Dev-only. Bumped 2026-04-18 from 8.4.0 via `dependency_overrides: analyzer: ^10.0.0` — drift_dev 2.32.1 requires analyzer ^10.0.0. Supersedes the 03-01 analyzer-<9 pin decision. custom_lint 0.8.1 cannot load its plugin under analyzer 10 and silently degrades (no @riverpod targets yet). | 2026-04-18 |
 | analyzer_buffer | 0.3.1 | MIT | riverpod_analyzer_utils | Dev-only. Bumped 2026-04-18 from 0.1.11 alongside analyzer 10.0.1. | 2026-04-18 |
 | analyzer_plugin | 0.13.10 | BSD-3-Clause | custom_lint | Dev-only. Dart-team package: analyzer plugin protocol implementation. | 2026-04-18 |
-| archive | 4.0.9 | MIT | build_runner | Dev-only. | 2026-04-17 |
 | args | 2.7.0 | BSD-3-Clause | build_runner, test | Dev-only. | 2026-04-17 |
 | async | 2.13.1 | BSD-3-Clause | multiple | Pure async utilities. | 2026-04-17 |
 | boolean_selector | 2.1.2 | BSD-3-Clause | test | Dev-only. | 2026-04-17 |
@@ -145,7 +146,6 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | http | 1.6.0 | BSD-3-Clause | build_runner (dev), flutter_map / vector_map_tiles / pmtiles (runtime, Phase 09.1) | Imported by `NetworkTileProvider` (flutter_map), `NetworkVectorTileProvider` + `StyleReader` (vector_map_tiles) and `HttpAt` (pmtiles) — none of them instantiated by MirkFall (local PMTiles archives only, guarded by `check_avoid_remote_pmtiles` + `check_style_no_external_url`). MirkFall's own download pipeline (`http_chunk_downloader.dart`) uses `dart:io` HttpClient, not this package. Row refreshed 2026-09-09 (stale since the 2026-04-20 flutter_map drop). | 2026-09-09 |
 | http_multi_server | 3.2.2 | BSD-3-Clause | test | Dev-only. | 2026-04-17 |
 | http_parser | 4.1.2 | BSD-3-Clause | http, test | Pure parser. | 2026-04-17 |
-| image | 4.8.0 | Apache-2.0 | maplibre_gl_web | Pure-Dart image codec / encoder used by the MapLibre web surface. Apache-2.0 (Brendan Duncan); verified via pub.dev + upstream github.com/brendan-duncan/image LICENSE. Zero network; pure-Dart byte manipulation. Added 2026-04-20 with maplibre_gl 0.25.0 (Phase 07 plan 07-01). Non-Web MirkFall ship (Android + iOS + Windows + macOS + Linux) does not actually execute this codepath — `maplibre_gl_web` is a web-only surface — but `image` stays in the lockfile because pub resolves the full transitive graph across all platforms. | 2026-04-20 |
 | image_picker_android | 0.8.13+16 | Apache-2.0 | image_picker | Android-only surface. | 2026-04-17 |
 | image_picker_for_web | 3.1.1 | BSD-3-Clause | image_picker | Web-only surface. | 2026-04-17 |
 | image_picker_ios | 0.8.13+6 | Apache-2.0 | image_picker | iOS-only surface. | 2026-04-17 |
@@ -163,8 +163,6 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | lints | 6.1.0 | BSD-3-Clause | flutter_lints | Analyzer rules. | 2026-04-17 |
 | lists | 1.0.1 | BSD-3-Clause | unicode | Phase 09.1 (2026-09-09). Pure-Dart list helpers. LICENSE file: `Copyright (c) 2014, Andrew Mezoni` BSD-3-Clause. Zero network. | 2026-09-09 |
 | logger | 2.8.0 | MIT | flutter_map | Phase 09.1 (2026-09-09). flutter_map's internal `Logger` (tile-layer warnings). LICENSE file: `MIT License, Copyright (c) 2019 Simon Leier / Harm Aarts, (c) 2023 Severin Hamader`. `dart:io` only in `src/outputs/file_output*.dart` + `advanced_file_output*.dart` (opt-in local file sinks — never configured by MirkFall, whose logging stays on `package:logging`). Zero network. Resolved 2.8.0 (POC lock carried 2.7.0 — newer minor inside flutter_map's `^2.0.1` constraint). | 2026-09-09 |
-| maplibre_gl_platform_interface | 0.25.0 | BSD-3-Clause | maplibre_gl | Phase 07 plan 07-01 — platform-interface contract for maplibre_gl. Pure Dart; no network; publisher maplibre.org verified on pub.dev. Audit 2026-04-20: source github.com/maplibre/flutter-maplibre-gl/tree/main/maplibre_gl_platform_interface inspected — abstract method channel definitions and codec only, zero telemetry. | 2026-04-20 |
-| maplibre_gl_web | 0.25.0 | BSD-3-Clause | maplibre_gl | Phase 07 plan 07-01 — web-only backend for maplibre_gl (wraps maplibre-gl-js via JS interop). MirkFall does not ship to web (Android + iOS + desktop only), so this code never executes at runtime — it stays in the dependency graph because pub resolves all platforms. Publisher maplibre.org verified on pub.dev. Audit 2026-04-20: source github.com/maplibre/flutter-maplibre-gl/tree/main/maplibre_gl_web inspected — pure JS-interop wrapper, no telemetry beyond whatever the JS library would emit (not a MirkFall concern since we never ship web). Pulls `image 4.8.0` transitively. | 2026-04-20 |
 | matcher | 0.12.19 | BSD-3-Clause | test, flutter_test | Dev-test-only. | 2026-04-17 |
 | material_color_utilities | 0.13.0 | Apache-2.0 | flutter | Material color math. | 2026-04-17 |
 | meta | 1.17.0 | BSD-3-Clause | multiple | Annotations. | 2026-04-17 |
@@ -190,7 +188,6 @@ Every entry is marked `dependency: transitive` in `pubspec.lock`.
 | platform | 3.1.6 | BSD-3-Clause | multiple | Platform detection. | 2026-04-17 |
 | polylabel | 1.0.1 | BSD-3-Clause | flutter_map | Phase 09.1 (2026-09-09). Pole-of-inaccessibility algorithm (polygon label placement in flutter_map). LICENSE file: `Copyright 2021 André Sousa` BSD-3-Clause. Zero network. | 2026-09-09 |
 | pool | 1.5.2 | BSD-3-Clause | build_runner | Resource pool. | 2026-04-17 |
-| posix | 6.5.0 | MIT | shared_preferences_linux | Linux-only bindings. | 2026-04-17 |
 | process | 5.0.5 | BSD-3-Clause | integration_test (via webdriver) | Dev-only. Pulled transitively by `integration_test` → `webdriver`. Pure-Dart process wrapper from the Dart project authors. License preamble: "Copyright 2013, the Dart project authors" + BSD 3-clause. Zero network. Added 2026-04-21 with `integration_test` (Phase 07 plan 07-07). | 2026-04-21 |
 | proj4dart | 2.1.0 | MIT | flutter_map | Phase 09.1 (2026-09-09). Coordinate-reference-system projections backing flutter_map's `Proj4Crs` (MirkFall uses the default EPSG:3857 `Epsg3857` only). LICENSE file: `MIT License, Copyright (c) 2020 maRci002, Gergely Padányi-Gulyás`. Zero network. | 2026-09-09 |
 | protobuf | 3.1.0 | BSD-3-Clause | vector_tile, pmtiles | Phase 09.1 (2026-09-09). Dart-team protocol-buffers runtime (MVT tile decoding + PMTiles metadata). LICENSE file: `Copyright 2013, the Dart project authors` BSD-3-Clause. Zero network. | 2026-09-09 |

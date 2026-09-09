@@ -221,13 +221,12 @@ const String kInstalledManifestPath = 'maps/installed.json';
 const String kCountryPolygonsAssetPath = 'assets/maps/polygons';
 
 /// Asset path for the Protomaps basemaps neutral style JSON (frozen
-/// 7-layer order: background / landcover / water / boundaries / roads /
-/// pois / mirk_fog — `user_location` was removed post Phase 07 device
-/// smoke in favour of maplibre_gl's built-in `addCircle` annotation
-/// manager). Glyphs + sprites point to
-/// `asset:///assets/maps/glyphs|sprites/…` URIs; the tile source URL is
-/// a `pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER` placeholder
-/// rewritten at runtime by `PmtilesSource` (Phase 07 plan 07-03).
+/// 6-layer order: background / landcover / water / boundaries / roads /
+/// pois — see `kStyleLayerOrder`). Compiled once per `MapTheme` by
+/// `MapThemeLoader` (vector_tile_renderer `ThemeReader`); no glyphs, no
+/// sprite, and the `sources.mirkfall_map.url` is a documentary
+/// placeholder — the PMTiles archive path resolved by `PmtilesSource`
+/// goes straight to the tile provider (Phase 09.1).
 const String kStyleJsonAssetPath = 'assets/maps/style.json';
 
 /// Initial camera zoom level when opening the map screen from an active
@@ -299,20 +298,6 @@ const int kDownloadEnqueueConfirmSnackbarSeconds = 2;
 /// user will want to read the cause before retrying.
 const int kDownloadEnqueueErrorSnackbarSeconds = 5;
 
-// À supprimer au plan 09.1-02 Task 2 avec l'adapter MapLibre (`maplibre_map_view.dart`, seul consommateur).
-/// Style-source ID for the GeoJSON source carrying the user-location
-/// puck's current position. Namespaced with `mirkfall_` so a downstream
-/// style tweak cannot accidentally collide. Hoisted here (rather than
-/// file-local in `maplibre_map_view.dart`) per CLAUDE.md §Magic numbers
-/// so any future widget that re-publishes the puck source references
-/// the same string identifier.
-const String kUserLocationSourceId = 'mirkfall_user_location_source';
-
-// À supprimer au plan 09.1-02 Task 2 avec l'adapter MapLibre (`maplibre_map_view.dart`, seul consommateur).
-/// Style-layer ID for the circle layer that renders the user-location
-/// puck. Pairs with [kUserLocationSourceId].
-const String kUserLocationLayerId = 'mirkfall_user_location_layer';
-
 /// Debounce window on viewport updates for the `CountryResolverController`.
 /// 500 ms matches the `CountryResolver.resolveForViewportUpdates`
 /// default; keeps continuous-gesture panning off the point-in-polygon
@@ -320,7 +305,7 @@ const String kUserLocationLayerId = 'mirkfall_user_location_layer';
 const Duration kCountryResolverViewportDebounce = Duration(milliseconds: 500);
 
 /// Debounce window for the `MapCameraController` pending-move flag.
-/// Larger than MapLibre's own idle-emit latency (~200 ms) but small
+/// Larger than the map engine's own event latency (~200 ms) but small
 /// enough that a subsequent user pan within the same second still
 /// registers as user intent. Tuned for the Plan 07-06 hot path.
 const Duration kMapCameraPendingMoveDebounce = Duration(milliseconds: 1000);
@@ -780,7 +765,8 @@ const double kMirkFogWispPeakAlpha = 0.35;
 /// Grace period (seconds) after the renderer is created during which ALL
 /// discs entering the viewport are ingested into the "already-seen" set
 /// WITHOUT spawning wisps. Covers the map-open viewport animation (~6 s
-/// on iOS MapLibre) during which pre-existing discs scroll into view and
+/// measured on iOS with the Phase 07 engine) during which pre-existing
+/// discs scroll into view and
 /// would otherwise be misread as "newly emerged" by the frame-diff logic.
 ///
 /// BUG-015 root-cause fix: the previous first-paint boolean guard only
@@ -843,18 +829,6 @@ const double kMirkFogOpacityMax = 1.0;
 /// for fine adjustment).
 const int kMirkFogOpacitySliderDivisions = 16;
 
-/// MapLibre source ID for the geo-referenced fog-of-war image source.
-/// Namespaced with `mirkfall_` to avoid style-id collisions. The source
-/// carries a single RGBA PNG that MapLibre composites at 60 fps in the
-/// map pipeline — BUG-014 architectural fix (replaces the Flutter
-/// CustomPaint screen-space overlay that lagged behind camera motion).
-const String kFogImageSourceId = 'mirkfall_fog_image_source';
-
-/// MapLibre layer ID for the raster layer that renders the fog image
-/// source ([kFogImageSourceId]). Sits above map tiles but below the
-/// user-location puck so the blue dot is always visible on top of fog.
-const String kFogImageLayerId = 'mirkfall_fog_image_layer';
-
 /// Debounce delay (milliseconds) for SDF rebuilds triggered by
 /// viewport-only changes (pan/zoom gesture without new disc emergence).
 /// During the debounce window the old SDF is reused — slightly
@@ -866,27 +840,6 @@ const String kFogImageLayerId = 'mirkfall_fog_image_layer';
 /// a stale viewport position — the fog boundary "strobed" between old
 /// and new positions on every build-completion.
 const int kMirkFogSdfViewportDebounceMs = 200;
-
-// À supprimer au plan 09.1-02 Task 2 (vestige BUG-014 / MapLibre image source — orpheline, aucun appelant ;
-// `offscreen_fog_renderer.dart` part au plan 09.1-03 Task 1).
-/// Resolution of the offscreen fog image pushed to MapLibre's image source.
-/// 512x512 balances visual fidelity with encode/upload throughput at ~20 fps.
-const int kMirkFogMapLayerResolution = 512;
-
-// À supprimer au plan 09.1-02 Task 2 (vestige BUG-014 / MapLibre image source — orpheline, aucun appelant).
-/// Target interval between fog-layer image updates in milliseconds. 50 ms
-/// (20 fps) keeps the animated effects smooth without saturating the
-/// platform channel. Camera tracking is 60 fps natively via MapLibre.
-const int kMirkFogMapLayerUpdateIntervalMs = 50;
-
-// À supprimer au plan 09.1-02 Task 2 (vestige BUG-014 / MapLibre image source — orpheline, aucun appelant).
-/// Padding factor for the fog image source geo-extent. The image covers
-/// `1 + 2 * factor` times the visible viewport in each direction (e.g.
-/// factor 1.0 → 3× the viewport). MapLibre tracks this large geo-pinned
-/// image natively at 60 fps; the fog stays map-locked between re-pins.
-/// The image is re-pinned when the visible viewport drifts past 50% of
-/// the padding margin.
-const double kMirkFogMapLayerPaddingFactor = 1.0;
 
 // ===== Phase 09.1 — Port-back same-canvas fog (flutter_map) =====
 //
@@ -930,6 +883,20 @@ const String kMapVectorTileCacheDirName = '.vector_map';
 /// Timeout for opening a PMTiles archive
 /// (`PmTilesVectorTileProvider.fromSource`) — CLAUDE.md §Timeouts.
 const Duration kPmtilesArchiveOpenTimeout = Duration(seconds: 10);
+
+/// Radius (logical px) of the user-location puck `CircleMarker`. Same
+/// value as the Phase 07 circle layer so the dot keeps its footprint.
+const double kMapUserPuckRadiusPx = 7.0;
+
+/// Fill colour of the user-location puck (solid blue, the convention
+/// every major GPS app uses).
+const int kMapUserPuckColorArgb = 0xFF2B7CD6;
+
+/// Stroke width (logical px) of the puck's white outline.
+const double kMapUserPuckBorderWidthPx = 2.0;
+
+/// Stroke colour of the puck outline (white on any basemap).
+const int kMapUserPuckBorderColorArgb = 0xFFFFFFFF;
 
 // --- Same-canvas fog (09.1-03 / 09.1-04) ---
 

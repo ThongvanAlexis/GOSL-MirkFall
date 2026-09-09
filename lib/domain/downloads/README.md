@@ -4,7 +4,7 @@ Pure-Dart domain types for the per-country PMTiles download pipeline (Phase 07).
 
 **Allowed imports:** `dart:*`, `package:freezed_annotation`, `package:json_annotation`, `package:collection`, sibling `lib/domain/*` directories.
 
-**Forbidden:** `package:flutter/*`, `package:drift/*`, `package:maplibre_gl/*`, `package:http/*`, `package:dio/*`, anything under `lib/application/` or `lib/infrastructure/`. The pipeline implementation + HTTP plumbing + retries + on-disk staging live in `lib/infrastructure/` (Plan 07-04).
+**Forbidden:** `package:flutter/*`, `package:drift/*`, `package:flutter_map/*` (and the rest of the map-engine stack), `package:http/*`, `package:dio/*`, anything under `lib/application/` or `lib/infrastructure/`. The pipeline implementation + HTTP plumbing + retries + on-disk staging live in `lib/infrastructure/` (Plan 07-04).
 
 Enforced by `tool/check_domain_purity.dart`.
 

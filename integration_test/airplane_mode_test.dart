@@ -46,7 +46,6 @@ import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_view.dart';
-import 'package:mirkfall/infrastructure/map/style_rewriter.dart';
 import 'package:mirkfall/presentation/screens/map_screen.dart';
 
 import '../test/fakes/fake_installed_manifest_repository.dart';
@@ -216,7 +215,7 @@ void main() {
       ],
       child: MaterialApp(
         home: MapScreen(
-          mapViewBuilderForTest: ({required StyleRewriter styleRewriter, required ValueChanged<MapView> onReady}) {
+          mapViewBuilderForTest: ({required ValueChanged<MapView> onReady, required List<Widget> fogLayers}) {
             return _FakeMapWidget(onReady: onReady, fakeMapView: fakeMapView);
           },
         ),

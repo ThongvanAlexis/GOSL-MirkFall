@@ -133,9 +133,9 @@ class MapViewport extends _$MapViewport {
       final bbox = await view.queryViewportBounds();
       state = bbox;
     } on Object {
-      // queryViewportBounds can throw before MapLibre's surface loads
-      // (or on a disposed adapter). Benign — the next viewportUpdates
-      // emission retries.
+      // queryViewportBounds throws before the first map render (or
+      // returns a 0-bbox on a disposed adapter). Benign — the next
+      // viewportUpdates emission retries.
     }
   }
 }

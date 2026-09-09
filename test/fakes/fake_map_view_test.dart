@@ -90,12 +90,6 @@ void main() {
       expect(v.zoom, equals(3.0));
     });
 
-    test('markVisited captures the polygon', () async {
-      final FakeMapView fake = FakeMapView();
-      await fake.markVisited(<({double latitude, double longitude})>[(latitude: 0.0, longitude: 0.0), (latitude: 1.0, longitude: 1.0)]);
-      expect(fake.lastVisitedPolygon, hasLength(2));
-    });
-
     test('dispose is idempotent', () async {
       final FakeMapView fake = FakeMapView();
       await fake.dispose();
@@ -107,8 +101,8 @@ void main() {
 
     test('calls after dispose silently no-op AND record in postDisposeInvocations (row #4)', () async {
       // §3 row #4 regression: pre-fix, FakeMapView threw StateError on
-      // post-dispose calls while MapLibreMapView._aliveOrLog silently
-      // returned. Tests never exercised the production silent-ignore
+      // post-dispose calls while the production adapter's _aliveOrLog
+      // silently returned. Tests never exercised the production silent-ignore
       // path. Now FakeMapView matches: silent return + record in
       // postDisposeInvocations so assertions remain observable.
       final FakeMapView fake = FakeMapView();

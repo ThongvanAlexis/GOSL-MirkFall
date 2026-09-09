@@ -20,29 +20,23 @@ part of 'map_camera_controller.dart';
 /// Echo-suppression is done by timestamp comparison: every
 /// controller-initiated `moveCameraTo` records `_lastProgrammaticMoveAt`.
 /// A viewport update within [kMapCameraPendingMoveDebounce] of that
-/// timestamp is treated as MapLibre's `onCameraIdle` echoing the
-/// controller's own move back; anything older is a genuine user pan.
+/// timestamp is treated as the map engine echoing the controller's own
+/// move back on `viewportUpdates`; anything older is a genuine user pan.
 /// Per CLAUDE.md §State "préférer la déduction au tracking" — no
 /// explicit boolean flag + no timer lifecycle to juggle.
 ///
-/// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
-/// the widget publishes a [MapView] adapter via [mapViewProvider] and the
+/// Keyed to the `FlutterMapMapViewWidget`'s `onReady` callback: the
+/// widget publishes a [MapView] adapter via [mapViewProvider] and the
 /// controller lazily attaches its listeners on first use.
 ///
-/// ## iOS initial-camera seeding (Phase 07-07 fix)
+/// ## Initial-camera seeding (Phase 07-07, kept under flutter_map)
 ///
-/// [openForSession] deliberately does NOT issue any
-/// camera-moving method-channel call on first open. Two earlier
-/// attempts crashed MapLibre.framework with identical native stack
-/// traces — once with `animateCamera` (commit 604988f) and once with
-/// the animator-free `moveCamera` (commit 3b23c8d). The convergence
-/// proves the bug is about ANY camera-state mutation issued in the
-/// window right after `onStyleLoaded`, not about which method is
-/// used. Resolution: the initial viewport is supplied via
-/// `MapLibreMap.initialCameraPosition` at widget-build time (see
-/// `_buildMapStack` in `map_screen.dart`); by the time
-/// [openForSession] runs, the MLNMapView already shows the right
-/// viewport and the controller only needs to prime the puck + flip
+/// [openForSession] deliberately does NOT issue any camera move on
+/// first open: the initial viewport is supplied through the widget
+/// constructor (`initialCamera`, see `_buildMapStack` in
+/// `map_screen.dart`) at build time. By the time [openForSession]
+/// runs, the map already shows the right viewport and the controller
+/// only needs to prime the puck + flip
 /// follow-me on.
 
 @ProviderFor(MapCameraController)
@@ -60,29 +54,23 @@ final mapCameraControllerProvider = MapCameraControllerProvider._();
 /// Echo-suppression is done by timestamp comparison: every
 /// controller-initiated `moveCameraTo` records `_lastProgrammaticMoveAt`.
 /// A viewport update within [kMapCameraPendingMoveDebounce] of that
-/// timestamp is treated as MapLibre's `onCameraIdle` echoing the
-/// controller's own move back; anything older is a genuine user pan.
+/// timestamp is treated as the map engine echoing the controller's own
+/// move back on `viewportUpdates`; anything older is a genuine user pan.
 /// Per CLAUDE.md §State "préférer la déduction au tracking" — no
 /// explicit boolean flag + no timer lifecycle to juggle.
 ///
-/// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
-/// the widget publishes a [MapView] adapter via [mapViewProvider] and the
+/// Keyed to the `FlutterMapMapViewWidget`'s `onReady` callback: the
+/// widget publishes a [MapView] adapter via [mapViewProvider] and the
 /// controller lazily attaches its listeners on first use.
 ///
-/// ## iOS initial-camera seeding (Phase 07-07 fix)
+/// ## Initial-camera seeding (Phase 07-07, kept under flutter_map)
 ///
-/// [openForSession] deliberately does NOT issue any
-/// camera-moving method-channel call on first open. Two earlier
-/// attempts crashed MapLibre.framework with identical native stack
-/// traces — once with `animateCamera` (commit 604988f) and once with
-/// the animator-free `moveCamera` (commit 3b23c8d). The convergence
-/// proves the bug is about ANY camera-state mutation issued in the
-/// window right after `onStyleLoaded`, not about which method is
-/// used. Resolution: the initial viewport is supplied via
-/// `MapLibreMap.initialCameraPosition` at widget-build time (see
-/// `_buildMapStack` in `map_screen.dart`); by the time
-/// [openForSession] runs, the MLNMapView already shows the right
-/// viewport and the controller only needs to prime the puck + flip
+/// [openForSession] deliberately does NOT issue any camera move on
+/// first open: the initial viewport is supplied through the widget
+/// constructor (`initialCamera`, see `_buildMapStack` in
+/// `map_screen.dart`) at build time. By the time [openForSession]
+/// runs, the map already shows the right viewport and the controller
+/// only needs to prime the puck + flip
 /// follow-me on.
 final class MapCameraControllerProvider extends $NotifierProvider<MapCameraController, MapCameraState> {
   /// Orchestrates the map camera on the /map screen:
@@ -97,29 +85,23 @@ final class MapCameraControllerProvider extends $NotifierProvider<MapCameraContr
   /// Echo-suppression is done by timestamp comparison: every
   /// controller-initiated `moveCameraTo` records `_lastProgrammaticMoveAt`.
   /// A viewport update within [kMapCameraPendingMoveDebounce] of that
-  /// timestamp is treated as MapLibre's `onCameraIdle` echoing the
-  /// controller's own move back; anything older is a genuine user pan.
+  /// timestamp is treated as the map engine echoing the controller's own
+  /// move back on `viewportUpdates`; anything older is a genuine user pan.
   /// Per CLAUDE.md §State "préférer la déduction au tracking" — no
   /// explicit boolean flag + no timer lifecycle to juggle.
   ///
-  /// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
-  /// the widget publishes a [MapView] adapter via [mapViewProvider] and the
+  /// Keyed to the `FlutterMapMapViewWidget`'s `onReady` callback: the
+  /// widget publishes a [MapView] adapter via [mapViewProvider] and the
   /// controller lazily attaches its listeners on first use.
   ///
-  /// ## iOS initial-camera seeding (Phase 07-07 fix)
+  /// ## Initial-camera seeding (Phase 07-07, kept under flutter_map)
   ///
-  /// [openForSession] deliberately does NOT issue any
-  /// camera-moving method-channel call on first open. Two earlier
-  /// attempts crashed MapLibre.framework with identical native stack
-  /// traces — once with `animateCamera` (commit 604988f) and once with
-  /// the animator-free `moveCamera` (commit 3b23c8d). The convergence
-  /// proves the bug is about ANY camera-state mutation issued in the
-  /// window right after `onStyleLoaded`, not about which method is
-  /// used. Resolution: the initial viewport is supplied via
-  /// `MapLibreMap.initialCameraPosition` at widget-build time (see
-  /// `_buildMapStack` in `map_screen.dart`); by the time
-  /// [openForSession] runs, the MLNMapView already shows the right
-  /// viewport and the controller only needs to prime the puck + flip
+  /// [openForSession] deliberately does NOT issue any camera move on
+  /// first open: the initial viewport is supplied through the widget
+  /// constructor (`initialCamera`, see `_buildMapStack` in
+  /// `map_screen.dart`) at build time. By the time [openForSession]
+  /// runs, the map already shows the right viewport and the controller
+  /// only needs to prime the puck + flip
   /// follow-me on.
   MapCameraControllerProvider._()
     : super(
@@ -159,29 +141,23 @@ String _$mapCameraControllerHash() => r'9fba8d9a34cde9a95824fd28ddb7435909de2e0a
 /// Echo-suppression is done by timestamp comparison: every
 /// controller-initiated `moveCameraTo` records `_lastProgrammaticMoveAt`.
 /// A viewport update within [kMapCameraPendingMoveDebounce] of that
-/// timestamp is treated as MapLibre's `onCameraIdle` echoing the
-/// controller's own move back; anything older is a genuine user pan.
+/// timestamp is treated as the map engine echoing the controller's own
+/// move back on `viewportUpdates`; anything older is a genuine user pan.
 /// Per CLAUDE.md §State "préférer la déduction au tracking" — no
 /// explicit boolean flag + no timer lifecycle to juggle.
 ///
-/// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
-/// the widget publishes a [MapView] adapter via [mapViewProvider] and the
+/// Keyed to the `FlutterMapMapViewWidget`'s `onReady` callback: the
+/// widget publishes a [MapView] adapter via [mapViewProvider] and the
 /// controller lazily attaches its listeners on first use.
 ///
-/// ## iOS initial-camera seeding (Phase 07-07 fix)
+/// ## Initial-camera seeding (Phase 07-07, kept under flutter_map)
 ///
-/// [openForSession] deliberately does NOT issue any
-/// camera-moving method-channel call on first open. Two earlier
-/// attempts crashed MapLibre.framework with identical native stack
-/// traces — once with `animateCamera` (commit 604988f) and once with
-/// the animator-free `moveCamera` (commit 3b23c8d). The convergence
-/// proves the bug is about ANY camera-state mutation issued in the
-/// window right after `onStyleLoaded`, not about which method is
-/// used. Resolution: the initial viewport is supplied via
-/// `MapLibreMap.initialCameraPosition` at widget-build time (see
-/// `_buildMapStack` in `map_screen.dart`); by the time
-/// [openForSession] runs, the MLNMapView already shows the right
-/// viewport and the controller only needs to prime the puck + flip
+/// [openForSession] deliberately does NOT issue any camera move on
+/// first open: the initial viewport is supplied through the widget
+/// constructor (`initialCamera`, see `_buildMapStack` in
+/// `map_screen.dart`) at build time. By the time [openForSession]
+/// runs, the map already shows the right viewport and the controller
+/// only needs to prime the puck + flip
 /// follow-me on.
 
 abstract class _$MapCameraController extends $Notifier<MapCameraState> {

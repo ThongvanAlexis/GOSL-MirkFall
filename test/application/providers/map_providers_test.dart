@@ -28,7 +28,6 @@ import 'package:mirkfall/infrastructure/installed_maps/country_delete_service.da
 import 'package:mirkfall/infrastructure/installed_maps/first_launch_bootstrap.dart';
 import 'package:mirkfall/infrastructure/map/first_launch_world_copier.dart';
 import 'package:mirkfall/infrastructure/map/pmtiles_source.dart';
-import 'package:mirkfall/infrastructure/map/style_rewriter.dart';
 import 'package:mirkfall/infrastructure/platform/disk_space_checker.dart';
 import 'package:mirkfall/infrastructure/platform/ios_backup_excluder.dart';
 import 'package:path/path.dart' as p;
@@ -191,25 +190,19 @@ void main() {
       expect(source, isA<PmtilesSource>());
       // Uninstalled country → world bundle fallback (synchronous
       // snapshot path). The bundle path is inside the temp dir.
-      final uri = source.forCountryOrWorld(CountryCode.parse('deu'), InstalledManifest.empty());
-      expect(uri, startsWith('pmtiles://file:///'));
-      expect(uri, contains(kWorldPmtilesInternalPath.replaceAll(r'\', '/')));
+      final String path = source.forCountryOrWorld(CountryCode.parse('deu'), InstalledManifest.empty());
+      expect(p.isAbsolute(path), isTrue);
+      expect(path.toLowerCase(), isNot(startsWith('http')));
+      expect(path, equals(p.join(tempDir.path, kWorldPmtilesInternalPath)));
     });
   });
 
-  group('map_providers — country catalog + style rewriter', () {
+  group('map_providers — country catalog', () {
     test('countryCatalogProvider parses the bundled catalog.json', () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
       final catalog = await container.read(countryCatalogProvider.future);
       expect(catalog.countries, isNotEmpty);
-    });
-
-    test('styleRewriterProvider constructs a StyleRewriter bound to the shared PmtilesSource', () async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final rewriter = await container.read(styleRewriterProvider.future);
-      expect(rewriter, isA<StyleRewriter>());
     });
   });
 

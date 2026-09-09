@@ -20,7 +20,6 @@ import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/map/country_catalog.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_view.dart';
-import 'package:mirkfall/infrastructure/map/style_rewriter.dart';
 import 'package:mirkfall/presentation/screens/map_screen.dart';
 import 'package:mirkfall/presentation/widgets/map_attribution_icon.dart';
 import 'package:mirkfall/presentation/widgets/map_country_banner.dart';
@@ -29,9 +28,10 @@ import 'package:mirkfall/presentation/widgets/map_follow_me_fab.dart';
 import '../../fakes/fake_installed_manifest_repository.dart';
 import '../../fakes/fake_map_view.dart';
 
-/// Stub fake builder widget that swallows the MapLibre surface. Calls
-/// [onReady] with a [FakeMapView] immediately after the first frame so
-/// downstream controllers see a MapView instance via `mapViewProvider`.
+/// Stub fake builder widget that stands in for the flutter_map surface
+/// (`fogLayers` is ignored — empty in plan 09.1-02). Calls [onReady] with
+/// a [FakeMapView] immediately after the first frame so downstream
+/// controllers see a MapView instance via `mapViewProvider`.
 class _FakeMapWidget extends StatefulWidget {
   const _FakeMapWidget({required this.onReady, required this.fakeMapView});
   final ValueChanged<MapView> onReady;
@@ -128,7 +128,7 @@ void main() {
       ],
       child: MaterialApp(
         home: MapScreen(
-          mapViewBuilderForTest: ({required StyleRewriter styleRewriter, required ValueChanged<MapView> onReady}) {
+          mapViewBuilderForTest: ({required ValueChanged<MapView> onReady, required List<Widget> fogLayers}) {
             return _FakeMapWidget(onReady: onReady, fakeMapView: fakeMapView);
           },
         ),
@@ -249,13 +249,11 @@ void main() {
     expect(cameraState, isA<MapCameraFollowing>());
     expect((cameraState as MapCameraFollowing).sessionId, equals(sid));
 
-    // Phase 07-07 (2026-04-22): openForSession no longer issues a
-    // camera-moving method-channel call. The initial camera
-    // positioning flows through MapLibreMap's `initialCameraPosition`
-    // at widget-build time (see `_buildMapStack` in map_screen.dart).
-    // The FakeMapView used in this test ignores that prop (it's
-    // supplied via the `mapViewBuilderForTest` typedef which doesn't
-    // pass initial camera). So we only assert the state transition +
+    // openForSession issues no camera move on first open: the initial
+    // camera flows through the widget constructor at build time (see
+    // `_buildMapStack` in map_screen.dart). The FakeMapView used here
+    // ignores that prop (the `mapViewBuilderForTest` typedef doesn't
+    // pass an initial camera), so we only assert the state transition +
     // follow-me side-effects that openForSession still owns.
     expect(fakeMapView.isFollowMeEnabled, isTrue);
     expect(fakeMapView.cameraMovesObserved, isEmpty);

@@ -22,7 +22,6 @@ import 'package:mirkfall/infrastructure/installed_maps/first_launch_bootstrap.da
 import 'package:mirkfall/infrastructure/installed_maps/installed_manifest_repository.dart';
 import 'package:mirkfall/infrastructure/map/first_launch_world_copier.dart';
 import 'package:mirkfall/infrastructure/map/pmtiles_source.dart';
-import 'package:mirkfall/infrastructure/map/style_rewriter.dart';
 import 'package:mirkfall/infrastructure/platform/disk_space_checker.dart';
 import 'package:mirkfall/infrastructure/platform/ios_backup_excluder.dart';
 import 'package:path_provider/path_provider.dart';
@@ -101,20 +100,13 @@ Stream<InstalledManifest> installedManifest(Ref ref) async* {
 }
 
 /// [PmtilesSource] resolver — converts `CountryCode?` + manifest snapshot
-/// into a `pmtiles://file:///…` URI for MapLibre's style source.
+/// into the absolute path of the PMTiles archive the flutter_map tile
+/// provider opens (never a URL — MAP-05).
 @Riverpod(keepAlive: true)
 Future<PmtilesSource> pmtilesSource(Ref ref) async {
   final repo = await ref.watch(installedManifestRepositoryProvider.future);
   final supportDir = await ref.watch(appSupportDirProvider.future);
   return PmtilesSource(installedManifestPort: repo, appSupportDir: supportDir);
-}
-
-/// [StyleRewriter] — loads `assets/maps/style.json`, validates + swaps the
-/// PMTiles placeholder for the resolved runtime URI.
-@Riverpod(keepAlive: true)
-Future<StyleRewriter> styleRewriter(Ref ref) async {
-  final source = await ref.watch(pmtilesSourceProvider.future);
-  return StyleRewriter(source);
 }
 
 /// Hand-rolled [DiskSpaceChecker] (Android `StatFs` + iOS
@@ -252,11 +244,11 @@ Future<FirstLaunchBootstrap> firstLaunchBootstrap(Ref ref) async {
   return bootstrap;
 }
 
-/// Mutable [MapView] reference published by the Plan 07-06
-/// `MapLibreMapViewWidget` via its `onReady` callback.
+/// Mutable [MapView] reference published by `FlutterMapMapViewWidget`
+/// via its `onReady` callback.
 ///
 /// Starts as `null`; consumers (MapCameraController, CountryResolverController)
-/// `ref.watch(mapViewProvider)` and no-op until the widget's `onStyleLoaded`
+/// `ref.watch(mapViewProvider)` and no-op until the widget's `onMapReady`
 /// fires. When the widget is rebuilt (e.g. hot-reload on dev host), it
 /// re-publishes the fresh adapter via
 /// `ref.read(mapViewProvider.notifier).set(...)` — subscribers get the
@@ -273,8 +265,8 @@ class MapViewHolder extends _$MapViewHolder {
   @override
   MapView? build() => null;
 
-  /// Publishes a newly-ready [MapView] adapter. Called from the Plan
-  /// 07-06 `MapLibreMapViewWidget.onReady` callback.
+  /// Publishes a newly-ready [MapView] adapter. Called from the
+  /// `FlutterMapMapViewWidget.onReady` callback.
   void set(MapView? next) {
     state = next;
   }
@@ -290,8 +282,8 @@ class MapViewHolder extends _$MapViewHolder {
 // to CONSTANTS, not to this alias which is an object reference).
 final mapViewProvider = mapViewHolderProvider;
 
-/// Current MapLibre viewport zoom level. Null until the MapView is ready
-/// and the first `onCameraIdle` viewport event fires.
+/// Current map viewport zoom level. Null until the MapView is ready
+/// and the first viewport event fires.
 ///
 /// Subscribes to [`MapView.viewportUpdates`] and mirrors the `zoom`
 /// field. Used by diagnostic UI (the burger-menu zoom readout) — the
@@ -313,8 +305,8 @@ class MapViewportZoom extends _$MapViewportZoom {
       (v) => state = v.zoom,
       onError: (Object _, StackTrace _) {
         // Viewport stream errors are not fatal — they're typically a
-        // transient MapLibre callback ordering glitch. Silently drop; the
-        // next successful update rewrites state.
+        // transient map-engine callback ordering glitch. Silently drop;
+        // the next successful update rewrites state.
       },
     );
     ref.onDispose(sub.cancel);
@@ -332,7 +324,7 @@ class MapViewportZoom extends _$MapViewportZoom {
         final v = await view.queryViewport();
         state = v.zoom;
       } on Object {
-        // queryViewport can throw on an adapter whose MapLibre surface
+        // queryViewport can throw on an adapter whose map surface
         // hasn't finished loading. Benign — the viewportUpdates stream
         // will emit once the camera settles.
       }

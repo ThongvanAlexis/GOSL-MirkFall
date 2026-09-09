@@ -11,7 +11,7 @@
   "sources": {
     "mirkfall_map": {
       "type": "vector",
-      "url": "pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER",
+      "url": "local://resolved-at-runtime-by-PmtilesSource",
       "attribution": "<a href=\"https://protomaps.com\">© Protomaps</a> <a href=\"https://openstreetmap.org/copyright\">© OpenStreetMap contributors</a>"
     }
   },

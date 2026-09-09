@@ -3,7 +3,6 @@
 // See LICENSE file for details
 
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
@@ -15,8 +14,8 @@ import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 ///
 /// Records every method invocation in a public observable so tests can
 /// assert ordering, arguments, and counts without spinning up a real
-/// MapLibre surface. The subscribable [viewportUpdates] stream is backed
-/// by a broadcast controller that tests drive via [pushViewport].
+/// flutter_map surface. The subscribable [viewportUpdates] stream is
+/// backed by a broadcast controller that tests drive via [pushViewport].
 ///
 /// Conforms to the `implements` convention from Phase 05's
 /// `FakeLocationStream` — never extends a concrete adapter.
@@ -52,9 +51,6 @@ class FakeMapView implements MapView {
   /// either never set a fix or explicitly cleared it.
   Fix? lastUserLocationSet;
 
-  /// Last polygon supplied to [markVisited]. `null` when no call was made.
-  List<({double latitude, double longitude})>? lastVisitedPolygon;
-
   /// Bbox returned by [queryViewportBounds]. Tests inject before
   /// asserting downstream consumers (Phase 09 `mapViewportProvider`).
   /// Defaults to `null` so a fake that has never been seeded produces
@@ -62,7 +58,7 @@ class FakeMapView implements MapView {
   MirkViewportBbox? viewportBoundsToReturn;
 
   /// Number of [queryViewportBounds] invocations. Tests use it to
-  /// assert the debounced provider does NOT thrash the MapLibre call.
+  /// assert the debounced provider does NOT thrash the adapter call.
   int queryViewportBoundsCallCount = 0;
 
   /// True once [dispose] has been called. Idempotent — second call is a
@@ -74,9 +70,9 @@ class FakeMapView implements MapView {
   MapTheme get currentTheme => _currentTheme;
 
   /// Pushes a viewport update event onto [viewportUpdates] so subscribers
-  /// observe a camera-idle event. Also updates the value that
-  /// [queryViewport] will return (matches real MapLibre semantics — the
-  /// last idle camera IS the viewport until the next gesture).
+  /// observe a camera event. Also updates the value that [queryViewport]
+  /// will return (matches the production adapter — the last camera IS
+  /// the viewport until the next gesture).
   void pushViewport({required double latitude, required double longitude, required double zoom}) {
     final ({double latitude, double longitude, double zoom}) v = (latitude: latitude, longitude: longitude, zoom: zoom);
     _lastViewport = v;
@@ -100,16 +96,6 @@ class FakeMapView implements MapView {
   Future<void> moveCameraTo({required double latitude, required double longitude, required double zoom}) async {
     if (_noopIfDisposed('moveCameraTo')) return;
     methodLog.add('moveCameraTo($latitude, $longitude, $zoom)');
-    cameraMovesObserved.add(CameraMove(latitude: latitude, longitude: longitude, zoom: zoom, timestamp: DateTime.now().toUtc()));
-  }
-
-  @override
-  Future<void> jumpCameraTo({required double latitude, required double longitude, required double zoom}) async {
-    if (_noopIfDisposed('jumpCameraTo')) return;
-    methodLog.add('jumpCameraTo($latitude, $longitude, $zoom)');
-    // Record jumps in the same observation queue as animated moves —
-    // tests that assert "camera moved at least once" work for either
-    // animation path.
     cameraMovesObserved.add(CameraMove(latitude: latitude, longitude: longitude, zoom: zoom, timestamp: DateTime.now().toUtc()));
   }
 
@@ -156,13 +142,6 @@ class FakeMapView implements MapView {
   }
 
   @override
-  Future<void> markVisited(List<({double latitude, double longitude})> polygon) async {
-    if (_noopIfDisposed('markVisited')) return;
-    methodLog.add('markVisited(${polygon.length} pts)');
-    lastVisitedPolygon = List<({double latitude, double longitude})>.from(polygon);
-  }
-
-  @override
   Future<void> addPointOfInterest({required String id, required double latitude, required double longitude, required String iconId}) async {
     if (_noopIfDisposed('addPointOfInterest')) return;
     methodLog.add('addPointOfInterest($id)');
@@ -174,30 +153,6 @@ class FakeMapView implements MapView {
     if (_noopIfDisposed('removePointOfInterest')) return;
     methodLog.add('removePointOfInterest($id)');
     poiRemoveObservations.add(id);
-  }
-
-  @override
-  Future<void> addFogImageSource({
-    required double south,
-    required double west,
-    required double north,
-    required double east,
-    required Uint8List pngBytes,
-  }) async {
-    if (_noopIfDisposed('addFogImageSource')) return;
-    methodLog.add('addFogImageSource(south=$south, west=$west, north=$north, east=$east)');
-  }
-
-  @override
-  Future<void> updateFogImageSource({double? south, double? west, double? north, double? east, Uint8List? pngBytes}) async {
-    if (_noopIfDisposed('updateFogImageSource')) return;
-    methodLog.add('updateFogImageSource(hasBytes=${pngBytes != null}, hasQuad=${south != null})');
-  }
-
-  @override
-  Future<void> removeFogImageSource() async {
-    if (_noopIfDisposed('removeFogImageSource')) return;
-    methodLog.add('removeFogImageSource');
   }
 
   @override
@@ -218,12 +173,12 @@ class FakeMapView implements MapView {
     _followMe = enabled;
   }
 
-  /// Matches the production `MapLibreMapView._aliveOrLog` shape — a
-  /// post-dispose call silently returns instead of throwing. Records the
-  /// method name in [postDisposeInvocations] so tests can assert the
-  /// silent-ignore path was exercised. Row #4 (08-REVIEW.md §3): the
-  /// two adapters must agree on post-dispose semantics, otherwise tests
-  /// never cover the production silent-ignore path.
+  /// Matches the production `_FlutterMapMapViewAdapter._aliveOrLog`
+  /// shape — a post-dispose call silently returns instead of throwing.
+  /// Records the method name in [postDisposeInvocations] so tests can
+  /// assert the silent-ignore path was exercised. Row #4 (08-REVIEW.md
+  /// §3): the two adapters must agree on post-dispose semantics,
+  /// otherwise tests never cover the production silent-ignore path.
   bool _noopIfDisposed(String method) {
     if (_disposed) {
       postDisposeInvocations.add(method);

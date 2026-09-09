@@ -5,7 +5,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:mirkfall/application/controllers/active_session_controller.dart';
@@ -16,9 +15,8 @@ import 'package:mirkfall/application/state/active_session_state.dart';
 import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/domain/map/map_view.dart';
-import 'package:mirkfall/infrastructure/map/maplibre_map_view.dart';
+import 'package:mirkfall/infrastructure/map/flutter_map_map_view.dart';
 import 'package:mirkfall/infrastructure/map/pmtiles_source.dart';
-import 'package:mirkfall/infrastructure/map/style_rewriter.dart';
 
 import '../widgets/map_attribution_icon.dart';
 import '../widgets/map_country_banner.dart';
@@ -31,14 +29,16 @@ import '../widgets/session_burger_menu.dart';
 final Logger _log = Logger('presentation.map_screen');
 
 /// Builder signature used for injecting a fake map widget in widget tests
-/// without dragging MapLibre into the test runner. Production code always
-/// goes through the default [MapLibreMapViewWidget] constructor.
-typedef MapViewWidgetBuilder = Widget Function({required StyleRewriter styleRewriter, required ValueChanged<MapView> onReady});
+/// without dragging flutter_map into the test runner. Production code
+/// always goes through the default [FlutterMapMapViewWidget] constructor.
+/// [fogLayers] are the widgets the map mounts on its own canvas above the
+/// tiles (empty until plan 09.1-07 moves the fog there).
+typedef MapViewWidgetBuilder = Widget Function({required ValueChanged<MapView> onReady, required List<Widget> fogLayers});
 
 /// Full-screen map route (`/map`).
 ///
 /// Layers (bottom-to-top):
-/// 1. [MapLibreMapViewWidget] — sole MapLibre consumer; publishes a
+/// 1. [FlutterMapMapViewWidget] — sole flutter_map consumer; publishes a
 ///    [MapView] adapter via `mapViewProvider` on `onReady`.
 /// 2. Top-left: burger menu IconButton — opens [SessionBurgerMenu] as a
 ///    [Scaffold]'s drawer. Responsive width (75% portrait / 40% landscape)
@@ -57,8 +57,8 @@ class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key, this.mapViewBuilderForTest});
 
   /// Optional test seam: when non-null, replaces the default
-  /// [MapLibreMapViewWidget] constructor. Production callers always omit
-  /// this parameter; widget tests pass a builder that returns a fake
+  /// [FlutterMapMapViewWidget] constructor. Production callers always
+  /// omit this parameter; widget tests pass a builder that returns a fake
   /// widget (typically `SizedBox.expand()`) and publishes a [FakeMapView]
   /// to `mapViewProvider` synchronously.
   @visibleForTesting
@@ -96,14 +96,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     //  1. REAL teardown — the /map route is being popped, the state
     //     will be disposed, the MapView adapter will be torn down.
     //     The microtask below MUST fire so controllers release their
-    //     stale reference to the dying native surface.
+    //     stale reference to the dying map surface.
     //  2. KEPT-ALIVE re-parent — rotation / AutomaticKeepAliveClientMixin /
     //     TabView migration. `deactivate()` fires, `activate()` fires
-    //     right after, the native MapLibre surface keeps rendering the
-    //     whole time. Nullifying `mapViewProvider` during (2) opens a
-    //     null-gap where a GPS fix landing in the window causes the
-    //     MapCameraController to skip its `moveCameraTo`; briefly
-    //     loses follow-me mid-rotation.
+    //     right after, the map surface keeps rendering the whole time.
+    //     Nullifying `mapViewProvider` during (2) opens a null-gap where
+    //     a GPS fix landing in the window causes the MapCameraController
+    //     to skip its `moveCameraTo`; briefly loses follow-me
+    //     mid-rotation.
     //
     // Discrimination: in a REAL teardown, the scheduled microtask sees
     // `mounted == false` (the state has been disposed by the next
@@ -120,12 +120,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// deactivate/dispose phase has closed, so long-lived controllers
   /// ([`MapCameraController`], [`CountryResolverController`] — both
   /// `keepAlive: true`) release their stale reference to the dying
-  /// native MapLibre surface. Without this signal the controllers
-  /// kept calling `setUserLocation` / `moveCameraTo` on a disposed
-  /// adapter, cascading into iOS native crashes on the 2026-04-21
-  /// device smoke (post-row-#39 the adapter's `_aliveOrLog` guard
-  /// silently no-ops on disposed state, so a missed nullification
-  /// leaks work but does not crash — still worth clearing).
+  /// map surface. Without this signal the controllers kept calling
+  /// `setUserLocation` / `moveCameraTo` on a disposed adapter (post
+  /// row #39 the adapter's `_aliveOrLog` guard silently no-ops on
+  /// disposed state, so a missed nullification leaks work but does not
+  /// crash — still worth clearing).
   ///
   /// ### Why microtask, not direct call
   ///
@@ -161,7 +160,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       // Phase 08.1-REVIEW §3 row #13 (Could). Skip nullify when the
       // State is still mounted — a kept-alive re-parent (rotation,
       // TabView migration) fires deactivate()+activate() in quick
-      // succession without tearing down the native surface. See
+      // succession without tearing down the map surface. See
       // [deactivate] docstring for the two-scenario breakdown.
       if (mounted) return;
       try {
@@ -174,30 +173,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final AsyncValue<StyleRewriter> rewriterAsync = ref.watch(styleRewriterProvider);
-    // Still watch pmtilesSource: it warms the on-disk cache + catalog
-    // prerequisites that the style rewriter depends on transitively.
-    // We don't USE the value directly here (the rewriter owns PMTiles
-    // URI rewriting), but awaiting the future keeps MapLibre from
-    // constructing against a half-wired context.
+    // The PMTiles resolver is FutureProvider-backed (it awaits the
+    // app-support directory + the installed-manifest repository);
+    // surface a loading / error shell until it resolves so the map is
+    // never constructed against a half-wired context. Every bootstrap
+    // path pre-warms the provider in main.dart, so this is a cheap
+    // guard rather than a real spinner.
     final AsyncValue<PmtilesSource> sourceAsync = ref.watch(pmtilesSourceProvider);
 
-    // Infrastructure prerequisites (style rewriter + pmtiles source) are
-    // FutureProvider-backed; surface a loading / error shell until they
-    // resolve so MapLibre is never constructed against a half-wired
-    // context. Every Phase 07 bootstrap path pre-warms these providers
-    // in main.dart, so this is a cheap guard rather than a real spinner.
     return Scaffold(
       key: _scaffoldKey,
       drawer: const SessionBurgerMenu(),
-      body: rewriterAsync.when(
+      body: sourceAsync.when(
         loading: _buildLoading,
         error: (err, st) => _buildError('Préparation de la carte : $err'),
-        data: (rewriter) => sourceAsync.when(
-          loading: _buildLoading,
-          error: (err, st) => _buildError('Préparation de la carte : $err'),
-          data: (_) => _buildMapStack(context, rewriter),
-        ),
+        data: (PmtilesSource source) => _buildMapStack(context, source),
       ),
     );
   }
@@ -211,39 +201,28 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ),
   );
 
-  Widget _buildMapStack(BuildContext context, StyleRewriter rewriter) {
+  Widget _buildMapStack(BuildContext context, PmtilesSource source) {
     // Compute the initial camera at BUILD time from the active session's
-    // last known fix. Passing this as `initialCameraPosition` to
-    // MapLibreMap lets the map LOAD with the camera already at the
-    // right place — zero method-channel calls needed post-style-load.
-    //
-    // Phase 07-07 rationale (2026-04-22): any method-channel call
-    // touching the camera (animateCamera, moveCamera) in the window
-    // right after onStyleLoaded throws an unhandled C++ exception in
-    // MapLibre.framework → SIGABRT (confirmed across 5 .ips files,
-    // same convergence point in the native stack regardless of which
-    // Dart method was dispatched). See
-    // `docs/phase-07-ios-animate-camera-crash.md`. Supplying the
-    // camera through the widget constructor avoids that code path
-    // entirely for the initial positioning.
+    // last known fix and hand it to the widget constructor: the map
+    // boots with the camera already at the right place, no post-ready
+    // move needed for the initial positioning.
     final ActiveSessionState? sessionState = ref.watch(activeSessionControllerProvider).value;
     final Tracking? tracking = sessionState is Tracking ? sessionState : null;
     final CameraLatLngZoom initialCamera = tracking?.lastFix != null
         ? CameraLatLngZoom(latitude: tracking!.lastFix!.latitude, longitude: tracking.lastFix!.longitude, zoom: kInitialSessionMapZoom.toDouble())
-        : const CameraLatLngZoom(latitude: 0, longitude: 0, zoom: 2);
-    // Seed the initial style with the country containing the active
+        : const CameraLatLngZoom(latitude: 0, longitude: 0, zoom: kMapWorldOverviewZoom);
+    // Seed the initial archive with the country containing the active
     // session's lastFix. Done via a stateless point-in-polygon lookup
     // on the CountryResolverController's loaded polygons — survives
     // iOS background-kills (which wipe Riverpod keepAlive state but
     // not the on-disk installed polygons, reloaded on app start by
     // `_rebuildResolver`).
     //
-    // Phase 07-07 rationale: without this seed, a cold map open with
-    // an active session spends 5-10 s showing the world-bundle at
-    // zoom 13 (pure blur) while the resolver waits for the viewport
-    // stream to settle enough to fire `showMap(<country>)` via
-    // setStyle. Seeding `initialCountry` directly makes the map boot
-    // on the country's style with no transient.
+    // Without this seed, a cold map open with an active session would
+    // show the world bundle at zoom 15 (pure blur) while the resolver
+    // waits for the viewport stream to settle enough to fire
+    // `showMap(<country>)`. Seeding `initialCountry` directly makes the
+    // map boot on the country's archive with no transient.
     //
     // Falls through to `null` (world) when no session is active, no
     // fix yet, or the polygons haven't finished loading (cold-start
@@ -254,26 +233,26 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           .read(countryResolverControllerProvider.notifier)
           .resolveForPoint(latitude: tracking!.lastFix!.latitude, longitude: tracking.lastFix!.longitude, zoom: kInitialSessionMapZoom.toDouble());
     }
+    // `fogLayers` is left at its EMPTY default in plan 09.1-02: the fog
+    // is still the MirkOverlay sibling below. Plan 09.1-07 passes
+    // `fogLayers: [MirkInitialRevealFade(child: FogLayerConnector())]`
+    // here so the fog is painted on the same canvas as the tiles
+    // (BUG-014).
     final Widget mapWidget = widget.mapViewBuilderForTest != null
-        ? widget.mapViewBuilderForTest!(styleRewriter: rewriter, onReady: _onMapReady)
-        : MapLibreMapViewWidget(styleRewriter: rewriter, onReady: _onMapReady, initialCamera: initialCamera, initialCountry: initialCountry);
+        ? widget.mapViewBuilderForTest!(onReady: _onMapReady, fogLayers: const <Widget>[])
+        : FlutterMapMapViewWidget(pmtilesSource: source, onReady: _onMapReady, initialCamera: initialCamera, initialCountry: initialCountry);
     return Stack(
       children: <Widget>[
         Positioned.fill(child: mapWidget),
-        // Phase 09 mirk overlay — sibling of the MapLibre platform view
-        // (per 09-RESEARCH §Pitfall 2 — MapLibre is a platform view,
-        // opaque to Flutter's paint pipeline; the overlay must sit
-        // ABOVE it in the Stack, NOT inside it). Wrapped in
-        // MirkInitialRevealFade so the initial 20 m reveal fades from
-        // opacity 0 → 1 over 500 ms at session start.
-        // RepaintBoundary isolates the noise tick from the rest of the
-        // Stack — the map's display list is never invalidated by the
-        // mirk Ticker.
-        // IgnorePointer: the mirk overlay is purely visual — pan, pinch
-        // and zoom must reach the MapLibre platform view underneath.
-        // Without this wrapper, CustomPaint's default opaque hit-test
-        // (when a painter is supplied) swallows every gesture, freezing
-        // the map. Caught during BUG-003 UAT walk on 2026-04-25.
+        // Phase 09 mirk overlay — TEMPORARILY still a sibling of the map
+        // (screen-space CustomPaint, lags the camera: BUG-014). Plan
+        // 09.1-07 removes this entry and mounts `FogLayer` inside the
+        // FlutterMap children instead. Wrapped in MirkInitialRevealFade
+        // so the initial 20 m reveal fades from opacity 0 → 1 over
+        // 500 ms at session start. RepaintBoundary isolates the noise
+        // tick from the rest of the Stack. IgnorePointer: the overlay is
+        // purely visual — pan, pinch and zoom must reach the map
+        // underneath (caught during the BUG-003 UAT walk on 2026-04-25).
         const Positioned.fill(
           child: IgnorePointer(
             child: RepaintBoundary(child: MirkInitialRevealFade(child: MirkOverlay())),
@@ -316,60 +295,25 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   /// Publishes the newly-ready [MapView] adapter to the application layer
   /// so controllers (MapCameraController, CountryResolverController) can
-  /// attach their listeners. Called by [MapLibreMapViewWidget] once the
-  /// first `onStyleLoaded` fires.
+  /// attach their listeners. Called by [FlutterMapMapViewWidget] from
+  /// flutter_map's `onMapReady` (a post-frame callback, hence outside
+  /// the build phase — Riverpod accepts the mutation directly).
   ///
   /// If an active session is already tracking when we reach /map (via the
   /// SessionList "Ouvrir la carte" entry, a direct deep-link, or a return
-  /// from a Phase 07-07 smoke walk), fires [`MapCameraController.openForSession`]
+  /// from a smoke walk), fires [`MapCameraController.openForSession`]
   /// so the follow-me FAB sees a non-Idle state. Without this auto-open,
   /// the controller stays in [`MapCameraIdle`] and the FAB would mislead
   /// the user with "Démarre une session pour activer le centrage GPS"
   /// even though one IS active.
   void _onMapReady(MapView adapter) {
     // Ignore late callbacks after the widget is torn down; the
-    // MapViewHolder handles the transition back to null via dispose of
-    // the underlying adapter.
-    if (!mounted) return;
-    // Defer publication by one frame — see [_publishMapViewAfterFrame] for
-    // the maplibre_gl 0.25.0 crash this avoids. Row #40 (§3) swapped the
-    // previous Future.delayed(Duration.zero) for SchedulerBinding's
-    // post-frame callback to make the "wait until the current frame
-    // commits" intent explicit in the API used.
-    SchedulerBinding.instance.addPostFrameCallback((_) => _publishMapViewAfterFrame(adapter));
-  }
-
-  /// Publishes the [MapView] adapter to [mapViewProvider] and, when a
-  /// session is already Tracking, opens the camera controller — both
-  /// scheduled for the next frame so MapLibre has finished its render-thread
-  /// commit before any method-channel calls land on the native side.
-  ///
-  /// Workaround for flutter-maplibre-gl 0.25.0 issue #717 (fixed by
-  /// PR #719 on release-0.26.0, not yet published to pub.dev): the iOS
-  /// plugin invokes onStyleLoadedCallback synchronously while MLNMapView's
-  /// internal state is not yet committed. Any subsequent method-channel
-  /// call in that same runloop turn (setUserLocation, animateCamera,
-  /// addCircle, etc.) throws a C++ exception inside MapLibre Native that
-  /// propagates unhandled through __cxa_throw → std::terminate →
-  /// _objc_terminate → abort → SIGABRT, killing the app (see native
-  /// crash report Runner-2026-04-22-092721.ips — frames 9-13 in
-  /// MapLibre.framework, frame 14 in the plugin's onMethodCall dispatch).
-  ///
-  /// The post-frame callback mirrors PR #719's `DispatchQueue.main.async`
-  /// fix on the native side, buying MapLibre time to finalise its
-  /// render-thread state. Remove this indirection when `maplibre_gl`
-  /// >= 0.26.0 lands on pub.dev.
-  void _publishMapViewAfterFrame(MapView adapter) {
+    // MapViewHolder handles the transition back to null via the
+    // deactivate microtask.
     if (!mounted) return;
     ref.read(mapViewProvider.notifier).set(adapter);
     final ActiveSessionState? sessionState = ref.read(activeSessionControllerProvider).value;
     if (sessionState is Tracking) {
-      // Phase 07-07 probe B (2026-04-22) — re-enable openForSession
-      // after confirming the crash disappears with `user_location`
-      // style layer removed. If the crash stays gone with this call
-      // active, the style layer was the sole trigger; if it returns,
-      // this call needs a stronger defer or a redesign.
-      //
       // Fire-and-forget: openForSession is async but the widget doesn't
       // need to block on it — the controller publishes state changes
       // through Riverpod which propagate back via the FAB's ref.watch.

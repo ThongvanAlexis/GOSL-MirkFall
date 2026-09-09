@@ -448,6 +448,17 @@ void main() {
       expect(kPmtilesArchiveOpenTimeout, isA<Duration>());
     });
 
+    test('user-location puck: 7 px blue disc with a 2 px white stroke (Phase 07 circle-layer values hoisted for CircleMarker)', () {
+      expect(kMapUserPuckRadiusPx, equals(7.0));
+      expect(kMapUserPuckRadiusPx, isA<double>());
+      expect(kMapUserPuckColorArgb, equals(0xFF2B7CD6));
+      expect(kMapUserPuckColorArgb, isA<int>());
+      expect(kMapUserPuckBorderWidthPx, equals(2.0));
+      expect(kMapUserPuckBorderWidthPx, isA<double>());
+      expect(kMapUserPuckBorderColorArgb, equals(0xFFFFFFFF));
+      expect(kMapUserPuckBorderColorArgb, isA<int>());
+    });
+
     test('kMirkFogDiscQueryPaddingFactor is 0.5', () {
       expect(kMirkFogDiscQueryPaddingFactor, equals(0.5));
       expect(kMirkFogDiscQueryPaddingFactor, isA<double>());

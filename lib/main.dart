@@ -99,10 +99,23 @@ Future<void> main() async {
       // Shared error sink — every error channel funnels here so SHOUTs are
       // uniform across Framework / PlatformDispatcher / zone-escape origins.
       void reportError(String source, Object error, StackTrace? stack) {
+        if (isBenignTileCancellation(error)) {
+          log.fine('$source: $error (vector_map_tiles tile job cancelled at layer teardown — benign)');
+          return;
+        }
         log.shout(source, error, stack);
       }
 
       FlutterError.onError = (FlutterErrorDetails details) {
+        // `silent` reports are ones the framework itself deems not worth
+        // surfacing — vector_map_tiles (Phase 09.1) files every cancelled
+        // raster tile job this way on pan / zoom / layer unmount. Keep
+        // them at FINE (visible in verbose logs) instead of SHOUT-flooding
+        // the production log file with "Cancelled" lines.
+        if (details.silent) {
+          log.fine('FlutterError (silent): ${details.exceptionAsString()}');
+          return;
+        }
         reportError('FlutterError', details.exception, details.stack);
         if (kDebugMode) {
           FlutterError.dumpErrorToConsole(details);
@@ -223,10 +236,24 @@ Future<void> main() async {
       // FlutterError.onError; async-outside-framework errors still flow
       // through PlatformDispatcher.instance.onError. This handler is the
       // last-resort net.
+      if (isBenignTileCancellation(error)) {
+        Logger('main').fine('uncaughtZoneError: $error (vector_map_tiles tile job cancelled at layer teardown — benign)');
+        return;
+      }
       Logger('main').shout('uncaughtZoneError', error, stack);
     },
   );
 }
+
+/// True for the `CancellationException` `vector_map_tiles` raises when a
+/// `VectorTileLayer` unmounts or re-keys with tile jobs still in flight
+/// (`/map` pop, country hot-swap). Some of them escape its pipeline as
+/// uncaught async errors; they are expected teardown noise, not faults.
+/// Matched by type name because the exception belongs to `executor_lib`,
+/// a transitive package MirkFall deliberately does not import directly
+/// (Phase 09.1 dependency policy: no direct pin without a dedicated use).
+@visibleForTesting
+bool isBenignTileCancellation(Object error) => error.runtimeType.toString() == 'CancellationException';
 
 /// Phase 05 notification-tap handler.
 ///

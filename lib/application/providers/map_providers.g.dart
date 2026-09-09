@@ -253,18 +253,21 @@ final class InstalledManifestProvider extends $FunctionalProvider<AsyncValue<Ins
 String _$installedManifestHash() => r'41d4b5fbd98931d5fa432a8870b933b965240c19';
 
 /// [PmtilesSource] resolver — converts `CountryCode?` + manifest snapshot
-/// into a `pmtiles://file:///…` URI for MapLibre's style source.
+/// into the absolute path of the PMTiles archive the flutter_map tile
+/// provider opens (never a URL — MAP-05).
 
 @ProviderFor(pmtilesSource)
 final pmtilesSourceProvider = PmtilesSourceProvider._();
 
 /// [PmtilesSource] resolver — converts `CountryCode?` + manifest snapshot
-/// into a `pmtiles://file:///…` URI for MapLibre's style source.
+/// into the absolute path of the PMTiles archive the flutter_map tile
+/// provider opens (never a URL — MAP-05).
 
 final class PmtilesSourceProvider extends $FunctionalProvider<AsyncValue<PmtilesSource>, PmtilesSource, FutureOr<PmtilesSource>>
     with $FutureModifier<PmtilesSource>, $FutureProvider<PmtilesSource> {
   /// [PmtilesSource] resolver — converts `CountryCode?` + manifest snapshot
-  /// into a `pmtiles://file:///…` URI for MapLibre's style source.
+  /// into the absolute path of the PMTiles archive the flutter_map tile
+  /// provider opens (never a URL — MAP-05).
   PmtilesSourceProvider._()
     : super(
         from: null,
@@ -290,45 +293,6 @@ final class PmtilesSourceProvider extends $FunctionalProvider<AsyncValue<Pmtiles
 }
 
 String _$pmtilesSourceHash() => r'b1ba767fbacd9b1cc2cdcf9810ff48d4bca53097';
-
-/// [StyleRewriter] — loads `assets/maps/style.json`, validates + swaps the
-/// PMTiles placeholder for the resolved runtime URI.
-
-@ProviderFor(styleRewriter)
-final styleRewriterProvider = StyleRewriterProvider._();
-
-/// [StyleRewriter] — loads `assets/maps/style.json`, validates + swaps the
-/// PMTiles placeholder for the resolved runtime URI.
-
-final class StyleRewriterProvider extends $FunctionalProvider<AsyncValue<StyleRewriter>, StyleRewriter, FutureOr<StyleRewriter>>
-    with $FutureModifier<StyleRewriter>, $FutureProvider<StyleRewriter> {
-  /// [StyleRewriter] — loads `assets/maps/style.json`, validates + swaps the
-  /// PMTiles placeholder for the resolved runtime URI.
-  StyleRewriterProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'styleRewriterProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$styleRewriterHash();
-
-  @$internal
-  @override
-  $FutureProviderElement<StyleRewriter> $createElement($ProviderPointer pointer) => $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<StyleRewriter> create(Ref ref) {
-    return styleRewriter(ref);
-  }
-}
-
-String _$styleRewriterHash() => r'16d32ddb9024e60da109b7d6018672d121272423';
 
 /// Hand-rolled [DiskSpaceChecker] (Android `StatFs` + iOS
 /// `FileManager.systemFreeSize` via platform channels). Process-wide
@@ -850,11 +814,11 @@ final class FirstLaunchBootstrapProvider extends $FunctionalProvider<AsyncValue<
 
 String _$firstLaunchBootstrapHash() => r'b60fc3c0e805e055c690ca9540e97f2076563c77';
 
-/// Mutable [MapView] reference published by the Plan 07-06
-/// `MapLibreMapViewWidget` via its `onReady` callback.
+/// Mutable [MapView] reference published by `FlutterMapMapViewWidget`
+/// via its `onReady` callback.
 ///
 /// Starts as `null`; consumers (MapCameraController, CountryResolverController)
-/// `ref.watch(mapViewProvider)` and no-op until the widget's `onStyleLoaded`
+/// `ref.watch(mapViewProvider)` and no-op until the widget's `onMapReady`
 /// fires. When the widget is rebuilt (e.g. hot-reload on dev host), it
 /// re-publishes the fresh adapter via
 /// `ref.read(mapViewProvider.notifier).set(...)` — subscribers get the
@@ -870,11 +834,11 @@ String _$firstLaunchBootstrapHash() => r'b60fc3c0e805e055c690ca9540e97f2076563c7
 @ProviderFor(MapViewHolder)
 final mapViewHolderProvider = MapViewHolderProvider._();
 
-/// Mutable [MapView] reference published by the Plan 07-06
-/// `MapLibreMapViewWidget` via its `onReady` callback.
+/// Mutable [MapView] reference published by `FlutterMapMapViewWidget`
+/// via its `onReady` callback.
 ///
 /// Starts as `null`; consumers (MapCameraController, CountryResolverController)
-/// `ref.watch(mapViewProvider)` and no-op until the widget's `onStyleLoaded`
+/// `ref.watch(mapViewProvider)` and no-op until the widget's `onMapReady`
 /// fires. When the widget is rebuilt (e.g. hot-reload on dev host), it
 /// re-publishes the fresh adapter via
 /// `ref.read(mapViewProvider.notifier).set(...)` — subscribers get the
@@ -887,11 +851,11 @@ final mapViewHolderProvider = MapViewHolderProvider._();
 /// auto-generated provider is aliased to `mapViewProvider` below for
 /// call-site ergonomics.
 final class MapViewHolderProvider extends $NotifierProvider<MapViewHolder, MapView?> {
-  /// Mutable [MapView] reference published by the Plan 07-06
-  /// `MapLibreMapViewWidget` via its `onReady` callback.
+  /// Mutable [MapView] reference published by `FlutterMapMapViewWidget`
+  /// via its `onReady` callback.
   ///
   /// Starts as `null`; consumers (MapCameraController, CountryResolverController)
-  /// `ref.watch(mapViewProvider)` and no-op until the widget's `onStyleLoaded`
+  /// `ref.watch(mapViewProvider)` and no-op until the widget's `onMapReady`
   /// fires. When the widget is rebuilt (e.g. hot-reload on dev host), it
   /// re-publishes the fresh adapter via
   /// `ref.read(mapViewProvider.notifier).set(...)` — subscribers get the
@@ -929,11 +893,11 @@ final class MapViewHolderProvider extends $NotifierProvider<MapViewHolder, MapVi
 
 String _$mapViewHolderHash() => r'739d28b349134f824f98e79904c03ca479c78bca';
 
-/// Mutable [MapView] reference published by the Plan 07-06
-/// `MapLibreMapViewWidget` via its `onReady` callback.
+/// Mutable [MapView] reference published by `FlutterMapMapViewWidget`
+/// via its `onReady` callback.
 ///
 /// Starts as `null`; consumers (MapCameraController, CountryResolverController)
-/// `ref.watch(mapViewProvider)` and no-op until the widget's `onStyleLoaded`
+/// `ref.watch(mapViewProvider)` and no-op until the widget's `onMapReady`
 /// fires. When the widget is rebuilt (e.g. hot-reload on dev host), it
 /// re-publishes the fresh adapter via
 /// `ref.read(mapViewProvider.notifier).set(...)` — subscribers get the
@@ -957,8 +921,8 @@ abstract class _$MapViewHolder extends $Notifier<MapView?> {
   }
 }
 
-/// Current MapLibre viewport zoom level. Null until the MapView is ready
-/// and the first `onCameraIdle` viewport event fires.
+/// Current map viewport zoom level. Null until the MapView is ready
+/// and the first viewport event fires.
 ///
 /// Subscribes to [`MapView.viewportUpdates`] and mirrors the `zoom`
 /// field. Used by diagnostic UI (the burger-menu zoom readout) — the
@@ -974,8 +938,8 @@ abstract class _$MapViewHolder extends $Notifier<MapView?> {
 @ProviderFor(MapViewportZoom)
 final mapViewportZoomProvider = MapViewportZoomProvider._();
 
-/// Current MapLibre viewport zoom level. Null until the MapView is ready
-/// and the first `onCameraIdle` viewport event fires.
+/// Current map viewport zoom level. Null until the MapView is ready
+/// and the first viewport event fires.
 ///
 /// Subscribes to [`MapView.viewportUpdates`] and mirrors the `zoom`
 /// field. Used by diagnostic UI (the burger-menu zoom readout) — the
@@ -988,8 +952,8 @@ final mapViewportZoomProvider = MapViewportZoomProvider._();
 /// during the gap and surface a stale zoom the next time the drawer
 /// opens.
 final class MapViewportZoomProvider extends $NotifierProvider<MapViewportZoom, double?> {
-  /// Current MapLibre viewport zoom level. Null until the MapView is ready
-  /// and the first `onCameraIdle` viewport event fires.
+  /// Current map viewport zoom level. Null until the MapView is ready
+  /// and the first viewport event fires.
   ///
   /// Subscribes to [`MapView.viewportUpdates`] and mirrors the `zoom`
   /// field. Used by diagnostic UI (the burger-menu zoom readout) — the
@@ -1027,8 +991,8 @@ final class MapViewportZoomProvider extends $NotifierProvider<MapViewportZoom, d
 
 String _$mapViewportZoomHash() => r'f76d62859c0725e4d9de4465767cf2c35f6b78ef';
 
-/// Current MapLibre viewport zoom level. Null until the MapView is ready
-/// and the first `onCameraIdle` viewport event fires.
+/// Current map viewport zoom level. Null until the MapView is ready
+/// and the first viewport event fires.
 ///
 /// Subscribes to [`MapView.viewportUpdates`] and mirrors the `zoom`
 /// field. Used by diagnostic UI (the burger-menu zoom readout) — the

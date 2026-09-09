@@ -85,29 +85,23 @@ final class MapCameraFreePan extends MapCameraState {
 /// Echo-suppression is done by timestamp comparison: every
 /// controller-initiated `moveCameraTo` records `_lastProgrammaticMoveAt`.
 /// A viewport update within [kMapCameraPendingMoveDebounce] of that
-/// timestamp is treated as MapLibre's `onCameraIdle` echoing the
-/// controller's own move back; anything older is a genuine user pan.
+/// timestamp is treated as the map engine echoing the controller's own
+/// move back on `viewportUpdates`; anything older is a genuine user pan.
 /// Per CLAUDE.md §State "préférer la déduction au tracking" — no
 /// explicit boolean flag + no timer lifecycle to juggle.
 ///
-/// Keyed to the Plan 07-06 `MapLibreMapViewWidget`'s `onReady` callback:
-/// the widget publishes a [MapView] adapter via [mapViewProvider] and the
+/// Keyed to the `FlutterMapMapViewWidget`'s `onReady` callback: the
+/// widget publishes a [MapView] adapter via [mapViewProvider] and the
 /// controller lazily attaches its listeners on first use.
 ///
-/// ## iOS initial-camera seeding (Phase 07-07 fix)
+/// ## Initial-camera seeding (Phase 07-07, kept under flutter_map)
 ///
-/// [openForSession] deliberately does NOT issue any
-/// camera-moving method-channel call on first open. Two earlier
-/// attempts crashed MapLibre.framework with identical native stack
-/// traces — once with `animateCamera` (commit 604988f) and once with
-/// the animator-free `moveCamera` (commit 3b23c8d). The convergence
-/// proves the bug is about ANY camera-state mutation issued in the
-/// window right after `onStyleLoaded`, not about which method is
-/// used. Resolution: the initial viewport is supplied via
-/// `MapLibreMap.initialCameraPosition` at widget-build time (see
-/// `_buildMapStack` in `map_screen.dart`); by the time
-/// [openForSession] runs, the MLNMapView already shows the right
-/// viewport and the controller only needs to prime the puck + flip
+/// [openForSession] deliberately does NOT issue any camera move on
+/// first open: the initial viewport is supplied through the widget
+/// constructor (`initialCamera`, see `_buildMapStack` in
+/// `map_screen.dart`) at build time. By the time [openForSession]
+/// runs, the map already shows the right viewport and the controller
+/// only needs to prime the puck + flip
 /// follow-me on.
 @Riverpod(keepAlive: true)
 class MapCameraController extends _$MapCameraController {
@@ -175,10 +169,9 @@ class MapCameraController extends _$MapCameraController {
     final Fix? latestFix = _currentSessionLatestFix();
 
     if (mapView != null && latestFix != null) {
-      // No camera-moving method-channel call on first open — initial
-      // viewport is supplied at widget-build time via
-      // `MapLibreMap.initialCameraPosition`. See "iOS initial-camera
-      // seeding" in the class docstring for the full rationale. We
+      // No camera move on first open — the initial viewport is supplied
+      // at widget-build time via the widget's `initialCamera`. See
+      // "Initial-camera seeding" in the class docstring. We
       // still track `_currentZoom` so subsequent GPS-driven moves
       // preserve the zoom the user started at + prime the puck on
       // the initial fix so the blue dot doesn't wait for fix #2.
@@ -344,15 +337,15 @@ class MapCameraController extends _$MapCameraController {
 
   /// Handles a settled viewport event. If the event arrives within
   /// [kMapCameraPendingMoveDebounce] of our last programmatic move, it
-  /// is MapLibre's `onCameraIdle` echoing our own moveCameraTo back —
-  /// ignore it. Otherwise the user manually panned: transition
-  /// Following → FreePan + drop follow-me.
+  /// is the map engine echoing our own moveCameraTo back — ignore it.
+  /// Otherwise the user manually panned: transition Following →
+  /// FreePan + drop follow-me.
   ///
   /// Phase 08.1-REVIEW §3 row #3 (Should, smell:fix-on-fix). Previously
   /// the first echo cleared `_lastProgrammaticMoveAt`, which broke
-  /// down when MapLibre Native emitted multiple `onCameraIdle` per
-  /// programmatic move (observed 2026-04-22 device smoke around
-  /// `_rebuildMapLibreStyle`). The timestamp now stays alive for the
+  /// down when the engine emitted multiple camera events per
+  /// programmatic move (observed 2026-04-22 device smoke during a
+  /// style rebuild). The timestamp now stays alive for the
   /// full debounce window and expires naturally — every echo inside
   /// the window is ignored as programmatic, and only updates beyond
   /// the window count as user-intent pans.
@@ -360,8 +353,9 @@ class MapCameraController extends _$MapCameraController {
     _currentZoom = v.zoom;
     final DateTime? last = _lastProgrammaticMoveAt;
     if (last != null && DateTime.now().difference(last) < kMapCameraPendingMoveDebounce) {
-      // Within the echo window — MapLibre may emit multiple onCameraIdle
-      // per programmatic move (multi-echo observed during style rebuild).
+      // Within the echo window — the engine may emit several camera
+      // events per programmatic move (multi-echo observed during a style
+      // rebuild).
       // Keep the timestamp alive so every echo inside the window is
       // absorbed; the window expires naturally via the wall-clock
       // comparison above.

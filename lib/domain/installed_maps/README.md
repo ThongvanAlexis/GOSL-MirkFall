@@ -5,7 +5,7 @@ which country PMTiles bundles are present on the device.
 
 **Allowed imports:** `dart:*`, `package:freezed_annotation`, `package:json_annotation`, `package:collection`, sibling `lib/domain/*`.
 
-**Forbidden:** `package:flutter/*`, `package:drift/*`, `package:path_provider/*`, `package:maplibre_gl/*`, anything under `lib/application/` or `lib/infrastructure/`. Actual file I/O + path resolution live in `lib/infrastructure/installed_maps/` (Plan 07-04).
+**Forbidden:** `package:flutter/*`, `package:drift/*`, `package:path_provider/*`, `package:flutter_map/*` (and the rest of the map-engine stack), anything under `lib/application/` or `lib/infrastructure/`. Actual file I/O + path resolution live in `lib/infrastructure/installed_maps/` (Plan 07-04).
 
 **Exports:**
 

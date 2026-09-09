@@ -57,8 +57,8 @@ class CountryResolverState {
 ///
 /// - Result equals current active → no-op.
 /// - Result is a DIFFERENT installed country → set activeCountry to the
-///   new alpha3 + call `mapView.showMap(newAlpha3)` (the MapLibre adapter
-///   reloads the style with the new PMTiles source).
+///   new alpha3 + call `mapView.showMap(newAlpha3)` (the adapter swaps
+///   the tile provider to the new PMTiles archive).
 /// - Result is a DIFFERENT country NOT installed → update
 ///   viewportCountry + viewportInInstalled=false (UI surfaces the banner);
 ///   activeCountry stays on whatever was last showing.
@@ -146,7 +146,7 @@ class CountryResolverController extends _$CountryResolverController {
   /// during widget `build` before any map instance exists.
   ///
   /// Phase 07-07 device-smoke (2026-04-22) uses this from
-  /// `MapScreen._buildMapStack` to seed `MapLibreMapViewWidget`'s
+  /// `MapScreen._buildMapStack` to seed `FlutterMapMapViewWidget`'s
   /// `initialCountry` from the active session's `lastFix`. With that
   /// seed the map boots directly on the country's style (no
   /// world → country transient), surviving even an iOS-triggered

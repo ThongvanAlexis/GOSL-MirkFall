@@ -14,7 +14,7 @@ import 'package:mirkfall/presentation/widgets/mirk_overlay.dart';
 /// trigger rebuilds of siblings (SC#4 RepaintBoundary isolation
 /// regression — plan 09-08 Task 2). The structure mirrors
 /// [`MapScreen._buildMapStack`] (`lib/presentation/screens/map_screen.dart`):
-/// a `Stack` with a base layer (proxy for the MapLibre platform view), a
+/// a `Stack` with a base layer (proxy for the flutter_map surface), a
 /// `RepaintBoundary` wrapping `MirkInitialRevealFade(MirkOverlay)`, and 4
 /// sibling positioned widgets supplied via builders.
 ///
@@ -45,7 +45,7 @@ class TestMapScreenHarness extends StatelessWidget {
       home: Scaffold(
         body: Stack(
           children: <Widget>[
-            // Base map proxy — production hosts a `MapLibreMapViewWidget`
+            // Base map proxy — production hosts a `FlutterMapMapViewWidget`
             // here. A plain `ColoredBox` is sufficient for the harness
             // because the boundary isolation test only cares that the
             // ticker repaint does NOT bleed into siblings; the base
