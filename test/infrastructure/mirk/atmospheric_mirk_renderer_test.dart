@@ -17,16 +17,23 @@
 // pre-Commit-5 is preserved by feeding a single disc large enough to
 // cover the entire viewport.
 
+import 'dart:ui' show BlendMode, Color, Offset;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
 import 'package:mirkfall/config/constants.dart';
+import 'package:mirkfall/domain/geo/geo_point.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/atmospheric_mirk_renderer.dart';
 import 'package:mirkfall/infrastructure/mirk/shader/fog_shader_renderer.dart';
+import 'package:mirkfall/infrastructure/mirk/wisp/wisp_particle.dart';
+import 'package:mirkfall/infrastructure/mirk/wisp/wisp_particle_system.dart';
+import 'package:mirkfall/infrastructure/mirk/wisp/wisp_transform_logger.dart';
 
+import '../../_helpers/fake_stopwatch.dart';
 import '../../_helpers/mirk_paint_context_builder.dart';
 import '../../_helpers/recording_fog_shader_renderer.dart';
 import '_render_helpers.dart';
@@ -217,4 +224,105 @@ void main() {
       await renderer.dispose();
     });
   });
+
+  group('09.1-05 — wisps spawned on disc emergence, rendered after the shader rect via projectToScreen', () {
+    final MirkViewportBbox bbox = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+    const Color tint = Color(kMirkWispTintAtmosphericArgb);
+
+    MirkPaintContext ctx({required List<RevealDisc> discs, int elapsedMs = 0}) => buildTestMirkPaintContext(
+      zoomLevel: 14.0,
+      sessionElapsed: Duration(milliseconds: elapsedMs),
+      viewportBbox: bbox,
+      discs: discs,
+    );
+
+    RevealDisc disc(String id, {double lat = 43.5, double lon = 5.5}) =>
+        RevealDisc(id: id, sessionId: 'sess_test', lat: lat, lon: lon, radiusMeters: 25.0, fixedAtUtc: DateTime.utc(2026, 4, 26));
+
+    test(
+      'draws activeCount circles at projectToScreen(position), all AFTER the drawRect, tinted kMirkWispTintAtmosphericArgb, one recordPaint per paint',
+      () async {
+        final _CountingWispTransformLogger wispLogger = _CountingWispTransformLogger();
+        final WispParticleSystem wispSystem = WispParticleSystem(rngSeed: 42, wallClock: FakeStopwatch(initialMs: 6000));
+        final AtmosphericMirkRenderer renderer = AtmosphericMirkRenderer(
+          const MirkStyleConfig.atmospheric() as AtmosphericConfig,
+          wispSystem: wispSystem,
+          wispTransformLogger: wispLogger,
+          sdfCache: immediateStubSdfCache(),
+          shaderRenderer: const DrawRectFogShaderRenderer(),
+        );
+        addTearDown(renderer.dispose);
+
+        // Paint #1: no disc → schedules the SDF, no wisp, no recordPaint.
+        renderToPicture(renderer, context: ctx(discs: const <RevealDisc>[])).dispose();
+        await pumpEventQueue();
+        expect(wispLogger.recordPaintCallCount, 0, reason: 'no wisp alive → no diagnostic sample');
+
+        // Paint #2: one new disc → ~20 wisps spawned and drawn on this very paint, shader path.
+        final MirkPaintContext context = ctx(discs: <RevealDisc>[disc('rvd_new')], elapsedMs: 16);
+        final RecordingCanvas spy = RecordingCanvas();
+        renderer.paint(spy, kTestCanvasSize, context);
+
+        expect(wispSystem.activeCount, inInclusiveRange(18, 22));
+        expect(spy.circles, hasLength(wispSystem.activeCount), reason: 'one drawCircle per live wisp');
+        expect(spy.ops.where((String op) => op == 'drawRect'), hasLength(1), reason: 'the shader rect was drawn once');
+        expect(
+          spy.ops.lastIndexOf('drawRect'),
+          lessThan(spy.ops.indexOf('drawCircle')),
+          reason: 'every circle comes AFTER the shader rect — never the inverse',
+        );
+
+        final List<Offset> expectedCentres = wispSystem.wisps.map((WispParticle w) => context.projectToScreen(w.position)).toList();
+        expect(spy.circles.map((RecordedCircle c) => c.centre).toList(), expectedCentres, reason: 'centres = projectToScreen(wisp.position), same order');
+        for (final RecordedCircle c in spy.circles) {
+          expect(c.color.r, closeTo(tint.r, 1e-6));
+          expect(c.color.g, closeTo(tint.g, 1e-6));
+          expect(c.color.b, closeTo(tint.b, 1e-6));
+          expect(c.color.a, inInclusiveRange(0.0, kMirkFogWispPeakAlpha + 1e-9));
+          expect(c.blendMode, BlendMode.plus);
+          expect(c.radius, inInclusiveRange(kMirkFogWispBirthRadiusPx, kMirkFogWispDeathRadiusPx));
+        }
+        expect(wispLogger.recordPaintCallCount, 1, reason: 'exactly one recordPaint for the paint that drew wisps');
+        expect(wispLogger.lastActiveCount, wispSystem.activeCount);
+      },
+    );
+
+    test('wisps advance between paints by the sessionElapsed delta (world position moves, projection follows)', () async {
+      final WispParticleSystem wispSystem = WispParticleSystem(rngSeed: 42, wallClock: FakeStopwatch(initialMs: 6000));
+      final AtmosphericMirkRenderer renderer = AtmosphericMirkRenderer(
+        const MirkStyleConfig.atmospheric() as AtmosphericConfig,
+        wispSystem: wispSystem,
+        sdfCache: immediateStubSdfCache(),
+      );
+      addTearDown(renderer.dispose);
+      final List<RevealDisc> discs = <RevealDisc>[disc('rvd_new')];
+      renderToPicture(renderer, context: ctx(discs: discs)).dispose();
+      final List<GeoPoint> before = wispSystem.wisps.map((WispParticle w) => w.position).toList();
+      renderToPicture(renderer, context: ctx(discs: discs, elapsedMs: 100)).dispose();
+      final List<GeoPoint> after = wispSystem.wisps.map((WispParticle w) => w.position).toList();
+      expect(after, hasLength(before.length));
+      expect(after, isNot(equals(before)), reason: '100 ms at ~1.5 m/s moves every wisp');
+      expect(wispSystem.wisps.every((WispParticle w) => w.life < kMirkFogWispLifeSeconds), isTrue);
+    });
+  });
+}
+
+/// Counts `recordPaint` calls regardless of the verbose gate (the override runs before it).
+class _CountingWispTransformLogger extends WispTransformLogger {
+  int recordPaintCallCount = 0;
+  int? lastActiveCount;
+
+  @override
+  void recordPaint({
+    required int activeCount,
+    required double meanAge,
+    required (double, double) latBounds,
+    required (double, double) lonBounds,
+    required (double, double) screenXBounds,
+    required (double, double) screenYBounds,
+    required double spawnRatePerSecond,
+  }) {
+    recordPaintCallCount++;
+    lastActiveCount = activeCount;
+  }
 }

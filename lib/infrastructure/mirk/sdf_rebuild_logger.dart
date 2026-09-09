@@ -13,8 +13,10 @@ import 'package:mirkfall/config/constants.dart';
 /// Diagnostic ported from the POC — active ONLY in verbose logging (`--dart-define=DEBUG=true` or
 /// the debug-menu "Verbose logging" toggle, CLAUDE.md §Logging). While
 /// `Logger('infrastructure.mirk.sdf').isLoggable(Level.FINE)` is false, [recordRebuild] and the
-/// rollup are no-ops; the periodic timer stays armed (negligible cost) so flipping the toggle at
-/// runtime activates the stream without re-creating the renderer.
+/// rollup are no-ops. The periodic timer is armed LAZILY by the first verbose sample after
+/// [start] and disarmed by the first rollup that finds verbose off, so a non-verbose renderer
+/// (production default, every widget test) owns zero timers while the debug-menu toggle still
+/// acts live on the next sample — no renderer re-creation needed.
 ///
 /// Per-rebuild lines are noise during a 120 Hz pan; 1-second rollups give post-walk grep enough
 /// resolution to correlate SDF activity with the frame-delta probe. Every Phase 09.1 diagnostic
@@ -35,21 +37,24 @@ class SdfRebuildLogger {
   final List<double> _elapsedMsBuffer = <double>[];
   int _lastDiscCount = 0;
   int _lastIntersectingDiscCount = 0;
+
+  /// Between [start] and [stop]. The timer itself only exists while there is verbose traffic.
+  bool _running = false;
   Timer? _timer;
 
   /// Verbose gate — evaluated on every record / rollup so the debug-menu toggle acts live.
   bool get _isVerbose => _log.isLoggable(Level.FINE);
 
-  /// Starts the rollup timer. Idempotent — calling start while running is a no-op.
+  /// Marks the logger as running; the rollup timer is armed by the first verbose sample.
+  /// Idempotent.
   void start() {
-    if (_timer != null) return;
-    _timer = Timer.periodic(_rollupInterval, (_) => _emitRollup());
+    _running = true;
   }
 
   /// Cancels the timer and emits a final rollup if the buffer is non-empty. Idempotent.
   void stop() {
-    _timer?.cancel();
-    _timer = null;
+    _running = false;
+    _disarm();
     if (_elapsedMsBuffer.isNotEmpty) {
       _emitRollup();
     }
@@ -62,6 +67,26 @@ class SdfRebuildLogger {
     _elapsedMsBuffer.add(elapsedMs);
     _lastDiscCount = discCount;
     _lastIntersectingDiscCount = intersectingDiscCount;
+    _armIfNeeded();
+  }
+
+  void _armIfNeeded() {
+    if (!_running || _timer != null) return;
+    _timer = Timer.periodic(_rollupInterval, (_) => _onTick());
+  }
+
+  void _disarm() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  /// Periodic tick: emits, or — once verbose is off — drops the buffer and disarms so the
+  /// logger goes back to owning no timer.
+  void _onTick() {
+    if (!_isVerbose) {
+      _disarm();
+    }
+    _emitRollup();
   }
 
   void _emitRollup() {

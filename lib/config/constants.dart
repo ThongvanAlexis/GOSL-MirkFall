@@ -742,12 +742,6 @@ const double kMirkFogMetersPerWisp = 8.0;
 /// enough that the cap rotation feels organic.
 const double kMirkFogWispLifeSeconds = 2.5;
 
-// À supprimer au plan 09.1-05 Task 2 (wisps passent en base monde m/s — `kMirkWispDriftMetersPerSecond`) ;
-// encore lu par `wisp_particle_system.dart` aujourd'hui.
-/// Wisp initial velocity magnitude (in screen pixels per second).
-/// Slow drift — wisps are cinematic, not bullet trails.
-const double kMirkFogWispInitialSpeedPx = 18.0;
-
 /// Wisp size at birth in screen pixels. Each wisp is rendered as an
 /// additive-blended soft circle.
 const double kMirkFogWispBirthRadiusPx = 6.0;

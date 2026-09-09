@@ -3,215 +3,289 @@
 // See LICENSE file for details
 
 import 'dart:math' as math;
-import 'dart:ui' show BlendMode, Canvas, Color, Offset, Paint, PaintingStyle;
+import 'dart:ui' show Offset;
 
 import 'package:mirkfall/config/constants.dart';
+import 'package:mirkfall/domain/geo/geo_point.dart';
+import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
 import 'wisp_particle.dart';
 
-/// CPU-side wisp particle system — Phase 09 BUG-009 (TIER 2).
+/// CPU-side wisp particle system — Phase 09 BUG-009 (TIER 2), rewritten in WORLD coordinates by
+/// Phase 09.1 plan 09.1-05 (POC WISP-01..05 port).
 ///
-/// Spawns short-lived particles at the SDF boundary when the user
-/// reveals new cells, integrates them via curl-noise advection on
-/// the Dart side, and renders them via additive blending.
+/// Spawns short-lived particles along the perimeter of each newly revealed disc, integrates them
+/// with curl-noise advection in metres, and hands the live list to the renderer, which projects
+/// every wisp through `MirkPaintContext.projectToScreen` and draws it after the shader rect.
 ///
-/// Reference 1 (earth.nullschool flow physics) + Reference 9 (Foundry
-/// VTT animated mist) inspiration. ~200 wisps cap is invisible cost
-/// on any 2026 mobile GPU and dense enough that the eye latches onto
-/// motion as the user walks.
+/// Reference 1 (earth.nullschool flow physics) + Reference 9 (Foundry VTT animated mist)
+/// inspiration. ~200 wisps cap is invisible cost on any 2026 mobile GPU and dense enough that
+/// the eye latches onto motion as the user walks.
 ///
-/// ## Thread safety
+/// ## Contract
 ///
-/// NOT thread-safe. Owned by a single MirkRenderer; called from the
-/// CustomPainter.paint() pump on the platform UI isolate. No mutexes
-/// or concurrent access.
+///   1. **WISP-01 — world position.** `WispParticle.position` is a [GeoPoint]; velocity is m/s.
+///      This class never sees a screen pixel, a camera or a map engine: it does NOT import
+///      `flutter_map` / `latlong2`, and — **Pitfall 4 firewall** — it NEVER imports the SDF
+///      cache, the SDF builder or the SDF rebuild logger. The wisp system and the SDF pipeline
+///      are independent consumers of the same disc list;
+///      `test/infrastructure/mirk/wisp/wisp_sdf_firewall_test.dart` enforces it structurally.
+///   2. **WISP-02 — perimeter spawn, idempotent.** [spawnAtNewDisc] emits
+///      `round(2π · radiusMeters / kMirkFogMetersPerWisp)` wisps (≈ 20 for a 25 m disc at 8 m
+///      spacing) streaming OUTWARD from the disc; a second call with the same `discId` is a
+///      no-op, so the renderer can forward every disc it sees without bookkeeping.
+///   3. **WISP-03 — 5 s warm-up (BUG-015).** During the first [kMirkFogWispWarmUpSeconds] of the
+///      system's wall-clock lifetime [spawnAtNewDisc] is inert, but the `discId` IS recorded, so
+///      the discs of a resumed session (and those that scroll in during the map-open camera
+///      animation) never burst — neither now nor after the gate opens. The clock starts at
+///      construction; a session start / resume or a style change creates a new renderer, hence
+///      a new system (see `activeMirkRendererProvider`). There is no reset hook.
+///   4. **WISP-05 — spawn rate.** [spawnRatePerSecondAndReset] is a side-effecting accessor read
+///      once per `WispTransformLogger` rollup — single source of truth for the rate.
 ///
-/// ## Lifecycle
+/// ## Curl-noise anchor
 ///
-/// 1. `spawnAtPosition` is called by the renderer once per newly-emerged
-///    `RevealDisc` — N evenly-spaced wisps land along the disc perimeter
-///    so the user sees a "puff bursting outward from the new reveal" the
-///    moment the GPS fix lands. Pre-Commit-5 the spawn surface was
-///    cell-keyed (`spawnAtCellCenter`); Commit 5 rewired to disc IDs.
-/// 2. `advance(dt)` integrates every active wisp and decrements life.
-///    Dead wisps are removed in-place.
-/// 3. `render(canvas, paint)` draws each active wisp as an
-///    additive-blended soft circle.
+/// The curl field is sampled in a local degree-space basis `(lon − anchor.lon, lat − anchor.lat)
+/// · kMirkWispCurlInputScale`. The POC anchored on a hard-coded Melun centre; MirkFall anchors on
+/// the centre of the FIRST disc the system spawned (fixed once). The field is translation-
+/// invariant in character, so any fixed anchor gives the same organic drift — anchoring near the
+/// wisps just keeps the hash inputs small (float precision) without a product-specific constant.
 ///
-/// All three operations are O(N) over the active count; the cap
-/// (`kMirkFogWispMaxCount` = 200) makes worst-case ~50 µs per frame
-/// — negligible at 60 fps.
+/// ## Thread safety / lifecycle
+///
+/// NOT thread-safe. Owned by a single `MirkRenderer`, driven from `paint()` on the UI isolate:
+/// `spawnAtNewDisc` per newly seen disc → `advanceFromElapsed(context.sessionElapsed)` once per
+/// paint → the renderer draws [wisps]. Every operation is O(N) over the active count.
 class WispParticleSystem {
-  /// Constructs an empty system with the [maxCount] cap (default
-  /// [kMirkFogWispMaxCount]). Tests can override via the parameter
-  /// when stress-testing the LRU eviction.
-  WispParticleSystem({int maxCount = kMirkFogWispMaxCount, int rngSeed = 1337}) : _maxCount = maxCount, _rng = math.Random(rngSeed);
+  /// Constructs an empty system.
+  ///
+  /// [maxCount] caps the active particle count (LRU eviction beyond it, default
+  /// [kMirkFogWispMaxCount]); [rngSeed] seeds the deterministic jitter / speed-factor RNG.
+  /// [wallClock] is a TEST SEAM for the warm-up gate — production omits it and the system
+  /// starts its own `Stopwatch` here, at construction.
+  WispParticleSystem({int maxCount = kMirkFogWispMaxCount, int rngSeed = 1337, Stopwatch? wallClock})
+    : _maxCount = maxCount,
+      _rng = math.Random(rngSeed),
+      _wallClock = wallClock ?? (Stopwatch()..start());
 
   final int _maxCount;
   final math.Random _rng;
+  final Stopwatch _wallClock;
 
-  /// Currently alive wisps. `final` because we mutate in place; size
-  /// fluctuates as wisps spawn and die.
+  /// Currently alive wisps. `final` because we mutate in place; size fluctuates as wisps spawn
+  /// and die.
   final List<WispParticle> _wisps = <WispParticle>[];
 
-  /// Read-only view for tests / debug.
+  /// Disc ids already processed by [spawnAtNewDisc] — recorded BEFORE the warm-up gate so a
+  /// post-warm-up re-call with the same id is a no-op (WISP-03).
+  final Set<String> _alreadySpawnedDiscIdSet = <String>{};
+
+  /// Counter for [spawnRatePerSecondAndReset]. Reset on each call.
+  int _spawnCounterSinceLastRollup = 0;
+
+  /// `sessionElapsed` of the previous [advanceFromElapsed]; `null` until the first call.
+  Duration? _lastAdvanceElapsed;
+
+  /// Curl-noise anchor — centre of the first disc spawned, fixed once (see class docstring).
+  GeoPoint? _curlAnchor;
+
+  /// Read-only view for the renderer / tests. Do not interleave with [advance].
   Iterable<WispParticle> get wisps => _wisps;
 
   /// Number of currently active wisps.
   int get activeCount => _wisps.length;
 
-  /// Spawns one wisp at [position], with initial velocity along
-  /// [direction] (length usually 1 — a unit gradient). The renderer
-  /// computes [direction] as the outward normal of the disc's perimeter
-  /// at [position] so wisps stream OUT of the revealed area into the fog.
-  ///
-  /// Pre-Commit-5 this method spawned [kMirkFogWispSpawnPerCell] wisps
-  /// per call (one per newly-flipped cell). Commit 5 rewired the spawn
-  /// surface to "one wisp per disc-perimeter sample point": the renderer
-  /// chooses how many sample points along the disc circumference to spawn
-  /// (based on `kMirkFogWispSpawnsPerNewDisc` and the meters-per-wisp
-  /// budget). This method just spawns ONE wisp per invocation.
-  ///
-  /// If the active count would exceed [_maxCount], the OLDEST wisps
-  /// are LRU-evicted (oldest = lowest remaining life). The cap is a
-  /// hard ceiling, not a soft suggestion.
-  void spawnAtPosition({required Offset position, required Offset direction}) {
-    // Tiny random jitter on the spawn position so multi-particle
-    // bursts don't perfectly overlap when several spawnAtPosition calls
-    // land at nearly the same coordinates within one paint pass.
-    final jitterX = (_rng.nextDouble() - 0.5) * 4.0;
-    final jitterY = (_rng.nextDouble() - 0.5) * 4.0;
-    // Velocity is the unit direction × initial speed × a small
-    // random factor to break visual lockstep.
-    final speedFactor = 0.8 + _rng.nextDouble() * 0.4; // [0.8, 1.2)
-    final velocity = Offset(direction.dx * kMirkFogWispInitialSpeedPx * speedFactor, direction.dy * kMirkFogWispInitialSpeedPx * speedFactor);
-    _wisps.add(
-      WispParticle(position: position + Offset(jitterX, jitterY), velocity: velocity, life: kMirkFogWispLifeSeconds, maxLife: kMirkFogWispLifeSeconds),
+  /// Spawns wisps along [disc]'s perimeter (WISP-02). Idempotent on [discId]; inert (but
+  /// id-recording) during the warm-up (WISP-03) — see the class docstring.
+  void spawnAtNewDisc({required String discId, required RevealDisc disc}) {
+    if (!_alreadySpawnedDiscIdSet.add(discId)) return;
+    if (_isWarmingUp) return;
+    _spawnAlongPerimeter(disc);
+  }
+
+  bool get _isWarmingUp => _wallClock.elapsedMilliseconds < (kMirkFogWispWarmUpSeconds * Duration.millisecondsPerSecond).round();
+
+  /// One wisp per perimeter sample point — `round(circumference / kMirkFogMetersPerWisp)`, at
+  /// least one so a tiny disc still puffs.
+  void _spawnAlongPerimeter(RevealDisc disc) {
+    _curlAnchor ??= (latitude: disc.lat, longitude: disc.lon);
+    final double radiusMeters = disc.radiusMeters;
+    final double circumferenceMeters = _twoPi * radiusMeters;
+    final int sampleCount = math.max(1, (circumferenceMeters / kMirkFogMetersPerWisp).round());
+    final double metersPerDegreeLon = _metersPerDegreeLonAt(disc.lat);
+
+    for (int i = 0; i < sampleCount; i++) {
+      final double theta = (i / sampleCount) * _twoPi;
+      final double dLatDeg = radiusMeters * math.sin(theta) / kMetersPerDegreeLat;
+      final double dLonDeg = radiusMeters * math.cos(theta) / metersPerDegreeLon;
+      final GeoPoint spawnPoint = (latitude: disc.lat + dLatDeg, longitude: disc.lon + dLonDeg);
+      // Outward unit normal at this perimeter point (dx east, dy north) — wisps stream OUT of
+      // the revealed area into the fog.
+      final Offset unitDirection = Offset(math.cos(theta), math.sin(theta));
+      _spawnOneWisp(position: spawnPoint, direction: unitDirection, metersPerDegreeLon: metersPerDegreeLon);
+      _spawnCounterSinceLastRollup += 1;
+    }
+  }
+
+  /// Spawns one wisp at [position] with initial velocity along [direction] (unit vector), plus
+  /// ±0.5 m position jitter and ±20 % speed jitter so a burst does not move in lockstep.
+  /// [metersPerDegreeLon] is the disc-centre longitude scale, shared by every point of one
+  /// burst so the perimeter stays a metric circle.
+  void _spawnOneWisp({required GeoPoint position, required Offset direction, required double metersPerDegreeLon}) {
+    final double jitterMetersEast = (_rng.nextDouble() - _jitterCentre) * _jitterSpanMeters;
+    final double jitterMetersNorth = (_rng.nextDouble() - _jitterCentre) * _jitterSpanMeters;
+    final GeoPoint jittered = (
+      latitude: position.latitude + jitterMetersNorth / kMetersPerDegreeLat,
+      longitude: position.longitude + jitterMetersEast / metersPerDegreeLon,
     );
+    final double speedFactor = _speedJitterMin + _rng.nextDouble() * _speedJitterSpan;
+    final Offset velocity = Offset(direction.dx * kMirkWispDriftMetersPerSecond * speedFactor, direction.dy * kMirkWispDriftMetersPerSecond * speedFactor);
+    _wisps.add(WispParticle(position: jittered, velocityMetersPerSecond: velocity, life: kMirkFogWispLifeSeconds, maxLife: kMirkFogWispLifeSeconds));
     _enforceCap();
   }
 
-  /// Removes the OLDEST wisps (lowest remaining life) until the
-  /// active count is <= [_maxCount]. LRU semantics — newer particles
-  /// always win the budget.
+  /// Removes the OLDEST wisps (lowest remaining life) until the active count is <= [_maxCount].
+  /// LRU semantics — newer particles always win the budget.
   void _enforceCap() {
     if (_wisps.length <= _maxCount) return;
-    // Sort by life descending; keep the first `_maxCount`.
-    _wisps.sort((a, b) => b.life.compareTo(a.life));
+    _wisps.sort((WispParticle a, WispParticle b) => b.life.compareTo(a.life));
     _wisps.removeRange(_maxCount, _wisps.length);
   }
 
-  /// Integrates the system forward by [dt] seconds.
-  ///
-  /// Each wisp:
-  ///   - applies a per-particle curl-noise force (computed on the CPU
-  ///     using the same hash-based 2D noise the shader uses, so the
-  ///     two systems share visual character without coupling).
-  ///   - integrates velocity and position via Euler step.
-  ///   - decrements life.
-  ///
-  /// Dead wisps are removed in place. After this call,
-  /// [activeCount] reflects the post-step count.
+  /// Production entry point, once per paint: integrates by the delta of [sessionElapsed] since
+  /// the previous call, clamped to `[0, kMirkWispMaxDtSeconds]` so a paused-then-resumed painter
+  /// never snap-integrates over seconds. The first call only records the baseline (no dt yet).
+  void advanceFromElapsed(Duration sessionElapsed) {
+    final Duration? previous = _lastAdvanceElapsed;
+    _lastAdvanceElapsed = sessionElapsed;
+    if (previous == null) return;
+    final double dtSeconds = ((sessionElapsed - previous).inMicroseconds / Duration.microsecondsPerSecond).clamp(0.0, kMirkWispMaxDtSeconds);
+    if (dtSeconds <= 0.0) return;
+    advance(dtSeconds);
+  }
+
+  /// Pure integration step by [dt] seconds (WISP-02): curl-noise acceleration (m/s²) in the
+  /// anchored degree basis, linear drag, Euler position update `m/s · dt → degrees`
+  /// (`dLat = dy / kMetersPerDegreeLat`, `dLon = dx / (kMetersPerDegreeLat · cos lat)`), life
+  /// decrement, then removal of the dead. [dt] is NOT clamped here — callers clamp upstream.
   void advance(double dt) {
-    // Iterate in reverse so we can `removeAt` without index shift.
-    for (var i = _wisps.length - 1; i >= 0; i--) {
-      final w = _wisps[i];
-      // Curl-noise force at the wisp's current position. Magnitude
-      // tuned conservatively — the wisp's PRIMARY motion is its
-      // initial velocity from the SDF gradient; curl is a perturbation
-      // that adds organic drift.
-      final curl = _curlNoise(w.position * 0.005);
-      const curlMagnitude = 8.0;
-      final fx = curl.dx * curlMagnitude;
-      final fy = curl.dy * curlMagnitude;
-      // Slight drag (0.95 per second) so wisps don't accelerate
-      // unboundedly when the curl force happens to align with
-      // velocity. dt-scaled drag = exp(-decayRate * dt); we use the
-      // linear approximation (1 - decayRate * dt) for tiny dt.
-      const dragPerSecond = 0.30;
-      final dragFactor = 1.0 - dragPerSecond * dt;
-      w.velocity = Offset(w.velocity.dx * dragFactor + fx * dt, w.velocity.dy * dragFactor + fy * dt);
-      w.position = w.position + w.velocity * dt;
-      w.life -= dt;
-      if (w.isDead) {
-        _wisps.removeAt(i);
-      }
-    }
-  }
-
-  /// Renders every active wisp as an additive-blended soft circle.
-  /// Each wisp's radius interpolates from [kMirkFogWispBirthRadiusPx]
-  /// at age 0 to [kMirkFogWispDeathRadiusPx] at age 1; alpha follows
-  /// a 1 - age² curve (slow start, sharp fade-out at end of life).
-  void render(Canvas canvas, Color tint) {
     if (_wisps.isEmpty) return;
-    for (final w in _wisps) {
-      final age = w.age;
-      final radius = kMirkFogWispBirthRadiusPx + (kMirkFogWispDeathRadiusPx - kMirkFogWispBirthRadiusPx) * age;
-      // Alpha curve: 1 - age² → starts near 1, drops sharply at end.
-      // Multiplied by the configured peak alpha and the tint's alpha.
-      final alphaFactor = (1.0 - age * age).clamp(0.0, 1.0);
-      // Use the wide-gamut Color.r/g/b/a (Flutter 3.41+) to avoid the
-      // deprecation warnings that the legacy `red`/`green`/`blue` ints
-      // carry. The wisp tint is provided by the renderer as a low-bit
-      // RGBA constant; converting through .r * 255 stays bit-exact for
-      // any 8-bit input.
-      final tintR = (tint.r * 255.0).round().clamp(0, 255);
-      final tintG = (tint.g * 255.0).round().clamp(0, 255);
-      final tintB = (tint.b * 255.0).round().clamp(0, 255);
-      final tintA = (tint.a * 255.0).round().clamp(0, 255);
-      final wispAlpha = alphaFactor * kMirkFogWispPeakAlpha * (tintA / 255.0);
-      final paint = Paint()
-        ..color = Color.fromARGB((wispAlpha * 255).round(), tintR, tintG, tintB)
-        ..style = PaintingStyle.fill
-        ..blendMode = BlendMode.plus; // Additive — wisps brighten the fog where they overlap.
-      canvas.drawCircle(w.position, radius, paint);
+    final GeoPoint? anchor = _curlAnchor;
+    assert(anchor != null, 'wisps exist only after a spawn, which fixes the curl anchor');
+    if (anchor == null) return;
+    final double dragFactor = 1.0 - kMirkWispDragPerSecond * dt;
+    for (final WispParticle w in _wisps) {
+      final Offset curlInput = Offset(
+        (w.position.longitude - anchor.longitude) * kMirkWispCurlInputScale,
+        (w.position.latitude - anchor.latitude) * kMirkWispCurlInputScale,
+      );
+      final Offset curl = _curlNoise(curlInput);
+      final double newVx = w.velocityMetersPerSecond.dx * dragFactor + curl.dx * kMirkWispCurlAccelMetersPerSecondSquared * dt;
+      final double newVy = w.velocityMetersPerSecond.dy * dragFactor + curl.dy * kMirkWispCurlAccelMetersPerSecondSquared * dt;
+      w.velocityMetersPerSecond = Offset(newVx, newVy);
+      final double dLatDeg = (newVy * dt) / kMetersPerDegreeLat;
+      final double dLonDeg = (newVx * dt) / _metersPerDegreeLonAt(w.position.latitude);
+      w.position = (latitude: w.position.latitude + dLatDeg, longitude: w.position.longitude + dLonDeg);
+      w.life -= dt;
     }
+    // Removal AFTER the loop — never mutate the list while iterating it.
+    _wisps.removeWhere((WispParticle w) => w.isDead);
   }
 
-  /// Removes all active wisps. Useful when the session ends or the
-  /// renderer is disposed.
+  /// Spawns since the last call divided by [sinceInterval] (default [kMirkFogDiagRollupSeconds]);
+  /// resets the counter (WISP-05). Read once per `WispTransformLogger` rollup.
+  double spawnRatePerSecondAndReset({Duration? sinceInterval}) {
+    final Duration interval = sinceInterval ?? const Duration(seconds: kMirkFogDiagRollupSeconds);
+    final double intervalSeconds = interval.inMilliseconds / Duration.millisecondsPerSecond;
+    final double rate = _spawnCounterSinceLastRollup / intervalSeconds;
+    _spawnCounterSinceLastRollup = 0;
+    return rate;
+  }
+
+  /// Removes all active wisps and resets the idempotency set, the spawn counter, the advance
+  /// baseline and the curl anchor. Called when the owning renderer is disposed.
   void clear() {
     _wisps.clear();
+    _alreadySpawnedDiscIdSet.clear();
+    _spawnCounterSinceLastRollup = 0;
+    _lastAdvanceElapsed = null;
+    _curlAnchor = null;
   }
 
-  /// Cheap deterministic 2D curl-noise vector field (hash + central
-  /// differences). Same algorithm as the .frag's curl2() — visually
-  /// consistent with the shader's curl advection.
+  /// Metres per degree of longitude at [latitudeDeg], floored near the poles so the division
+  /// never explodes (a metre-scale disc at ±90° is meaningless anyway).
+  double _metersPerDegreeLonAt(double latitudeDeg) {
+    final double cosLat = math.cos(latitudeDeg * math.pi / _degreesPerHalfTurn);
+    return kMetersPerDegreeLat * math.max(cosLat.abs(), _polarCosFloor);
+  }
+
+  // ─── Curl-noise helpers — Phase 09 donor VERBATIM ────────────────────────
+  // Pure-math hash-based scalar noise + central-differences curl. Visually consistent with the
+  // shader's curl2() so wisps and the fog body drift on the same field character.
+
+  /// Cheap deterministic 2D curl-noise vector field (hash + central differences).
   Offset _curlNoise(Offset p) {
-    const e = 0.05;
-    final n1 = _scalarNoise(p + const Offset(0, e));
-    final n2 = _scalarNoise(p + const Offset(0, -e));
-    final n3 = _scalarNoise(p + const Offset(e, 0));
-    final n4 = _scalarNoise(p + const Offset(-e, 0));
+    const double e = _curlNoiseEpsilon;
+    final double n1 = _scalarNoise(p + const Offset(0, e));
+    final double n2 = _scalarNoise(p + const Offset(0, -e));
+    final double n3 = _scalarNoise(p + const Offset(e, 0));
+    final double n4 = _scalarNoise(p + const Offset(-e, 0));
     return Offset(n1 - n2, -(n3 - n4)) / (2.0 * e);
   }
 
-  /// Cheap hash-based scalar noise. Not strictly simplex — uses a
-  /// trilinear-blended hash3 in the same style as the shader's
-  /// noise2(). Performance > realism: this drives wisp drift, the
-  /// user perceives the motion not the noise function.
+  /// Cheap hash-based scalar noise (smoothstep-blended `_hash2` corners). Performance > realism:
+  /// the user perceives the motion, not the noise function.
   double _scalarNoise(Offset p) {
-    final ix = p.dx.floor();
-    final iy = p.dy.floor();
-    final fx = p.dx - ix;
-    final fy = p.dy - iy;
-    final ux = fx * fx * (3.0 - 2.0 * fx);
-    final uy = fy * fy * (3.0 - 2.0 * fy);
-    final h00 = _hash2(ix, iy);
-    final h10 = _hash2(ix + 1, iy);
-    final h01 = _hash2(ix, iy + 1);
-    final h11 = _hash2(ix + 1, iy + 1);
-    final n0 = h00 * (1.0 - ux) + h10 * ux;
-    final n1 = h01 * (1.0 - ux) + h11 * ux;
+    final int ix = p.dx.floor();
+    final int iy = p.dy.floor();
+    final double fx = p.dx - ix;
+    final double fy = p.dy - iy;
+    final double ux = fx * fx * (3.0 - 2.0 * fx);
+    final double uy = fy * fy * (3.0 - 2.0 * fy);
+    final double h00 = _hash2(ix, iy);
+    final double h10 = _hash2(ix + 1, iy);
+    final double h01 = _hash2(ix, iy + 1);
+    final double h11 = _hash2(ix + 1, iy + 1);
+    final double n0 = h00 * (1.0 - ux) + h10 * ux;
+    final double n1 = h01 * (1.0 - ux) + h11 * ux;
     return n0 * (1.0 - uy) + n1 * uy;
   }
 
   /// Cheap 2D-int hash → [0, 1).
   double _hash2(int x, int y) {
-    var h = x * 374761393 + y * 668265263; // Two large primes.
-    h = (h ^ (h >> 13)) * 1274126177;
-    h = h & 0x7FFFFFFF;
-    return (h % 10000) / 10000.0;
+    int h = x * _hash2PrimeX + y * _hash2PrimeY;
+    h = (h ^ (h >> _hash2ShiftBits)) * _hash2MultiplierC;
+    h = h & _hash2Mask31;
+    return (h % _hash2Modulo) / _hash2Modulo.toDouble();
   }
 }
+
+// ─── File-private numeric constants ────────────────────────────────────────
+// Hoisted out of the kinematic / curl-noise math so no magic number appears inline.
+
+const double _twoPi = 2.0 * math.pi;
+const double _degreesPerHalfTurn = 180.0;
+
+/// Floor on `|cos(lat)|` for the longitude scale — mirrors the polar guard of `RevealDisc`.
+const double _polarCosFloor = 1e-6;
+
+/// ±0.5 m spawn jitter — the donor's ±2 px translated to a small metre fraction of the 25 m disc
+/// radius. `_jitterCentre` shifts the uniform [0, 1) random into [-0.5, 0.5).
+const double _jitterCentre = 0.5;
+const double _jitterSpanMeters = 1.0;
+
+/// Speed jitter — donor's `0.8 + rand × 0.4` ∈ [0.8, 1.2).
+const double _speedJitterMin = 0.8;
+const double _speedJitterSpan = 0.4;
+
+/// Curl-noise central-differences epsilon. Donor verbatim.
+const double _curlNoiseEpsilon = 0.05;
+
+/// Hash-2 primes + bit-mixing constants. Donor verbatim — the visual character of the curl
+/// field depends on these specific values.
+const int _hash2PrimeX = 374761393;
+const int _hash2PrimeY = 668265263;
+const int _hash2MultiplierC = 1274126177;
+const int _hash2ShiftBits = 13;
+const int _hash2Mask31 = 0x7FFFFFFF;
+const int _hash2Modulo = 10000;

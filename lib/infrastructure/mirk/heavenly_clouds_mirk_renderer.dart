@@ -5,7 +5,7 @@
 import 'dart:async' show Timer;
 import 'dart:math' as math;
 import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
-import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Size;
+import 'dart:ui' show BlendMode, BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Size;
 
 import 'package:logging/logging.dart';
 import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
@@ -17,20 +17,24 @@ import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
 import 'animation_helpers.dart';
-import 'mirk_projection.dart';
 import 'noise/simplex_noise_2d.dart';
 import 'sdf/sdf_cache.dart';
 import 'sdf_rebuild_logger.dart';
 import 'shader/fog_shader_renderer.dart';
 import 'shader/fog_shader_service.dart';
 import 'tile_cell_iteration.dart';
+import 'wisp/wisp_particle.dart';
 import 'wisp/wisp_particle_system.dart';
+import 'wisp/wisp_transform_logger.dart';
 
 final Logger _log = Logger('infrastructure.mirk.heavenly_clouds');
 
 /// `uTime` offset per seed unit — arbitrary but coprime with typical drift
 /// speeds so two seeds never alias onto the same animation phase.
 const double _kSeedTimeJitter = 0.137;
+
+/// Wisp tint (palette constant kept as an int in `constants.dart`).
+const Color _kWispTint = Color(kMirkWispTintHeavenlyArgb);
 
 /// Heavenly clouds — TIER 2 shader-driven (BUG-009 fix).
 ///
@@ -56,12 +60,14 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     FogShaderRenderer shaderRenderer = const FragmentShaderFogRenderer(),
     SdfCache? sdfCache,
     WispParticleSystem? wispSystem,
+    WispTransformLogger? wispTransformLogger,
   }) : _seed = seed,
        _noise = SimplexNoise2D(seed: seed),
        _shaderService = shaderService ?? FogShaderService(),
        _shaderRenderer = shaderRenderer,
        _sdfCache = sdfCache ?? SdfCache(rebuildLogger: SdfRebuildLogger()..start()),
-       _wispSystem = wispSystem ?? WispParticleSystem(rngSeed: seed) {
+       _wispSystem = wispSystem ?? WispParticleSystem(rngSeed: seed),
+       _wispTransformLogger = wispTransformLogger ?? (WispTransformLogger()..start()) {
     _shaderLoadFuture = _shaderService.load();
   }
 
@@ -89,15 +95,13 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   final SdfCache _sdfCache;
   final WispParticleSystem _wispSystem;
 
-  /// Disc id set as seen on the previous paint pass — see
-  /// [`AtmosphericMirkRenderer`] for the BUG-010 Option B Commit 5
-  /// emergence-diff rationale + warm-up guard.
-  Set<String> _previousDiscIdSet = <String>{};
+  /// Verbose-only per-paint wisp diagnostic (POC WISP-05); fed once per paint by [_renderWisps],
+  /// stopped on dispose.
+  final WispTransformLogger _wispTransformLogger;
 
-  /// Whether the renderer is still in its warm-up phase. See
-  /// [AtmosphericMirkRenderer._warmingUp] for the full BUG-015 rationale.
-  bool _warmingUp = true;
-  double _lastTSec = 0.0;
+  /// Disc ids already forwarded to [_wispSystem] — append-only pre-filter for
+  /// [_spawnWispsForNewlyEmergedDiscs].
+  final Set<String> _seenDiscIdSet = <String>{};
 
   /// BUG-009 follow-up diagnostic: last path tag we INFO-logged
   /// ('shader' / 'fallback' / null at start). We only log on transitions
@@ -177,11 +181,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     _refreshSdfIfNeeded(context);
 
     // Spawn wisps for newly-emerged discs + advance the system.
-    _spawnWispsForNewlyEmergedDiscs(context: context, canvasSize: size);
-    final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
-    final dt = (tSec - _lastTSec).clamp(0.0, 0.1);
-    _wispSystem.advance(dt);
-    _lastTSec = tSec;
+    _spawnWispsForNewlyEmergedDiscs(context);
 
     final ui.Image? sdf = _currentSdfImage;
     // Shader path needs a resolved SDF; the seam reports `false` when the
@@ -206,11 +206,11 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     }
     _paintCallCount++;
 
-    // Wisps render last — additive over the fog body. Heavenly uses a
-    // warmer wisp tint to read as "sunlit cloud puff".
+    // Wisps render LAST — additive over the fog body, after the shader rect, in the FogLayer's
+    // clipped identity frame (POC order). The renderer-side fog clip stays until 09.1-06.
     canvas.save();
     canvas.clipPath(path);
-    _wispSystem.render(canvas, const Color(0xFFF8F0E2));
+    _renderWisps(canvas, context);
     canvas.restore();
   }
 
@@ -223,55 +223,77 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     _lastEarlyReturnReason = reason;
   }
 
-  /// Same logic as the atmospheric renderer — diff disc id set to find
-  /// newly-emerged discs and spawn wisps along their perimeters.
-  /// Duplicated here because each renderer owns its own
-  /// [WispParticleSystem] and previous-id set; pulling into a shared
-  /// helper would impose a state-management coupling that doesn't
-  /// simplify the call sites.
+  /// Diffs `context.discs` against [_seenDiscIdSet] and forwards each newly seen disc to
+  /// [WispParticleSystem.spawnAtNewDisc]. The set is only a cheap pre-filter: idempotence per
+  /// disc id AND the BUG-015 warm-up (`kMirkFogWispWarmUpSeconds` from the SYSTEM's
+  /// construction) live in the system. Append-only, so discs that leave the viewport and come
+  /// back are not "new" (BUG-015 A).
   ///
-  /// BUG-015 fix: see `AtmosphericMirkRenderer._spawnWispsForNewlyEmergedDiscs`
-  /// for the full rationale. Time-based warm-up absorbs the viewport
-  /// animation's disc scroll-in without spawning.
-  void _spawnWispsForNewlyEmergedDiscs({required MirkPaintContext context, required Size canvasSize}) {
-    final currentIds = <String>{for (final disc in context.discs) disc.id};
-
-    if (_warmingUp) {
-      if (currentIds.isNotEmpty) {
-        _previousDiscIdSet.addAll(currentIds);
-      }
-      final elapsedSec = context.sessionElapsed.inMilliseconds / 1000.0;
-      if (elapsedSec >= kMirkFogWispWarmUpSeconds && _previousDiscIdSet.isNotEmpty) {
-        _warmingUp = false;
-      }
-      return;
+  /// No renderer-side warm-up flag and no reset hook (decision 09.1-05): a session start /
+  /// resume or a style change rebuilds `activeMirkRendererProvider`, which calls
+  /// `factory.create(config)` → a NEW renderer → a new system with a fresh stopwatch, while
+  /// `ref.onDispose` disposes the previous one.
+  void _spawnWispsForNewlyEmergedDiscs(MirkPaintContext context) {
+    for (final RevealDisc disc in context.discs) {
+      if (!_seenDiscIdSet.add(disc.id)) continue;
+      _wispSystem.spawnAtNewDisc(discId: disc.id, disc: disc);
     }
-
-    for (final disc in context.discs) {
-      if (_previousDiscIdSet.contains(disc.id)) continue;
-      _spawnWispsAlongDiscPerimeter(disc: disc, viewport: context.viewportBbox, canvasSize: canvasSize);
-    }
-    _previousDiscIdSet.addAll(currentIds);
   }
 
-  void _spawnWispsAlongDiscPerimeter({required RevealDisc disc, required MirkViewportBbox viewport, required Size canvasSize}) {
-    final circumferenceMeters = 2.0 * math.pi * disc.radiusMeters;
-    final sampleCount = math.max(1, (circumferenceMeters / kMirkFogMetersPerWisp).ceil());
-    final latRad = disc.lat * math.pi / 180.0;
-    final cosLat = math.cos(latRad);
-    final degPerMeterLat = 1.0 / kMetersPerDegreeLat;
-    final degPerMeterLon = cosLat.abs() < 1e-6 ? degPerMeterLat : 1.0 / (kMetersPerDegreeLat * cosLat);
-    for (var k = 0; k < sampleCount; k++) {
-      final theta = (2.0 * math.pi * k) / sampleCount;
-      final perimeterLat = disc.lat + (disc.radiusMeters * degPerMeterLat) * math.sin(theta);
-      final perimeterLon = disc.lon + (disc.radiusMeters * degPerMeterLon) * math.cos(theta);
-      final screen = MirkProjection.latLonToScreen(lat: perimeterLat, lon: perimeterLon, viewport: viewport, size: canvasSize);
-      if (screen.dx < -50 || screen.dx > canvasSize.width + 50 || screen.dy < -50 || screen.dy > canvasSize.height + 50) {
-        continue;
-      }
-      final direction = Offset(math.cos(theta), -math.sin(theta));
-      _wispSystem.spawnAtPosition(position: screen, direction: direction);
+  /// Advances the wisp system by the `sessionElapsed` delta and draws every wisp as an additive
+  /// soft circle at `context.projectToScreen(wisp.position)` — the same camera snapshot the fog
+  /// rect used (FOG-07), in the FogLayer's clipped identity frame, AFTER the shader rect. Port of
+  /// the POC `_FogPainter._renderWisps`. Radius lerps birth → death px with age, alpha follows
+  /// `1 - age²` × peak × tint alpha. Emits ONE [WispTransformLogger.recordPaint] per paint
+  /// (never per wisp); nothing at all when no wisp is alive.
+  void _renderWisps(Canvas canvas, MirkPaintContext context) {
+    _wispSystem.advanceFromElapsed(context.sessionElapsed);
+    if (_wispSystem.activeCount == 0) return;
+
+    // Paint hoisted out of the loop; additive blend so overlapping wisps brighten without
+    // saturating the fog body.
+    final Paint paint = Paint()
+      ..style = PaintingStyle.fill
+      ..blendMode = BlendMode.plus;
+
+    double latMin = double.infinity;
+    double latMax = double.negativeInfinity;
+    double lonMin = double.infinity;
+    double lonMax = double.negativeInfinity;
+    double screenXMin = double.infinity;
+    double screenXMax = double.negativeInfinity;
+    double screenYMin = double.infinity;
+    double screenYMax = double.negativeInfinity;
+    double ageSum = 0.0;
+
+    for (final WispParticle wisp in _wispSystem.wisps) {
+      final double age = wisp.age;
+      final double radius = kMirkFogWispBirthRadiusPx + (kMirkFogWispDeathRadiusPx - kMirkFogWispBirthRadiusPx) * age;
+      final double alphaFactor = (1.0 - age * age).clamp(0.0, 1.0);
+      paint.color = _kWispTint.withValues(alpha: alphaFactor * kMirkFogWispPeakAlpha * _kWispTint.a);
+      final Offset screen = context.projectToScreen(wisp.position);
+      canvas.drawCircle(screen, radius, paint);
+
+      latMin = math.min(latMin, wisp.position.latitude);
+      latMax = math.max(latMax, wisp.position.latitude);
+      lonMin = math.min(lonMin, wisp.position.longitude);
+      lonMax = math.max(lonMax, wisp.position.longitude);
+      screenXMin = math.min(screenXMin, screen.dx);
+      screenXMax = math.max(screenXMax, screen.dx);
+      screenYMin = math.min(screenYMin, screen.dy);
+      screenYMax = math.max(screenYMax, screen.dy);
+      ageSum += age;
     }
+
+    _wispTransformLogger.recordPaint(
+      activeCount: _wispSystem.activeCount,
+      meanAge: ageSum / _wispSystem.activeCount,
+      latBounds: (latMin, latMax),
+      lonBounds: (lonMin, lonMax),
+      screenXBounds: (screenXMin, screenXMax),
+      screenYBounds: (screenYMin, screenYMax),
+      spawnRatePerSecond: _wispSystem.spawnRatePerSecondAndReset(),
+    );
   }
 
   /// Shader path — clips to the fog path and delegates uniform population +
@@ -461,8 +483,8 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     _currentSdfImage = null;
     _sdfCache.dispose();
     _wispSystem.clear();
-    _previousDiscIdSet = <String>{};
-    _warmingUp = true;
+    _seenDiscIdSet.clear();
+    _wispTransformLogger.stop();
   }
 }
 

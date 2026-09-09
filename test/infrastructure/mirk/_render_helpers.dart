@@ -23,6 +23,7 @@ import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/sdf/revealed_sdf_builder.dart';
 import 'package:mirkfall/infrastructure/mirk/sdf/sdf_cache.dart';
 import 'package:mirkfall/infrastructure/mirk/sdf_rebuild_logger.dart';
+import 'package:mirkfall/infrastructure/mirk/shader/fog_shader_renderer.dart';
 
 import '../../_helpers/mirk_paint_context_builder.dart';
 
@@ -128,3 +129,61 @@ class ImmediateStubSdfBuilder extends RevealedSdfBuilder {
 /// renderer-test idiom since 09.1-05 (renderers take a cache, not a builder). Paint once, `await
 /// pumpEventQueue()`, paint again: the second paint sees a resolved SDF.
 SdfCache immediateStubSdfCache() => SdfCache(rebuildLogger: SdfRebuildLogger(), builder: const ImmediateStubSdfBuilder());
+
+/// [FogShaderRenderer] double that DRAWS — one `canvas.drawRect(Offset.zero & size, Paint())` —
+/// and reports `true`, so a [RecordingCanvas] can assert the "shader rect BEFORE wisp circles"
+/// order the same-canvas architecture requires (09.1-05).
+class DrawRectFogShaderRenderer implements FogShaderRenderer {
+  const DrawRectFogShaderRenderer();
+
+  @override
+  bool render({
+    required Canvas canvas,
+    required FragmentShader? shader,
+    required Size size,
+    required double timeSeconds,
+    required ({double x, double y}) pixelOrigin,
+    required double zoomScale,
+    required (double, double, double, double) sdfRect,
+    required Image sdfImage,
+    required int baseArgb,
+    required double baseAlpha,
+    required int highlightArgb,
+    required int shadowArgb,
+    required Map<String, double> tunables,
+  }) {
+    canvas.drawRect(Offset.zero & size, Paint());
+    return true;
+  }
+}
+
+/// One recorded `drawCircle` — centre, radius and a copy of the paint's colour / blend mode.
+typedef RecordedCircle = ({Offset centre, double radius, Color color, BlendMode blendMode});
+
+/// Spy [Canvas] recording the ORDER of `drawRect` / `drawCircle` calls plus every circle's
+/// centre / radius / paint. `Canvas` is a plain abstract class in `dart:ui`, so every other
+/// member is swallowed by [noSuchMethod] (nothing is rasterised — the spy replaces the canvas
+/// for the paint under inspection).
+class RecordingCanvas implements Canvas {
+  /// `'drawRect'` / `'drawCircle'` in call order.
+  final List<String> ops = <String>[];
+
+  /// Every `drawCircle`, in call order.
+  final List<RecordedCircle> circles = <RecordedCircle>[];
+
+  @override
+  void drawRect(Rect rect, Paint paint) {
+    ops.add('drawRect');
+  }
+
+  @override
+  void drawCircle(Offset c, double radius, Paint paint) {
+    ops.add('drawCircle');
+    circles.add((centre: c, radius: radius, color: paint.color, blendMode: paint.blendMode));
+  }
+
+  // `dynamic` is imposed by the `Object.noSuchMethod` signature. Every other Canvas member
+  // (save / clipPath / drawPath / restore / …) is a no-op for the spy.
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}

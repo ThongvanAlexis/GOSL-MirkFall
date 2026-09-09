@@ -115,6 +115,14 @@ class _FakeSessionStore implements SessionStore {
   }
 }
 
+/// Mutable holder for the state the fake controller returns from `build()` — lets a test
+/// switch the session (e.g. `Tracking(A)` → `Tracking(B)`) and then invalidate the controller,
+/// whatever notifier instance Riverpod re-creates.
+class _SessionSeed {
+  _SessionSeed(this.state);
+  ActiveSessionState state;
+}
+
 /// Test-double notifier exposing a pre-baked [ActiveSessionState] without
 /// running the real controller's start/stop/subscribe machinery.
 ///
@@ -124,22 +132,27 @@ class _FakeSessionStore implements SessionStore {
 /// which races with the dependent `activeMirkRendererProvider`'s
 /// dispose chain in tests.
 class _FakeActiveSessionController extends ActiveSessionController {
-  _FakeActiveSessionController(this._initial);
-  final ActiveSessionState _initial;
+  _FakeActiveSessionController(this._seed);
+  final _SessionSeed _seed;
 
   @override
-  ActiveSessionState build() => _initial;
+  ActiveSessionState build() => _seed.state;
 }
 
-/// Minimal factory test-double returning the supplied [stubFor] renderer
-/// regardless of config — lets the invalidation-dispose test inject an
-/// observable renderer without having to spin up a real one.
-class _SpyingFactory implements MirkRendererFactory {
-  const _SpyingFactory({required this.stubFor});
-  final MirkRenderer stubFor;
+/// Factory test-double building a NEW observable [FakeMirkRenderer] per `create` call — the
+/// production contract (09.1-05 decision: a renderer, hence a wisp warm-up stopwatch, per
+/// provider (re)build). [created] keeps every instance in creation order.
+class _CountingFactory implements MirkRendererFactory {
+  final List<FakeMirkRenderer> created = <FakeMirkRenderer>[];
+
+  int get createCallCount => created.length;
 
   @override
-  MirkRenderer create(MirkStyleConfig config) => stubFor;
+  MirkRenderer create(MirkStyleConfig config) {
+    final FakeMirkRenderer renderer = FakeMirkRenderer();
+    created.add(renderer);
+    return renderer;
+  }
 }
 
 /// Builds a [Session] entity with sensible defaults for tests that only
@@ -167,10 +180,12 @@ ProviderContainer _buildContainer({
   required _FakeSessionStore sessionStore,
   required FakeMirkStyleStore styleStore,
   MirkRendererFactory? factoryOverride,
+  _SessionSeed? sessionSeed,
 }) {
+  final _SessionSeed seed = sessionSeed ?? _SessionSeed(initialSessionState);
   return ProviderContainer(
     overrides: [
-      activeSessionControllerProvider.overrideWith(() => _FakeActiveSessionController(initialSessionState)),
+      activeSessionControllerProvider.overrideWith(() => _FakeActiveSessionController(seed)),
       sessionStoreProvider.overrideWith((ref) async => sessionStore),
       mirkStyleStoreProvider.overrideWith((ref) async => styleStore),
       if (factoryOverride != null) mirkRendererFactoryProvider.overrideWithValue(factoryOverride),
@@ -263,8 +278,7 @@ void main() {
     });
 
     test('invalidation calls dispose() exactly once on the prior renderer', () async {
-      final fakeRenderer = FakeMirkRenderer();
-      final spyingFactory = _SpyingFactory(stubFor: fakeRenderer);
+      final _CountingFactory spyingFactory = _CountingFactory();
 
       const styleId = MirkStyleId('style_builtin_atmospheric');
       const sessionId = SessionId('sess_dispose_lifecycle');
@@ -279,7 +293,9 @@ void main() {
       addTearDown(container.dispose);
 
       final first = await container.read(activeMirkRendererProvider.future);
-      expect(identical(first, fakeRenderer), isTrue, reason: 'spying factory must hand back the prepared FakeMirkRenderer');
+      expect(spyingFactory.createCallCount, 1);
+      final FakeMirkRenderer fakeRenderer = spyingFactory.created.single;
+      expect(identical(first, fakeRenderer), isTrue, reason: 'the provider hands back what the factory created');
       expect(fakeRenderer.disposeCallCount, 0);
 
       // Force teardown of the prior provider state.
@@ -294,6 +310,42 @@ void main() {
             'ref.onDispose must call dispose() exactly once on the prior '
             'renderer when the provider invalidates',
       );
+      expect(spyingFactory.createCallCount, 2, reason: 'a fresh renderer is created for the rebuilt state');
+    });
+
+    test('BUG-015 session restart: Tracking(A) → Tracking(B) rebuilds a NEW renderer (fresh wisp warm-up), the prior one disposed once', () async {
+      // 09.1-05 firm decision: no `resetWarmUp()` on the renderers. The warm-up stopwatch lives
+      // in the WispParticleSystem the renderer constructs, so a new renderer per session start /
+      // resume is what makes BUG-015 hold across sessions. This test pins that the provider
+      // really does hand out a new instance when the session controller moves to a new Tracking.
+      final _CountingFactory factory = _CountingFactory();
+      const sessionA = SessionId('sess_restart_a');
+      const sessionB = SessionId('sess_restart_b');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{
+        sessionA: _buildSession(id: sessionA, status: SessionStatus.stopped),
+        sessionB: _buildSession(id: sessionB),
+      });
+      final _SessionSeed seed = _SessionSeed(_buildTracking(sessionA));
+      final container = _buildContainer(
+        initialSessionState: seed.state,
+        sessionStore: sessionStore,
+        styleStore: FakeMirkStyleStore(),
+        factoryOverride: factory,
+        sessionSeed: seed,
+      );
+      addTearDown(container.dispose);
+
+      final MirkRenderer first = await container.read(activeMirkRendererProvider.future);
+      expect(factory.createCallCount, 1);
+
+      seed.state = _buildTracking(sessionB);
+      container.invalidate(activeSessionControllerProvider);
+      final MirkRenderer second = await container.read(activeMirkRendererProvider.future);
+
+      expect(identical(first, second), isFalse, reason: 'a new Tracking session must get a NEW renderer');
+      expect(factory.createCallCount, 2, reason: 'factory.create once per session');
+      expect(factory.created.first.disposeCallCount, 1, reason: 'the session-A renderer is disposed exactly once');
+      expect(factory.created.last.disposeCallCount, 0, reason: 'the session-B renderer is live');
     });
 
     test('Noop fallback path also routes through ref.onDispose', () async {

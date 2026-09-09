@@ -344,7 +344,6 @@ void main() {
       expect(kMirkFogMetersPerWisp, equals(8.0));
       expect(kMirkFogMetersPerWisp, isA<double>());
       expect(kMirkFogWispLifeSeconds, equals(2.5));
-      expect(kMirkFogWispInitialSpeedPx, equals(18.0));
       expect(kMirkFogWispBirthRadiusPx, equals(6.0));
       expect(kMirkFogWispDeathRadiusPx, equals(22.0));
       // Death radius > birth radius — wisps grow as they fade (puff
@@ -486,6 +485,23 @@ void main() {
       expect(kMirkFogDiagSmoothCoordinateMaxDelta, isA<double>());
       // A wrap regression would show up as a delta of one noise tile — the threshold must sit well above it.
       expect(kMirkFogDiagSmoothCoordinateMaxDelta, greaterThan(kMirkFogNoiseTilePx));
+    });
+
+    test('09.1-05 — the px/s wisp basis is gone and the world-basis kMirkWisp* constants are consumed by wisp_particle_system.dart', () {
+      final String constantsSource = File('lib/config/constants.dart').readAsStringSync();
+      expect(constantsSource, isNot(contains('kMirkFogWispInitialSpeedPx')), reason: 'BUG-014 trap: no screen-px wisp speed');
+      final String systemSource = File('lib/infrastructure/mirk/wisp/wisp_particle_system.dart').readAsStringSync();
+      for (final String symbol in <String>[
+        'kMirkWispDriftMetersPerSecond',
+        'kMirkWispCurlAccelMetersPerSecondSquared',
+        'kMirkWispDragPerSecond',
+        'kMirkWispMaxDtSeconds',
+        'kMirkWispCurlInputScale',
+        'kMirkFogWispWarmUpSeconds',
+        'kMirkFogMetersPerWisp',
+      ]) {
+        expect(systemSource, contains(symbol), reason: '$symbol must drive the wisp system');
+      }
     });
 
     test('pre-existing wisp + SDF constants inherited by the POC are UNCHANGED', () {
