@@ -109,19 +109,23 @@ jobs:
       - name: Check platform manifests (Android + iOS)
         run: dart run tool/check_platform_manifests.dart
 
-      # Phase 07 plan 07-01 — two new Map Integration seam gates.
-      # `check_avoid_maplibre_leak` enforces MAP-06: `package:maplibre_gl`
-      # imports MUST live under lib/infrastructure/map/. Everything
-      # else (application, domain, presentation) depends only on the
-      # MapView domain interface.
-      # `check_avoid_remote_pmtiles` enforces MAP-05: no source may
-      # embed a `pmtiles://http[s]` URI. The only accepted tile URI
-      # scheme is `pmtiles://file:///…` (100 % offline).
+      # Phase 09.1 plan 09.1-01 — `check_avoid_flutter_map_leak` enforces
+      # MAP-06 for the flutter_map engine (replaces the Phase 07 maplibre-only
+      # seam gate): flutter_map / latlong2 /
+      # vector_map_tiles / vector_map_tiles_pmtiles / vector_tile_renderer /
+      # pmtiles (and the retired maplibre_gl) imports MUST live under
+      # lib/infrastructure/map/ or in the 3 explicitly allow-listed
+      # presentation files (FogLayer boundary, see 09.1-CONTEXT
+      # §Périmètre d'import). Everything else depends only on the MapView
+      # domain port + MirkPaintContext.
+      # `check_avoid_remote_pmtiles` (Phase 07 plan 07-01) enforces MAP-05:
+      # no source may embed a `pmtiles://http[s]` URI. The only accepted
+      # tile URI scheme is `pmtiles://file:///…` (100 % offline).
       # Both scripts follow the Phase 01 exit 0/1/2 contract and have
       # paired unit tests under tool/test/ (auto-picked up by the
       # existing `Tool scripts unit tests` step above).
-      - name: Check avoid_maplibre_leak
-        run: dart run tool/check_avoid_maplibre_leak.dart
+      - name: Check avoid_flutter_map_leak
+        run: dart run tool/check_avoid_flutter_map_leak.dart
 
       - name: Check avoid_remote_pmtiles
         run: dart run tool/check_avoid_remote_pmtiles.dart

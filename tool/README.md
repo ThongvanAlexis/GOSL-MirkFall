@@ -58,12 +58,19 @@ declares the Phase 05 GPS permissions + Phase 07 `INTERNET` + the
 usage-description strings (non-empty, no TODO). Exits 1 on any missing or
 placeholder entry.
 
-### `check_avoid_maplibre_leak.dart`
+### `check_avoid_flutter_map_leak.dart`
 
-MAP-06 seam gate: asserts `import 'package:maplibre_gl/...'` only appears
-under `lib/infrastructure/map/`. Application / domain / presentation code
-consumes the domain `MapView` interface, not the SDK directly. Prevents
-accidental re-coupling the first time a follow-up renderer is considered.
+MAP-06 seam gate (Phase 09.1, replaces the Phase 07 maplibre-only gate):
+asserts that imports of the map engine — `flutter_map`, `latlong2`,
+`vector_map_tiles`, `vector_map_tiles_pmtiles`, `vector_tile_renderer`,
+`pmtiles`, plus the retired `maplibre_gl` — only appear inside the explicit
+perimeter: everything under `lib/infrastructure/map/` and the three
+allow-listed presentation files forming the FogLayer boundary
+(`presentation/widgets/fog_layer.dart`, `presentation/widgets/fog_clip_path.dart`,
+`presentation/screens/map_screen.dart`). Everything else (application,
+domain, the Riverpod connector, wisps, renderers) depends on the domain
+`MapView` port and receives a typed projection through `MirkPaintContext`,
+never a `MapCamera`. Prevents accidental re-coupling to the SDK.
 
 ### `check_avoid_remote_pmtiles.dart`
 

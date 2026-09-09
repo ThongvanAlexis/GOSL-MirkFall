@@ -18,7 +18,8 @@ Pure-Dart domain types for map integration (Phase 07).
 - Any `lib/application/` or `lib/infrastructure/` import
 
 Enforced by `tool/check_domain_purity.dart` (Phase 03) and
-`tool/check_avoid_maplibre_leak.dart` (Phase 07-01).
+`tool/check_avoid_flutter_map_leak.dart` (Phase 09.1-01; successor of the
+Phase 07-01 maplibre-only gate).
 
 **Exports:**
 

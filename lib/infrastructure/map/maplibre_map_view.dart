@@ -44,7 +44,7 @@ Map<String, dynamic> _emptyFeatureCollection() {
 
 /// The ONLY file under `lib/` allowed to import `package:maplibre_gl/...`.
 ///
-/// Enforced by `tool/check_avoid_maplibre_leak.dart` (MAP-06 CI gate).
+/// Enforced by `tool/check_avoid_flutter_map_leak.dart` (MAP-06 CI gate, Phase 09.1).
 /// Every other `lib/` module consumes the [MapView] domain port; MapLibre
 /// SDK types (`MapLibreMapController`, `SymbolOptions`, `CameraUpdate`,
 /// `LatLng`) never bubble above this boundary.

@@ -55,7 +55,7 @@ String _parseRoot(List<String> args) {
 /// Runs the scan against [rootPath] (default `lib/infrastructure/mirk`).
 ///
 /// Public so unit tests can drive the scanner against synthetic fixture
-/// trees. Same shape as `tool/check_avoid_maplibre_leak.dart`'s `runCheck`.
+/// trees. Same shape as `tool/check_avoid_flutter_map_leak.dart`'s `runCheck`.
 int runCheck({String? rootPath}) {
   final String resolvedRoot = rootPath ?? p.join(Directory.current.path, _defaultRoot);
   final Directory dir = Directory(resolvedRoot);

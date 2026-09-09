@@ -17,7 +17,8 @@ import 'map_theme.dart';
 /// MapLibre types (`MapLibreMapController`, `SymbolOptions`,
 /// `CameraUpdate`, `LatLng`) are visible — they stay behind
 /// `lib/infrastructure/map/` where the concrete adapter lives. The
-/// `tool/check_avoid_maplibre_leak.dart` CI gate enforces this invariant
+/// `tool/check_avoid_flutter_map_leak.dart` CI gate (Phase 09.1, successor of the
+/// Phase 07 maplibre-only gate) enforces this invariant
 /// at lint time.
 ///
 /// Implementation contract:

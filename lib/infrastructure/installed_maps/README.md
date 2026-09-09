@@ -30,7 +30,7 @@ domain port from Plan 07-02:
   (delegated by the bootstrap)
 - `package:mirkfall/infrastructure/platform/ios_backup_excluder.dart`
 
-Never imports `maplibre_gl` (the `check_avoid_maplibre_leak` CI gate
+Never imports the map engine (the `check_avoid_flutter_map_leak` CI gate
 enforces the seam), never reads a PMTiles file directly — the
 manifest is a pure JSON document whose payloads live elsewhere.
 

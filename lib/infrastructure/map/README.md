@@ -1,6 +1,6 @@
 # infrastructure/map/
 
-MapLibre-bound map infrastructure. **The ONLY directory allowed to `import 'package:maplibre_gl/...'`.** Enforced by `tool/check_avoid_maplibre_leak.dart` (MAP-06 CI gate).
+MapLibre-bound map infrastructure. **The ONLY directory allowed to `import 'package:maplibre_gl/...'`.** Enforced by `tool/check_avoid_flutter_map_leak.dart` (MAP-06 CI gate, Phase 09.1 — successor of the Phase 07 maplibre-only gate).
 
 Every other `lib/` module consumes the [`MapView`](../../domain/map/map_view.dart) port (plain MirkFall vocabulary, zero MapLibre types). If you need anything from `maplibre_gl` outside this directory, you need a new method on `MapView` instead.
 
