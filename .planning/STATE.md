@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 4
-status: "Plan 09.1-02 shipped 2026-09-09 (task commits 866c07c / e765934 / 50e44b6 / 84a83a0 / c265330 + handoff chore 39c6954): map engine swapped to flutter_map 7.0.2 — `FlutterMapMapViewWidget` / `_FlutterMapMapViewAdapter` (sole FlutterMap / MapController / VectorTileLayer site, adapter published from `MapOptions.onMapReady`, `fogLayers` slot for 09.1-07), `MapThemeLoader` (style.json 6 couches sans `mirk_fog`, id `mirkfall-standard`, compilé une fois par thème), `PmtilesSource` en chemins absolus, `_ArchiveTileProvider` (fermeture d'archive refcountée), `MapView` à 13 membres, `FakeMapView` aligné ; maplibre_gl retiré (lock −6 : maplibre_gl, platform_interface, web, image, archive, posix ; DEPENDENCIES.md −6 lignes), assets glyphs / sprites + prepare_style supprimés, `check_avoid_remote_pmtiles` étendu (fromUri / fromSource('http…')), constants −7 / +4 (`kMapUserPuck*`), main.dart : erreurs silencieuses + CancellationException vector_map_tiles en FINE. MirkOverlay reste un sibling du Stack jusqu'à 09.1-07. À HEAD : analyze clean, format clean, 9/9 gates OK, 1095 tests + airplane-mode verts, 96 tool tests. Handoff 09.1-03 absorbé : exclusion CI mirk_paint_context_test + normalisation LF de 19 fichiers (check_headers était rouge). Wave 2 close ; next : Wave 3 = 09.1-04 (FogLayer) ∥ 09.1-05 (SdfCache + wisps)."
-stopped_at: Completed 09.1-02-PLAN.md
-last_updated: "2026-09-09T10:52:19.112Z"
+current_plan: 5
+status: "Plan 09.1-04 shipped 2026-09-09 (task commits 09a8609 / 797d3d8 / acc518d / 40c930d): `FogLayer` same-canvas porté du POC — StatefulWidget pur enfant de `FlutterMap` (UN `MapCamera.of` par build, seam `debugOnCameraRead`, Ticker → `CustomPainter(repaint:)`, Stopwatch vivant par référence), painter à l'ordre verrouillé (getTransform ×1 → save → translate(-canvasOffset) → clipPath sans canvasOffset → corrections plateforme une fois → zoomScale → `MirkPaintContext` étendu → renderer.update/paint → restore), `fog_clip_geometry.dart` (pur) + `fog_clip_path.dart` (pont caméra, périmètre), `FrameDeltaProbe` / `FogTransformLogger` / `DevMarkerLogger` verbose-only ; keystone FOG-07 ×2 vert (1 → 2 → 3), 12 tests widget `fog_*` + 4 suites infra = 64 tests, 25 fichiers créés. Vérification à 40c930d dans un worktree propre : analyze clean, format clean, 9/9 gates, 96 tool tests, flutter test 1184 verts / 8 rouges hors périmètre (7 × wisp_transform_logger_test RED 09.1-05 + mirk_overlay_feather_test : timer périodique du SdfRebuildLogger()..start() par défaut de l'AtmosphericMirkRenderer 09.1-05 c2e98aa — handoff noté). Wave 3 : 09.1-05 (SdfCache + wisps) toujours en cours en parallèle ; next : Wave 4 = 09.1-06 dès que 09.1-05 est livré."
+stopped_at: Completed 09.1-04-PLAN.md
+last_updated: "2026-09-09T14:40:48.170Z"
 last_activity: 2026-09-09
 progress:
   total_phases: 18
   completed_phases: 10
   total_plans: 65
-  completed_plans: 61
+  completed_plans: 62
   percent: 94
 ---
 
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 09.1 (INSERTED 2026-09-09) IN PROGRESS — port-back same-canvas fog from POC `mirk-poc-debug` @ 90c9321. Wave 1 (09.1-01: flutter_map stack + gate + constants) and Wave 2 (09.1-02: flutter_map engine swap, maplibre_gl REMOVED ; 09.1-03: MirkPaintContext seam + 42-slot shader ABI) complete. The map now renders through `FlutterMapMapViewWidget`; the fog is still the `MirkOverlay` Stack sibling (laggy, BUG-014) until 09.1-07 mounts `FogLayer` inside the FlutterMap children. Next: Wave 3 = 09.1-04 (FogLayer same-canvas) + 09.1-05 (SdfCache + wisps) in parallel. Phase 09 Fog Rendering CLOSED 2026-04-25 (10/10); BUG-014 is the architectural driver of 09.1.
+**Current focus:** Phase 09.1 (INSERTED 2026-09-09) IN PROGRESS — port-back same-canvas fog from POC `mirk-poc-debug` @ 90c9321. Wave 1 (09.1-01: flutter_map stack + gate + constants) and Wave 2 (09.1-02: flutter_map engine swap, maplibre_gl REMOVED ; 09.1-03: MirkPaintContext seam + 42-slot shader ABI) complete. The map now renders through `FlutterMapMapViewWidget`; the fog is still the `MirkOverlay` Stack sibling (laggy, BUG-014) until 09.1-07 mounts `FogLayer` inside the FlutterMap children. Wave 3: 09.1-04 (FogLayer same-canvas, 25 files, 64 tests) DONE 2026-09-09; 09.1-05 (SdfCache + wisps) still in progress in parallel. Next: Wave 4 = 09.1-06 once 09.1-05 lands. Phase 09 Fog Rendering CLOSED 2026-04-25 (10/10); BUG-014 is the architectural driver of 09.1.
 
 ## Current Position
 
-Phase: 09.1 of 16.x (Port-back same-canvas fog — flutter_map migration, INSERTED) — IN PROGRESS — 3 / 8 plans complete (09.1-01 — Wave 1 ; 09.1-02 + 09.1-03 — Wave 2)
-Current Plan: 4
+Phase: 09.1 of 16.x (Port-back same-canvas fog — flutter_map migration, INSERTED) — IN PROGRESS — 4 / 8 plans complete (09.1-01 — Wave 1 ; 09.1-02 + 09.1-03 — Wave 2 ; 09.1-04 — Wave 3, 09.1-05 in flight)
+Current Plan: 5
 Total Plans in Phase: 8
-Status: Plan 09.1-02 shipped 2026-09-09 (task commits 866c07c / e765934 / 50e44b6 / 84a83a0 / c265330 + handoff chore 39c6954): map engine swapped to flutter_map 7.0.2 — `FlutterMapMapViewWidget` / `_FlutterMapMapViewAdapter` (sole FlutterMap / MapController / VectorTileLayer site, adapter published from `MapOptions.onMapReady`, `fogLayers` slot for 09.1-07), `MapThemeLoader` (style.json 6 couches sans `mirk_fog`, id `mirkfall-standard`, compilé une fois par thème), `PmtilesSource` en chemins absolus, `_ArchiveTileProvider` (fermeture d'archive refcountée), `MapView` à 13 membres, `FakeMapView` aligné ; maplibre_gl retiré (lock −6 : maplibre_gl, platform_interface, web, image, archive, posix ; DEPENDENCIES.md −6 lignes), assets glyphs / sprites + prepare_style supprimés, `check_avoid_remote_pmtiles` étendu (fromUri / fromSource('http…')), constants −7 / +4 (`kMapUserPuck*`), main.dart : erreurs silencieuses + CancellationException vector_map_tiles en FINE. MirkOverlay reste un sibling du Stack jusqu'à 09.1-07. À HEAD : analyze clean, format clean, 9/9 gates OK, 1095 tests + airplane-mode verts, 96 tool tests. Handoff 09.1-03 absorbé : exclusion CI mirk_paint_context_test + normalisation LF de 19 fichiers (check_headers était rouge). Wave 2 close ; next : Wave 3 = 09.1-04 (FogLayer) ∥ 09.1-05 (SdfCache + wisps). Previous: Plan 09.1-03 shipped 2026-09-09 (9b46972 / c057959 / 2b0d36e): MirkPaintContext extended once, MirkRenderer 3 members, 42-slot shader ABI, FogShaderRenderer seam. Plan 09.1-01 shipped 2026-09-09 (68b5207 / 9027dbd / fc40166 / dee75da): flutter_map stack pinned + audited, check_avoid_flutter_map_leak gate, Phase 09.1 constants.
+Status: Plan 09.1-04 shipped 2026-09-09 (task commits 09a8609 / 797d3d8 / acc518d / 40c930d): `FogLayer` same-canvas porté du POC — StatefulWidget pur enfant de `FlutterMap` (UN `MapCamera.of` par build, seam `debugOnCameraRead`, Ticker → `CustomPainter(repaint:)`, Stopwatch vivant par référence), painter à l'ordre verrouillé (getTransform ×1 → save → translate(-canvasOffset) → clipPath sans canvasOffset → corrections plateforme une fois → zoomScale → `MirkPaintContext` étendu → renderer.update/paint → restore), `fog_clip_geometry.dart` (pur) + `fog_clip_path.dart` (pont caméra, périmètre), `FrameDeltaProbe` / `FogTransformLogger` / `DevMarkerLogger` verbose-only ; keystone FOG-07 ×2 vert (1 → 2 → 3), 12 tests widget `fog_*` + 4 suites infra = 64 tests, 25 fichiers créés. Vérification à 40c930d dans un worktree propre : analyze clean, format clean, 9/9 gates, 96 tool tests, flutter test 1184 verts / 8 rouges hors périmètre (7 × wisp_transform_logger_test RED 09.1-05 + mirk_overlay_feather_test : timer périodique du SdfRebuildLogger()..start() par défaut de l'AtmosphericMirkRenderer 09.1-05 c2e98aa — handoff noté). Wave 3 : 09.1-05 (SdfCache + wisps) toujours en cours en parallèle ; next : Wave 4 = 09.1-06 dès que 09.1-05 est livré. Previous: Plan 09.1-02 shipped 2026-09-09 (task commits 866c07c / e765934 / 50e44b6 / 84a83a0 / c265330 + handoff chore 39c6954): map engine swapped to flutter_map 7.0.2 — `FlutterMapMapViewWidget` / `_FlutterMapMapViewAdapter` (sole FlutterMap / MapController / VectorTileLayer site, adapter published from `MapOptions.onMapReady`, `fogLayers` slot for 09.1-07), `MapThemeLoader` (style.json 6 couches sans `mirk_fog`, id `mirkfall-standard`, compilé une fois par thème), `PmtilesSource` en chemins absolus, `_ArchiveTileProvider` (fermeture d'archive refcountée), `MapView` à 13 membres, `FakeMapView` aligné ; maplibre_gl retiré (lock −6 : maplibre_gl, platform_interface, web, image, archive, posix ; DEPENDENCIES.md −6 lignes), assets glyphs / sprites + prepare_style supprimés, `check_avoid_remote_pmtiles` étendu (fromUri / fromSource('http…')), constants −7 / +4 (`kMapUserPuck*`), main.dart : erreurs silencieuses + CancellationException vector_map_tiles en FINE. MirkOverlay reste un sibling du Stack jusqu'à 09.1-07. À HEAD : analyze clean, format clean, 9/9 gates OK, 1095 tests + airplane-mode verts, 96 tool tests. Handoff 09.1-03 absorbé : exclusion CI mirk_paint_context_test + normalisation LF de 19 fichiers (check_headers était rouge). Wave 2 close ; next : Wave 3 = 09.1-04 (FogLayer) ∥ 09.1-05 (SdfCache + wisps). Previous: Plan 09.1-03 shipped 2026-09-09 (9b46972 / c057959 / 2b0d36e): MirkPaintContext extended once, MirkRenderer 3 members, 42-slot shader ABI, FogShaderRenderer seam. Plan 09.1-01 shipped 2026-09-09 (68b5207 / 9027dbd / fc40166 / dee75da): flutter_map stack pinned + audited, check_avoid_flutter_map_leak gate, Phase 09.1 constants.
 Last Activity: 2026-09-09
 
-Progress: [█████████░] 94% — 61 / 65 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 closed 10/10 ; Phase 09.1 in progress 3/8 — 09.1-01, 09.1-02, 09.1-03).
+Progress: [█████████░] 94% — 62 / 65 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 closed 10/10 ; Phase 09.1 in progress 4/8 — 09.1-01, 09.1-02, 09.1-03, 09.1-04).
 
 ## Performance Metrics
 
@@ -106,6 +106,7 @@ Progress: [█████████░] 94% — 61 / 65 plans executed (Phase
 | Phase 09.1 P01 | 18 min | 3 tasks | 17 files |
 | Phase 09.1 P03 | 28 min | 2 tasks | 32 files |
 | Phase 09.1 P02 | 55min | 3 tasks | 59 files |
+| Phase 09.1 P04 | ~2h active (3h25m wall-clock) | 3 tasks | 25 files |
 
 ## Accumulated Context
 
@@ -395,6 +396,11 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09.1]: 09.1-02: _ArchiveTileProvider refcounts in-flight PMTiles reads and closes the archive only when idle (pmtiles throws on read-after-close while VectorTileLayer keeps reading after re-key / unmount); post-close reads answered with a 404 ProviderException
 - [Phase 09.1]: 09.1-02: vector_map_tiles CancellationException (transitive executor_lib) downgraded to FINE by type name in main.dart error sinks + silent FlutterError reports at FINE; no direct executor_lib pin for a single is-check
 - [Phase 09.1]: 09.1-02: maplibre_gl removal dropped 6 lock packages (maplibre_gl, platform_interface, web, image, archive, posix) — DEPENDENCIES.md rows removed; glyph / sprite assets + prepare_style deleted (vector_tile_renderer renders text via TextPainter)
+- [Phase 09.1]: 09.1-04: FogLayer is a pure StatefulWidget child of FlutterMap — ONE MapCamera.of per build (FOG-07, debugOnCameraRead seam), Ticker → CustomPainter(repaint:), live Stopwatch by reference, painting delegated to the injected MirkRenderer; painter order locked: getTransform ×1 → save → translate(-canvasOffset) → clipPath (no canvasOffset) → corrections once → context → renderer.update/paint → restore
+- [Phase 09.1]: 09.1-04: TDD RED commits stay compilable (FogLayer skeleton throwing UnimplementedError) so flutter analyze is green at every commit and the parallel executor never sees a compile-failing test
+- [Phase 09.1]: 09.1-04: diagnostic loggers (FrameDeltaProbe / FogTransformLogger / DevMarkerLogger) are verbose-only — record* and rollups early-return unless Logger.isLoggable(FINE), timer left armed, record* no-op before start(); FogTransformLogger takes GeoPoint (perimeter) and reads scale/shear from the matrix, JSONL keys unchanged; DevMarkerLogger is an instance mark(label)
+- [Phase 09.1]: 09.1-04: renderer-backed fog widget tests settle the SDF under tester.runAsync with real 20 ms delays (ui.decodeImageFromPixels never completes under FakeAsync) and dispose the renderer in-body; widget tests size the test screen to the requested viewport
+- [Phase 09.1]: 09.1-04: cross-plan verification runs in a detached git worktree at my HEAD when the shared tree carries the other executor's RED files — never edit their files, never wait on them
 
 ### Roadmap Evolution
 
@@ -434,6 +440,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-09T10:52:19.106Z
-Stopped at: Completed 09.1-02-PLAN.md
+Last session: 2026-09-09T14:40:48.164Z
+Stopped at: Completed 09.1-04-PLAN.md
 Resume file: None
