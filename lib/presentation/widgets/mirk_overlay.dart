@@ -12,10 +12,14 @@ import 'package:mirkfall/application/providers/discs_in_viewport_provider.dart';
 import 'package:mirkfall/application/providers/map_providers.dart';
 import 'package:mirkfall/application/providers/map_viewport_provider.dart';
 import 'package:mirkfall/application/state/active_session_state.dart';
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/fixes/fix.dart';
+import 'package:mirkfall/domain/geo/geo_point.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
+import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
+import 'package:mirkfall/infrastructure/mirk/mirk_projection.dart';
 
 final Logger _log = Logger('presentation.mirk_overlay');
 
@@ -164,37 +168,82 @@ class _MirkOverlayState extends ConsumerState<MirkOverlay> with SingleTickerProv
       size: Size.infinite,
       painter: _MirkPainter(
         renderer: renderer,
-        paintContext: MirkPaintContext(
-          zoomLevel: zoom!,
-          pixelRatio: MediaQuery.of(context).devicePixelRatio,
-          // Ticker.elapsed measures time since the overlay mounted, which
-          // is operationally aligned with "time since session started"
-          // for the noise-based renderers' animation phase. The Phase 09
-          // research consolidated on a single `sessionElapsed` field
-          // rather than a separate per-frame Ticker time — see plan
-          // 09-02 SUMMARY for the rationale.
-          sessionElapsed: _tickerElapsed,
-          // The bail-out branch above guarantees viewport / zoom are
-          // non-null when bailoutReason == 'rendering', but Dart's null
-          // promotion can't see across the local-string check. Asserted
-          // non-null with `!` — safe by construction.
-          viewportBbox: viewport!,
-          discs: discs,
-          currentFix: currentFix,
-        ),
+        // The bail-out branch above guarantees viewport / zoom are
+        // non-null when bailoutReason == 'rendering', but Dart's null
+        // promotion can't see across the local-string check. Asserted
+        // non-null with `!` — safe by construction.
+        zoomLevel: zoom!,
+        pixelRatio: MediaQuery.of(context).devicePixelRatio,
+        // Ticker.elapsed measures time since the overlay mounted, which
+        // is operationally aligned with "time since session started"
+        // for the noise-based renderers' animation phase. The Phase 09
+        // research consolidated on a single `sessionElapsed` field
+        // rather than a separate per-frame Ticker time — see plan
+        // 09-02 SUMMARY for the rationale.
+        sessionElapsed: _tickerElapsed,
+        viewport: viewport!,
+        discs: discs,
+        currentFix: currentFix,
       ),
     );
   }
 }
 
+/// Neutral Phase 09.1 camera inputs — this overlay has no `MapCamera`, so it
+/// passes "no correction" values and the pre-09.1 linear projection.
+const ({double x, double y}) _kNeutralPixelOrigin = (x: 0.0, y: 0.0);
+const double _kNeutralZoomScale = 1.0;
+const (double, double, double, double) _kIdentitySdfRect = (0.0, 0.0, 1.0, 1.0);
+const ({double dx, double dy}) _kNeutralCanvasOffset = (dx: 0.0, dy: 0.0);
+
 class _MirkPainter extends CustomPainter {
-  _MirkPainter({required this.renderer, required this.paintContext});
+  _MirkPainter({
+    required this.renderer,
+    required this.zoomLevel,
+    required this.pixelRatio,
+    required this.sessionElapsed,
+    required this.viewport,
+    required this.discs,
+    required this.currentFix,
+  });
 
   final MirkRenderer renderer;
-  final MirkPaintContext paintContext;
+  final double zoomLevel;
+  final double pixelRatio;
+  final Duration sessionElapsed;
+  final MirkViewportBbox viewport;
+  final List<RevealDisc> discs;
+  final Fix? currentFix;
 
   @override
-  void paint(Canvas canvas, Size size) => renderer.paint(canvas, size, paintContext);
+  void paint(Canvas canvas, Size size) => renderer.paint(canvas, size, _buildPaintContext(size));
+
+  /// Builds the extended [MirkPaintContext] for the canvas [size] handed to
+  /// [paint] — the projection closures need the real canvas size, which the
+  /// widget `build()` does not know.
+  ///
+  /// Provisoire 09.1-03 → supprimé avec MirkOverlay au plan 09.1-07 (valeurs
+  /// neutres : pas de correction caméra ici). The `FogLayer` replaces every
+  /// neutral value with the per-paint `MapCamera` snapshot (FOG-07).
+  MirkPaintContext _buildPaintContext(Size size) {
+    final MirkViewportBbox viewportForProjection = viewport;
+    return MirkPaintContext(
+      zoomLevel: zoomLevel,
+      pixelRatio: pixelRatio,
+      sessionElapsed: sessionElapsed,
+      viewportBbox: viewport,
+      discs: discs,
+      pixelOrigin: _kNeutralPixelOrigin,
+      zoomScale: _kNeutralZoomScale,
+      sdfRect: _kIdentitySdfRect,
+      canvasOffset: _kNeutralCanvasOffset,
+      projectToScreen: (GeoPoint point) =>
+          MirkProjection.latLonToScreen(lat: point.latitude, lon: point.longitude, viewport: viewportForProjection, size: size),
+      metersToPixels: (double meters, {required double atLatitude}) =>
+          meters * size.height / ((viewportForProjection.north - viewportForProjection.south) * kMetersPerDegreeLat),
+      currentFix: currentFix,
+    );
+  }
 
   /// Always returns true: the Ticker drives the rebuild via setState,
   /// so the painter's repaint signal is gated by the widget tree

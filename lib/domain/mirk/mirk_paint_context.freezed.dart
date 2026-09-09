@@ -14,7 +14,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MirkPaintContext {
 
- double get zoomLevel; double get pixelRatio; Duration get sessionElapsed; MirkViewportBbox get viewportBbox; List<RevealDisc> get discs; Fix? get currentFix;
+ double get zoomLevel; double get pixelRatio; Duration get sessionElapsed; MirkViewportBbox get viewportBbox; List<RevealDisc> get discs;// --- Phase 09.1 — single extension event of the phase ---
+ ({double x, double y}) get pixelOrigin; double get zoomScale; (double, double, double, double) get sdfRect; ({double dx, double dy}) get canvasOffset; ScreenProjector get projectToScreen; MetersToPixels get metersToPixels; Fix? get currentFix;
 /// Create a copy of MirkPaintContext
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +26,16 @@ $MirkPaintContextCopyWith<MirkPaintContext> get copyWith => _$MirkPaintContextCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MirkPaintContext&&(identical(other.zoomLevel, zoomLevel) || other.zoomLevel == zoomLevel)&&(identical(other.pixelRatio, pixelRatio) || other.pixelRatio == pixelRatio)&&(identical(other.sessionElapsed, sessionElapsed) || other.sessionElapsed == sessionElapsed)&&(identical(other.viewportBbox, viewportBbox) || other.viewportBbox == viewportBbox)&&const DeepCollectionEquality().equals(other.discs, discs)&&(identical(other.currentFix, currentFix) || other.currentFix == currentFix));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MirkPaintContext&&(identical(other.zoomLevel, zoomLevel) || other.zoomLevel == zoomLevel)&&(identical(other.pixelRatio, pixelRatio) || other.pixelRatio == pixelRatio)&&(identical(other.sessionElapsed, sessionElapsed) || other.sessionElapsed == sessionElapsed)&&(identical(other.viewportBbox, viewportBbox) || other.viewportBbox == viewportBbox)&&const DeepCollectionEquality().equals(other.discs, discs)&&(identical(other.pixelOrigin, pixelOrigin) || other.pixelOrigin == pixelOrigin)&&(identical(other.zoomScale, zoomScale) || other.zoomScale == zoomScale)&&(identical(other.sdfRect, sdfRect) || other.sdfRect == sdfRect)&&(identical(other.canvasOffset, canvasOffset) || other.canvasOffset == canvasOffset)&&(identical(other.projectToScreen, projectToScreen) || other.projectToScreen == projectToScreen)&&(identical(other.metersToPixels, metersToPixels) || other.metersToPixels == metersToPixels)&&(identical(other.currentFix, currentFix) || other.currentFix == currentFix));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,zoomLevel,pixelRatio,sessionElapsed,viewportBbox,const DeepCollectionEquality().hash(discs),currentFix);
+int get hashCode => Object.hash(runtimeType,zoomLevel,pixelRatio,sessionElapsed,viewportBbox,const DeepCollectionEquality().hash(discs),pixelOrigin,zoomScale,sdfRect,canvasOffset,projectToScreen,metersToPixels,currentFix);
 
 @override
 String toString() {
-  return 'MirkPaintContext(zoomLevel: $zoomLevel, pixelRatio: $pixelRatio, sessionElapsed: $sessionElapsed, viewportBbox: $viewportBbox, discs: $discs, currentFix: $currentFix)';
+  return 'MirkPaintContext(zoomLevel: $zoomLevel, pixelRatio: $pixelRatio, sessionElapsed: $sessionElapsed, viewportBbox: $viewportBbox, discs: $discs, pixelOrigin: $pixelOrigin, zoomScale: $zoomScale, sdfRect: $sdfRect, canvasOffset: $canvasOffset, projectToScreen: $projectToScreen, metersToPixels: $metersToPixels, currentFix: $currentFix)';
 }
 
 
@@ -45,7 +46,7 @@ abstract mixin class $MirkPaintContextCopyWith<$Res>  {
   factory $MirkPaintContextCopyWith(MirkPaintContext value, $Res Function(MirkPaintContext) _then) = _$MirkPaintContextCopyWithImpl;
 @useResult
 $Res call({
- double zoomLevel, double pixelRatio, Duration sessionElapsed, MirkViewportBbox viewportBbox, List<RevealDisc> discs, Fix? currentFix
+ double zoomLevel, double pixelRatio, Duration sessionElapsed, MirkViewportBbox viewportBbox, List<RevealDisc> discs, ({double x, double y}) pixelOrigin, double zoomScale, (double, double, double, double) sdfRect, ({double dx, double dy}) canvasOffset, ScreenProjector projectToScreen, MetersToPixels metersToPixels, Fix? currentFix
 });
 
 
@@ -62,14 +63,20 @@ class _$MirkPaintContextCopyWithImpl<$Res>
 
 /// Create a copy of MirkPaintContext
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? zoomLevel = null,Object? pixelRatio = null,Object? sessionElapsed = null,Object? viewportBbox = null,Object? discs = null,Object? currentFix = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? zoomLevel = null,Object? pixelRatio = null,Object? sessionElapsed = null,Object? viewportBbox = null,Object? discs = null,Object? pixelOrigin = null,Object? zoomScale = null,Object? sdfRect = null,Object? canvasOffset = null,Object? projectToScreen = null,Object? metersToPixels = null,Object? currentFix = freezed,}) {
   return _then(_self.copyWith(
 zoomLevel: null == zoomLevel ? _self.zoomLevel : zoomLevel // ignore: cast_nullable_to_non_nullable
 as double,pixelRatio: null == pixelRatio ? _self.pixelRatio : pixelRatio // ignore: cast_nullable_to_non_nullable
 as double,sessionElapsed: null == sessionElapsed ? _self.sessionElapsed : sessionElapsed // ignore: cast_nullable_to_non_nullable
 as Duration,viewportBbox: null == viewportBbox ? _self.viewportBbox : viewportBbox // ignore: cast_nullable_to_non_nullable
 as MirkViewportBbox,discs: null == discs ? _self.discs : discs // ignore: cast_nullable_to_non_nullable
-as List<RevealDisc>,currentFix: freezed == currentFix ? _self.currentFix : currentFix // ignore: cast_nullable_to_non_nullable
+as List<RevealDisc>,pixelOrigin: null == pixelOrigin ? _self.pixelOrigin : pixelOrigin // ignore: cast_nullable_to_non_nullable
+as ({double x, double y}),zoomScale: null == zoomScale ? _self.zoomScale : zoomScale // ignore: cast_nullable_to_non_nullable
+as double,sdfRect: null == sdfRect ? _self.sdfRect : sdfRect // ignore: cast_nullable_to_non_nullable
+as (double, double, double, double),canvasOffset: null == canvasOffset ? _self.canvasOffset : canvasOffset // ignore: cast_nullable_to_non_nullable
+as ({double dx, double dy}),projectToScreen: null == projectToScreen ? _self.projectToScreen : projectToScreen // ignore: cast_nullable_to_non_nullable
+as ScreenProjector,metersToPixels: null == metersToPixels ? _self.metersToPixels : metersToPixels // ignore: cast_nullable_to_non_nullable
+as MetersToPixels,currentFix: freezed == currentFix ? _self.currentFix : currentFix // ignore: cast_nullable_to_non_nullable
 as Fix?,
   ));
 }
@@ -176,10 +183,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double zoomLevel,  double pixelRatio,  Duration sessionElapsed,  MirkViewportBbox viewportBbox,  List<RevealDisc> discs,  Fix? currentFix)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double zoomLevel,  double pixelRatio,  Duration sessionElapsed,  MirkViewportBbox viewportBbox,  List<RevealDisc> discs,  ({double x, double y}) pixelOrigin,  double zoomScale,  (double, double, double, double) sdfRect,  ({double dx, double dy}) canvasOffset,  ScreenProjector projectToScreen,  MetersToPixels metersToPixels,  Fix? currentFix)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MirkPaintContext() when $default != null:
-return $default(_that.zoomLevel,_that.pixelRatio,_that.sessionElapsed,_that.viewportBbox,_that.discs,_that.currentFix);case _:
+return $default(_that.zoomLevel,_that.pixelRatio,_that.sessionElapsed,_that.viewportBbox,_that.discs,_that.pixelOrigin,_that.zoomScale,_that.sdfRect,_that.canvasOffset,_that.projectToScreen,_that.metersToPixels,_that.currentFix);case _:
   return orElse();
 
 }
@@ -197,10 +204,10 @@ return $default(_that.zoomLevel,_that.pixelRatio,_that.sessionElapsed,_that.view
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double zoomLevel,  double pixelRatio,  Duration sessionElapsed,  MirkViewportBbox viewportBbox,  List<RevealDisc> discs,  Fix? currentFix)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double zoomLevel,  double pixelRatio,  Duration sessionElapsed,  MirkViewportBbox viewportBbox,  List<RevealDisc> discs,  ({double x, double y}) pixelOrigin,  double zoomScale,  (double, double, double, double) sdfRect,  ({double dx, double dy}) canvasOffset,  ScreenProjector projectToScreen,  MetersToPixels metersToPixels,  Fix? currentFix)  $default,) {final _that = this;
 switch (_that) {
 case _MirkPaintContext():
-return $default(_that.zoomLevel,_that.pixelRatio,_that.sessionElapsed,_that.viewportBbox,_that.discs,_that.currentFix);case _:
+return $default(_that.zoomLevel,_that.pixelRatio,_that.sessionElapsed,_that.viewportBbox,_that.discs,_that.pixelOrigin,_that.zoomScale,_that.sdfRect,_that.canvasOffset,_that.projectToScreen,_that.metersToPixels,_that.currentFix);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -217,10 +224,10 @@ return $default(_that.zoomLevel,_that.pixelRatio,_that.sessionElapsed,_that.view
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double zoomLevel,  double pixelRatio,  Duration sessionElapsed,  MirkViewportBbox viewportBbox,  List<RevealDisc> discs,  Fix? currentFix)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double zoomLevel,  double pixelRatio,  Duration sessionElapsed,  MirkViewportBbox viewportBbox,  List<RevealDisc> discs,  ({double x, double y}) pixelOrigin,  double zoomScale,  (double, double, double, double) sdfRect,  ({double dx, double dy}) canvasOffset,  ScreenProjector projectToScreen,  MetersToPixels metersToPixels,  Fix? currentFix)?  $default,) {final _that = this;
 switch (_that) {
 case _MirkPaintContext() when $default != null:
-return $default(_that.zoomLevel,_that.pixelRatio,_that.sessionElapsed,_that.viewportBbox,_that.discs,_that.currentFix);case _:
+return $default(_that.zoomLevel,_that.pixelRatio,_that.sessionElapsed,_that.viewportBbox,_that.discs,_that.pixelOrigin,_that.zoomScale,_that.sdfRect,_that.canvasOffset,_that.projectToScreen,_that.metersToPixels,_that.currentFix);case _:
   return null;
 
 }
@@ -232,7 +239,7 @@ return $default(_that.zoomLevel,_that.pixelRatio,_that.sessionElapsed,_that.view
 
 
 class _MirkPaintContext implements MirkPaintContext {
-   _MirkPaintContext({required this.zoomLevel, required this.pixelRatio, required this.sessionElapsed, required this.viewportBbox, required final  List<RevealDisc> discs, this.currentFix}): assert(zoomLevel >= 0.0, 'MirkPaintContext.zoomLevel must be >= 0'),assert(pixelRatio > 0.0, 'MirkPaintContext.pixelRatio must be > 0'),_discs = discs;
+   _MirkPaintContext({required this.zoomLevel, required this.pixelRatio, required this.sessionElapsed, required this.viewportBbox, required final  List<RevealDisc> discs, required this.pixelOrigin, required this.zoomScale, required this.sdfRect, required this.canvasOffset, required this.projectToScreen, required this.metersToPixels, this.currentFix}): assert(zoomLevel >= 0.0, 'MirkPaintContext.zoomLevel must be >= 0'),assert(pixelRatio > 0.0, 'MirkPaintContext.pixelRatio must be > 0'),assert(zoomScale > 0.0, 'MirkPaintContext.zoomScale must be > 0 (pow(2, zoomLevel - kMirkFogReferenceZoom))'),_discs = discs;
   
 
 @override final  double zoomLevel;
@@ -246,6 +253,13 @@ class _MirkPaintContext implements MirkPaintContext {
   return EqualUnmodifiableListView(_discs);
 }
 
+// --- Phase 09.1 — single extension event of the phase ---
+@override final  ({double x, double y}) pixelOrigin;
+@override final  double zoomScale;
+@override final  (double, double, double, double) sdfRect;
+@override final  ({double dx, double dy}) canvasOffset;
+@override final  ScreenProjector projectToScreen;
+@override final  MetersToPixels metersToPixels;
 @override final  Fix? currentFix;
 
 /// Create a copy of MirkPaintContext
@@ -258,16 +272,16 @@ _$MirkPaintContextCopyWith<_MirkPaintContext> get copyWith => __$MirkPaintContex
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MirkPaintContext&&(identical(other.zoomLevel, zoomLevel) || other.zoomLevel == zoomLevel)&&(identical(other.pixelRatio, pixelRatio) || other.pixelRatio == pixelRatio)&&(identical(other.sessionElapsed, sessionElapsed) || other.sessionElapsed == sessionElapsed)&&(identical(other.viewportBbox, viewportBbox) || other.viewportBbox == viewportBbox)&&const DeepCollectionEquality().equals(other._discs, _discs)&&(identical(other.currentFix, currentFix) || other.currentFix == currentFix));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MirkPaintContext&&(identical(other.zoomLevel, zoomLevel) || other.zoomLevel == zoomLevel)&&(identical(other.pixelRatio, pixelRatio) || other.pixelRatio == pixelRatio)&&(identical(other.sessionElapsed, sessionElapsed) || other.sessionElapsed == sessionElapsed)&&(identical(other.viewportBbox, viewportBbox) || other.viewportBbox == viewportBbox)&&const DeepCollectionEquality().equals(other._discs, _discs)&&(identical(other.pixelOrigin, pixelOrigin) || other.pixelOrigin == pixelOrigin)&&(identical(other.zoomScale, zoomScale) || other.zoomScale == zoomScale)&&(identical(other.sdfRect, sdfRect) || other.sdfRect == sdfRect)&&(identical(other.canvasOffset, canvasOffset) || other.canvasOffset == canvasOffset)&&(identical(other.projectToScreen, projectToScreen) || other.projectToScreen == projectToScreen)&&(identical(other.metersToPixels, metersToPixels) || other.metersToPixels == metersToPixels)&&(identical(other.currentFix, currentFix) || other.currentFix == currentFix));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,zoomLevel,pixelRatio,sessionElapsed,viewportBbox,const DeepCollectionEquality().hash(_discs),currentFix);
+int get hashCode => Object.hash(runtimeType,zoomLevel,pixelRatio,sessionElapsed,viewportBbox,const DeepCollectionEquality().hash(_discs),pixelOrigin,zoomScale,sdfRect,canvasOffset,projectToScreen,metersToPixels,currentFix);
 
 @override
 String toString() {
-  return 'MirkPaintContext(zoomLevel: $zoomLevel, pixelRatio: $pixelRatio, sessionElapsed: $sessionElapsed, viewportBbox: $viewportBbox, discs: $discs, currentFix: $currentFix)';
+  return 'MirkPaintContext(zoomLevel: $zoomLevel, pixelRatio: $pixelRatio, sessionElapsed: $sessionElapsed, viewportBbox: $viewportBbox, discs: $discs, pixelOrigin: $pixelOrigin, zoomScale: $zoomScale, sdfRect: $sdfRect, canvasOffset: $canvasOffset, projectToScreen: $projectToScreen, metersToPixels: $metersToPixels, currentFix: $currentFix)';
 }
 
 
@@ -278,7 +292,7 @@ abstract mixin class _$MirkPaintContextCopyWith<$Res> implements $MirkPaintConte
   factory _$MirkPaintContextCopyWith(_MirkPaintContext value, $Res Function(_MirkPaintContext) _then) = __$MirkPaintContextCopyWithImpl;
 @override @useResult
 $Res call({
- double zoomLevel, double pixelRatio, Duration sessionElapsed, MirkViewportBbox viewportBbox, List<RevealDisc> discs, Fix? currentFix
+ double zoomLevel, double pixelRatio, Duration sessionElapsed, MirkViewportBbox viewportBbox, List<RevealDisc> discs, ({double x, double y}) pixelOrigin, double zoomScale, (double, double, double, double) sdfRect, ({double dx, double dy}) canvasOffset, ScreenProjector projectToScreen, MetersToPixels metersToPixels, Fix? currentFix
 });
 
 
@@ -295,14 +309,20 @@ class __$MirkPaintContextCopyWithImpl<$Res>
 
 /// Create a copy of MirkPaintContext
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? zoomLevel = null,Object? pixelRatio = null,Object? sessionElapsed = null,Object? viewportBbox = null,Object? discs = null,Object? currentFix = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? zoomLevel = null,Object? pixelRatio = null,Object? sessionElapsed = null,Object? viewportBbox = null,Object? discs = null,Object? pixelOrigin = null,Object? zoomScale = null,Object? sdfRect = null,Object? canvasOffset = null,Object? projectToScreen = null,Object? metersToPixels = null,Object? currentFix = freezed,}) {
   return _then(_MirkPaintContext(
 zoomLevel: null == zoomLevel ? _self.zoomLevel : zoomLevel // ignore: cast_nullable_to_non_nullable
 as double,pixelRatio: null == pixelRatio ? _self.pixelRatio : pixelRatio // ignore: cast_nullable_to_non_nullable
 as double,sessionElapsed: null == sessionElapsed ? _self.sessionElapsed : sessionElapsed // ignore: cast_nullable_to_non_nullable
 as Duration,viewportBbox: null == viewportBbox ? _self.viewportBbox : viewportBbox // ignore: cast_nullable_to_non_nullable
 as MirkViewportBbox,discs: null == discs ? _self._discs : discs // ignore: cast_nullable_to_non_nullable
-as List<RevealDisc>,currentFix: freezed == currentFix ? _self.currentFix : currentFix // ignore: cast_nullable_to_non_nullable
+as List<RevealDisc>,pixelOrigin: null == pixelOrigin ? _self.pixelOrigin : pixelOrigin // ignore: cast_nullable_to_non_nullable
+as ({double x, double y}),zoomScale: null == zoomScale ? _self.zoomScale : zoomScale // ignore: cast_nullable_to_non_nullable
+as double,sdfRect: null == sdfRect ? _self.sdfRect : sdfRect // ignore: cast_nullable_to_non_nullable
+as (double, double, double, double),canvasOffset: null == canvasOffset ? _self.canvasOffset : canvasOffset // ignore: cast_nullable_to_non_nullable
+as ({double dx, double dy}),projectToScreen: null == projectToScreen ? _self.projectToScreen : projectToScreen // ignore: cast_nullable_to_non_nullable
+as ScreenProjector,metersToPixels: null == metersToPixels ? _self.metersToPixels : metersToPixels // ignore: cast_nullable_to_non_nullable
+as MetersToPixels,currentFix: freezed == currentFix ? _self.currentFix : currentFix // ignore: cast_nullable_to_non_nullable
 as Fix?,
   ));
 }

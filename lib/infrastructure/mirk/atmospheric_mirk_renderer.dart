@@ -183,12 +183,6 @@ class AtmosphericMirkRenderer implements MirkRenderer {
 
   bool _disposed = false;
 
-  /// The viewport the current SDF image was built for. Used by the overlay's
-  /// Canvas transform to compensate for camera movement since the SDF was
-  /// built (BUG-014 fix).
-  @override
-  MirkViewportBbox? get sdfViewport => _sdfViewport;
-
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
     // BUG-009 follow-up diagnostic (2026-04-26). Log the first paint()

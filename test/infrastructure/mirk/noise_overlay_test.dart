@@ -44,6 +44,7 @@ import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/atmospheric_mirk_renderer.dart';
 import 'package:mirkfall/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart';
 
+import '../../_helpers/mirk_paint_context_builder.dart';
 import '_render_helpers.dart';
 
 /// Builds a context with a TINY off-centre disc — the analogue of the
@@ -54,9 +55,8 @@ import '_render_helpers.dart';
 /// (see [kTestCanvasSize]).
 MirkPaintContext _fullyFoggedContext({int elapsedMs = 0}) {
   final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
-  return MirkPaintContext(
+  return buildTestMirkPaintContext(
     zoomLevel: 14.0,
-    pixelRatio: 1.0,
     sessionElapsed: Duration(milliseconds: elapsedMs),
     viewportBbox: viewport,
     discs: <RevealDisc>[
@@ -125,10 +125,8 @@ void main() {
       final renderer = AtmosphericMirkRenderer(const MirkStyleConfig.atmospheric() as AtmosphericConfig);
       await renderer.shaderReady;
       final viewport = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
-      final ctx = MirkPaintContext(
+      final ctx = buildTestMirkPaintContext(
         zoomLevel: 14.0,
-        pixelRatio: 1.0,
-        sessionElapsed: Duration.zero,
         viewportBbox: viewport,
         discs: <RevealDisc>[
           RevealDisc(id: 'rvd_test_swallow_n', sessionId: 'sess_test', lat: 43.5, lon: 5.5, radiusMeters: 200000.0, fixedAtUtc: DateTime.utc(2026, 4, 26)),

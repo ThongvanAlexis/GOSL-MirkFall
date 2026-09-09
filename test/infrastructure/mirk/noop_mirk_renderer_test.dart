@@ -13,6 +13,8 @@ import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/infrastructure/mirk/noop_mirk_renderer.dart';
 
+import '../../_helpers/mirk_paint_context_builder.dart';
+
 void main() {
   group('NoopMirkRenderer — surface conformance', () {
     test('implements MirkRenderer', () {
@@ -24,15 +26,13 @@ void main() {
   group('NoopMirkRenderer — trivial operation', () {
     test('100 iterations of paint/update do not throw', () {
       const NoopMirkRenderer r = NoopMirkRenderer();
-      final MirkPaintContext ctx = MirkPaintContext(
+      final MirkPaintContext ctx = buildTestMirkPaintContext(
         zoomLevel: 13.0,
         pixelRatio: 2.0,
         sessionElapsed: const Duration(minutes: 5),
-        // BUG-010 Option B Commit 5: discs is required (no default). Noop
-        // renderer ignores everything; the empty list keeps this test
-        // focused on "100 paint/update iterations don't throw".
+        // Noop renderer ignores everything; the builder's empty default disc
+        // list keeps this test focused on "100 paint/update iterations don't throw".
         viewportBbox: MirkViewportBbox(south: 0.0, west: 0.0, north: 1.0, east: 1.0),
-        discs: const [],
       );
       final PictureRecorder rec = PictureRecorder();
       final Canvas canvas = Canvas(rec);

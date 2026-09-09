@@ -20,6 +20,8 @@ import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
+import '../../_helpers/mirk_paint_context_builder.dart';
+
 /// Default canvas size for renderer tests — small enough to keep PNG
 /// encode time under a few ms, large enough for the visual-distinctness
 /// byte-diff assertion to discriminate.
@@ -35,9 +37,9 @@ const Size kTestCanvasSize = Size(256, 256);
 /// custom [discs] list to override the default fixture.
 MirkPaintContext fakeContext({int elapsedMs = 0, List<RevealDisc>? discs, Fix? currentFix, MirkViewportBbox? viewport}) {
   final bbox = viewport ?? MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
-  return MirkPaintContext(
+  // Default canvas of the builder == kTestCanvasSize (256×256), default pixelRatio 1.0.
+  return buildTestMirkPaintContext(
     zoomLevel: 14.0,
-    pixelRatio: 1.0,
     sessionElapsed: Duration(milliseconds: elapsedMs),
     viewportBbox: bbox,
     discs: discs ?? <RevealDisc>[singleCentreDisc(bbox: bbox)],

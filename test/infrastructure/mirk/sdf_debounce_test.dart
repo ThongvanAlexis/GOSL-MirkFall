@@ -29,6 +29,7 @@ import 'package:mirkfall/infrastructure/mirk/atmospheric_mirk_renderer.dart';
 import 'package:mirkfall/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart';
 import 'package:mirkfall/infrastructure/mirk/sdf/revealed_sdf_builder.dart';
 
+import '../../_helpers/mirk_paint_context_builder.dart';
 import '_render_helpers.dart';
 
 // ---------------------------------------------------------------------------
@@ -87,9 +88,8 @@ Future<void> _completePendingBuild() async {
 
 MirkPaintContext _ctx({MirkViewportBbox? viewport, List<RevealDisc>? discs, int elapsedMs = 0}) {
   final bbox = viewport ?? MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
-  return MirkPaintContext(
+  return buildTestMirkPaintContext(
     zoomLevel: 14.0,
-    pixelRatio: 1.0,
     sessionElapsed: Duration(milliseconds: elapsedMs),
     viewportBbox: bbox,
     discs: discs ?? <RevealDisc>[singleCentreDisc(bbox: bbox)],

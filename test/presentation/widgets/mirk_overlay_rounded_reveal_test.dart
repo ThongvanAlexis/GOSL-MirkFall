@@ -28,7 +28,6 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
@@ -37,6 +36,8 @@ import 'package:mirkfall/infrastructure/mirk/atmospheric_mirk_renderer.dart';
 import 'package:mirkfall/infrastructure/mirk/candlelight_mirk_renderer.dart';
 import 'package:mirkfall/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart';
 import 'package:mirkfall/infrastructure/mirk/solid_fill_mirk_renderer.dart';
+
+import '../../_helpers/mirk_paint_context_builder.dart';
 
 /// Single-tile canvas — one viewport fills the entire 256×256 area. The
 /// reveal disc lands at the canvas centre (128, 128) at radius ≈ 24 px
@@ -54,7 +55,8 @@ Future<Uint8List> _renderSingleHole(MirkRenderer renderer, {int elapsedMs = 1000
   // 1° viewport ≈ 110 km × 80 km at 43° lat. 1500 m radius → ~3.5 px
   // hole radius — too small. 8000 m radius → ~20 px hole radius — good.
   final disc = RevealDisc(id: 'rvd_rounded_centre', sessionId: 'sess_test', lat: 43.5, lon: 5.5, radiusMeters: 8000.0, fixedAtUtc: DateTime.utc(2026, 4, 26));
-  final context = MirkPaintContext(
+  // Builder default canvas (256×256) == _canvasSize, so the linear projection matches the paint size.
+  final context = buildTestMirkPaintContext(
     zoomLevel: 14.0,
     pixelRatio: 4.0,
     sessionElapsed: Duration(milliseconds: elapsedMs),

@@ -47,6 +47,8 @@ import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/atmospheric_mirk_renderer.dart';
 import 'package:mirkfall/infrastructure/mirk/wisp/wisp_particle_system.dart';
 
+import '../../../_helpers/mirk_paint_context_builder.dart';
+
 const Size _canvasSize = Size(256, 256);
 
 /// Elapsed millis well past the warm-up threshold — ensures the
@@ -54,9 +56,8 @@ const Size _canvasSize = Size(256, 256);
 final int _postWarmUpMs = (kMirkFogWispWarmUpSeconds * 1000).toInt() + 500;
 
 MirkPaintContext _ctx({required List<RevealDisc> discs, int elapsedMs = 0}) {
-  return MirkPaintContext(
+  return buildTestMirkPaintContext(
     zoomLevel: 14.0,
-    pixelRatio: 1.0,
     sessionElapsed: Duration(milliseconds: elapsedMs),
     viewportBbox: MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0),
     discs: discs,

@@ -15,17 +15,25 @@ Pure-Dart domain layer for user-selectable fog rendering styles. No
     original JSON map verbatim.
 - `mirk_style_store.dart` — Abstract `MirkStyleStore` port.
 - `mirk_renderer.dart` — Abstract `MirkRenderer` interface (paint / update /
-  dispose). Decision D6 seam — exposes `dart:ui` `Canvas` + `Size` only; no
-  implementation details leak. Phase 09 supplies the first non-stub
-  renderer; `test/domain/mirk/mirk_renderer_contract_test.dart` guards
-  against surface growth.
-- `mirk_paint_context.dart` — Freezed DTO passed to `MirkRenderer.paint`
-  (zoom level, device pixel ratio, session elapsed). Deliberately narrow
-  in Phase 07; Phase 09 expands as the real renderer materialises.
+  dispose — exactly 3 members; the BUG-014 SDF-viewport getter was removed
+  in Phase 09.1). Decision D6 seam — exposes `dart:ui` `Canvas` + `Size`
+  only; no implementation details leak.
+  `test/domain/mirk/mirk_renderer_contract_test.dart` guards against surface
+  growth (compile-time witness + source reflection).
+- `mirk_paint_context.dart` — Freezed context passed to `MirkRenderer.paint`.
+  Phase 07: zoom / pixel ratio / session elapsed. Phase 09: viewport bbox,
+  discs, current fix. Phase 09.1 (single extension of the phase):
+  `pixelOrigin`, `zoomScale`, `sdfRect`, `canvasOffset`, `projectToScreen`,
+  `metersToPixels` — the camera-derived inputs the same-canvas `FogLayer`
+  builds from one `MapCamera` snapshot per paint (FOG-07). Also declares the
+  `ScreenProjector` / `MetersToPixels` typedefs. No flutter_map type ever
+  crosses this seam (`tool/check_avoid_flutter_map_leak.dart`).
 
 ## `dart:ui` allowance
 
-`mirk_renderer.dart` imports `dart:ui` for `Canvas` + `Size`. `dart:ui` is
+`mirk_renderer.dart` imports `dart:ui` for `Canvas` + `Size`, and
+`mirk_paint_context.dart` imports it for `Offset` (return type of
+`ScreenProjector`). `dart:ui` is
 part of the Dart SDK (not Flutter widgets) and is allowed in domain per
 `tool/check_domain_purity.dart`'s rules (the gate forbids
 `package:flutter/*` and `package:drift/*`, not `dart:ui`).
