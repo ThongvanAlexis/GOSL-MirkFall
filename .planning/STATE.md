@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 09.1-02
-status: in_progress
-stopped_at: Completed 09.1-01-PLAN.md
-last_updated: "2026-09-09T09:44:44.089Z"
-last_activity: 2026-09-09 - Completed 09.1-01: flutter_map 7.0.2 stack + MAP-06 flutter_map gate + Phase 09.1 constants
+current_plan: 3
+status: "Plan 09.1-01 shipped 2026-09-09 (4 task commits 68b5207 / 9027dbd / fc40166 / dee75da): flutter_map 7.0.2 + vector_map_tiles 8.0.0 + vector_map_tiles_pmtiles 1.5.0 + vector_tile_renderer 5.2.0 + pmtiles 1.2.0 + latlong2 0.9.1 strictly pinned and resolved with NO new override next to maplibre_gl 0.25.0 (+18 lock entries, 0 removals, 0 drift) ; DEPENDENCIES.md 6 direct + 12 transitive rows dated 2026-09-09 (LICENSE files read from pub cache, verbatim network grep, telemetry 0) ; `tool/check_avoid_flutter_map_leak.dart` + 12-case paired test replace the maplibre gate (perimeter = lib/infrastructure/map/** + fog_layer.dart / fog_clip_path.dart / map_screen.dart), CI step renamed ; Phase 09.1 constants block (kMap* envelope + style source key, kMirkFogReferenceZoom 13 / kMirkFogNoiseTilePx 384, kMirkWisp* world basis, kMirkFogDiag* verbose-only) locked by 11 tests. Every commit: analyze clean, 1055 tests green, 102 tool tests green. Wave 2 next: 09.1-02 (adapter, removes maplibre_gl) ∥ 09.1-03 (seam + 42-slot shader ABI)."
+stopped_at: Completed 09.1-03-PLAN.md
+last_updated: "2026-09-09T10:33:29.736Z"
+last_activity: 2026-09-09
 progress:
   total_phases: 18
   completed_phases: 10
   total_plans: 65
-  completed_plans: 59
+  completed_plans: 60
   percent: 91
 ---
 
@@ -26,10 +26,10 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 09.1 of 16.x (Port-back same-canvas fog — flutter_map migration, INSERTED) — IN PROGRESS — 1 / 8 plans complete (09.1-01 — Wave 1)
-Current Plan: 02
+Phase: 09.1 of 16.x (Port-back same-canvas fog — flutter_map migration, INSERTED) — IN PROGRESS — 2 / 8 plans complete (09.1-01 — Wave 1 ; 09.1-03 — Wave 2 ; 09.1-02 in progress in parallel)
+Current Plan: 3
 Total Plans in Phase: 8
-Status: Plan 09.1-01 shipped 2026-09-09 (4 task commits 68b5207 / 9027dbd / fc40166 / dee75da): flutter_map 7.0.2 + vector_map_tiles 8.0.0 + vector_map_tiles_pmtiles 1.5.0 + vector_tile_renderer 5.2.0 + pmtiles 1.2.0 + latlong2 0.9.1 strictly pinned and resolved with NO new override next to maplibre_gl 0.25.0 (+18 lock entries, 0 removals, 0 drift) ; DEPENDENCIES.md 6 direct + 12 transitive rows dated 2026-09-09 (LICENSE files read from pub cache, verbatim network grep, telemetry 0) ; `tool/check_avoid_flutter_map_leak.dart` + 12-case paired test replace the maplibre gate (perimeter = lib/infrastructure/map/** + fog_layer.dart / fog_clip_path.dart / map_screen.dart), CI step renamed ; Phase 09.1 constants block (kMap* envelope + style source key, kMirkFogReferenceZoom 13 / kMirkFogNoiseTilePx 384, kMirkWisp* world basis, kMirkFogDiag* verbose-only) locked by 11 tests. Every commit: analyze clean, 1055 tests green, 102 tool tests green. Wave 2 next: 09.1-02 (adapter, removes maplibre_gl) ∥ 09.1-03 (seam + 42-slot shader ABI).
+Status: Plan 09.1-03 shipped 2026-09-09 (3 task commits 9b46972 / c057959 / 2b0d36e): `MirkPaintContext` extended ONCE (pixelOrigin / zoomScale / sdfRect / canvasOffset / projectToScreen / metersToPixels + `GeoPoint`), `MirkRenderer` back to 3 members, `atmospheric_fog.frag` = POC 42 slots (uPixelOrigin + uZoomScale), `applyPlatformShaderCorrections` pure (FOG-21/23), `FogShaderRenderer` seam in atmospheric + heavenly, `buildTestMirkPaintContext` / `RecordingFogShaderRenderer` / `ImmediateStubSdfBuilder` test toolkit ; offscreen_fog_renderer removed. HANDOFF: ci.yml plain-dart step must exclude test/domain/mirk/mirk_paint_context_test.dart (dart:ui Offset in the context) — file owned by 09.1-02 (Wave 2). Shared-index sweeps between parallel executors documented (50e44b6 / 2b0d36e). Previous: Plan 09.1-01 shipped 2026-09-09 (4 task commits 68b5207 / 9027dbd / fc40166 / dee75da): flutter_map 7.0.2 + vector_map_tiles 8.0.0 + vector_map_tiles_pmtiles 1.5.0 + vector_tile_renderer 5.2.0 + pmtiles 1.2.0 + latlong2 0.9.1 strictly pinned and resolved with NO new override next to maplibre_gl 0.25.0 (+18 lock entries, 0 removals, 0 drift) ; DEPENDENCIES.md 6 direct + 12 transitive rows dated 2026-09-09 (LICENSE files read from pub cache, verbatim network grep, telemetry 0) ; `tool/check_avoid_flutter_map_leak.dart` + 12-case paired test replace the maplibre gate (perimeter = lib/infrastructure/map/** + fog_layer.dart / fog_clip_path.dart / map_screen.dart), CI step renamed ; Phase 09.1 constants block (kMap* envelope + style source key, kMirkFogReferenceZoom 13 / kMirkFogNoiseTilePx 384, kMirkWisp* world basis, kMirkFogDiag* verbose-only) locked by 11 tests. Every commit: analyze clean, 1055 tests green, 102 tool tests green. Wave 2 next: 09.1-02 (adapter, removes maplibre_gl) ∥ 09.1-03 (seam + 42-slot shader ABI).
 Last Activity: 2026-09-09
 
 Progress: [█████████░] 91% — 59 / 65 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 closed 10/10 ; Phase 09.1 in progress 1/8 — 09.1-01).
@@ -104,6 +104,7 @@ Progress: [█████████░] 91% — 59 / 65 plans executed (Phase
 | Phase 09 P07 | 24 min | 5 tasks | 22 files |
 | Phase 09 P08 | 32 min | 3 tasks | 11 files |
 | Phase 09.1 P01 | 18 min | 3 tasks | 17 files |
+| Phase 09.1 P03 | 28 min | 2 tasks | 32 files |
 
 ## Accumulated Context
 
@@ -385,6 +386,10 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09.1]: maplibre_gl 0.25.0 + flutter_map 7.0.2 coexist one wave with no new override (fallback stub unused); maplibre_gl removed in 09.1-02 Task 2
 - [Phase 09.1]: TDD RED commits kept compilable (gate RED = renamed maplibre gate; constants RED observed locally, landed with GREEN) because tool/ and test/ are analyzer-scoped and every commit must pass flutter analyze
 - [Phase 09.1]: POC rollup cadences unified as kMirkFogDiagRollupSeconds; kMirkFogDiagSmoothCoordinateMaxDelta ported in 09.1-01; frame-delta overlay placement px not ported
+- [Phase 09.1]: Freezed kept for the extended MirkPaintContext (records + function-typed fields generate cleanly; equality by closure identity)
+- [Phase 09.1]: ui.FragmentShader is base in Flutter 3.41.7: the 42-slot shader layout is locked by source reflection over fog_shader_uniforms.dart + the .frag and by the FogShaderRenderer seam, not by a fake shader
+- [Phase 09.1]: ScreenProjector returns dart:ui Offset per the plan contract; test/domain/mirk/mirk_paint_context_test.dart therefore needs the ci.yml plain-dart exclusion (handed off: ci.yml owned by 09.1-02 in Wave 2)
+- [Phase 09.1]: Parallel-executor index sweeps (offscreen_fog_renderer deletion in 50e44b6, three 09.1-02 deletions in 2b0d36e) documented, history not rewritten
 
 ### Roadmap Evolution
 
@@ -424,6 +429,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-09T09:44:44.083Z
-Stopped at: Completed 09.1-01-PLAN.md
+Last session: 2026-09-09T10:33:29.730Z
+Stopped at: Completed 09.1-03-PLAN.md
 Resume file: None
