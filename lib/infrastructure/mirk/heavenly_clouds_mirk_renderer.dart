@@ -4,8 +4,9 @@
 
 import 'dart:async' show Timer;
 import 'dart:math' as math;
-import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image;
-import 'dart:ui' show BlendMode, Canvas, Color, Offset, Paint, PaintingStyle, Rect, Size;
+import 'dart:typed_data' show Float64List;
+import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, ImageShader, TileMode;
+import 'dart:ui' show BlendMode, Canvas, Color, ColorFilter, FilterQuality, Offset, Paint, PaintingStyle, Rect, Size;
 
 import 'package:logging/logging.dart';
 import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
@@ -18,9 +19,11 @@ import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
 import 'animation_helpers.dart';
 import 'fog_edge_feather.dart';
+import 'noise/noise_texture.dart';
 import 'noise/simplex_noise_2d.dart';
 import 'sdf/sdf_cache.dart';
 import 'sdf_rebuild_logger.dart';
+import 'shader/fog_platform_corrections.dart';
 import 'shader/fog_shader_renderer.dart';
 import 'shader/fog_shader_service.dart';
 import 'wisp/wisp_particle.dart';
@@ -48,6 +51,11 @@ const double _kFallbackFeatherFraction = 0.15;
 /// Amplitude of the fallback path's per-frame alpha jitter (±10 %).
 const double _kFallbackAlphaJitter = 0.10;
 
+/// White at the CPU noise overlay opacity — applied as a `modulate` colour
+/// filter on the tile shader so the overlay strength does not depend on how
+/// a backend combines `Paint.color` with a shader.
+final Color _kNoiseOverlayTint = const Color(0xFFFFFFFF).withValues(alpha: kMirkHeavenlyCloudsCpuNoiseOverlayAlpha);
+
 /// Heavenly clouds — TIER 2 shader-driven (BUG-009 fix).
 ///
 /// MIRK-06 builtin variant. Uses the same `atmospheric_fog.frag` as
@@ -68,6 +76,17 @@ const double _kFallbackAlphaJitter = 0.10;
 /// `clipPath(rect − discs)` per frame, shared by the four builtin variants.
 /// The renderer never clips: the shader rect, the fallback body and the
 /// wisps all paint `Offset.zero & size` and the layer's clip cuts the holes.
+///
+/// ## CPU fallback noise anchored to the world (Phase 09.1-06)
+///
+/// While the shader / SDF are unavailable the fallback body carries a
+/// pre-rasterised simplex tile ([NoiseTexture]) drawn through an
+/// `ImageShader` whose matrix is the CPU twin of the shader's
+/// `worldPx / (kNoiseTilePx × uZoomScale)` sampling: one tile spans
+/// `kMirkFogNoiseTilePx × zoomScale` screen px and is translated by the RAW
+/// camera `pixelOrigin` ([rawPixelOriginOf] — the CPU does not suffer the
+/// FOG-23 GPU codegen defect) plus the temporal drift. A pan of N px moves
+/// the clouds N px on screen; a ×2 zoom doubles their size.
 class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config], an optional [seed] for
   /// per-instance shader perturbation, an injected [shaderService],
@@ -88,6 +107,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
        _wispSystem = wispSystem ?? WispParticleSystem(rngSeed: seed),
        _wispTransformLogger = wispTransformLogger ?? (WispTransformLogger()..start()) {
     _shaderLoadFuture = _shaderService.load();
+    _noiseTileFuture = _loadNoiseTile();
   }
 
   /// Heavenly-clouds configuration.
@@ -165,8 +185,15 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// (or failed to load).
   Future<void> get shaderReady => _shaderLoadFuture.then((_) {});
 
-  /// Resolves once the CPU noise tile is available (Phase 09.1-06 stub — RED).
-  Future<void> get noiseReady => Future<void>.value();
+  /// Resolves once the CPU noise tile has been rasterised and published (or
+  /// its build failed — the fallback then stays solid). Tests await it before
+  /// painting the fallback path.
+  Future<void> get noiseReady => _noiseTileFuture;
+
+  late final Future<void> _noiseTileFuture;
+
+  /// Tileable simplex tile for the fallback path — owned here, disposed in [dispose].
+  ui.Image? _noiseTile;
 
   bool _disposed = false;
 
@@ -376,9 +403,30 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     );
   }
 
-  /// Fallback path — base palette colour over the whole frame with the
-  /// shared edge feather; alpha jittered per frame by the CPU noise so the
-  /// clouds still "breathe" while the shader / SDF are unavailable.
+  /// Rasterises the CPU noise tile off the UI thread and publishes it for the
+  /// fallback path. A tile arriving after [dispose] is released immediately.
+  /// A build failure is an external error (isolate spawn / image decode):
+  /// logged, the fallback simply stays solid.
+  Future<void> _loadNoiseTile() async {
+    final double frequency = config.noiseScale * kMirkHeavenlyCloudsCpuNoiseCyclesPerTilePerUnitScale;
+    final ui.Image tile;
+    try {
+      tile = await NoiseTexture.build(seed: _seed, frequency: frequency);
+    } on Exception catch (e, st) {
+      _log.severe('_loadNoiseTile: noise tile build FAILED — fallback path stays solid', e, st);
+      return;
+    }
+    if (_disposed) {
+      tile.dispose();
+      return;
+    }
+    _noiseTile = tile;
+  }
+
+  /// Fallback path — base palette colour over the whole frame, the
+  /// world-anchored noise tile on top, then the shared edge feather; alpha
+  /// jittered per frame by the CPU noise so the clouds still "breathe" while
+  /// the shader / SDF are unavailable.
   void _paintFallbackPath(Canvas canvas, Size size, MirkPaintContext context) {
     final r = (kMirkFogHeavenlyBaseColorArgb >> 16) & 0xFF;
     final g = (kMirkFogHeavenlyBaseColorArgb >> 8) & 0xFF;
@@ -398,8 +446,45 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
       size: size,
       context: context,
       featherSigma: featherSigma,
-      paintBody: (Canvas canvas, Rect viewport) => canvas.drawRect(viewport, bodyPaint),
+      paintBody: (Canvas canvas, Rect viewport) {
+        canvas.drawRect(viewport, bodyPaint);
+        _paintWorldAnchoredNoise(canvas, viewport, context, tSec: tSec);
+      },
     );
+  }
+
+  /// Draws the CPU noise tile over the fallback body, anchored to WORLD
+  /// pixels (FOG-17 / FOG-19 on the CPU): one tile spans
+  /// `kMirkFogNoiseTilePx × zoomScale` screen px; the texture is translated by
+  /// the raw camera `pixelOrigin` plus the temporal drift
+  /// (`noiseSpeed` tiles per second along `driftDirectionDeg`), modulo the
+  /// period so the float matrix never carries a ~1e6 offset (FOG-18 is a
+  /// shader concern; the CPU tile is periodic by construction).
+  /// `BlendMode.srcATop` modulates the fog colour without touching its alpha
+  /// and never paints outside existing fog. No-op until the tile is ready.
+  void _paintWorldAnchoredNoise(Canvas canvas, Rect viewport, MirkPaintContext context, {required double tSec}) {
+    final ui.Image? tile = _noiseTile;
+    if (tile == null) return;
+    final ({double x, double y}) raw = rawPixelOriginOf(context);
+    final double period = kMirkFogNoiseTilePx * context.zoomScale;
+    final double radians = config.driftDirectionDeg * math.pi / 180.0;
+    final double driftTiles = tSec * config.noiseSpeed;
+    final double driftX = driftTiles * math.cos(radians) * period;
+    final double driftY = -driftTiles * math.sin(radians) * period;
+    final double texelScale = period / NoiseTexture.kSize;
+    final double translateX = -((raw.x + driftX) % period);
+    final double translateY = -((raw.y + driftY) % period);
+    final Paint noisePaint = Paint()
+      ..shader = ui.ImageShader(
+        tile,
+        ui.TileMode.repeated,
+        ui.TileMode.repeated,
+        _textureToScreenMatrix(scale: texelScale, translateX: translateX, translateY: translateY),
+        filterQuality: FilterQuality.low,
+      )
+      ..colorFilter = ColorFilter.mode(_kNoiseOverlayTint, BlendMode.modulate)
+      ..blendMode = BlendMode.srcATop;
+    canvas.drawRect(viewport, noisePaint);
   }
 
   /// Decides whether the SDF must be (re)built for this paint.
@@ -497,7 +582,28 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     _wispSystem.clear();
     _seenDiscIdSet.clear();
     _wispTransformLogger.stop();
+    _noiseTile?.dispose();
+    _noiseTile = null;
   }
+}
+
+/// Column-major 4×4 matrix mapping texture pixels to screen pixels for an
+/// [ui.ImageShader]: `scale` first, then `translate` (no `vector_math` needed).
+Float64List _textureToScreenMatrix({required double scale, required double translateX, required double translateY}) {
+  const int scaleXIndex = 0;
+  const int scaleYIndex = 5;
+  const int scaleZIndex = 10;
+  const int translateXIndex = 12;
+  const int translateYIndex = 13;
+  const int wIndex = 15;
+  final Float64List matrix = Float64List(16);
+  matrix[scaleXIndex] = scale;
+  matrix[scaleYIndex] = scale;
+  matrix[scaleZIndex] = 1.0;
+  matrix[translateXIndex] = translateX;
+  matrix[translateYIndex] = translateY;
+  matrix[wIndex] = 1.0;
+  return matrix;
 }
 
 /// Cheap content signature of a disc list — ids + geometry. Two lists holding the same discs in

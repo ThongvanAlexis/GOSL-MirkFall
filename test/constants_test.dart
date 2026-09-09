@@ -206,6 +206,16 @@ void main() {
       expect(kMirkHeavenlyCloudsBaselineAlpha, isA<double>());
     });
 
+    test('kMirkHeavenlyCloudsCpuNoiseCyclesPerTilePerUnitScale × default noiseScale matches the shader mid scale (09.1-06)', () {
+      expect(kMirkHeavenlyCloudsCpuNoiseCyclesPerTilePerUnitScale, equals(6.0));
+      expect(kMirkHeavenlyCloudsCpuNoiseCyclesPerTilePerUnitScale * kMirkHeavenlyCloudsNoiseScale, closeTo(kMirkFogHeavenlyScaleMid, 1e-9));
+    });
+
+    test('kMirkHeavenlyCloudsCpuNoiseOverlayAlpha is 0.35 (09.1-06)', () {
+      expect(kMirkHeavenlyCloudsCpuNoiseOverlayAlpha, equals(0.35));
+      expect(kMirkHeavenlyCloudsCpuNoiseOverlayAlpha, inInclusiveRange(0.0, 1.0));
+    });
+
     test('kMirkSolidColorArgb is 0xFF1A1A1A', () {
       expect(kMirkSolidColorArgb, equals(0xFF1A1A1A));
       expect(kMirkSolidColorArgb, isA<int>());

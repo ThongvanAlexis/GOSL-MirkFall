@@ -437,6 +437,19 @@ const double kMirkHeavenlyCloudsDriftDirectionDeg = 45.0;
 /// Heavenly clouds baseline alpha — lighter than atmospheric.
 const double kMirkHeavenlyCloudsBaselineAlpha = 0.80;
 
+/// Heavenly clouds CPU fallback (Phase 09.1-06): simplex cycles per noise tile
+/// at `noiseScale == 1`. The effective tile frequency is
+/// `noiseScale × this` — 1.8 cycles per `kMirkFogNoiseTilePx` at the default
+/// `noiseScale` 0.3, matching the shader's `kMirkFogHeavenlyScaleMid` so the
+/// CPU clouds read at the same size as the GPU ones at z13. Not derivable:
+/// the CPU tile is a single octave where the shader stacks three.
+const double kMirkHeavenlyCloudsCpuNoiseCyclesPerTilePerUnitScale = 6.0;
+
+/// Heavenly clouds CPU fallback (Phase 09.1-06): opacity of the grayscale noise
+/// tile composited `srcATop` over the solid fallback body — modulates the fog
+/// colour by ±~25 levels without changing its alpha.
+const double kMirkHeavenlyCloudsCpuNoiseOverlayAlpha = 0.35;
+
 /// Solid variant colour (ARGB, very dark grey — distinguishable from
 /// atmospheric yet neutral).
 const int kMirkSolidColorArgb = 0xFF1A1A1A;

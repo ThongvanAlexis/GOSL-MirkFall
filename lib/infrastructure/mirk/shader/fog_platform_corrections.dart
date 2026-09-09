@@ -65,5 +65,19 @@ PlatformShaderCorrections applyPlatformShaderCorrections({required ({double x, d
   return (pixelOrigin: (x: pixelOrigin.x, y: -pixelOrigin.y), sdfRect: kFogSdfRectAndroidVFlip);
 }
 
-/// Raw `camera.pixelOrigin` reconstructed from a corrected [context] (Phase 09.1-06 stub — RED).
-({double x, double y}) rawPixelOriginOf(MirkPaintContext context) => throw UnimplementedError('09.1-06 Task 2');
+/// Raw `camera.pixelOrigin` reconstructed from a corrected [context], for the
+/// CPU renderers (Phase 09.1-06).
+///
+/// FOG-23 compensates a GPU codegen defect: the CPU does not suffer from it,
+/// so a CPU noise path anchored on `context.pixelOrigin` would drift the wrong
+/// way on Android. The Android `sdfRect` ([kFogSdfRectAndroidVFlip]) is the
+/// marker that the correction was applied — the two are set together by
+/// [applyPlatformShaderCorrections] and never independently. This coupling is
+/// assumed here on purpose (and tested): there is no separate "raw" field in
+/// the context (single extension event of the phase, plan 09.1-03).
+/// `pixelOrigin.y.abs()` would be WRONG — the raw camera value can be negative.
+({double x, double y}) rawPixelOriginOf(MirkPaintContext context) {
+  final ({double x, double y}) corrected = context.pixelOrigin;
+  if (context.sdfRect != kFogSdfRectAndroidVFlip) return corrected;
+  return (x: corrected.x, y: -corrected.y);
+}

@@ -321,6 +321,15 @@ void main() {
         reason: 'B[x] == A[x + 37]: a 37 px camera pan moves the clouds 37 px on screen',
       );
       expect(alphaAt(frameB, x: 128, y: 128), greaterThan(150), reason: 'the overlay modulates the colour, not the fog opacity');
+      // The overlay is a 35 % modulation of the palette, not a replacement: the darkest noise
+      // texel (≈ 50 / 255) still leaves R well above 50 × 0.8, and the blue-leaning palette
+      // (kMirkFogHeavenlyBaseColorArgb, B > R) survives at every pixel of the row.
+      const int darkestTintedRedFloor = 80;
+      expect(rowA.reduce(math.min), greaterThanOrEqualTo(darkestTintedRedFloor), reason: 'the base colour must contribute >= 65 % at every pixel');
+      for (var x = 0; x < _canvasPx; x++) {
+        final int idx = (rowY * _canvasPx + x) * 4;
+        expect(frameA[idx + 2], greaterThan(frameA[idx]), reason: 'B > R at x=$x: the palette tint survives the gray overlay');
+      }
     });
 
     test('pan (Android): sdfRect V-flip + negative pixelOrigin.y → the raw camera y drives the vertical shift', () async {
@@ -344,14 +353,17 @@ void main() {
 
     test('zoom: zoomScale 2 doubles the on-screen noise period (B[2i] == A[i] at the same pixelOrigin)', () async {
       final HeavenlyCloudsMirkRenderer renderer = await cpuRenderer();
-      const int rowY = 40;
+      // The zoom scales both axes: row 2y of the zoomed frame is row y of the reference.
+      const int referenceRowY = 20;
+      const int zoomedRowY = 2 * referenceRowY;
       final Uint8List frameA = await renderToBytes(renderer, context: cpuContext());
       final Uint8List frameB = await renderToBytes(renderer, context: cpuContext(zoomScale: 2.0));
-      final List<int> rowA = _redRow(frameA, rowY);
-      final List<int> rowB = _redRow(frameB, rowY);
+      final List<int> rowA = _redRow(frameA, referenceRowY);
+      final List<int> rowB = _redRow(frameB, zoomedRowY);
       expect(_spread(rowA), greaterThanOrEqualTo(_minVisibleSpread));
-      // Tolerance: bilinear weights computed from float32 matrices may round differently.
-      const int maxLevelDelta = 2;
+      // Tolerance: pixel centres sit a quarter texel apart between the two scales and the
+      // bilinear weights come from float32 matrices.
+      const int maxLevelDelta = 3;
       const int halfWidth = _canvasPx ~/ 2;
       var mismatches = 0;
       for (var i = 0; i < halfWidth; i++) {
