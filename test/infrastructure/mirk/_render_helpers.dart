@@ -21,6 +21,8 @@ import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/sdf/revealed_sdf_builder.dart';
+import 'package:mirkfall/infrastructure/mirk/sdf/sdf_cache.dart';
+import 'package:mirkfall/infrastructure/mirk/sdf_rebuild_logger.dart';
 
 import '../../_helpers/mirk_paint_context_builder.dart';
 
@@ -121,3 +123,8 @@ class ImmediateStubSdfBuilder extends RevealedSdfBuilder {
   @override
   Future<Image> buildFromDiscs({required Iterable<RevealDisc> discs, required MirkViewportBbox viewport}) => stubSdfImage();
 }
+
+/// [SdfCache] over [ImmediateStubSdfBuilder] with a fresh (unstarted) rebuild logger — the
+/// renderer-test idiom since 09.1-05 (renderers take a cache, not a builder). Paint once, `await
+/// pumpEventQueue()`, paint again: the second paint sees a resolved SDF.
+SdfCache immediateStubSdfCache() => SdfCache(rebuildLogger: SdfRebuildLogger(), builder: const ImmediateStubSdfBuilder());

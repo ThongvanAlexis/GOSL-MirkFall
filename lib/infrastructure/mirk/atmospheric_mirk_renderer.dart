@@ -19,7 +19,8 @@ import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'animation_helpers.dart';
 import 'mirk_projection.dart';
 import 'noise/simplex_noise_2d.dart';
-import 'sdf/revealed_sdf_builder.dart';
+import 'sdf/sdf_cache.dart';
+import 'sdf_rebuild_logger.dart';
 import 'shader/fog_shader_renderer.dart';
 import 'shader/fog_shader_service.dart';
 import 'tile_cell_iteration.dart';
@@ -42,7 +43,7 @@ const double _kSeedTimeJitter = 0.137;
 /// ## Two-path rendering
 ///
 /// 1. **Shader path** (preferred): when [FogShaderService.load] succeeds
-///    AND the SDF for the current viewport+disc-list hash is built,
+///    AND the `SdfCache` has resolved an SDF for the disc list / viewport,
 ///    the renderer issues ONE `canvas.drawRect(viewport, Paint()..shader =
 ///    fragmentShader)` clipped to the fog path. The shader handles all
 ///    7 TIER 2 quality dimensions; the boundary watercolour falloff
@@ -67,19 +68,19 @@ const double _kSeedTimeJitter = 0.137;
 class AtmosphericMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config], an optional [seed] for
   /// deterministic noise / shader perturbation, an injected
-  /// [shaderService] (for tests), and an injected [sdfBuilder].
+  /// [shaderService] (for tests), and an injected [sdfCache].
   AtmosphericMirkRenderer(
     this.config, {
     int seed = 42,
     FogShaderService? shaderService,
     FogShaderRenderer shaderRenderer = const FragmentShaderFogRenderer(),
-    RevealedSdfBuilder sdfBuilder = const RevealedSdfBuilder(),
+    SdfCache? sdfCache,
     WispParticleSystem? wispSystem,
   }) : _seed = seed,
        _noise = SimplexNoise2D(seed: seed),
        _shaderService = shaderService ?? FogShaderService(),
        _shaderRenderer = shaderRenderer,
-       _sdfBuilder = sdfBuilder,
+       _sdfCache = sdfCache ?? SdfCache(rebuildLogger: SdfRebuildLogger()..start()),
        _wispSystem = wispSystem ?? WispParticleSystem(rngSeed: seed) {
     // Kick off the shader load early — first frames may render the
     // fallback path while the future resolves.
@@ -106,7 +107,11 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// GPU seam (Phase 09.1): populates the 42 uniform slots and draws the
   /// viewport rect. `RecordingFogShaderRenderer` in tests.
   final FogShaderRenderer _shaderRenderer;
-  final RevealedSdfBuilder _sdfBuilder;
+
+  /// Quantised-key SDF cache (POC FOG-03 / PERF-08). Owns every image it hands out; the renderer
+  /// only keeps [_currentSdfImage] as a borrowed handle. Default: production builder + a started
+  /// verbose-only [SdfRebuildLogger] (stopped by the cache on dispose).
+  final SdfCache _sdfCache;
   final WispParticleSystem _wispSystem;
 
   /// Disc id set as seen on the previous paint pass. Used to detect
@@ -149,37 +154,29 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// program when it first becomes available; reused across frames.
   ui.FragmentShader? _shader;
 
-  /// Cached SDF image. Rebuilt when disc-list or viewport hash changes.
-  ui.Image? _sdfImage;
+  /// Latest SDF handed out by [_sdfCache] — a BORROWED handle (the cache owns and disposes it).
+  /// Stays in use while a rebuild is in flight (stale but stable: no BUG-012 strobe) and is never
+  /// null again once the first build resolved.
+  ui.Image? _currentSdfImage;
 
-  /// Whether an SDF rebuild is currently in flight. Prevents redundant
-  /// concurrent rebuilds when paint is called many times during the
-  /// async build window.
-  bool _sdfBuildInFlight = false;
+  /// The single in-flight [SdfCache.getOrBuild]; `null` when idle. Paints that need a rebuild
+  /// while it runs set [_rebuildRequested] instead of starting a second build.
+  Future<void>? _pendingSdfBuild;
+  bool _rebuildRequested = false;
+  List<RevealDisc>? _requestedDiscs;
+  MirkViewportBbox? _requestedViewport;
 
-  /// Hash of the disc list that produced [_sdfImage]. Changes when the
-  /// user walks and a new GPS fix lands a new disc. Disc-list changes
-  /// trigger IMMEDIATE rebuilds — the reveal must appear now.
-  int _lastDiscHash = 0;
+  /// Signature (ids + geometry) of the disc list the last scheduled build used. A change means a
+  /// GPS fix landed (or discs entered / left the padded query) → rebuild IMMEDIATELY.
+  int? _lastDiscSignature;
 
-  /// Hash of the viewport bbox that produced [_sdfImage]. Changes during
-  /// pan/zoom gestures. Viewport-only changes are debounced to avoid the
-  /// strobe described in BUG-012.
-  int _lastViewportHash = 0;
+  /// Viewport of the last scheduled build. A viewport-only change is debounced (BUG-012).
+  MirkViewportBbox? _lastViewport;
 
-  /// Debounce timer for viewport-only SDF rebuilds (BUG-012 fix). When
-  /// only the viewport hash changes (pan/zoom, no new disc), we restart
-  /// this timer. The old SDF is reused during the wait — slightly
-  /// misaligned but visually stable. When the timer fires, we rebuild
-  /// with the latest captured viewport.
+  /// Debounce timer for viewport-only SDF rebuilds (BUG-012). Re-armed on every viewport-only
+  /// paint; when it fires, the LATEST viewport goes to the cache (whose quantised key then
+  /// decides whether anything is actually rebuilt).
   Timer? _viewportDebounceTimer;
-
-  /// Pending rebuild inputs captured when the viewport debounce timer is
-  /// active. On timer fire these feed [_triggerSdfRebuild].
-  List<RevealDisc>? _pendingRebuildDiscs;
-
-  /// Pending viewport captured alongside [_pendingRebuildDiscs].
-  MirkViewportBbox? _pendingRebuildViewport;
 
   /// Public future used by tests to wait until the shader has loaded
   /// (or failed to load). Mirrors the previous `noiseReady` shape.
@@ -227,7 +224,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
 
     // Make sure the SDF for the current frame is up to date. This may
     // schedule an async rebuild whose result we'll see on the NEXT paint.
-    _refreshSdfIfNeeded(context: context, canvasSize: size);
+    _refreshSdfIfNeeded(context);
 
     // Diff against last frame's disc-id set to find newly-emerged discs →
     // spawn wisps along their perimeter.
@@ -239,7 +236,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     _wispSystem.advance(dt);
     _lastTSec = tSec;
 
-    final sdf = _sdfImage;
+    final ui.Image? sdf = _currentSdfImage;
     // Shader path needs a resolved SDF; the seam reports `false` when the
     // shader itself is unavailable (still loading / load failed) → CPU
     // fallback: solid fog at base palette colour, no noise, no animation.
@@ -250,7 +247,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     final pathThisFrame = painted ? 'shader' : 'fallback';
     if (pathThisFrame != _lastLoggedPath) {
       _log.info(
-        'paint(): path transition ${_lastLoggedPath ?? "(initial)"} → $pathThisFrame · shader=${_shader != null} sdf=${sdf != null} sdfBuildInFlight=$_sdfBuildInFlight discs=${context.discs.length}',
+        'paint(): path transition ${_lastLoggedPath ?? "(initial)"} → $pathThisFrame · shader=${_shader != null} sdf=${sdf != null} sdfBuildInFlight=${_pendingSdfBuild != null} discs=${context.discs.length}',
       );
       _lastLoggedPath = pathThisFrame;
     } else if (_paintCallCount % 60 == 0) {
@@ -482,106 +479,78 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     canvas.drawPath(path, paint);
   }
 
-  /// Checks whether the SDF needs rebuilding and either triggers an
-  /// immediate rebuild (disc list changed — GPS fix landed) or starts /
-  /// restarts a debounce timer (viewport-only change — pan/zoom gesture).
+  /// Decides whether the SDF must be (re)built for this paint.
   ///
-  /// BUG-012 fix: the previous implementation hashed disc-list AND
-  /// viewport into a single hash. Every pan/zoom frame changed the hash →
-  /// triggered a 200+ ms async build → the SDF was shown for the build's
-  /// viewport while the map showed the current viewport → strobe. Now the
-  /// two inputs have separate hashes: disc changes rebuild immediately,
-  /// viewport-only changes are debounced.
-  void _refreshSdfIfNeeded({required MirkPaintContext context, required Size canvasSize}) {
-    if (_sdfBuildInFlight) return;
-
-    final discHash = _hashDiscList(context.discs);
-    final viewportHash = _hashViewport(context.viewportBbox);
-
-    if (discHash != _lastDiscHash) {
-      // Disc list changed → rebuild immediately. The user walked, the
-      // new reveal must appear now.
-      _lastDiscHash = discHash;
-      _lastViewportHash = viewportHash;
+  /// BUG-012: the disc list and the viewport are compared SEPARATELY. A disc-list change (GPS
+  /// fix landed, discs entered / left the padded query) rebuilds immediately — the reveal must
+  /// appear now. A viewport-only change (pan / zoom) re-arms a [kMirkFogSdfViewportDebounceMs]
+  /// timer; the current (stale) SDF stays on screen meanwhile, which is visually stable, and the
+  /// LATEST viewport is what reaches the cache when the timer fires. The cache's quantised key
+  /// (RESEARCH §7, Pitfall 5) then absorbs whatever redundancy the debounce let through.
+  void _refreshSdfIfNeeded(MirkPaintContext context) {
+    final List<RevealDisc> discs = context.discs;
+    final MirkViewportBbox viewport = context.viewportBbox;
+    final int discSignature = _discListSignature(discs);
+    final bool discsChanged = discSignature != _lastDiscSignature;
+    final bool viewportChanged = viewport != _lastViewport;
+    if (discsChanged) {
+      _lastDiscSignature = discSignature;
+      _lastViewport = viewport;
       _viewportDebounceTimer?.cancel();
-      _pendingRebuildDiscs = null;
-      _pendingRebuildViewport = null;
-      _triggerSdfRebuild(context.discs, context.viewportBbox);
-    } else if (viewportHash != _lastViewportHash) {
-      // Only viewport changed (pan/zoom) → debounce. Keep the old SDF
-      // (slightly misaligned but stable — no strobe). When the timer
-      // fires, rebuild with the LATEST viewport captured here.
-      _lastViewportHash = viewportHash;
-      _pendingRebuildDiscs = context.discs;
-      _pendingRebuildViewport = context.viewportBbox;
-      _viewportDebounceTimer?.cancel();
-      _viewportDebounceTimer = Timer(const Duration(milliseconds: kMirkFogSdfViewportDebounceMs), () {
-        if (!_disposed && !_sdfBuildInFlight && _pendingRebuildDiscs != null && _pendingRebuildViewport != null) {
-          _triggerSdfRebuild(_pendingRebuildDiscs!, _pendingRebuildViewport!);
-          _pendingRebuildDiscs = null;
-          _pendingRebuildViewport = null;
-        }
-      });
-    } else if (_sdfImage == null) {
-      // Same inputs but no SDF yet (first frame) → build now.
-      _triggerSdfRebuild(context.discs, context.viewportBbox);
+      _viewportDebounceTimer = null;
+      _scheduleSdfBuild(discs, viewport);
+      return;
+    }
+    if (!viewportChanged) return;
+    _lastViewport = viewport;
+    _viewportDebounceTimer?.cancel();
+    _viewportDebounceTimer = Timer(const Duration(milliseconds: kMirkFogSdfViewportDebounceMs), () {
+      _viewportDebounceTimer = null;
+      if (_disposed) return;
+      _scheduleSdfBuild(discs, viewport);
+    });
+  }
+
+  /// Starts ONE [SdfCache.getOrBuild] at a time. A request arriving while a build is in flight
+  /// is coalesced into a single follow-up build with the most recent inputs.
+  void _scheduleSdfBuild(List<RevealDisc> discs, MirkViewportBbox viewport) {
+    if (_pendingSdfBuild != null) {
+      _rebuildRequested = true;
+      _requestedDiscs = discs;
+      _requestedViewport = viewport;
+      return;
+    }
+    _pendingSdfBuild = _runSdfBuild(discs, viewport);
+  }
+
+  /// Awaits the cache and publishes the image into [_currentSdfImage]. Build failures are
+  /// external errors (image decode, GPU upload): logged SEVERE, the fallback path stays active.
+  /// Programming errors propagate to the top-level handler.
+  Future<void> _runSdfBuild(List<RevealDisc> discs, MirkViewportBbox viewport) async {
+    try {
+      final ui.Image image = await _sdfCache.getOrBuild(discs: discs, viewport: viewport);
+      if (_disposed) return;
+      _currentSdfImage = image;
+    } on StateError catch (e) {
+      // Expected when dispose() interrupted the build — the cache already released the image.
+      _log.fine('_runSdfBuild: build discarded (${e.message})');
+    } on Exception catch (e, st) {
+      _log.severe('_runSdfBuild: SDF build FAILED — fallback path stays active', e, st);
+    } finally {
+      _pendingSdfBuild = null;
+      _runCoalescedSdfBuildIfRequested();
     }
   }
 
-  /// Kicks off an async SDF build for [discs] at [viewport]. On
-  /// completion the result is stored in [_sdfImage] and the next paint
-  /// picks it up on the shader path.
-  void _triggerSdfRebuild(List<RevealDisc> discs, MirkViewportBbox viewport) {
-    _sdfBuildInFlight = true;
-    _log.fine('_triggerSdfRebuild: scheduling rebuild (discs=${discs.length})');
-    _sdfBuilder
-        .buildFromDiscs(discs: discs, viewport: viewport)
-        .then((ui.Image image) {
-          if (_disposed) {
-            image.dispose();
-            return;
-          }
-          _sdfImage?.dispose();
-          _sdfImage = image;
-          _log.fine('_triggerSdfRebuild: rebuild complete — _sdfImage now set (${image.width}x${image.height})');
-        })
-        .catchError((Object e, StackTrace st) {
-          _log.severe('_triggerSdfRebuild: build FAILED — fallback path will activate', e, st);
-        })
-        .whenComplete(() {
-          _sdfBuildInFlight = false;
-        });
-  }
-
-  /// FNV-1a hash of the disc list (id + lat + lon + radius per entry).
-  /// Cheap — sub-microsecond for a few-hundred-entry list.
-  int _hashDiscList(List<RevealDisc> discs) {
-    var hash = 0x811C9DC5;
-    hash = _mix(hash, discs.length);
-    for (final disc in discs) {
-      hash = _mix(hash, disc.id.hashCode);
-      hash = _mix(hash, disc.lat.hashCode);
-      hash = _mix(hash, disc.lon.hashCode);
-      hash = _mix(hash, disc.radiusMeters.hashCode);
-    }
-    return hash;
-  }
-
-  /// FNV-1a hash of the viewport bbox edges.
-  int _hashViewport(MirkViewportBbox bbox) {
-    var hash = 0x811C9DC5;
-    hash = _mix(hash, bbox.south.hashCode);
-    hash = _mix(hash, bbox.west.hashCode);
-    hash = _mix(hash, bbox.north.hashCode);
-    hash = _mix(hash, bbox.east.hashCode);
-    return hash;
-  }
-
-  /// FNV-1a-style mixer. Inline-friendly, deterministic, no deps.
-  int _mix(int hash, int v) {
-    hash ^= v;
-    hash = (hash * 0x01000193) & 0xFFFFFFFF;
-    return hash;
+  void _runCoalescedSdfBuildIfRequested() {
+    if (!_rebuildRequested || _disposed) return;
+    _rebuildRequested = false;
+    final List<RevealDisc>? discs = _requestedDiscs;
+    final MirkViewportBbox? viewport = _requestedViewport;
+    _requestedDiscs = null;
+    _requestedViewport = null;
+    if (discs == null || viewport == null) return;
+    _scheduleSdfBuild(discs, viewport);
   }
 
   @override
@@ -596,14 +565,22 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     _disposed = true;
     _viewportDebounceTimer?.cancel();
     _viewportDebounceTimer = null;
-    _pendingRebuildDiscs = null;
-    _pendingRebuildViewport = null;
+    _rebuildRequested = false;
+    _requestedDiscs = null;
+    _requestedViewport = null;
     _shader?.dispose();
     _shader = null;
-    _sdfImage?.dispose();
-    _sdfImage = null;
+    // The cache owns the image — dropping the borrowed handle is enough; the cache also stops
+    // its rebuild logger.
+    _currentSdfImage = null;
+    _sdfCache.dispose();
     _wispSystem.clear();
     _previousDiscIdSet = <String>{};
     _warmingUp = true;
   }
 }
+
+/// Cheap content signature of a disc list — ids + geometry. Two lists holding the same discs in
+/// the same order share a signature even when the provider handed out a fresh `List` instance
+/// (it does, on every query), which is what keeps the viewport-only debounce effective.
+int _discListSignature(List<RevealDisc> discs) => Object.hashAll(discs.map((RevealDisc d) => Object.hash(d.id, d.lat, d.lon, d.radiusMeters)));

@@ -122,11 +122,8 @@ void main() {
       sdfRect: (0.0, 1.0, 1.0, -1.0),
     );
 
-    HeavenlyCloudsMirkRenderer newRenderer(RecordingFogShaderRenderer recorder) => HeavenlyCloudsMirkRenderer(
-      const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig,
-      sdfBuilder: const ImmediateStubSdfBuilder(),
-      shaderRenderer: recorder,
-    );
+    HeavenlyCloudsMirkRenderer newRenderer(RecordingFogShaderRenderer recorder) =>
+        HeavenlyCloudsMirkRenderer(const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig, sdfCache: immediateStubSdfCache(), shaderRenderer: recorder);
 
     /// First paint schedules the (immediate) SDF build; after one event-queue
     /// pump the image is resolved and the next paint takes the shader path.

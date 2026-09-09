@@ -152,11 +152,8 @@ void main() {
       sdfRect: (0.0, 1.0, 1.0, -1.0),
     );
 
-    AtmosphericMirkRenderer newRenderer(RecordingFogShaderRenderer recorder) => AtmosphericMirkRenderer(
-      const MirkStyleConfig.atmospheric() as AtmosphericConfig,
-      sdfBuilder: const ImmediateStubSdfBuilder(),
-      shaderRenderer: recorder,
-    );
+    AtmosphericMirkRenderer newRenderer(RecordingFogShaderRenderer recorder) =>
+        AtmosphericMirkRenderer(const MirkStyleConfig.atmospheric() as AtmosphericConfig, sdfCache: immediateStubSdfCache(), shaderRenderer: recorder);
 
     /// First paint schedules the (immediate) SDF build; after one event-queue
     /// pump the image is resolved and the next paint takes the shader path.
