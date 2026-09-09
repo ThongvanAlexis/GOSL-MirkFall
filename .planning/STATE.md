@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 7
-status: "Plan 09.1-06 shipped 2026-09-09 (task commits a6af6bd / 18ea800 / c29d32b / b7393e4 / 959d89c): clip possédé par la couche hôte — `buildViewportFogClipPathFromDiscs` / `tile_cell_iteration.dart` supprimés, aucun des 4 renderers builtin ne calcule ni n'applique de clip (ils peignent `Offset.zero & size` dans le repère identité clippé ; `MirkOverlay._MirkPainter` clippe de la même façon jusqu'à 09.1-07) ; feather partagé `fog_edge_feather.dart` = trait flouté `dstOut` le long du contour des disques dans un `saveLayer` (canvas partagé avec les tuiles : jamais d'effacement direct), le renderer arrondit la découpe mais ne la fait jamais ; `candlelight` centré via `context.projectToScreen(fix)` ; `heavenly_clouds` fallback CPU : tuile `NoiseTexture` (rasterisée en `Isolate.run`) via `ImageShader` ancrée monde (période `kMirkFogNoiseTilePx × zoomScale`, translation `−((raw + drift) % période)`, `rawPixelOriginOf` keyé sur le `sdfRect` Android, `srcATop` + filtre modulate 0.35) ; `solid_fill` bit-identique quel que soit `pixelOrigin` / `zoomScale` ; registre + factory + picker + tuner : 4 variants sélectionnables sous contexte étendu iOS + Android, slots drift par famille ; `MirkRenderer` 3 membres, gate 6 fichiers. À HEAD 959d89c : format clean, analyze clean, 9/9 gates, 96 tool tests, flutter test 1251 verts. Wave 4 close ; next : Wave 5 = 09.1-07 (FogLayerConnector, composition FlutterMap, suppression MirkOverlay). Previous: Plan 09.1-05 shipped 2026-09-09 (e539812 / c2e98aa / 6f17494 / 22ac789): SdfCache derrière le debounce 200 ms, wisps monde GeoPoint + m/s, firewall wisp/SDF, loggers verbose-only ; Plan 09.1-04 shipped 2026-09-09 (09a8609 / 797d3d8 / acc518d / 40c930d): FogLayer same-canvas, fog_clip_geometry / fog_clip_path, diag loggers, keystone FOG-07."
-stopped_at: Completed 09.1-06-PLAN.md
-last_updated: "2026-09-09T15:36:59.007Z"
+current_plan: 8
+status: "Plan 09.1-07 shipped 2026-09-09 (task commits 8c52ac3 / 73b24d9 / d4feb53 / c9a2d69 / f347eeb): le fog est un ENFANT du `FlutterMap` — `MapScreen` passe `fogLayers: [MirkInitialRevealFade(FogLayerConnector())]` à `FlutterMapMapViewWidget` ; `FogLayerConnector` (Riverpod → `FogLayer`, aucun import flutter_map) watch le renderer actif / le bbox throttlé PADDÉ (`padMirkViewportBbox` : clamp Mercator, wrap antiméridien, repli plein monde si non représentable) / les disques (derniers connus gardés pendant un rechargement, BUG-012) / le fix de session ; `MirkOverlay` + RepaintBoundary + IgnorePointer + 5 suites supprimés (zéro référence dans lib/ test/ integration_test/), comportements swap / pass-through / isolation des siblings reportés dans `map_screen_fog_composition_test` ; `fog_layer_wisp_render_test` porté du POC (shader rect → wisps → restore) ; entrée « Marquer une anomalie (dev marker) » dans le debug menu ; preuve airplane mode sur le VRAI moteur (`world.pmtiles` depuis le disque, FogLayer enfant du FlutterMap, zéro HttpClient construit) ; prose MapLibre / StyleRewriter purgée (deferred #1 résolu, #6 / #7 ajoutés). À HEAD f347eeb : format clean, analyze clean, 9/9 gates, 96 tool tests, flutter test 1263 verts, intégration 2+2+3, CI run 34376643891 verte (3/3 jobs : gates, android, ios). BUG-014 structurellement fermé (confirmation device au 09.1-08 ; smoke desktop non exécuté ici). Wave 5 close ; next : Wave 6 = 09.1-08 (UAT iPhone / Pixel 4a checkpoint, clôture docs). Previous: Plan 09.1-06 shipped 2026-09-09 (a6af6bd / 18ea800 / c29d32b / b7393e4 / 959d89c): clip possédé par la couche hôte, feather partagé `dstOut` dans un saveLayer, candlelight via projectToScreen, heavenly CPU noise ancré monde, solid_fill invariant ; Plan 09.1-05 (SdfCache + wisps monde) ; Plan 09.1-04 (FogLayer same-canvas, keystone FOG-07)."
+stopped_at: Completed 09.1-07-PLAN.md
+last_updated: "2026-09-09T16:29:24.114Z"
 last_activity: 2026-09-09
 progress:
   total_phases: 18
   completed_phases: 10
   total_plans: 65
-  completed_plans: 64
-  percent: 97
+  completed_plans: 65
+  percent: 98
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 09.1 (INSERTED 2026-09-09) IN PROGRESS — port-back same-canvas fog from POC `mirk-poc-debug` @ 90c9321. Wave 1 (09.1-01: flutter_map stack + gate + constants) and Wave 2 (09.1-02: flutter_map engine swap, maplibre_gl REMOVED ; 09.1-03: MirkPaintContext seam + 42-slot shader ABI) complete. The map now renders through `FlutterMapMapViewWidget`; the fog is still the `MirkOverlay` Stack sibling (laggy, BUG-014) until 09.1-07 mounts `FogLayer` inside the FlutterMap children. Wave 3: 09.1-04 (FogLayer same-canvas, 25 files, 64 tests) DONE 2026-09-09; 09.1-05 (SdfCache + wisps) still in progress in parallel. Wave 3 (09.1-04 FogLayer same-canvas ; 09.1-05 SdfCache + wisps monde) complete. Wave 4 (09.1-06: clip owned by the host layer, 4 variants adapted — shared dstOut feather in a saveLayer, candlelight via projectToScreen, heavenly CPU noise anchored to world px, solid_fill invariant) DONE 2026-09-09. Next: Wave 5 = 09.1-07 mounts FogLayer inside the FlutterMap children and deletes MirkOverlay (which still hosts the renderers, now clipping on their behalf).
+**Current focus:** Phase 09.1 (INSERTED 2026-09-09) IN PROGRESS — port-back same-canvas fog from POC `mirk-poc-debug` @ 90c9321. Waves 1–5 complete: 09.1-01 (flutter_map stack + gate + constants), 09.1-02 (flutter_map engine swap, maplibre_gl REMOVED), 09.1-03 (MirkPaintContext seam + 42-slot shader ABI), 09.1-04 (FogLayer same-canvas, keystone FOG-07), 09.1-05 (SdfCache + world wisps), 09.1-06 (clip owned by the host layer, 4 variants adapted), 09.1-07 (FogLayerConnector + composition INSIDE the FlutterMap children, MirkOverlay DELETED, real-engine airplane proof, CI run 34376643891 verte (3/3 jobs : gates, android, ios)). The fog is painted in the same canvas / frame as the tiles — BUG-014 structurally closed at HEAD f347eeb. Next: Wave 6 = 09.1-08 (UAT iPhone / Pixel 4a checkpoint + docs closure).
 
 ## Current Position
 
-Phase: 09.1 of 16.x (Port-back same-canvas fog — flutter_map migration, INSERTED) — IN PROGRESS — 6 / 8 plans complete (09.1-01 — Wave 1 ; 09.1-02 + 09.1-03 — Wave 2 ; 09.1-04 + 09.1-05 — Wave 3 ; 09.1-06 — Wave 4)
-Current Plan: 7
+Phase: 09.1 of 16.x (Port-back same-canvas fog — flutter_map migration, INSERTED) — IN PROGRESS — 7 / 8 plans complete (09.1-01 — Wave 1 ; 09.1-02 + 09.1-03 — Wave 2 ; 09.1-04 + 09.1-05 — Wave 3 ; 09.1-06 — Wave 4 ; 09.1-07 — Wave 5)
+Current Plan: 8
 Total Plans in Phase: 8
-Status: Plan 09.1-06 shipped 2026-09-09 (task commits a6af6bd / 18ea800 / c29d32b / b7393e4 / 959d89c): clip possédé par la couche hôte — `buildViewportFogClipPathFromDiscs` / `tile_cell_iteration.dart` supprimés, aucun des 4 renderers builtin ne calcule ni n'applique de clip (ils peignent `Offset.zero & size` dans le repère identité clippé ; `MirkOverlay._MirkPainter` clippe de la même façon jusqu'à 09.1-07) ; feather partagé `fog_edge_feather.dart` = trait flouté `dstOut` le long du contour des disques dans un `saveLayer` (canvas partagé avec les tuiles : jamais d'effacement direct), le renderer arrondit la découpe mais ne la fait jamais ; `candlelight` centré via `context.projectToScreen(fix)` ; `heavenly_clouds` fallback CPU : tuile `NoiseTexture` (rasterisée en `Isolate.run`) via `ImageShader` ancrée monde (période `kMirkFogNoiseTilePx × zoomScale`, translation `−((raw + drift) % période)`, `rawPixelOriginOf` keyé sur le `sdfRect` Android, `srcATop` + filtre modulate 0.35) ; `solid_fill` bit-identique quel que soit `pixelOrigin` / `zoomScale` ; registre + factory + picker + tuner : 4 variants sélectionnables sous contexte étendu iOS + Android, slots drift par famille ; `MirkRenderer` 3 membres, gate 6 fichiers. À HEAD 959d89c : format clean, analyze clean, 9/9 gates, 96 tool tests, flutter test 1251 verts. Wave 4 close ; next : Wave 5 = 09.1-07 (FogLayerConnector, composition FlutterMap, suppression MirkOverlay). Previous: Plan 09.1-05 shipped 2026-09-09 (e539812 / c2e98aa / 6f17494 / 22ac789): SdfCache derrière le debounce 200 ms, wisps monde GeoPoint + m/s, firewall wisp/SDF, loggers verbose-only ; Plan 09.1-04 shipped 2026-09-09 (09a8609 / 797d3d8 / acc518d / 40c930d): FogLayer same-canvas, fog_clip_geometry / fog_clip_path, diag loggers, keystone FOG-07.
+Status: Plan 09.1-07 shipped 2026-09-09 (task commits 8c52ac3 / 73b24d9 / d4feb53 / c9a2d69 / f347eeb): le fog est un ENFANT du `FlutterMap` — `MapScreen` passe `fogLayers: [MirkInitialRevealFade(FogLayerConnector())]` à `FlutterMapMapViewWidget` ; `FogLayerConnector` (Riverpod → `FogLayer`, aucun import flutter_map) watch le renderer actif / le bbox throttlé PADDÉ (`padMirkViewportBbox` : clamp Mercator, wrap antiméridien, repli plein monde si non représentable) / les disques (derniers connus gardés pendant un rechargement, BUG-012) / le fix de session ; `MirkOverlay` + RepaintBoundary + IgnorePointer + 5 suites supprimés (zéro référence dans lib/ test/ integration_test/), comportements swap / pass-through / isolation des siblings reportés dans `map_screen_fog_composition_test` ; `fog_layer_wisp_render_test` porté du POC (shader rect → wisps → restore) ; entrée « Marquer une anomalie (dev marker) » dans le debug menu ; preuve airplane mode sur le VRAI moteur (`world.pmtiles` depuis le disque, FogLayer enfant du FlutterMap, zéro HttpClient construit) ; prose MapLibre / StyleRewriter purgée (deferred #1 résolu, #6 / #7 ajoutés). À HEAD f347eeb : format clean, analyze clean, 9/9 gates, 96 tool tests, flutter test 1263 verts, intégration 2+2+3, CI run 34376643891 verte (3/3 jobs : gates, android, ios). BUG-014 structurellement fermé (confirmation device au 09.1-08 ; smoke desktop non exécuté ici). Wave 5 close ; next : Wave 6 = 09.1-08 (UAT iPhone / Pixel 4a checkpoint, clôture docs). Previous: Plan 09.1-06 shipped 2026-09-09 (a6af6bd / 18ea800 / c29d32b / b7393e4 / 959d89c): clip possédé par la couche hôte, feather partagé `dstOut` dans un saveLayer, candlelight via projectToScreen, heavenly CPU noise ancré monde, solid_fill invariant ; Plan 09.1-05 (SdfCache + wisps monde) ; Plan 09.1-04 (FogLayer same-canvas, keystone FOG-07).
 Last Activity: 2026-09-09
 
-Progress: [██████████] 98% — 64 / 65 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 closed 10/10 ; Phase 09.1 in progress 6/8 — 09.1-01, 09.1-02, 09.1-03, 09.1-04, 09.1-05, 09.1-06).
+Progress: [██████████] 98% — 65 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 closed 10/10 ; Phase 09.1 in progress 7/8 — 09.1-01, 09.1-02, 09.1-03, 09.1-04, 09.1-05, 09.1-06, 09.1-07 ; 09.1-08 UAT checkpoint remaining).
 
 ## Performance Metrics
 
@@ -109,6 +109,7 @@ Progress: [██████████] 98% — 64 / 65 plans executed (Phase
 | Phase 09.1 P04 | ~2h active (3h25m wall-clock) | 3 tasks | 25 files |
 | Phase 09.1 P05 | 3h35m (incl. rate-limit pause; ~1h50m execution) | 3 tasks | 23 files |
 | Phase 09.1 P06 | 35 min | 3 tasks | 24 files |
+| Phase 09.1-port-back-same-canvas-fog-flutter-map-migration P07 | 35 min | 3 tasks | 34 files |
 
 ## Accumulated Context
 
@@ -411,6 +412,10 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09.1]: TDD RED commits stay compilable via throwing stubs; suites that cannot compile against the old API are RED-observed locally and land with GREEN (09.1-01/03 precedent); Tasks 2+3 share one feat commit
 - [Phase 09.1]: 09.1-06: the host layer owns the ONE clipPath per frame (FogLayer; MirkOverlay until 09.1-07); the 4 builtins paint the clipped identity frame, the edge feather is a blurred dstOut stroke inside a saveLayer (shared canvas), never a cut
 - [Phase 09.1]: 09.1-06: heavenly CPU fallback noise anchored to world px via an ImageShader (period kMirkFogNoiseTilePx × zoomScale, raw pixelOrigin through rawPixelOriginOf keyed on the Android sdfRect); NoiseTexture rasterised in Isolate.run; candlelight centred via context.projectToScreen
+- [Phase 09.1]: 09.1-07: FogLayerConnector matches the sealed AsyncValue (AsyncData → FogLayer, AsyncError → shrink + one warning, loading → shrink) — the FogLayer is briefly unmounted on a renderer swap instead of painting with the disposed previous renderer
+- [Phase 09.1]: 09.1-07: padMirkViewportBbox clamps latitude to TileMath.maxLatMercator, wraps longitude (exact identity inside the range) and degrades unrepresentable padded pairs / ≥ 360° spans to the full longitude range instead of asserting
+- [Phase 09.1]: 09.1-07: overlay-era suites replaced by map_screen_fog_composition_test on the same-canvas composition (drag pans the camera, renderer swap changes FogLayer.renderer, Ticker frames never rebuild siblings — no RepaintBoundary); screen tests stand the engine in with a real tile-less FlutterMap
+- [Phase 09.1]: 09.1-07: MAP-01 proved on the real engine — airplane_mode_test pumps MapScreen on the production FlutterMapMapViewWidget over world.pmtiles with the FogLayer child, zero HttpClient constructed; integration files run one per flutter test invocation
 
 ### Roadmap Evolution
 
@@ -450,6 +455,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-09T15:36:59.002Z
-Stopped at: Completed 09.1-06-PLAN.md
+Last session: 2026-09-09T16:29:24.109Z
+Stopped at: Completed 09.1-07-PLAN.md
 Resume file: None

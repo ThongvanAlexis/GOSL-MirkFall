@@ -227,7 +227,7 @@ MirkFall est livré en 8 phases de code entrelacées de 8 phases de review gates
   5. Wisps ancrés monde (`LatLng` + m/s) : pas de dérive au zoom, spawn sur émergence de disque, jamais de contact avec le `SdfCache`
   6. Le seam `MirkRenderer` reste pur (aucun type flutter_map dans `lib/domain`), `MirkPaintContext` étendu une seule fois ; les 4 variants builtin restent sélectionnables ; le gate d'import flutter_map remplace `check_avoid_maplibre_leak`
   7. BUG-014 fermé dans `docs/phase09-bug-tracking/` ; décision "moteur flutter_map same-canvas" enregistrée dans `PROJECT.md` Key Decisions
-**Plans:** 6/8 plans executed
+**Plans:** 7/8 plans executed
 
 Plans:
 - [x] 09.1-01-PLAN.md — Wave 1 : 6 packages flutter_map pinnés + audit DEPENDENCIES.md, gate `check_avoid_flutter_map_leak` (remplace maplibre), constantes Phase 09.1 (maplibre_gl conservé une wave : compile-green)
@@ -236,7 +236,7 @@ Plans:
 - [x] 09.1-04-PLAN.md — Wave 3 : `FogLayer` same-canvas (FOG-06/07/12/13/18/19/21/23) + `fog_clip_path` / `fog_clip_geometry`, loggers diag verbose-only, 13 tests widget POC dont le keystone FOG-07
 - [x] 09.1-05-PLAN.md — Wave 3 : `SdfCache` (debounce 200 ms conservé), wisps en coordonnées monde (`GeoPoint` + m/s, `spawnAtNewDisc`, warm-up), firewall wisp/SDF, rendu wisps après le drawRect
 - [x] 09.1-06-PLAN.md — Wave 4 : clip possédé par `FogLayer`, 4 variants adaptés (candlelight projection exacte, heavenly noise ancré `pixelOrigin`/`zoomScale`, solid_fill invariant), picker / factory / tunables
-- [ ] 09.1-07-PLAN.md — Wave 5 : `FogLayerConnector` + composition `FlutterMap(children: [VectorTileLayer, MirkInitialRevealFade(FogLayer), CircleLayer])`, suppression `MirkOverlay` + 5 tests, tests d'intégration, CI verte
+- [x] 09.1-07-PLAN.md — Wave 5 : `FogLayerConnector` + composition `FlutterMap(children: [VectorTileLayer, MirkInitialRevealFade(FogLayer), CircleLayer])`, suppression `MirkOverlay` + 5 tests, tests d'intégration, CI verte
 - [ ] 09.1-08-PLAN.md — Wave 6 : UAT checkpoint iPhone (primaire) + Pixel 4a, clôture docs (BUG-014 fermé, PROJECT.md, READMEs, deferred-items, REQUIREMENTS amendés)
 
 ### Phase 10: Review Gate — Fog
@@ -372,6 +372,6 @@ Phases execute in strict numeric order: 01 → 02 → 03 → 04 → 05 → 06 �
 
 ---
 *Roadmap initial défini: 2026-04-17*
-*Last updated: 2026-09-09 — Phase 09.1 inserted (port-back same-canvas fog, flutter_map migration, closes BUG-014); Phase 10 un-ticked (never started) and re-based on 09.1. Previous: 2026-04-25 — Phase 09 Fog Rendering closed. 10/10 plans complete (revision B5 split: 09-01 → 09-01 + 09-01b + 09-01c). End-to-end visual loop closed: GPS fix → reveal mask → DB → Riverpod → MirkOverlay paints fog. 4 builtin renderers (atmospheric/solid/candlelight/heavenly_clouds). Hand-rolled simplex held — zero new deps. RepaintBoundary isolation + viewport filtering + 50k-tile perf probe regression-tested. Phase 10 Review Gate — Fog unblocked.*
+*Last updated: 2026-09-09 — 09.1-07 shipped (fog inside the FlutterMap children, MirkOverlay deleted, real-engine airplane proof, CI run 34376643891 verte (3/3 jobs : gates, android, ios)) ; Phase 09.1 inserted (port-back same-canvas fog, flutter_map migration, closes BUG-014); Phase 10 un-ticked (never started) and re-based on 09.1. Previous: 2026-04-25 — Phase 09 Fog Rendering closed. 10/10 plans complete (revision B5 split: 09-01 → 09-01 + 09-01b + 09-01c). End-to-end visual loop closed: GPS fix → reveal mask → DB → Riverpod → MirkOverlay paints fog. 4 builtin renderers (atmospheric/solid/candlelight/heavenly_clouds). Hand-rolled simplex held — zero new deps. RepaintBoundary isolation + viewport filtering + 50k-tile perf probe regression-tested. Phase 10 Review Gate — Fog unblocked.*
 *Previous update: 2026-04-24 — Phase 08 Review Gate — Map closed. 5/5 plans complete. 49 fix+refactor commits via Strategy A per-finding atomic strategy across 5 session relays. First review-gate encoding of CLAUDE.md 2026-04-23 smell-heuristics delta (9 smell-tagged refactors shipped). Phase 09 Fog Rendering unblocked.*
 *Previous update: 2026-04-20 — Phase 07 CONTEXT amendments : catalog en asset bundlé (au lieu de `kMapCatalogUrl`), chunks binaires multi-parts (au lieu de "ZIPs multi-parts", pas d'archive à extraire), style carte + mirk par session (amendement MIRK-10 / PROJECT.md Out of Scope). Phase 07 ROADMAP Goal + SC#6/7/9 + Phase 08 Goal + SC#1/3 mis à jour.*
