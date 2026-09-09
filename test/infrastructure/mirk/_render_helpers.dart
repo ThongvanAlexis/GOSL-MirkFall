@@ -20,6 +20,7 @@ import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
+import 'package:mirkfall/infrastructure/mirk/fog_clip_geometry.dart';
 import 'package:mirkfall/infrastructure/mirk/sdf/revealed_sdf_builder.dart';
 import 'package:mirkfall/infrastructure/mirk/sdf/sdf_cache.dart';
 import 'package:mirkfall/infrastructure/mirk/sdf_rebuild_logger.dart';
@@ -69,6 +70,25 @@ RevealDisc singleCentreDisc({required MirkViewportBbox bbox, double radiusMeters
   );
 }
 
+/// Reproduces the `FogLayer` composition around a renderer paint (Phase 09.1-06 — the
+/// layer owns the ONE clip per frame, the renderers paint the clipped identity frame):
+/// `save → clipPath(buildFogClipPath) → update → paint → restore`.
+///
+/// [applyClip] `false` skips the clip: the renderer then paints the whole canvas, which is
+/// how a test proves a renderer no longer cuts the reveal holes itself.
+void paintLikeFogLayer(MirkRenderer renderer, {required Canvas canvas, required Size size, required MirkPaintContext context, bool applyClip = true}) {
+  if (!applyClip) {
+    renderer.update(context.sessionElapsed);
+    renderer.paint(canvas, size, context);
+    return;
+  }
+  canvas.save();
+  canvas.clipPath(buildFogClipPath(size: size, discs: context.discs, projectToScreen: context.projectToScreen, metersToPixels: context.metersToPixels));
+  renderer.update(context.sessionElapsed);
+  renderer.paint(canvas, size, context);
+  canvas.restore();
+}
+
 /// Renders a renderer to a `PictureRecorder`-backed `Picture`, then
 /// rasterises to a raw RGBA byte buffer for tolerance-aware diffing.
 ///
@@ -76,13 +96,15 @@ RevealDisc singleCentreDisc({required MirkViewportBbox bbox, double radiusMeters
 /// default for the test canvas — small enough that the rasterisation
 /// is sub-millisecond yet large enough that two visually-distinct
 /// renderer outputs will differ by hundreds of bytes.
-Future<Uint8List> renderToBytes(MirkRenderer renderer, {required MirkPaintContext context, Size size = kTestCanvasSize}) async {
+///
+/// The shared fog clip is applied first unless [applyClip] is `false` (see [paintLikeFogLayer]).
+Future<Uint8List> renderToBytes(MirkRenderer renderer, {required MirkPaintContext context, Size size = kTestCanvasSize, bool applyClip = true}) async {
   final recorder = PictureRecorder();
   final canvas = Canvas(recorder);
   // Establish a transparent white-background canvas so that pixels the
   // renderer doesn't touch are deterministic between runs.
   canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = const Color(0x00000000));
-  renderer.paint(canvas, size, context);
+  paintLikeFogLayer(renderer, canvas: canvas, size: size, context: context, applyClip: applyClip);
   final picture = recorder.endRecording();
   final image = await picture.toImage(size.width.toInt(), size.height.toInt());
   final byteData = await image.toByteData();
@@ -97,11 +119,50 @@ Future<Uint8List> renderToBytes(MirkRenderer renderer, {required MirkPaintContex
 /// Renders a renderer to a `PictureRecorder` and returns the recorded
 /// `Picture` for callers that want lower-level inspection than
 /// `renderToBytes` provides. Caller is responsible for `picture.dispose()`.
-Picture renderToPicture(MirkRenderer renderer, {required MirkPaintContext context, Size size = kTestCanvasSize}) {
+///
+/// The shared fog clip is applied first unless [applyClip] is `false` (see [paintLikeFogLayer]).
+Picture renderToPicture(MirkRenderer renderer, {required MirkPaintContext context, Size size = kTestCanvasSize, bool applyClip = true}) {
   final recorder = PictureRecorder();
   final canvas = Canvas(recorder);
-  renderer.paint(canvas, size, context);
+  paintLikeFogLayer(renderer, canvas: canvas, size: size, context: context, applyClip: applyClip);
   return recorder.endRecording();
+}
+
+/// Alpha byte of the pixel at ([x], [y]) in an RGBA buffer of [width] columns.
+int alphaAt(Uint8List rgba, {required int x, required int y, int width = 256}) => rgba[(y * width + x) * 4 + 3];
+
+/// Red byte of the pixel at ([x], [y]) in an RGBA buffer of [width] columns.
+int redAt(Uint8List rgba, {required int x, required int y, int width = 256}) => rgba[(y * width + x) * 4];
+
+/// `true` when every pixel of the RGBA buffer has alpha 0 (nothing rasterised).
+bool isFullyTransparent(Uint8List rgba) {
+  for (var i = 3; i < rgba.length; i += 4) {
+    if (rgba[i] != 0) return false;
+  }
+  return true;
+}
+
+/// [FogShaderRenderer] double that never draws and reports `false`, forcing the renderer under
+/// test onto its CPU fallback path regardless of the SDF / shader state.
+class FallbackOnlyFogShaderRenderer implements FogShaderRenderer {
+  const FallbackOnlyFogShaderRenderer();
+
+  @override
+  bool render({
+    required Canvas canvas,
+    required FragmentShader? shader,
+    required Size size,
+    required double timeSeconds,
+    required ({double x, double y}) pixelOrigin,
+    required double zoomScale,
+    required (double, double, double, double) sdfRect,
+    required Image sdfImage,
+    required int baseArgb,
+    required double baseAlpha,
+    required int highlightArgb,
+    required int shadowArgb,
+    required Map<String, double> tunables,
+  }) => false;
 }
 
 /// Minimal 1×1 RGBA `ui.Image` (R = 128, the SDF midpoint) — enough for a

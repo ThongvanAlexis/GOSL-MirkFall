@@ -66,17 +66,16 @@ void main() {
     test('paint() with empty discs list paints full fog (BUG-013 fix)', () async {
       final renderer = HeavenlyCloudsMirkRenderer(const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig);
       final ctx = fakeContext(discs: const <RevealDisc>[]);
-      final pic = renderToPicture(renderer, context: ctx);
+      final bytes = await renderToBytes(renderer, context: ctx);
       // BUG-013: empty discs = user panned away from revealed area →
-      // entire viewport must be fog, not transparent/clear. The fallback
-      // path emits a single drawPath (~300 bytes); a true no-op produces
-      // ~120 bytes (recorder header only).
-      expect(pic.approximateBytesUsed, greaterThan(200), reason: 'Empty discs list should produce full-fog picture, not a no-op');
-      pic.dispose();
+      // entire viewport must be fog, not transparent/clear (heavenly is
+      // lighter than atmospheric, hence the lower floor).
+      expect(alphaAt(bytes, x: 128, y: 128), greaterThan(150), reason: 'Empty discs list should produce full fog, not a no-op');
+      expect(alphaAt(bytes, x: 0, y: 0), greaterThan(150));
       await renderer.dispose();
     });
 
-    test('paint() with a viewport-spanning disc draws no fog (smaller picture than localised disc)', () async {
+    test('paint() with a viewport-spanning disc draws no fog (every pixel transparent under the shared clip)', () async {
       final renderer = HeavenlyCloudsMirkRenderer(const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig);
       final bbox = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
       final swallowingDisc = RevealDisc(
@@ -89,15 +88,10 @@ void main() {
       );
       final ctxAllRevealed = fakeContext(viewport: bbox, discs: [swallowingDisc]);
       final ctxLocalised = fakeContext(viewport: bbox);
-      final picRevealed = renderToPicture(renderer, context: ctxAllRevealed);
-      final picLocalised = renderToPicture(renderer, context: ctxLocalised);
-      expect(
-        picRevealed.approximateBytesUsed,
-        lessThan(picLocalised.approximateBytesUsed),
-        reason: 'Viewport-spanning disc must draw less than a localised reveal',
-      );
-      picRevealed.dispose();
-      picLocalised.dispose();
+      final bytesRevealed = await renderToBytes(renderer, context: ctxAllRevealed);
+      final bytesLocalised = await renderToBytes(renderer, context: ctxLocalised);
+      expect(isFullyTransparent(bytesRevealed), isTrue, reason: 'Viewport-spanning disc must leave every pixel transparent');
+      expect(isFullyTransparent(bytesLocalised), isFalse, reason: 'A localised reveal leaves fog around its hole');
       await renderer.dispose();
     });
 

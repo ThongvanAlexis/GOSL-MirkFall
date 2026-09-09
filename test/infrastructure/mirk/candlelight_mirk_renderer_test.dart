@@ -92,13 +92,11 @@ void main() {
     test('paint() with empty discs list paints full fog (BUG-013 fix)', () async {
       final renderer = CandlelightMirkRenderer(const MirkStyleConfig.candlelight() as CandlelightConfig);
       final ctx = fakeContext(discs: const <RevealDisc>[]);
-      final pic = renderToPicture(renderer, context: ctx);
+      final bytes = await renderToBytes(renderer, context: ctx);
       // BUG-013: empty discs = user panned away from revealed area →
-      // entire viewport must be fog, not transparent/clear. The fallback
-      // path emits a single drawPath (~300 bytes); a true no-op produces
-      // ~120 bytes (recorder header only).
-      expect(pic.approximateBytesUsed, greaterThan(200), reason: 'Empty discs list should produce full-fog picture, not a no-op');
-      pic.dispose();
+      // entire viewport must be fog, not transparent/clear.
+      expect(alphaAt(bytes, x: 128, y: 128), greaterThan(150), reason: 'Empty discs list should produce full fog, not a no-op');
+      expect(alphaAt(bytes, x: 0, y: 0), greaterThan(150));
       await renderer.dispose();
     });
   });
