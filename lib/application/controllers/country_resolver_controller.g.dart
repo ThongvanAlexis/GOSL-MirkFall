@@ -15,8 +15,8 @@ part of 'country_resolver_controller.dart';
 ///
 /// - Result equals current active → no-op.
 /// - Result is a DIFFERENT installed country → set activeCountry to the
-///   new alpha3 + call `mapView.showMap(newAlpha3)` (the MapLibre adapter
-///   reloads the style with the new PMTiles source).
+///   new alpha3 + call `mapView.showMap(newAlpha3)` (the adapter swaps
+///   the tile provider to the new PMTiles archive).
 /// - Result is a DIFFERENT country NOT installed → update
 ///   viewportCountry + viewportInInstalled=false (UI surfaces the banner);
 ///   activeCountry stays on whatever was last showing.
@@ -40,8 +40,8 @@ final countryResolverControllerProvider = CountryResolverControllerProvider._();
 ///
 /// - Result equals current active → no-op.
 /// - Result is a DIFFERENT installed country → set activeCountry to the
-///   new alpha3 + call `mapView.showMap(newAlpha3)` (the MapLibre adapter
-///   reloads the style with the new PMTiles source).
+///   new alpha3 + call `mapView.showMap(newAlpha3)` (the adapter swaps
+///   the tile provider to the new PMTiles archive).
 /// - Result is a DIFFERENT country NOT installed → update
 ///   viewportCountry + viewportInInstalled=false (UI surfaces the banner);
 ///   activeCountry stays on whatever was last showing.
@@ -62,8 +62,8 @@ final class CountryResolverControllerProvider extends $NotifierProvider<CountryR
   ///
   /// - Result equals current active → no-op.
   /// - Result is a DIFFERENT installed country → set activeCountry to the
-  ///   new alpha3 + call `mapView.showMap(newAlpha3)` (the MapLibre adapter
-  ///   reloads the style with the new PMTiles source).
+  ///   new alpha3 + call `mapView.showMap(newAlpha3)` (the adapter swaps
+  ///   the tile provider to the new PMTiles archive).
   /// - Result is a DIFFERENT country NOT installed → update
   ///   viewportCountry + viewportInInstalled=false (UI surfaces the banner);
   ///   activeCountry stays on whatever was last showing.
@@ -109,8 +109,8 @@ String _$countryResolverControllerHash() => r'6feb7a17e8a53fd11c058a0053d67e648f
 ///
 /// - Result equals current active → no-op.
 /// - Result is a DIFFERENT installed country → set activeCountry to the
-///   new alpha3 + call `mapView.showMap(newAlpha3)` (the MapLibre adapter
-///   reloads the style with the new PMTiles source).
+///   new alpha3 + call `mapView.showMap(newAlpha3)` (the adapter swaps
+///   the tile provider to the new PMTiles archive).
 /// - Result is a DIFFERENT country NOT installed → update
 ///   viewportCountry + viewportInInstalled=false (UI surfaces the banner);
 ///   activeCountry stays on whatever was last showing.

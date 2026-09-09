@@ -8,7 +8,7 @@ part of 'map_viewport_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Current MapLibre viewport bounds as a [MirkViewportBbox], or null
+/// Current map viewport bounds as a [MirkViewportBbox], or null
 /// until the MapView is ready and the first viewport bounds settle.
 ///
 /// Subscribes to [MapView.viewportUpdates] and republishes the bounds
@@ -17,7 +17,7 @@ part of 'map_viewport_provider.dart';
 /// ## Throttling — leading edge + trailing tail
 ///
 /// `viewportUpdates` fires continuously during pan / pinch / zoom (every
-/// `notifyListeners()` from the MapLibre controller). The naive shape
+/// camera event of the map controller). The naive shape
 /// would call `queryViewportBounds` on every emission — too many
 /// platform-channel round-trips. The earlier debounce shape (50 ms quiet
 /// window before any refresh) had the opposite failure mode: during a
@@ -49,7 +49,7 @@ part of 'map_viewport_provider.dart';
 @ProviderFor(MapViewport)
 final mapViewportProvider = MapViewportProvider._();
 
-/// Current MapLibre viewport bounds as a [MirkViewportBbox], or null
+/// Current map viewport bounds as a [MirkViewportBbox], or null
 /// until the MapView is ready and the first viewport bounds settle.
 ///
 /// Subscribes to [MapView.viewportUpdates] and republishes the bounds
@@ -58,7 +58,7 @@ final mapViewportProvider = MapViewportProvider._();
 /// ## Throttling — leading edge + trailing tail
 ///
 /// `viewportUpdates` fires continuously during pan / pinch / zoom (every
-/// `notifyListeners()` from the MapLibre controller). The naive shape
+/// camera event of the map controller). The naive shape
 /// would call `queryViewportBounds` on every emission — too many
 /// platform-channel round-trips. The earlier debounce shape (50 ms quiet
 /// window before any refresh) had the opposite failure mode: during a
@@ -87,7 +87,7 @@ final mapViewportProvider = MapViewportProvider._();
 /// subscription when the drawer closes would drop events during the gap
 /// (same discipline as [`MapViewportZoom`]).
 final class MapViewportProvider extends $NotifierProvider<MapViewport, MirkViewportBbox?> {
-  /// Current MapLibre viewport bounds as a [MirkViewportBbox], or null
+  /// Current map viewport bounds as a [MirkViewportBbox], or null
   /// until the MapView is ready and the first viewport bounds settle.
   ///
   /// Subscribes to [MapView.viewportUpdates] and republishes the bounds
@@ -96,7 +96,7 @@ final class MapViewportProvider extends $NotifierProvider<MapViewport, MirkViewp
   /// ## Throttling — leading edge + trailing tail
   ///
   /// `viewportUpdates` fires continuously during pan / pinch / zoom (every
-  /// `notifyListeners()` from the MapLibre controller). The naive shape
+  /// camera event of the map controller). The naive shape
   /// would call `queryViewportBounds` on every emission — too many
   /// platform-channel round-trips. The earlier debounce shape (50 ms quiet
   /// window before any refresh) had the opposite failure mode: during a
@@ -142,7 +142,7 @@ final class MapViewportProvider extends $NotifierProvider<MapViewport, MirkViewp
 
 String _$mapViewportHash() => r'173dc7763c8ceb74150fe76cd715499c99d81978';
 
-/// Current MapLibre viewport bounds as a [MirkViewportBbox], or null
+/// Current map viewport bounds as a [MirkViewportBbox], or null
 /// until the MapView is ready and the first viewport bounds settle.
 ///
 /// Subscribes to [MapView.viewportUpdates] and republishes the bounds
@@ -151,7 +151,7 @@ String _$mapViewportHash() => r'173dc7763c8ceb74150fe76cd715499c99d81978';
 /// ## Throttling — leading edge + trailing tail
 ///
 /// `viewportUpdates` fires continuously during pan / pinch / zoom (every
-/// `notifyListeners()` from the MapLibre controller). The naive shape
+/// camera event of the map controller). The naive shape
 /// would call `queryViewportBounds` on every emission — too many
 /// platform-channel round-trips. The earlier debounce shape (50 ms quiet
 /// window before any refresh) had the opposite failure mode: during a

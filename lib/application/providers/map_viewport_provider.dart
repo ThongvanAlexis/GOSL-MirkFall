@@ -18,14 +18,14 @@ part 'map_viewport_provider.g.dart';
 /// subsequent emissions inside the window are coalesced into ONE trailing
 /// refresh that fires once the window expires. This keeps the bbox in
 /// near-realtime sync with pan / pinch / zoom gestures (BUG-005,
-/// 2026-04-25) while still capping MapLibre method-channel pressure.
+/// 2026-04-25) while still capping the adapter query pressure.
 ///
 /// 50 ms = 20 Hz, comfortably below the overlay's 60 Hz Ticker so the
 /// painter always reads a fresh-enough bbox without thrashing the
 /// platform call.
 const Duration _kViewportThrottleWindow = Duration(milliseconds: 50);
 
-/// Current MapLibre viewport bounds as a [MirkViewportBbox], or null
+/// Current map viewport bounds as a [MirkViewportBbox], or null
 /// until the MapView is ready and the first viewport bounds settle.
 ///
 /// Subscribes to [MapView.viewportUpdates] and republishes the bounds
@@ -34,7 +34,7 @@ const Duration _kViewportThrottleWindow = Duration(milliseconds: 50);
 /// ## Throttling — leading edge + trailing tail
 ///
 /// `viewportUpdates` fires continuously during pan / pinch / zoom (every
-/// `notifyListeners()` from the MapLibre controller). The naive shape
+/// camera event of the map controller). The naive shape
 /// would call `queryViewportBounds` on every emission — too many
 /// platform-channel round-trips. The earlier debounce shape (50 ms quiet
 /// window before any refresh) had the opposite failure mode: during a
@@ -77,7 +77,7 @@ class MapViewport extends _$MapViewport {
       (_) => _onEmission(view),
       onError: (Object _, StackTrace _) {
         // Phase 07 convention (mirrors [`MapViewportZoom`]): viewport
-        // stream errors are transient MapLibre callback ordering glitches.
+        // stream errors are transient map-engine callback ordering glitches.
         // Silently drop; the next successful update rewrites state.
       },
     );

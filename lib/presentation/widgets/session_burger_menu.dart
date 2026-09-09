@@ -175,7 +175,7 @@ class _PositionRow extends StatelessWidget {
   }
 }
 
-/// Current MapLibre zoom level (2 decimals). Surfaces in the drawer
+/// Current map zoom level (2 decimals). Surfaces in the drawer
 /// below the position row so users can report "the bug at zoom 12.4"
 /// in UX feedback. Reads from [`mapViewportZoomProvider`] — null until
 /// the first viewport event fires.

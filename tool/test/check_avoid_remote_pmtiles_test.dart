@@ -12,14 +12,15 @@ import '../check_avoid_remote_pmtiles.dart' as check_avoid_remote_pmtiles;
 /// Fixture-based tests for `tool/check_avoid_remote_pmtiles.dart`.
 ///
 /// Enforces the MAP-05 seam : no source file may embed a
-/// `pmtiles://http…` or `pmtiles://https…` URI. The only accepted tile
-/// scheme is `pmtiles://file:///…` (local-only). Scans `lib/`, `test/`,
-/// and `assets/` roots; the placeholder URI in `assets/maps/style.json`
-/// (`pmtiles://file:///YOUR_PMTILES_PATH_PLACEHOLDER`) does NOT match
-/// the http(s) pattern, so it stays clean.
+/// `pmtiles://http…` / `pmtiles://https…` URI, call
+/// `PmTilesArchive.fromUri(`, or pass an `http(s)://` literal to
+/// `fromSource(` / `from(` (Phase 09.1: the `pmtiles` package opens such
+/// sources with its HTTP reader). The only accepted access is a local
+/// file path (`PmTilesVectorTileProvider.fromSource(path)` with a
+/// variable). Scans `lib/`, `test/`, and `assets/` roots.
 ///
 /// Phase 01 CLI contract:
-///   - exit 0 : clean tree — no `pmtiles://http[s]` anywhere.
+///   - exit 0 : clean tree — none of the patterns anywhere.
 ///   - exit 1 : violation — one or more offending strings found.
 ///   - exit 2 : misconfiguration — no scan roots exist.
 const String _gosl = '''// Copyright (c) 2026 THONGVAN Alexis
@@ -88,6 +89,31 @@ void main() {
       // otherwise the whole catalog would be false-positive red.
       await File(p.join(assetsDir, 'catalog.json')).writeAsString(
         '{"countries":[{"alpha3":"fra","parts":[{"url":"https://github.com/ThongvanAlexis/countries-pmtiles/releases/download/v20260419/fra.part01"}]}]}\n',
+      );
+
+      final int code = await check_avoid_remote_pmtiles.runCheck(roots: <String>[libDir, testDir, assetsDir]);
+      expect(code, 0);
+    });
+
+    test('returns 1 when a .dart file calls PmTilesArchive.fromUri( (pmtiles HTTP reader, Phase 09.1)', () async {
+      await File(p.join(libDir, 'leaky.dart')).writeAsString('$_gosl\nfinal archive = await PmTilesArchive.fromUri(Uri.parse(remote));\n');
+
+      final int code = await check_avoid_remote_pmtiles.runCheck(roots: <String>[libDir, testDir, assetsDir]);
+      expect(code, 1);
+    });
+
+    test('returns 1 when a .dart file passes an https:// literal to fromSource( (routes to HttpAt)', () async {
+      await File(
+        p.join(libDir, 'leaky.dart'),
+      ).writeAsString('$_gosl\nfinal provider = await PmTilesVectorTileProvider.fromSource("https://tiles.example.com/world.pmtiles");\n');
+
+      final int code = await check_avoid_remote_pmtiles.runCheck(roots: <String>[libDir, testDir, assetsDir]);
+      expect(code, 1);
+    });
+
+    test('returns 0 when fromSource(path) receives a variable (the FlutterMapMapViewWidget shape)', () async {
+      await File(p.join(libDir, 'adapter.dart')).writeAsString(
+        '$_gosl\nfinal String path = await pmtilesSource.forCountry(country);\nfinal provider = await PmTilesVectorTileProvider.fromSource(path);\n',
       );
 
       final int code = await check_avoid_remote_pmtiles.runCheck(roots: <String>[libDir, testDir, assetsDir]);

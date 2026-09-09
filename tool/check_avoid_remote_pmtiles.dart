@@ -6,14 +6,26 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-/// CI gate enforcing the MAP-05 seam : no `pmtiles://http:` or
-/// `pmtiles://https:` URI may appear in any `.dart` source file or
-/// `.json` asset under `lib/`, `test/`, or `assets/`. The only accepted
-/// tile URI scheme is `pmtiles://file:///…` (local-only).
+/// CI gate enforcing the MAP-05 seam : no remote PMTiles access may
+/// appear in any `.dart` source file or `.json` asset under `lib/`,
+/// `test/`, or `assets/`:
+///
+/// - the legacy `pmtiles://http:` / `pmtiles://https:` URI scheme
+///   (Phase 07 MapLibre protocol handler);
+/// - `PmTilesArchive.fromUri(` — the `pmtiles` package's HTTP reader
+///   (`HttpAt`), Phase 09.1;
+/// - `.fromSource('http…` / `.from('http…` — `PmTilesVectorTileProvider`
+///   / `PmTilesArchive` route any `http(s)://` source to `HttpAt`.
+///
+/// The only accepted access is a local filesystem path resolved by
+/// `lib/infrastructure/map/pmtiles_source.dart` and handed to
+/// `PmTilesVectorTileProvider.fromSource(path)` (a variable, never a
+/// literal URL — Pitfall 12: without the two extra alternations the gate
+/// would have become inert once nothing emitted `pmtiles://` any more).
 ///
 /// Why this matters: MirkFall's V1.0 promise is "zero network for map
 /// tiles, ever" — the world bundle + per-country PMTiles both live on
-/// disk. A stray `pmtiles://https://…` URI would let MapLibre silently
+/// disk. A stray remote source would let the tile provider silently
 /// stream tiles over HTTPS, breaking airplane-mode UX and the Phase 08
 /// review-gate QUAL-05 smoke test. This scanner is cheap, deterministic,
 /// and catches the leak at lint time rather than at user-reported
@@ -27,16 +39,15 @@ import 'package:path/path.dart' as p;
 /// out-of-scope.
 ///
 /// The .json scan is whole-file (string search, not AST) because a
-/// MapLibre style.json embeds the source URL as a nested string value
+/// style.json embeds the source URL as a nested string value
 /// (`{"sources":{"…":{"url":"…"}}}`) that would be tedious to pick out
 /// via path-aware parsing. The pattern is narrow enough that a
 /// substring match is safe (no legitimate JSON value starts with
 /// `pmtiles://https`).
 ///
 /// CLI contract (Phase 01 convention):
-///   - exit 0 : clean — no `pmtiles://http[s]` anywhere in the scanned
-///     roots. This includes the placeholder `pmtiles://file:///…`
-///     URI in `assets/maps/style.json`.
+///   - exit 0 : clean — none of the three patterns anywhere in the
+///     scanned roots.
 ///   - exit 1 : violation — at least one offending string, emitted with
 ///     file path + line number + offending line on stderr.
 ///   - exit 2 : misconfiguration — every scan root is missing.
@@ -44,7 +55,7 @@ import 'package:path/path.dart' as p;
 /// Case-insensitive because a malicious or inattentive contributor could
 /// upper-case the scheme (`PMTILES://HTTPS:`) and dodge a
 /// case-sensitive regex. RegExp `caseSensitive: false` closes that hole.
-final RegExp _remotePattern = RegExp(r'pmtiles://https?:', caseSensitive: false);
+final RegExp _remotePattern = RegExp(r"""pmtiles://https?:|PmTilesArchive\.fromUri\(|\.(?:fromSource|from)\(\s*['"]https?://""", caseSensitive: false);
 
 const List<String> _defaultRoots = <String>['lib', 'test', 'assets'];
 
@@ -93,17 +104,19 @@ Future<int> runCheck({List<String>? roots}) async {
   }
 
   if (violations.isEmpty) {
-    stdout.writeln('check_avoid_remote_pmtiles: OK ($filesScanned file(s), zero pmtiles://http[s] URIs)');
+    stdout.writeln('check_avoid_remote_pmtiles: OK ($filesScanned file(s), zero pmtiles://http[s] URIs, zero PmTilesArchive.fromUri / fromSource(\'http…\'))');
     return 0;
   }
 
-  stderr.writeln('check_avoid_remote_pmtiles: ${violations.length} remote pmtiles URI(s) found:');
+  stderr.writeln('check_avoid_remote_pmtiles: ${violations.length} remote PMTiles access(es) found:');
   for (final String v in violations) {
     stderr.writeln('  $v');
   }
   stderr.writeln();
-  stderr.writeln('Rule (MAP-05): MirkFall ships 100 % offline. The only accepted tile URI scheme is `pmtiles://file:///…`.');
-  stderr.writeln('Replace the offending URI with a local-file path or route through lib/infrastructure/map/pmtiles_source.dart.');
+  stderr.writeln(
+    'Rule (MAP-05): MirkFall ships 100 % offline. No `pmtiles://http[s]` URI, no `PmTilesArchive.fromUri`, no `fromSource(\'http…\')` / `from(\'http…\')`:',
+  );
+  stderr.writeln('the only accepted PMTiles access is a local file path resolved by lib/infrastructure/map/pmtiles_source.dart.');
   return 1;
 }
 

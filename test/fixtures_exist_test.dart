@@ -55,13 +55,12 @@ void main() {
       expect(contents, contains('"type": "Polygon"'));
     });
 
-    test('assets/maps/glyphs/ + sprites/ exist (placeholder READMEs ship in 07-01)', () {
-      expect(Directory('assets/maps/glyphs').existsSync(), isTrue);
-      expect(Directory('assets/maps/sprites').existsSync(), isTrue);
-      // Phase 07-01 ships a placeholder README; Phase 07-06 will swap in
-      // real glyph PBF + sprite PNG files via tool/prepare_style.dart.
-      expect(File('assets/maps/glyphs/README.md').existsSync(), isTrue);
-      expect(File('assets/maps/sprites/README.md').existsSync(), isTrue);
+    test('assets/maps/glyphs/ + sprites/ are GONE (Phase 09.1: vector_tile_renderer needs neither, style.json has no glyphs / sprite keys)', () {
+      expect(Directory('assets/maps/glyphs').existsSync(), isFalse);
+      expect(Directory('assets/maps/sprites').existsSync(), isFalse);
+      final String style = File('assets/maps/style.json').readAsStringSync();
+      expect(style, isNot(contains('"glyphs"')));
+      expect(style, isNot(contains('"sprite"')));
     });
   });
 }

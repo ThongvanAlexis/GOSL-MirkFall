@@ -112,17 +112,13 @@ void main() {
 
         await container.read(mapCameraControllerProvider.notifier).openForSession(sid);
 
-        // Phase 07-07 (2026-04-22): openForSession no longer issues a
-        // camera-moving method-channel call — ANY such call in the
-        // post-style-load window throws a native C++ exception on iOS
-        // with maplibre_gl 0.25.0 (confirmed across 5 .ips files,
-        // bisection narrowed to camera ops). The initial camera
-        // positioning is now supplied via MapLibreMap's
-        // `initialCameraPosition` at widget-build time — see
-        // `_buildMapStack` in map_screen.dart. This test therefore
-        // asserts the SIDE EFFECTS openForSession is still responsible
-        // for (puck primed, follow-me on, state=Following) without
-        // asserting a camera move.
+        // openForSession issues no camera move on first open: the initial
+        // camera positioning is supplied through the map widget's
+        // `initialCamera` at build time — see `_buildMapStack` in
+        // map_screen.dart (Phase 07-07 decision, kept under flutter_map).
+        // This test therefore asserts the SIDE EFFECTS openForSession is
+        // still responsible for (puck primed, follow-me on,
+        // state=Following) without asserting a camera move.
         expect(fakeMapView.cameraMovesObserved, isEmpty);
         expect(fakeMapView.isFollowMeEnabled, isTrue);
         expect(container.read(mapCameraControllerProvider), isA<MapCameraFollowing>());
@@ -239,8 +235,8 @@ void main() {
       fake.pushFix(fix);
       await Future<void>.delayed(Duration.zero);
 
-      // Immediate viewport update — simulates MapLibre's onCameraIdle
-      // echoing our own moveCameraTo back to us.
+      // Immediate viewport update — simulates the adapter echoing our
+      // own moveCameraTo back on viewportUpdates.
       fakeMapView.pushViewport(latitude: 48.0, longitude: 2.0, zoom: kInitialSessionMapZoom.toDouble());
       await Future<void>.delayed(Duration.zero);
 

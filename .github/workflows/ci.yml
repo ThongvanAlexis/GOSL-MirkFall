@@ -229,9 +229,10 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          # Phase 07 — maplibre_gl 0.25.0 `:maplibre_gl:compileDebugJavaWithJavac`
-          # emits `source release: 21`; JDK 17 fails the compile. Bumped
-          # 2026-04-21 alongside the first APK build of Phase 07.
+          # JDK 21 was introduced in Phase 07 for a native map SDK that has
+          # since been removed (Phase 09.1: flutter_map is pure Dart). Kept
+          # for the AGP 8.x toolchain — harmless, and no native SDK requires
+          # it any more.
           java-version: '21'
 
       - name: Install Flutter

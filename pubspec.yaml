@@ -190,21 +190,21 @@ dependency_overrides:
 flutter:
   uses-material-design: true
 
-  # Phase 07 (Map Integration) — bundled map assets. The `assets/maps/`
-  # directory ships in the APK/IPA:
+  # Phase 07 (Map Integration) + Phase 09.1 (flutter_map engine) — bundled
+  # map assets. The `assets/maps/` directory ships in the APK/IPA:
   #   - world.pmtiles (Day-1 z0-2 world bundle, 856 KB)
   #   - catalog.json (192+ country catalog with GitHub Release download URLs)
-  #   - style.json (Protomaps basemaps neutral style with frozen 7-layer
-  #     order and `pmtiles://file:///…` placeholder rewritten at runtime)
-  #   - glyphs/ (Protomaps basemaps-assets fonts, OFL license)
-  #   - sprites/ (Protomaps basemaps-assets sprites, CC0 license)
+  #   - style.json (Protomaps-derived neutral style, frozen 6-layer order,
+  #     compiled once per theme by MapThemeLoader; no glyph packs / sprite
+  #     sheets —
+  #     vector_tile_renderer draws text with the platform font and ignores
+  #     `icon-image` without a SpriteStyle, so the Phase 07 placeholder
+  #     directories were dropped in plan 09.1-02)
   #   - polygons/ (simplified country bounding polygons for the resolver)
   # Every asset under `assets/maps/` — including recursive subdirectories —
   # is bundled via the explicit trailing-slash asset entry below.
   assets:
     - assets/maps/
-    - assets/maps/glyphs/
-    - assets/maps/sprites/
     - assets/maps/polygons/
 
   # Phase 09 BUG-009 (TIER 2) — volumetric fog fragment shader. Loaded

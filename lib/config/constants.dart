@@ -223,8 +223,8 @@ const String kCountryPolygonsAssetPath = 'assets/maps/polygons';
 /// Asset path for the Protomaps basemaps neutral style JSON (frozen
 /// 6-layer order: background / landcover / water / boundaries / roads /
 /// pois — see `kStyleLayerOrder`). Compiled once per `MapTheme` by
-/// `MapThemeLoader` (vector_tile_renderer `ThemeReader`); no glyphs, no
-/// sprite, and the `sources.mirkfall_map.url` is a documentary
+/// `MapThemeLoader` (vector_tile_renderer `ThemeReader`); no glyph packs,
+/// no sprite sheet, and the `sources.mirkfall_map.url` is a documentary
 /// placeholder — the PMTiles archive path resolved by `PmtilesSource`
 /// goes straight to the tile provider (Phase 09.1).
 const String kStyleJsonAssetPath = 'assets/maps/style.json';

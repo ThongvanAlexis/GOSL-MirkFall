@@ -84,7 +84,7 @@ void main() {
       for (final String path in results) {
         expect(p.isAbsolute(path), isTrue, reason: '$path must be absolute — PmTilesVectorTileProvider.fromSource routes it to FileAt');
         expect(path.toLowerCase(), isNot(startsWith('http')), reason: 'an http(s) prefix would make pmtiles open an HttpAt reader');
-        expect(path.toLowerCase(), isNot(startsWith('pmtiles://')), reason: 'the pmtiles:// URI scheme was a MapLibre protocol-handler artefact');
+        expect(path.toLowerCase(), isNot(startsWith('pmtiles://')), reason: 'the pmtiles:// URI scheme was a Phase 07 (MapLibre protocol handler) artefact');
         expect(path, endsWith('.pmtiles'));
       }
     });

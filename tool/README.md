@@ -75,10 +75,12 @@ never a `MapCamera`. Prevents accidental re-coupling to the SDK.
 ### `check_avoid_remote_pmtiles.dart`
 
 MAP-05 seam gate: scans every `.dart` / `.json` file under `lib/`, `test/`,
-and `assets/` for `pmtiles://http:` / `pmtiles://https:` URIs (the
-MapLibre PMTiles plugin scheme wrapping HTTP). Enforces the "zero network
-for map tiles" V1.0 promise at lint time rather than at user-reported bug
-time.
+and `assets/` for remote PMTiles access — the legacy `pmtiles://http:` /
+`pmtiles://https:` URI scheme, `PmTilesArchive.fromUri(` (the `pmtiles`
+package's HTTP reader) and `fromSource('http…` / `from('http…` literals
+(Phase 09.1). The only accepted access is a local file path resolved by
+`PmtilesSource`. Enforces the "zero network for map tiles" V1.0 promise
+at lint time rather than at user-reported bug time.
 
 ### `check_style_no_external_url.dart`
 
@@ -104,13 +106,6 @@ its sha256, and emits `lib/config/world_bundle_sha256.dart` with a single
 updated; the emitted file is committed alongside the asset bump. The
 first-launch world copier uses the const for a zero-cost integrity check
 at boot (closes 07-RESEARCH Open Question #5).
-
-### `prepare_style.dart`
-
-One-shot maintenance script that refreshes the bundled map glyphs +
-sprites from the upstream Protomaps basemaps-assets repository at a
-pinned commit SHA. Intentionally **not** run by CI — invoked manually
-when the upstream assets are updated.
 
 ### `simplify_polygons.dart`
 
