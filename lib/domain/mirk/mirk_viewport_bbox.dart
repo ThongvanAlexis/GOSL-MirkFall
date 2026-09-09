@@ -28,3 +28,9 @@ abstract class MirkViewportBbox with _$MirkViewportBbox {
   @Assert('west <= east || (west > 0 && east < 0)', 'MirkViewportBbox: east < west only permitted on antimeridian wrap')
   factory MirkViewportBbox({required double south, required double west, required double north, required double east}) = _MirkViewportBbox;
 }
+
+/// Widens [bbox] by [factor] × its height above and below and [factor] × its width on
+/// each side — the disc query of the `FogLayerConnector` fetches the ring around the
+/// viewport ahead of a pan (RESEARCH §7). Latitude is clamped to the Web Mercator
+/// limit; longitude wraps into `[-180, 180)`.
+MirkViewportBbox padMirkViewportBbox(MirkViewportBbox bbox, double factor) => throw UnimplementedError('09.1-07 Task 1 GREEN');
