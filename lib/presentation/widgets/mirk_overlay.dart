@@ -19,6 +19,7 @@ import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
+import 'package:mirkfall/infrastructure/mirk/fog_clip_geometry.dart';
 import 'package:mirkfall/infrastructure/mirk/mirk_projection.dart';
 
 final Logger _log = Logger('presentation.mirk_overlay');
@@ -215,8 +216,18 @@ class _MirkPainter extends CustomPainter {
   final List<RevealDisc> discs;
   final Fix? currentFix;
 
+  /// Applies the ONE fog clip per frame (plan 09.1-06: the renderers no longer
+  /// cut the reveal holes themselves — the layer hosting them does, exactly as
+  /// the `FogLayer` painter will) and delegates the paint to the renderer.
   @override
-  void paint(Canvas canvas, Size size) => renderer.paint(canvas, size, _buildPaintContext(size));
+  void paint(Canvas canvas, Size size) {
+    final MirkPaintContext context = _buildPaintContext(size);
+    canvas.save();
+    canvas.clipPath(buildFogClipPath(size: size, discs: context.discs, projectToScreen: context.projectToScreen, metersToPixels: context.metersToPixels));
+    renderer.update(context.sessionElapsed);
+    renderer.paint(canvas, size, context);
+    canvas.restore();
+  }
 
   /// Builds the extended [MirkPaintContext] for the canvas [size] handed to
   /// [paint] — the projection closures need the real canvas size, which the

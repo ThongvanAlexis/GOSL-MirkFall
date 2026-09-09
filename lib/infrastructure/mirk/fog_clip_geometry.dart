@@ -44,7 +44,22 @@ Path buildFogClipPath({
   final Rect viewportRect = Rect.fromLTWH(-canvasOffset.dx, -canvasOffset.dy, size.width, size.height);
   final Path worldPath = Path()..addRect(viewportRect);
   if (discs.isEmpty) return worldPath;
+  final Path holesPath = buildFogHoleOutlinePath(discs: discs, projectToScreen: projectToScreen, metersToPixels: metersToPixels, canvasOffset: canvasOffset);
+  return Path.combine(PathOperation.difference, worldPath, holesPath);
+}
 
+/// The reveal discs alone — one oval contour per disc, same projection and
+/// metric radius as [buildFogClipPath] (Phase 09.1-06).
+///
+/// The `FogLayer` clip already cuts the holes out of the frame; the renderers
+/// use this outline to FEATHER the cut (a blurred stroke along it), so both
+/// paths agree on the edge to the pixel. Empty [discs] → empty path.
+Path buildFogHoleOutlinePath({
+  required List<RevealDisc> discs,
+  required ScreenProjector projectToScreen,
+  required MetersToPixels metersToPixels,
+  Offset canvasOffset = Offset.zero,
+}) {
   final Path holesPath = Path();
   for (final RevealDisc disc in discs) {
     final GeoPoint discCentre = (latitude: disc.lat, longitude: disc.lon);
@@ -52,5 +67,5 @@ Path buildFogClipPath({
     final double holeRadiusPx = metersToPixels(disc.radiusMeters, atLatitude: disc.lat);
     holesPath.addOval(Rect.fromCircle(center: holeCentre, radius: holeRadiusPx));
   }
-  return Path.combine(PathOperation.difference, worldPath, holesPath);
+  return holesPath;
 }

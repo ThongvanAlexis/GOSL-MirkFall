@@ -3,18 +3,29 @@
 // See LICENSE file for details
 
 import 'dart:math' as math;
-import 'dart:ui' show BlurStyle, Canvas, Color, Gradient, MaskFilter, Offset, Paint, PaintingStyle, Size;
+import 'dart:ui' show Canvas, Color, Gradient, Offset, Paint, PaintingStyle, Rect, Size;
 
 import 'package:logging/logging.dart';
+import 'package:mirkfall/domain/fixes/fix.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 
-import 'mirk_projection.dart';
+import 'fog_edge_feather.dart';
 import 'noise/simplex_noise_2d.dart';
-import 'tile_cell_iteration.dart';
 
 final Logger _log = Logger('infrastructure.mirk.candlelight');
+
+/// Base feather width in logical pixels before the fraction / pixel-ratio scaling.
+const double _kBaseFeatherPx = 4.0;
+
+/// Flicker amplitude around `baselineAlpha` (±7 %): fast enough to read as
+/// "flame", not so strong it strobes.
+const double _kFlickerAlphaAmplitude = 0.07;
+
+/// Time multiplier of the flicker noise relative to `noiseSpeed` — the
+/// candle oscillates an order of magnitude faster than the cloud drift.
+const double _kFlickerTimeMultiplier = 10.0;
 
 /// Warm-glow candlelight fog renderer — radial gradient anchored on
 /// the current GPS fix (or viewport centre when no fix is yet available),
@@ -24,37 +35,28 @@ final Logger _log = Logger('infrastructure.mirk.candlelight');
 /// drift gives a "dancing flame" feel; the radial gradient produces
 /// the "lit room with a candle in the middle" composition.
 ///
-/// ## Glow centre
+/// ## Glow centre (Phase 09.1: exact camera projection)
 ///
-/// `context.currentFix` (when present) is projected to screen space via
-/// [MirkProjection.latLonToScreen] and used as the gradient centre.
-/// When `currentFix == null` (no fix yet — early session, lost signal),
-/// the gradient falls back to the canvas centre `(size.width / 2,
-/// size.height / 2)`. This matches the user's expectation that the
-/// glow always has a visible centre, never disappears.
+/// `context.currentFix` (when present) is projected to screen space through
+/// `context.projectToScreen` — the single per-paint `MapCamera` snapshot the
+/// `FogLayer` hands out (FOG-07), so the glow sits exactly where the map
+/// draws the puck. When `currentFix == null` (no fix yet — early session,
+/// lost signal), the gradient falls back to the canvas centre
+/// `(size.width / 2, size.height / 2)`. This matches the user's expectation
+/// that the glow always has a visible centre, never disappears.
 ///
 /// ## Flicker
 ///
 /// `_noise.noise2(0.0, tSec * noiseSpeed * 10)` is sampled per frame
 /// (1D-style flicker — the y-axis carries time, the x-axis is static).
-/// The flicker amplitude is ±7% of `baselineAlpha`, fast enough to
-/// read as "flame" but not so fast it becomes strobing.
+/// The flicker amplitude is ±7% of `baselineAlpha`.
 ///
-/// ## BUG-003 (2026-04-25): single viewport-level path
+/// ## Phase 09.1 (plan 09.1-06): the `FogLayer` owns the clip
 ///
-/// Like the atmospheric and heavenly_clouds variants, candlelight now
-/// composes a single viewport-wide fog path and emits ONE
-/// `canvas.drawPath` per frame. The radial gradient covers the whole
-/// canvas; the path carves out the union of revealed discs (BUG-010
-/// Option B Commit 5 — continuous geometry replaces the cell-bitmap
-/// hole rectangles).
-///
-/// ## BUG-006 (2026-04-25): rounded reveal corners
-///
-/// Switched `BlurStyle.inner` → `BlurStyle.normal` so the hole edges
-/// blur in BOTH directions. With Commit 5's continuous-geometry clip
-/// path the disc silhouette is already mathematically circular; the
-/// `BlurStyle.normal` feather adds the soft watercolour edge.
+/// [paint] assumes the clipped identity frame the `FogLayer` provides — the
+/// reveal holes are already cut, so the gradient fills `Offset.zero & size`
+/// and [paintFogBodyWithFeatheredEdges] rounds the cut (BUG-006) with a
+/// blurred stroke along the hole outline.
 class CandlelightMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config] and an optional [seed] for
   /// the internal flicker-noise generator.
@@ -70,7 +72,7 @@ class CandlelightMirkRenderer implements MirkRenderer {
   /// BUG-009 follow-up diagnostic (2026-04-26) — see the atmospheric
   /// renderer for the rationale. Mirrored here because the user MAY
   /// have selected the candlelight builtin instead of atmospheric, and
-  /// in that case all four early-return paths below would otherwise
+  /// in that case the early-return path below would otherwise
   /// produce zero log output.
   String? _lastEarlyReturnReason;
   bool _firstPaintLogged = false;
@@ -82,6 +84,9 @@ class CandlelightMirkRenderer implements MirkRenderer {
     _lastEarlyReturnReason = reason;
   }
 
+  /// Paints the radial glow over the whole frame, then feathers the reveal
+  /// edges. Assumes the clipped identity frame provided by the `FogLayer`
+  /// (Phase 09.1); the glow centre comes from `context.projectToScreen`.
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
     if (!_firstPaintLogged) {
@@ -97,24 +102,16 @@ class CandlelightMirkRenderer implements MirkRenderer {
       _logEarlyReturnTransition('disposed');
       return;
     }
-    // BUG-013 fix: do NOT early-return on empty discs. When the user pans
-    // away from the revealed area, all discs fall outside the viewport →
-    // discsInBbox returns []. The correct behaviour is FULL FOG (entire
-    // viewport covered), not "skip rendering" which shows a clear map.
-    // buildViewportFogClipPathFromDiscs handles empty discs correctly by
-    // returning the viewport rect (= everything is fog, nothing revealed).
+    _logEarlyReturnTransition('none');
+    // BUG-013: an empty disc list means the user panned away from the
+    // revealed area → FULL FOG (the layer's clip is then the whole rect).
 
     final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
     // Flicker noise sampled along time only — gives the
     // "single oscillating flame brightness" effect.
-    final flicker = _noise.noise2(0.0, tSec * config.noiseSpeed * 10.0);
+    final flicker = _noise.noise2(0.0, tSec * config.noiseSpeed * _kFlickerTimeMultiplier);
 
-    // Centre of the radial gradient: GPS fix when available, viewport
-    // centre as fallback. The fallback keeps the user UX coherent
-    // before the first fix lands (or after a signal loss).
-    final centre = context.currentFix != null
-        ? MirkProjection.latLonToScreen(lat: context.currentFix!.latitude, lon: context.currentFix!.longitude, viewport: context.viewportBbox, size: size)
-        : Offset(size.width / 2, size.height / 2);
+    final Offset centre = _glowCentre(size, context);
 
     // Glow radius — half the canvas diagonal so the gradient covers the
     // entire canvas even when centred at a corner. The radial fade does
@@ -123,8 +120,7 @@ class CandlelightMirkRenderer implements MirkRenderer {
     final diagonalSquared = size.width * size.width + size.height * size.height;
     final radius = diagonalSquared == 0 ? 1.0 : 0.5 * math.sqrt(diagonalSquared);
 
-    // Modulate alpha by ±7% around the configured baseline.
-    final alpha = (config.baselineAlpha + flicker * 0.07).clamp(0.0, 1.0);
+    final alpha = (config.baselineAlpha + flicker * _kFlickerAlphaAmplitude).clamp(0.0, 1.0);
     final aMul = (alpha * 255).round() / 255.0;
 
     final centerColor = _applyAlpha(config.centerColorArgb, aMul);
@@ -134,27 +130,29 @@ class CandlelightMirkRenderer implements MirkRenderer {
     // (canvas.height / 64) so the soft edge matched a single grid cell.
     // Post-Commit-5 the reveal silhouette is continuous geometry, so the
     // feather scales to a fixed 4 px base and `featherRadiusFraction`
-    // tunes the actual blur. See atmospheric renderer for the same
-    // rationale.
-    const baseFeatherPx = 4.0;
-    final featherSigma = baseFeatherPx * config.featherRadiusFraction * context.pixelRatio;
+    // tunes the actual blur.
+    final featherSigma = _kBaseFeatherPx * config.featherRadiusFraction * context.pixelRatio;
 
     final shader = Gradient.radial(centre, radius, <Color>[centerColor, peripheryColor], <double>[0.0, 1.0]);
-    final paint = Paint()
+    final Paint bodyPaint = Paint()
       ..shader = shader
-      ..style = PaintingStyle.fill
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
+      ..style = PaintingStyle.fill;
+    paintFogBodyWithFeatheredEdges(
+      canvas: canvas,
+      size: size,
+      context: context,
+      featherSigma: featherSigma,
+      paintBody: (Canvas canvas, Rect viewport) => canvas.drawRect(viewport, bodyPaint),
+    );
+  }
 
-    // BUG-010 Option B Commit 5 — single canonical disc-based clip path
-    // (the per-tile bitmap helper retired with the rest of the cell
-    // surface).
-    final path = buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
-    if (path.getBounds().isEmpty) {
-      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible region fully revealed?)');
-      return;
-    }
-    _logEarlyReturnTransition('none');
-    canvas.drawPath(path, paint);
+  /// Centre of the radial gradient: the GPS fix projected through the camera
+  /// snapshot when available, the canvas centre as fallback. The fallback
+  /// keeps the UX coherent before the first fix lands (or after a signal loss).
+  static Offset _glowCentre(Size size, MirkPaintContext context) {
+    final Fix? fix = context.currentFix;
+    if (fix == null) return Offset(size.width / 2, size.height / 2);
+    return context.projectToScreen((latitude: fix.latitude, longitude: fix.longitude));
   }
 
   /// Multiplies the alpha byte of a packed ARGB integer by [factor]

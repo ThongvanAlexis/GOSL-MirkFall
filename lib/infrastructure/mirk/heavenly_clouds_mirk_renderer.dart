@@ -4,8 +4,8 @@
 
 import 'dart:async' show Timer;
 import 'dart:math' as math;
-import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
-import 'dart:ui' show BlendMode, BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Size;
+import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image;
+import 'dart:ui' show BlendMode, Canvas, Color, Offset, Paint, PaintingStyle, Rect, Size;
 
 import 'package:logging/logging.dart';
 import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
@@ -17,12 +17,12 @@ import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
 import 'animation_helpers.dart';
+import 'fog_edge_feather.dart';
 import 'noise/simplex_noise_2d.dart';
 import 'sdf/sdf_cache.dart';
 import 'sdf_rebuild_logger.dart';
 import 'shader/fog_shader_renderer.dart';
 import 'shader/fog_shader_service.dart';
-import 'tile_cell_iteration.dart';
 import 'wisp/wisp_particle.dart';
 import 'wisp/wisp_particle_system.dart';
 import 'wisp/wisp_transform_logger.dart';
@@ -35,6 +35,18 @@ const double _kSeedTimeJitter = 0.137;
 
 /// Wisp tint (palette constant kept as an int in `constants.dart`).
 const Color _kWispTint = Color(kMirkWispTintHeavenlyArgb);
+
+/// Base feather width in logical pixels before the fraction / pixel-ratio scaling.
+const double _kBaseFeatherPx = 4.0;
+
+/// Heavenly fallback feather fraction — a slightly larger feather than
+/// atmospheric: clouds are softer-edged than thick fog. Matches the
+/// pre-Commit-5 semantics (was scaled to the bitmap cell size; now to the
+/// fixed 4 px base so the visual feel is preserved without a cell dependency).
+const double _kFallbackFeatherFraction = 0.15;
+
+/// Amplitude of the fallback path's per-frame alpha jitter (±10 %).
+const double _kFallbackAlphaJitter = 0.10;
 
 /// Heavenly clouds — TIER 2 shader-driven (BUG-009 fix).
 ///
@@ -49,6 +61,13 @@ const Color _kWispTint = Color(kMirkWispTintHeavenlyArgb);
 /// (shader path + fallback path, `SdfCache` behind the viewport
 /// debounce, per-disc wisp emergence). The structure of this class
 /// is parallel — only the uniform values + wisp tint differ.
+///
+/// ## Phase 09.1 (plan 09.1-06): the `FogLayer` owns the clip
+///
+/// [paint] assumes the clipped identity frame the `FogLayer` provides — ONE
+/// `clipPath(rect − discs)` per frame, shared by the four builtin variants.
+/// The renderer never clips: the shader rect, the fallback body and the
+/// wisps all paint `Offset.zero & size` and the layer's clip cuts the holes.
 class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// Constructs the renderer with [config], an optional [seed] for
   /// per-instance shader perturbation, an injected [shaderService],
@@ -168,14 +187,8 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     // BUG-013 fix: do NOT early-return on empty discs. When the user pans
     // away from the revealed area, all discs fall outside the viewport →
     // discsInBbox returns []. The correct behaviour is FULL FOG (entire
-    // viewport covered), not "skip rendering" which shows a clear map.
-    // buildViewportFogClipPathFromDiscs handles empty discs correctly by
-    // returning the viewport rect (= everything is fog, nothing revealed).
-    final path = buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
-    if (path.getBounds().isEmpty) {
-      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible region fully revealed?)');
-      return;
-    }
+    // viewport covered), not "skip rendering" which shows a clear map. The
+    // FogLayer's clip is then the whole viewport rect.
     _logEarlyReturnTransition('none');
     _shader ??= _shaderService.obtainShaderSync();
     _refreshSdfIfNeeded(context);
@@ -187,9 +200,9 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     // Shader path needs a resolved SDF; the seam reports `false` when the
     // shader itself is unavailable (still loading / load failed) → CPU
     // fallback: solid fog at base palette colour, no noise, no animation.
-    final bool painted = sdf != null && _paintShaderPath(canvas, size, context, path, sdf);
+    final bool painted = sdf != null && _paintShaderPath(canvas, size, context, sdf);
     if (!painted) {
-      _paintFallbackPath(canvas, size, context, path);
+      _paintFallbackPath(canvas, size, context);
     }
     final pathThisFrame = painted ? 'shader' : 'fallback';
     if (pathThisFrame != _lastLoggedPath) {
@@ -207,11 +220,8 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     _paintCallCount++;
 
     // Wisps render LAST — additive over the fog body, after the shader rect, in the FogLayer's
-    // clipped identity frame (POC order). The renderer-side fog clip stays until 09.1-06.
-    canvas.save();
-    canvas.clipPath(path);
+    // clipped identity frame (POC order).
     _renderWisps(canvas, context);
-    canvas.restore();
   }
 
   /// BUG-009 follow-up diagnostic (2026-04-26). Duplicated from the
@@ -296,10 +306,11 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     );
   }
 
-  /// Shader path — clips to the fog path and delegates uniform population +
-  /// the viewport-filling `drawRect` to the injected [FogShaderRenderer].
-  /// Returns `false` when nothing was drawn (shader still loading / failed)
-  /// so [paint] falls back to the CPU path.
+  /// Shader path — delegates uniform population + the viewport-filling
+  /// `drawRect` to the injected [FogShaderRenderer], in the FogLayer's
+  /// clipped identity frame (no clip here). Returns `false` when nothing was
+  /// drawn (shader still loading / failed) so [paint] falls back to the CPU
+  /// path.
   ///
   /// Reads every runtime-tunable parameter from [MirkRuntimeTunables.instance]
   /// (not the const literal) so the in-app tuner scrubs each value live;
@@ -308,7 +319,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// the FogLayer already applied the platform corrections (FOG-21 / FOG-23),
   /// and there is no viewport → SDF remapping any more (BUG-014 closed by
   /// construction, not by a rect).
-  bool _paintShaderPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path, ui.Image sdf) {
+  bool _paintShaderPath(Canvas canvas, Size size, MirkPaintContext context, ui.Image sdf) {
     final tSec = context.sessionElapsed.inMicroseconds / Duration.microsecondsPerSecond;
     // Per-instance perturbation: a seed-dependent uTime offset so
     // different-seed renderers produce different shader output.
@@ -345,9 +356,7 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
       FogShaderTunableKey.boundaryEdgeBand: t.boundaryEdgeBand,
       FogShaderTunableKey.boundaryDensityBoost: t.boundaryDensityBoost,
     };
-    canvas.save();
-    canvas.clipPath(path);
-    final bool painted = _shaderRenderer.render(
+    return _shaderRenderer.render(
       canvas: canvas,
       shader: _shader,
       size: size,
@@ -362,32 +371,32 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
       shadowArgb: kMirkFogHeavenlyShadowColorArgb,
       tunables: tunables,
     );
-    canvas.restore();
-    return painted;
   }
 
-  void _paintFallbackPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path) {
+  /// Fallback path — base palette colour over the whole frame with the
+  /// shared edge feather; alpha jittered per frame by the CPU noise so the
+  /// clouds still "breathe" while the shader / SDF are unavailable.
+  void _paintFallbackPath(Canvas canvas, Size size, MirkPaintContext context) {
     final r = (kMirkFogHeavenlyBaseColorArgb >> 16) & 0xFF;
     final g = (kMirkFogHeavenlyBaseColorArgb >> 8) & 0xFF;
     final b = kMirkFogHeavenlyBaseColorArgb & 0xFF;
-    // Heavenly fallback uses a slightly larger feather than atmospheric
-    // — clouds are softer-edged than thick fog. 0.15 multiplier matches
-    // pre-Commit-5 semantics (was scaled to bitmap cell size; now to a
-    // fixed 4 px base so the visual feel is preserved without a
-    // bitmap-cell dependency).
-    const baseFeatherPx = 4.0;
-    final featherSigma = baseFeatherPx * 0.15 * context.pixelRatio;
+    final featherSigma = _kBaseFeatherPx * _kFallbackFeatherFraction * context.pixelRatio;
     final tSec = context.sessionElapsed.inMilliseconds / 1000.0;
     final radians = config.driftDirectionDeg * math.pi / 180.0;
     final driftX = math.cos(radians);
     final driftY = -math.sin(radians);
     final noiseSample = _noise.noise2(tSec * config.noiseSpeed * driftX, tSec * config.noiseSpeed * driftY);
-    final alpha = (config.baselineAlpha + noiseSample * 0.10).clamp(0.0, 1.0);
-    final paint = Paint()
+    final alpha = (config.baselineAlpha + noiseSample * _kFallbackAlphaJitter).clamp(0.0, 1.0);
+    final Paint bodyPaint = Paint()
       ..color = Color.fromARGB((alpha * 255).round(), r, g, b)
-      ..style = PaintingStyle.fill
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
-    canvas.drawPath(path, paint);
+      ..style = PaintingStyle.fill;
+    paintFogBodyWithFeatheredEdges(
+      canvas: canvas,
+      size: size,
+      context: context,
+      featherSigma: featherSigma,
+      paintBody: (Canvas canvas, Rect viewport) => canvas.drawRect(viewport, bodyPaint),
+    );
   }
 
   /// Decides whether the SDF must be (re)built for this paint.

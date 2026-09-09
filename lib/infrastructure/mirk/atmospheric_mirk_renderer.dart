@@ -4,8 +4,8 @@
 
 import 'dart:async' show Timer;
 import 'dart:math' as math;
-import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, Path;
-import 'dart:ui' show BlendMode, BlurStyle, Canvas, Color, MaskFilter, Offset, Paint, PaintingStyle, Size;
+import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image;
+import 'dart:ui' show BlendMode, Canvas, Color, Offset, Paint, PaintingStyle, Rect, Size;
 
 import 'package:logging/logging.dart';
 import 'package:mirkfall/application/tunables/mirk_runtime_tunables.dart';
@@ -17,12 +17,12 @@ import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 
 import 'animation_helpers.dart';
+import 'fog_edge_feather.dart';
 import 'noise/simplex_noise_2d.dart';
 import 'sdf/sdf_cache.dart';
 import 'sdf_rebuild_logger.dart';
 import 'shader/fog_shader_renderer.dart';
 import 'shader/fog_shader_service.dart';
-import 'tile_cell_iteration.dart';
 import 'wisp/wisp_particle.dart';
 import 'wisp/wisp_particle_system.dart';
 import 'wisp/wisp_transform_logger.dart';
@@ -35,6 +35,13 @@ const double _kSeedTimeJitter = 0.137;
 
 /// Wisp tint (palette constant kept as an int in `constants.dart`).
 const Color _kWispTint = Color(kMirkWispTintAtmosphericArgb);
+
+/// Base feather width in logical pixels before the fraction / pixel-ratio scaling.
+const double _kBaseFeatherPx = 4.0;
+
+/// Amplitude of the fallback path's per-frame alpha jitter (±3 % — barely
+/// visible, enough for the seed-discrimination regression test).
+const double _kFallbackAlphaJitter = 0.03;
 
 /// Atmospheric volumetric fog — TIER 2 shader-driven (BUG-009 fix).
 ///
@@ -49,17 +56,24 @@ const Color _kWispTint = Color(kMirkWispTintAtmosphericArgb);
 /// 1. **Shader path** (preferred): when [FogShaderService.load] succeeds
 ///    AND the `SdfCache` has resolved an SDF for the disc list / viewport,
 ///    the renderer issues ONE `canvas.drawRect(viewport, Paint()..shader =
-///    fragmentShader)` clipped to the fog path. The shader handles all
-///    7 TIER 2 quality dimensions; the boundary watercolour falloff
-///    inside the shader supersedes the previous `MaskFilter.blur` on
-///    the host Paint.
+///    fragmentShader)`. The shader handles all 7 TIER 2 quality
+///    dimensions; the boundary watercolour falloff inside the shader
+///    supersedes any `MaskFilter.blur` feather.
 ///
 /// 2. **Fallback path**: when the shader load fails (invalid asset,
 ///    Impeller blocklist, etc.) OR while waiting for the first SDF
 ///    build, the renderer paints a uniform solid fog using the base
-///    palette colour at the configured baseline alpha. No noise, no
-///    animation — see class docstring history before BUG-010 Option B
-///    Commit 5 collapsed the dual visibleTiles/discs input.
+///    palette colour at the configured baseline alpha, with the shared
+///    edge feather. No noise, no animation — see class docstring history
+///    before BUG-010 Option B Commit 5 collapsed the dual
+///    visibleTiles/discs input.
+///
+/// ## Phase 09.1 (plan 09.1-06): the `FogLayer` owns the clip
+///
+/// [paint] assumes the clipped identity frame the `FogLayer` provides — ONE
+/// `clipPath(rect − discs)` per frame, shared by the four builtin variants.
+/// The renderer never clips: the shader rect, the fallback body and the
+/// wisps all paint `Offset.zero & size` and the layer's clip cuts the holes.
 ///
 /// ## Wisp emergence (BUG-010 Option B Commit 5, world-anchored since 09.1-05)
 ///
@@ -203,16 +217,8 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     // BUG-013 fix: do NOT early-return on empty discs. When the user pans
     // away from the revealed area, all discs fall outside the viewport →
     // discsInBbox returns []. The correct behaviour is FULL FOG (entire
-    // viewport covered), not "skip rendering" which shows a clear map.
-    // buildViewportFogClipPathFromDiscs handles empty discs correctly by
-    // returning the viewport rect (= everything is fog, nothing revealed).
-
-    // BUG-010 Option B Commit 5: single canonical disc-based clip path.
-    final path = buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
-    if (path.getBounds().isEmpty) {
-      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible region fully revealed?)');
-      return;
-    }
+    // viewport covered), not "skip rendering" which shows a clear map. The
+    // FogLayer's clip is then the whole viewport rect.
     _logEarlyReturnTransition('none');
 
     // Try to materialise the shader. The first frames after construction
@@ -232,9 +238,9 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     // Shader path needs a resolved SDF; the seam reports `false` when the
     // shader itself is unavailable (still loading / load failed) → CPU
     // fallback: solid fog at base palette colour, no noise, no animation.
-    final bool painted = sdf != null && _paintShaderPath(canvas, size, context, path, sdf);
+    final bool painted = sdf != null && _paintShaderPath(canvas, size, context, sdf);
     if (!painted) {
-      _paintFallbackPath(canvas, size, context, path);
+      _paintFallbackPath(canvas, size, context);
     }
     final pathThisFrame = painted ? 'shader' : 'fallback';
     if (pathThisFrame != _lastLoggedPath) {
@@ -252,11 +258,8 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     _paintCallCount++;
 
     // Wisps render LAST — additive over the fog body, after the shader rect, in the FogLayer's
-    // clipped identity frame (POC order). The renderer-side fog clip stays until 09.1-06.
-    canvas.save();
-    canvas.clipPath(path);
+    // clipped identity frame (POC order).
     _renderWisps(canvas, context);
-    canvas.restore();
   }
 
   /// BUG-009 follow-up diagnostic (2026-04-26) — emits an INFO log only
@@ -342,13 +345,11 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     );
   }
 
-  /// Shader path — clip to fog path, draw a viewport-filling rect with
-  /// the FragmentShader-bound Paint. The shader handles all visual
-  /// dimensions internally.
-  /// Shader path — clips to the fog path and delegates uniform population +
-  /// the viewport-filling `drawRect` to the injected [FogShaderRenderer].
-  /// Returns `false` when nothing was drawn (shader still loading / failed)
-  /// so [paint] falls back to the CPU path.
+  /// Shader path — delegates uniform population + the viewport-filling
+  /// `drawRect` to the injected [FogShaderRenderer], in the FogLayer's
+  /// clipped identity frame (no clip here). Returns `false` when nothing was
+  /// drawn (shader still loading / failed) so [paint] falls back to the CPU
+  /// path.
   ///
   /// Reads every runtime-tunable parameter from [MirkRuntimeTunables.instance]
   /// (not the const literal) so the in-app tuner scrubs each value live;
@@ -357,7 +358,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
   /// the FogLayer already applied the platform corrections (FOG-21 / FOG-23),
   /// and there is no viewport → SDF remapping any more (BUG-014 closed by
   /// construction, not by a rect).
-  bool _paintShaderPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path, ui.Image sdf) {
+  bool _paintShaderPath(Canvas canvas, Size size, MirkPaintContext context, ui.Image sdf) {
     final tSec = context.sessionElapsed.inMicroseconds / Duration.microsecondsPerSecond;
     // Per-instance perturbation: a seed-dependent uTime offset so
     // different-seed renderers produce different shader output.
@@ -393,9 +394,7 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       FogShaderTunableKey.boundaryEdgeBand: t.boundaryEdgeBand,
       FogShaderTunableKey.boundaryDensityBoost: t.boundaryDensityBoost,
     };
-    canvas.save();
-    canvas.clipPath(path);
-    final bool painted = _shaderRenderer.render(
+    return _shaderRenderer.render(
       canvas: canvas,
       shader: _shader,
       size: size,
@@ -410,16 +409,15 @@ class AtmosphericMirkRenderer implements MirkRenderer {
       shadowArgb: kMirkFogAtmosphericShadowColorArgb,
       tunables: tunables,
     );
-    canvas.restore();
-    return painted;
   }
 
-  /// Fallback path — solid base palette colour with feather. No
-  /// animation, no noise. Pre-BUG-009 the renderer painted a tileable
-  /// noise-image overlay here (BUG-004 fix), but that was the very
-  /// "cheap noise sliding" the TIER 2 shader replaces — keeping it as
-  /// a fallback would re-introduce the cosmetic regression.
-  void _paintFallbackPath(Canvas canvas, Size size, MirkPaintContext context, ui.Path path) {
+  /// Fallback path — solid base palette colour over the whole frame, with
+  /// the shared edge feather. No animation, no noise. Pre-BUG-009 the
+  /// renderer painted a tileable noise-image overlay here (BUG-004 fix),
+  /// but that was the very "cheap noise sliding" the TIER 2 shader
+  /// replaces — keeping it as a fallback would re-introduce the cosmetic
+  /// regression.
+  void _paintFallbackPath(Canvas canvas, Size size, MirkPaintContext context) {
     final r = (kMirkFogAtmosphericBaseColorArgb >> 16) & 0xFF;
     final g = (kMirkFogAtmosphericBaseColorArgb >> 8) & 0xFF;
     final b = kMirkFogAtmosphericBaseColorArgb & 0xFF;
@@ -427,12 +425,9 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     // Feather sigma — pre-Commit-5 this scaled to the bitmap cell size
     // (canvas.height / 64) so the soft edge matched a single grid cell.
     // Post-Commit-5 the reveal silhouette is continuous geometry, so the
-    // feather scales to a small fraction of the canvas dimension. The
-    // numerator (canvas height / kRevealedTileParentZoom heuristic) is
-    // gone; we use a fixed 4 px base and let `featherRadiusFraction`
-    // tune the actual blur.
-    const baseFeatherPx = 4.0;
-    final featherSigma = baseFeatherPx * config.featherRadiusFraction * context.pixelRatio;
+    // feather scales to a fixed 4 px base and `featherRadiusFraction`
+    // tunes the actual blur.
+    final featherSigma = _kBaseFeatherPx * config.featherRadiusFraction * context.pixelRatio;
 
     // Tiny per-frame alpha jitter sourced from the CPU noise generator
     // — gives the regression test "different seeds produce different
@@ -442,12 +437,17 @@ class AtmosphericMirkRenderer implements MirkRenderer {
     final driftX = math.cos(radians);
     final driftY = -math.sin(radians);
     final noiseSample = _noise.noise2(tSec * config.noiseSpeed * driftX, tSec * config.noiseSpeed * driftY);
-    final alpha = (config.densityBaselineAlpha + noiseSample * 0.03).clamp(0.0, 1.0);
-    final paint = Paint()
+    final alpha = (config.densityBaselineAlpha + noiseSample * _kFallbackAlphaJitter).clamp(0.0, 1.0);
+    final Paint bodyPaint = Paint()
       ..color = Color.fromARGB((alpha * 255).round(), r, g, b)
-      ..style = PaintingStyle.fill
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
-    canvas.drawPath(path, paint);
+      ..style = PaintingStyle.fill;
+    paintFogBodyWithFeatheredEdges(
+      canvas: canvas,
+      size: size,
+      context: context,
+      featherSigma: featherSigma,
+      paintBody: (Canvas canvas, Rect viewport) => canvas.drawRect(viewport, bodyPaint),
+    );
   }
 
   /// Decides whether the SDF must be (re)built for this paint.

@@ -2,14 +2,14 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-import 'dart:ui' show BlurStyle, Canvas, Color, MaskFilter, Paint, PaintingStyle, Size;
+import 'dart:ui' show Canvas, Color, Paint, PaintingStyle, Rect, Size;
 
 import 'package:logging/logging.dart';
 import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 
-import 'tile_cell_iteration.dart';
+import 'fog_edge_feather.dart';
 
 final Logger _log = Logger('infrastructure.mirk.solid_fill');
 
@@ -25,11 +25,14 @@ final Logger _log = Logger('infrastructure.mirk.solid_fill');
 /// derives from a fixed 4-px base instead of a grid-cell pixel size.
 const double _kSolidFeatherCellFraction = 0.1;
 
+/// Base feather width in logical pixels before the fraction / pixel-ratio scaling.
+const double _kBaseFeatherPx = 4.0;
+
 /// Flat solid-color fog renderer — no noise, no animation.
 ///
 /// MIRK-06 builtin variant. The minimalist proof-of-seam: if Atmospheric
 /// works and Solid works, the renderer factory + `MirkPaintContext`
-/// + tile-cell-iteration helpers are wired correctly. Static output makes
+/// + the shared fog composition are wired correctly. Static output makes
 /// regression diffs trivial — any byte change between two frames
 /// indicates a bug.
 ///
@@ -39,13 +42,20 @@ const double _kSolidFeatherCellFraction = 0.1;
 ///   top of the colour's own alpha byte. Final alpha = `(colorArgb_A
 ///   * baselineAlpha) / 255`.
 ///
+/// ## Phase 09.1 (plan 09.1-06): the `FogLayer` owns the clip
+///
+/// [paint] assumes the clipped identity frame the `FogLayer` provides — the
+/// reveal holes are already cut out of the canvas, so the body is a plain
+/// `Offset.zero & size` rect. Nothing here depends on `pixelOrigin` /
+/// `zoomScale`: Solid has no noise to anchor, so its bytes are invariant to
+/// the camera-derived fields of the context (tested).
+///
 /// ## BUG-006 (2026-04-25): rounded reveal corners
 ///
-/// Solid ships a `MaskFilter.blur(BlurStyle.normal, sigma)` matching the
-/// 3 animated variants so the reveal silhouette reads as a smooth
-/// circle. With BUG-010 Option B Commit 5 the silhouette is already
-/// mathematically circular (continuous-geometry discs); the feather is
-/// now decorative softness on top.
+/// Solid ships the same feather as the 3 animated variants so the reveal
+/// silhouette reads as a soft circle — since 09.1-06 through
+/// [paintFogBodyWithFeatheredEdges] (a blurred stroke along the hole
+/// outline, on the fog side of the clip).
 class SolidFillMirkRenderer implements MirkRenderer {
   /// Constructs a renderer using [config] for colour + alpha.
   SolidFillMirkRenderer(this.config);
@@ -53,10 +63,7 @@ class SolidFillMirkRenderer implements MirkRenderer {
   /// Fog colour + baseline alpha.
   final SolidConfig config;
 
-  /// Cached colour-only Paint base. Sigma depends on canvas height +
-  /// device pixel ratio (resolved per `paint()` call), so the MaskFilter
-  /// is applied on a fresh Paint each frame rather than baked into this
-  /// `late final`.
+  /// Cached fog colour (config is immutable, so this never changes).
   late final Color _color = _computeColor(config);
 
   bool _disposed = false;
@@ -86,6 +93,9 @@ class SolidFillMirkRenderer implements MirkRenderer {
     return Color.fromARGB(finalAlpha, r, g, b);
   }
 
+  /// Paints the solid fog body over the whole frame, then feathers the reveal
+  /// edges. Assumes the clipped identity frame provided by the `FogLayer`
+  /// (Phase 09.1): no clip, no projection of its own.
   @override
   void paint(Canvas canvas, Size size, MirkPaintContext context) {
     if (!_firstPaintLogged) {
@@ -101,38 +111,20 @@ class SolidFillMirkRenderer implements MirkRenderer {
       _logEarlyReturnTransition('disposed');
       return;
     }
-    // BUG-013 fix: do NOT early-return on empty discs. When the user pans
-    // away from the revealed area, all discs fall outside the viewport →
-    // discsInBbox returns []. The correct behaviour is FULL FOG (entire
-    // viewport covered), not "skip rendering" which shows a clear map.
-    // buildViewportFogClipPathFromDiscs handles empty discs correctly by
-    // returning the viewport rect (= everything is fog, nothing revealed).
-    //
-    // Solid renderer adopts the same viewport-level disc clip path as the
-    // 3 animated renderers — BUG-010 Option B Commit 5 collapsed the 4
-    // builtins onto a single canonical clip helper. Solid never showed
-    // the damier (no MaskFilter pre-BUG-006) but unifying the path
-    // strategy avoids future seam discrepancies between variants AND
-    // saves N-1 drawPath calls per frame on a viewport with N visible
-    // tiles (legacy bitmap path, retired here).
-    //
-    // BUG-006 (2026-04-25) — adds the same `BlurStyle.normal` feather as
-    // the animated variants so the disc silhouette gets a soft
-    // watercolour edge. Sigma derived from a fixed 4-px base × the
-    // configured fraction × pixel ratio.
-    const baseFeatherPx = 4.0;
-    final featherSigma = baseFeatherPx * _kSolidFeatherCellFraction * context.pixelRatio;
-    final paint = Paint()
-      ..color = _color
-      ..style = PaintingStyle.fill
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, featherSigma);
-    final path = buildViewportFogClipPathFromDiscs(discs: context.discs, viewport: context.viewportBbox, canvasSize: size);
-    if (path.getBounds().isEmpty) {
-      _logEarlyReturnTransition('clipPath.bounds.isEmpty (every visible region fully revealed?)');
-      return;
-    }
     _logEarlyReturnTransition('none');
-    canvas.drawPath(path, paint);
+    // BUG-013: an empty disc list means the user panned away from the
+    // revealed area → FULL FOG (the layer's clip is then the whole rect).
+    final featherSigma = _kBaseFeatherPx * _kSolidFeatherCellFraction * context.pixelRatio;
+    final Paint bodyPaint = Paint()
+      ..color = _color
+      ..style = PaintingStyle.fill;
+    paintFogBodyWithFeatheredEdges(
+      canvas: canvas,
+      size: size,
+      context: context,
+      featherSigma: featherSigma,
+      paintBody: (Canvas canvas, Rect viewport) => canvas.drawRect(viewport, bodyPaint),
+    );
   }
 
   @override

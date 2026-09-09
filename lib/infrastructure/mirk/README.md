@@ -2,7 +2,7 @@
 
 MirkFall's fog-of-war rendering layer. Implements [`MirkRenderer`](../../domain/mirk/mirk_renderer.dart) — domain interface frozen at Phase 07 with exactly **3 methods** (`paint`, `update`, `dispose`). Adding a 4th method breaks the contract test in `test/domain/mirk/mirk_renderer_contract_test.dart` by design (Rule 4 architectural decision).
 
-## Final layout (Phase 09 close)
+## Layout (Phase 09 close, amended Phase 09.1)
 
 ```
 lib/infrastructure/mirk/
@@ -15,10 +15,12 @@ lib/infrastructure/mirk/
 ├── noop_mirk_renderer.dart             Phase 07 — test fixture, paints nothing
 ├── mirk_renderer_factory.dart          Sealed-switch dispatch MirkStyleConfig → MirkRenderer
 ├── builtin_mirk_styles.dart            kBuiltinMirkStyles registry constant (4 entries)
-├── mirk_projection.dart                Lat/lon → screen pixel helper (consumed by all renderers)
-├── tile_cell_iteration.dart            Bitmap → unrevealed-cells `Path` accumulator
+├── mirk_projection.dart                Lat/lon → screen pixel helper (interim overlay + test fixtures only since Phase 09.1)
+├── fog_clip_geometry.dart              Pure clip geometry: `buildFogClipPath` (rect − discs) + `buildFogHoleOutlinePath` (Phase 09.1)
+├── fog_edge_feather.dart               Shared edge feather for CPU-painted fog bodies (Phase 09.1-06)
 └── noise/
-    └── simplex_noise_2d.dart           Hand-rolled Ken Perlin 2001 simplex (public-domain port)
+    ├── simplex_noise_2d.dart           Hand-rolled Ken Perlin 2001 simplex (public-domain port)
+    └── noise_texture.dart              Pre-rasterised tileable simplex tile (heavenly CPU fallback)
 ```
 
 The naming asymmetry between `heavenly_clouds_mirk_renderer.dart` (filename) and the JSON discriminator `'heavenly'` (sealed-union shape) is intentional — file names use the long form for clarity, the JSON discriminator matches the user-facing UI label. See plan 09-02 SUMMARY revision N2.
