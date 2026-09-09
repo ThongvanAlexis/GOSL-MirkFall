@@ -50,6 +50,19 @@ dependencies:
   # maplibre.org (verified on pub.dev).
   maplibre_gl: 0.25.0
   crypto: 3.0.7
+  # Phase 09.1 — moteur flutter_map same-canvas (POC mirk-poc-debug @ 90c9321,
+  # VERDICT.md : PORT BACK). Remplace maplibre_gl 0.25.0 — retiré au plan
+  # 09.1-02 Task 2 dans le même commit que l'adapter flutter_map (coexistence
+  # d'une wave pour garder `flutter analyze` vert à chaque commit). Pins
+  # stricts = parité exacte avec le code validé sur iPhone 17 Pro + Pixel 4a.
+  # Audit (licences BSD-3 / MIT / BSD-2 / Apache-2.0, zéro télémétrie, zéro
+  # réseau hors NetworkTileProvider / HttpAt non instanciés) dans DEPENDENCIES.md.
+  flutter_map: 7.0.2
+  vector_map_tiles: 8.0.0
+  vector_map_tiles_pmtiles: 1.5.0
+  vector_tile_renderer: 5.2.0
+  pmtiles: 1.2.0
+  latlong2: 0.9.1
   # Pinned for later phases (declared day-1 to lock + audit)
   geolocator: 14.0.2
   permission_handler: 12.0.1
