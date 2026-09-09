@@ -108,6 +108,20 @@ void main() {
       expect(notifyCount, 1);
     });
 
+    test('09.1-06: the atmospheric and heavenly drift / scale families are independent fields', () {
+      final t = MirkRuntimeTunables.instance;
+      t.atmosphericDriftZFar = 0.31;
+      t.atmosphericScaleNear = 2.2;
+      expect(t.heavenlyDriftZFar, kMirkFogHeavenlyDriftZFar, reason: 'an atmospheric write never moves the heavenly twin');
+      expect(t.heavenlyScaleNear, kMirkFogHeavenlyScaleNear);
+      t.heavenlyDriftZFar = 0.77;
+      t.heavenlyScaleNear = 4.4;
+      expect(t.atmosphericDriftZFar, 0.31, reason: 'a heavenly write never moves the atmospheric twin');
+      expect(t.atmosphericScaleNear, 2.2);
+      expect(t.heavenlyDriftZFar, 0.77);
+      expect(t.heavenlyScaleNear, 4.4);
+    });
+
     test('curlScaleAnimationEnabled bool setter toggles + notifies', () {
       var notifyCount = 0;
       void listener() => notifyCount++;

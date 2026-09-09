@@ -216,6 +216,40 @@ void main() {
       expect(identical(recorder.renders.first.sdfImage, recorder.renders.last.sdfImage), isTrue);
       await renderer.dispose();
     });
+
+    test('09.1-06 tuner: atmosphericDriftZFar drives driftZFar at the seam, heavenlyDriftZFar does not (family-specific slots)', () async {
+      addTearDown(MirkRuntimeTunables.instance.reset);
+      final RecordingFogShaderRenderer recorder = RecordingFogShaderRenderer();
+      final AtmosphericMirkRenderer renderer = newRenderer(recorder);
+      await paintUntilShaderPath(renderer, recorder);
+      final double before = recorder.renders.last.namedFloatArgs[FogShaderTunableKey.driftZFar]!;
+      expect(before, kMirkFogAtmosphericDriftZFar);
+      MirkRuntimeTunables.instance.heavenlyDriftZFar = before + 0.5;
+      renderToPicture(renderer, context: seamContext(elapsedMs: 1500)).dispose();
+      expect(recorder.renders.last.namedFloatArgs[FogShaderTunableKey.driftZFar], before, reason: 'the heavenly family must not leak into atmospheric');
+      MirkRuntimeTunables.instance.atmosphericDriftZFar = before + 0.25;
+      renderToPicture(renderer, context: seamContext(elapsedMs: 2000)).dispose();
+      expect(recorder.renders.last.namedFloatArgs[FogShaderTunableKey.driftZFar], closeTo(before + 0.25, 1e-9));
+      await renderer.dispose();
+    });
+
+    test('09.1-06 tuner: the fog density slider path (opacity trio) reaches the three opacity slots on the next paint', () async {
+      addTearDown(MirkRuntimeTunables.instance.reset);
+      final RecordingFogShaderRenderer recorder = RecordingFogShaderRenderer();
+      final AtmosphericMirkRenderer renderer = newRenderer(recorder);
+      await paintUntilShaderPath(renderer, recorder);
+      const double density = 0.42;
+      MirkRuntimeTunables.instance
+        ..opacityFar = density
+        ..opacityMid = density
+        ..opacityNear = density;
+      renderToPicture(renderer, context: seamContext(elapsedMs: 1500)).dispose();
+      final Map<String, double> args = recorder.renders.last.namedFloatArgs;
+      expect(args[FogShaderTunableKey.opacityFar], density);
+      expect(args[FogShaderTunableKey.opacityMid], density);
+      expect(args[FogShaderTunableKey.opacityNear], density);
+      await renderer.dispose();
+    });
   });
 
   group('09.1-05 — wisps spawned on disc emergence, rendered after the shader rect via projectToScreen', () {

@@ -194,6 +194,22 @@ void main() {
       expect(identical(recorder.renders.first.sdfImage, recorder.renders.last.sdfImage), isTrue);
       await renderer.dispose();
     });
+
+    test('09.1-06 tuner: heavenlyDriftZFar drives driftZFar at the seam, atmosphericDriftZFar does not (family-specific slots)', () async {
+      addTearDown(MirkRuntimeTunables.instance.reset);
+      final RecordingFogShaderRenderer recorder = RecordingFogShaderRenderer();
+      final HeavenlyCloudsMirkRenderer renderer = newRenderer(recorder);
+      await paintUntilShaderPath(renderer, recorder);
+      final double before = recorder.renders.last.namedFloatArgs[FogShaderTunableKey.driftZFar]!;
+      expect(before, kMirkFogHeavenlyDriftZFar);
+      MirkRuntimeTunables.instance.atmosphericDriftZFar = before + 0.5;
+      renderToPicture(renderer, context: seamContext(elapsedMs: 1500)).dispose();
+      expect(recorder.renders.last.namedFloatArgs[FogShaderTunableKey.driftZFar], before, reason: 'the atmospheric family must not leak into heavenly');
+      MirkRuntimeTunables.instance.heavenlyDriftZFar = before + 0.25;
+      renderToPicture(renderer, context: seamContext(elapsedMs: 2000)).dispose();
+      expect(recorder.renders.last.namedFloatArgs[FogShaderTunableKey.driftZFar], closeTo(before + 0.25, 1e-9));
+      await renderer.dispose();
+    });
   });
 
   group('09.1-05 — wisps spawned on disc emergence, rendered after the shader rect via projectToScreen', () {
