@@ -165,6 +165,9 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// (or failed to load).
   Future<void> get shaderReady => _shaderLoadFuture.then((_) {});
 
+  /// Resolves once the CPU noise tile is available (Phase 09.1-06 stub — RED).
+  Future<void> get noiseReady => Future<void>.value();
+
   bool _disposed = false;
 
   @override

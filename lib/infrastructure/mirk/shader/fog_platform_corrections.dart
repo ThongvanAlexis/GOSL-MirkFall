@@ -2,6 +2,8 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
+
 /// Result of [applyPlatformShaderCorrections]: the `uPixelOrigin` pair and
 /// the four `uSdfRect*` scalars to forward to the shader on this platform.
 typedef PlatformShaderCorrections = ({({double x, double y}) pixelOrigin, (double, double, double, double) sdfRect});
@@ -62,3 +64,6 @@ PlatformShaderCorrections applyPlatformShaderCorrections({required ({double x, d
   }
   return (pixelOrigin: (x: pixelOrigin.x, y: -pixelOrigin.y), sdfRect: kFogSdfRectAndroidVFlip);
 }
+
+/// Raw `camera.pixelOrigin` reconstructed from a corrected [context] (Phase 09.1-06 stub — RED).
+({double x, double y}) rawPixelOriginOf(MirkPaintContext context) => throw UnimplementedError('09.1-06 Task 2');

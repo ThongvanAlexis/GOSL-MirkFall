@@ -9,6 +9,8 @@
 // to continuous-geometry discs (see atmospheric renderer test for the
 // "all-revealed" → "viewport-spanning disc" rationale).
 
+import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' show BlendMode, Color, Offset;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +22,7 @@ import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/domain/mirk/mirk_viewport_bbox.dart';
 import 'package:mirkfall/domain/revealed/reveal_disc.dart';
 import 'package:mirkfall/infrastructure/mirk/heavenly_clouds_mirk_renderer.dart';
+import 'package:mirkfall/infrastructure/mirk/shader/fog_platform_corrections.dart';
 import 'package:mirkfall/infrastructure/mirk/shader/fog_shader_renderer.dart';
 import 'package:mirkfall/infrastructure/mirk/wisp/wisp_particle.dart';
 import 'package:mirkfall/infrastructure/mirk/wisp/wisp_particle_system.dart';
@@ -49,6 +52,10 @@ void main() {
     test('paint() output is deterministic at fixed sessionElapsed + seed', () async {
       final r1 = HeavenlyCloudsMirkRenderer(const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig);
       final r2 = HeavenlyCloudsMirkRenderer(const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig);
+      // The CPU noise tile is rasterised asynchronously: settle both before
+      // painting so neither paint races the other's tile arrival.
+      await r1.noiseReady;
+      await r2.noiseReady;
       final ctx = fakeContext(elapsedMs: 2500);
       final bytes1 = await renderToBytes(r1, context: ctx);
       final bytes2 = await renderToBytes(r2, context: ctx);
@@ -269,7 +276,138 @@ void main() {
       expect(wispSystem.wisps.every((WispParticle w) => w.life < kMirkFogWispLifeSeconds), isTrue);
     });
   });
+
+  group('09.1-06 — CPU fallback noise anchored to world pixels (pixelOrigin / zoomScale)', () {
+    final MirkViewportBbox bbox = MirkViewportBbox(south: 43.0, west: 5.0, north: 44.0, east: 6.0);
+
+    /// Disc-free context (no feather ring, no hole) with camera-derived fields overridable.
+    MirkPaintContext cpuContext({
+      ({double x, double y}) pixelOrigin = kTestNeutralPixelOrigin,
+      double zoomScale = kTestNeutralZoomScale,
+      (double, double, double, double) sdfRect = kTestIdentitySdfRect,
+      int elapsedMs = 1000,
+    }) => buildTestMirkPaintContext(
+      zoomLevel: 14.0,
+      sessionElapsed: Duration(milliseconds: elapsedMs),
+      viewportBbox: bbox,
+      pixelOrigin: pixelOrigin,
+      zoomScale: zoomScale,
+      sdfRect: sdfRect,
+    );
+
+    /// Renderer forced onto the CPU path (the seam never draws) with its noise tile settled.
+    Future<HeavenlyCloudsMirkRenderer> cpuRenderer() async {
+      final HeavenlyCloudsMirkRenderer renderer = HeavenlyCloudsMirkRenderer(
+        const MirkStyleConfig.heavenly() as HeavenlyCloudsConfig,
+        sdfCache: immediateStubSdfCache(),
+        shaderRenderer: const FallbackOnlyFogShaderRenderer(),
+      );
+      addTearDown(renderer.dispose);
+      await renderer.noiseReady;
+      return renderer;
+    }
+
+    test('pan (iOS): pixelOrigin (37, 0) renders the (0, 0) frame shifted 37 px to the left — noise anchored to the world', () async {
+      final HeavenlyCloudsMirkRenderer renderer = await cpuRenderer();
+      const int rowY = 40;
+      final Uint8List frameA = await renderToBytes(renderer, context: cpuContext());
+      final Uint8List frameB = await renderToBytes(renderer, context: cpuContext(pixelOrigin: (x: 37.0, y: 0.0)));
+      final List<int> rowA = _redRow(frameA, rowY);
+      final List<int> rowB = _redRow(frameB, rowY);
+      expect(_spread(rowA), greaterThanOrEqualTo(_minVisibleSpread), reason: 'the CPU path must show spatial noise on the fallback fog');
+      expect(
+        _bestShift(reference: rowA, candidate: rowB),
+        37,
+        reason: 'B[x] == A[x + 37]: a 37 px camera pan moves the clouds 37 px on screen',
+      );
+      expect(alphaAt(frameB, x: 128, y: 128), greaterThan(150), reason: 'the overlay modulates the colour, not the fog opacity');
+    });
+
+    test('pan (Android): sdfRect V-flip + negative pixelOrigin.y → the raw camera y drives the vertical shift', () async {
+      final HeavenlyCloudsMirkRenderer renderer = await cpuRenderer();
+      const int columnX = 40;
+      final Uint8List frameA = await renderToBytes(renderer, context: cpuContext());
+      // FOG-23 flips y for the GPU only; the raw camera value is +29 → the clouds move 29 px up.
+      final Uint8List frameB = await renderToBytes(
+        renderer,
+        context: cpuContext(pixelOrigin: (x: 0.0, y: -29.0), sdfRect: kFogSdfRectAndroidVFlip),
+      );
+      final List<int> columnA = _redColumn(frameA, columnX);
+      final List<int> columnB = _redColumn(frameB, columnX);
+      expect(_spread(columnA), greaterThanOrEqualTo(_minVisibleSpread));
+      expect(
+        _bestShift(reference: columnA, candidate: columnB),
+        29,
+        reason: 'B[y] == A[y + 29]: the CPU path reads rawPixelOriginOf(context)',
+      );
+    });
+
+    test('zoom: zoomScale 2 doubles the on-screen noise period (B[2i] == A[i] at the same pixelOrigin)', () async {
+      final HeavenlyCloudsMirkRenderer renderer = await cpuRenderer();
+      const int rowY = 40;
+      final Uint8List frameA = await renderToBytes(renderer, context: cpuContext());
+      final Uint8List frameB = await renderToBytes(renderer, context: cpuContext(zoomScale: 2.0));
+      final List<int> rowA = _redRow(frameA, rowY);
+      final List<int> rowB = _redRow(frameB, rowY);
+      expect(_spread(rowA), greaterThanOrEqualTo(_minVisibleSpread));
+      // Tolerance: bilinear weights computed from float32 matrices may round differently.
+      const int maxLevelDelta = 2;
+      const int halfWidth = _canvasPx ~/ 2;
+      var mismatches = 0;
+      for (var i = 0; i < halfWidth; i++) {
+        if ((rowB[2 * i] - rowA[i]).abs() > maxLevelDelta) mismatches++;
+      }
+      const int maxMismatches = halfWidth ~/ 20;
+      expect(mismatches, lessThanOrEqualTo(maxMismatches), reason: 'the ×2 zoom must stretch the same world noise ×2 on screen');
+    });
+
+    test('sessionElapsed still drives the temporal drift (two elapsed → different bytes)', () async {
+      final HeavenlyCloudsMirkRenderer renderer = await cpuRenderer();
+      final Uint8List frame1 = await renderToBytes(renderer, context: cpuContext());
+      final Uint8List frame2 = await renderToBytes(renderer, context: cpuContext(elapsedMs: 6000));
+      expect(frame1, isNot(equals(frame2)));
+    });
+  });
 }
+
+/// Canvas edge in pixels (the builder default is 256×256, matching `kTestCanvasSize`).
+const int _canvasPx = 256;
+
+/// Red channel of row [y], one entry per column.
+List<int> _redRow(Uint8List rgba, int y) => List<int>.generate(_canvasPx, (int x) => redAt(rgba, x: x, y: y));
+
+/// Red channel of column [x], one entry per row.
+List<int> _redColumn(Uint8List rgba, int x) => List<int>.generate(_canvasPx, (int y) => redAt(rgba, x: x, y: y));
+
+/// Half-width of the shift search window (px) and the sample span inside the line that keeps
+/// `index + shift` within the 256-px line for every candidate shift.
+const int _maxShiftPx = 64;
+const int _sampleStart = 64;
+const int _sampleEnd = 192;
+
+/// Shift `d` in `[-64, 64]` minimising `Σ |candidate[i] − reference[i + d]|` over the sample span:
+/// the displacement that maps the reference line onto the candidate line.
+int _bestShift({required List<int> reference, required List<int> candidate}) {
+  var bestShift = 0;
+  var bestError = double.infinity;
+  for (var d = -_maxShiftPx; d <= _maxShiftPx; d++) {
+    var error = 0.0;
+    for (var i = _sampleStart; i < _sampleEnd; i++) {
+      error += (candidate[i] - reference[i + d]).abs();
+    }
+    if (error < bestError) {
+      bestError = error;
+      bestShift = d;
+    }
+  }
+  return bestShift;
+}
+
+/// Spread (max − min) of a line — proves the noise is visible on it.
+int _spread(List<int> line) => line.reduce(math.max) - line.reduce(math.min);
+
+/// Minimal visible spread of the noise along a line (8-bit levels).
+const int _minVisibleSpread = 8;
 
 /// Counts `recordPaint` calls regardless of the verbose gate (the override runs before it).
 class _CountingWispTransformLogger extends WispTransformLogger {

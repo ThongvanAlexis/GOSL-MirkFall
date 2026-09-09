@@ -6,10 +6,39 @@
 // testable on Windows without a device (C1).
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mirkfall/domain/mirk/mirk_paint_context.dart';
 import 'package:mirkfall/infrastructure/mirk/shader/fog_platform_corrections.dart';
+
+import '../../../_helpers/mirk_paint_context_builder.dart';
 
 void main() {
   const ({double x, double y}) rawPixelOrigin = (x: 100.0, y: 200.0);
+
+  group('09.1-06 — rawPixelOriginOf (CPU renderers read the camera value, not the GPU-corrected one)', () {
+    test('iOS context (identity sdfRect): pixelOrigin unchanged', () {
+      final MirkPaintContext context = buildTestMirkPaintContext(pixelOrigin: rawPixelOrigin);
+      expect(rawPixelOriginOf(context), rawPixelOrigin);
+    });
+
+    test('Android context (sdfRect (0, 1, 1, -1), negative y): y re-positivised to the raw camera value', () {
+      final MirkPaintContext context = buildTestMirkPaintContext(pixelOrigin: (x: 100.0, y: -200.0), sdfRect: kFogSdfRectAndroidVFlip);
+      expect(rawPixelOriginOf(context), rawPixelOrigin);
+    });
+
+    test('round trip: applyPlatformShaderCorrections → context → rawPixelOriginOf gives the raw value on both platforms', () {
+      const ({double x, double y}) highZoomOrigin = (x: 4255934.927218, y: 1234567.890123);
+      for (final bool isAndroid in <bool>[false, true]) {
+        final PlatformShaderCorrections corrected = applyPlatformShaderCorrections(pixelOrigin: highZoomOrigin, isAndroid: isAndroid);
+        final MirkPaintContext context = buildTestMirkPaintContext(pixelOrigin: corrected.pixelOrigin, sdfRect: corrected.sdfRect);
+        expect(rawPixelOriginOf(context), highZoomOrigin, reason: 'isAndroid=$isAndroid');
+      }
+    });
+
+    test('the Android sdfRect is the marker: a raw-looking positive y under the V-flip rect is still flipped back (coupling documented)', () {
+      final MirkPaintContext context = buildTestMirkPaintContext(pixelOrigin: (x: 1.0, y: 5.0), sdfRect: kFogSdfRectAndroidVFlip);
+      expect(rawPixelOriginOf(context), (x: 1.0, y: -5.0));
+    });
+  });
 
   group('09.1-03 — applyPlatformShaderCorrections', () {
     test('iOS: pixelOrigin unchanged, sdfRect identity (0, 0, 1, 1)', () {
