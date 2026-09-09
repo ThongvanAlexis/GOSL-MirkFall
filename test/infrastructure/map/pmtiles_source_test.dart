@@ -2,142 +2,90 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
+import 'package:mirkfall/config/constants.dart';
 import 'package:mirkfall/domain/installed_maps/installed_country.dart';
 import 'package:mirkfall/domain/installed_maps/installed_manifest.dart';
 import 'package:mirkfall/domain/map/country_code.dart';
 import 'package:mirkfall/infrastructure/map/pmtiles_source.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import '../../fakes/fake_installed_manifest_repository.dart';
 
+/// Absolute support directory shaped for the host OS so `p.isAbsolute`
+/// holds on both POSIX and Windows dev hosts.
+final String _appSupportDir = p.isAbsolute('/app_support') ? '/app_support' : r'C:\app_support';
+
+InstalledManifest _manifestWithFra(CountryCode fra) => InstalledManifest(
+  schemaVersion: 1,
+  catalogVersion: 'v20260419',
+  installed: <String, InstalledCountry>{
+    'fra': InstalledCountry(
+      alpha3: fra,
+      installedAtUtc: DateTime.utc(2026, 4, 20),
+      fileSize: 1024,
+      pmtilesVersion: 'v20260419',
+      sha256: 'a' * 64,
+      filePath: 'maps/countries/fra.pmtiles',
+    ),
+  },
+);
+
 void main() {
-  group('localPmtilesUri — scheme rules', () {
-    test('POSIX path gets the pmtiles://file:/// prefix', () {
-      expect(localPmtilesUri('/var/mobile/maps/world.pmtiles'), 'pmtiles://file:///var/mobile/maps/world.pmtiles');
-    });
-
-    test('Windows path with drive letter gains the extra leading slash', () {
-      expect(localPmtilesUri(r'C:\Users\dev\maps\fra.pmtiles'), 'pmtiles://file:///C:/Users/dev/maps/fra.pmtiles');
-    });
-
-    test('Windows path with mixed separators normalises to forward slashes', () {
-      expect(localPmtilesUri(r'C:/Users\dev/maps\fra.pmtiles'), 'pmtiles://file:///C:/Users/dev/maps/fra.pmtiles');
-    });
-
-    test('Path containing spaces is preserved (no URL-encoding)', () {
-      expect(localPmtilesUri('/with spaces/bar.pmtiles'), 'pmtiles://file:///with spaces/bar.pmtiles');
-    });
-
-    test('Every produced URI starts with pmtiles://file:///', () {
-      final List<String> inputs = <String>['/a.pmtiles', r'C:\a.pmtiles', '/nested/dir/with/deep/path.pmtiles'];
-      for (final String path in inputs) {
-        expect(localPmtilesUri(path), startsWith('pmtiles://file:///'));
-      }
-    });
-
-    test('No produced URI contains pmtiles://http', () {
-      final List<String> inputs = <String>['/a.pmtiles', r'C:\a.pmtiles'];
-      for (final String path in inputs) {
-        expect(localPmtilesUri(path).toLowerCase(), isNot(contains('pmtiles://http')));
-      }
-    });
-  });
-
-  group('PmtilesSource — resolver contract', () {
+  group('PmtilesSource — absolute path resolver (Phase 09.1: path, never a URI)', () {
     late FakeInstalledManifestRepository manifestPort;
     late PmtilesSource source;
+    late String worldFilename;
 
     setUp(() {
       manifestPort = FakeInstalledManifestRepository();
-      source = PmtilesSource(installedManifestPort: manifestPort, appSupportDir: '/app_support');
+      source = PmtilesSource(installedManifestPort: manifestPort, appSupportDir: _appSupportDir);
+      worldFilename = p.join(_appSupportDir, kWorldPmtilesInternalPath);
     });
 
     tearDown(() async {
       await manifestPort.close();
     });
 
-    test('forCountry(null) returns the world bundle URI', () async {
-      expect(await source.forCountry(null), 'pmtiles://file:///app_support/maps/world.pmtiles');
+    test('forCountryOrWorld(null, snapshot) returns p.join(appSupportDir, kWorldPmtilesInternalPath)', () {
+      expect(source.forCountryOrWorld(null, InstalledManifest.empty()), equals(worldFilename));
     });
 
-    test('forCountry(CountryCode.world) returns the world bundle URI', () async {
-      expect(await source.forCountry(CountryCode.world), 'pmtiles://file:///app_support/maps/world.pmtiles');
+    test('forCountryOrWorld(CountryCode.world, snapshot) returns the world path', () {
+      expect(source.forCountryOrWorld(CountryCode.world, InstalledManifest.empty()), equals(worldFilename));
     });
 
-    test('forCountry(uninstalled) falls back to the world bundle', () async {
+    test('forCountryOrWorld(fra, snapshotWithFra) returns p.join(appSupportDir, entry.filePath)', () {
       final CountryCode fra = CountryCode.parse('fra');
-      // Manifest starts empty — fra is not installed.
-      expect(await source.forCountry(fra), 'pmtiles://file:///app_support/maps/world.pmtiles');
+      expect(source.forCountryOrWorld(fra, _manifestWithFra(fra)), equals(p.join(_appSupportDir, 'maps/countries/fra.pmtiles')));
     });
 
-    test('forCountry(installed) returns the per-country URI', () async {
-      final CountryCode fra = CountryCode.parse('fra');
-      manifestPort.seedWith(
-        InstalledManifest(
-          schemaVersion: 1,
-          catalogVersion: 'v20260419',
-          installed: <String, InstalledCountry>{
-            'fra': InstalledCountry(
-              alpha3: fra,
-              installedAtUtc: DateTime.utc(2026, 4, 20),
-              fileSize: 1024,
-              pmtilesVersion: 'v20260419',
-              sha256: 'a' * 64,
-              filePath: 'maps/countries/fra.pmtiles',
-            ),
-          },
-        ),
-      );
-
-      expect(await source.forCountry(fra), 'pmtiles://file:///app_support/maps/countries/fra.pmtiles');
+    test('forCountryOrWorld(uninstalled country) falls back to the world path', () {
+      expect(source.forCountryOrWorld(CountryCode.parse('deu'), InstalledManifest.empty()), equals(worldFilename));
     });
 
-    test('forCountryOrWorld synchronous variant matches async output', () async {
+    test('forCountry (async) delegates to forCountryOrWorld with a fresh manifest read', () async {
       final CountryCode fra = CountryCode.parse('fra');
-      final InstalledManifest snapshot = InstalledManifest(
-        schemaVersion: 1,
-        catalogVersion: 'v20260419',
-        installed: <String, InstalledCountry>{
-          'fra': InstalledCountry(
-            alpha3: fra,
-            installedAtUtc: DateTime.utc(2026, 4, 20),
-            fileSize: 1024,
-            pmtilesVersion: 'v20260419',
-            sha256: 'a' * 64,
-            filePath: 'maps/countries/fra.pmtiles',
-          ),
-        },
-      );
-      manifestPort.seedWith(snapshot);
-
-      expect(source.forCountryOrWorld(fra, snapshot), await source.forCountry(fra));
-      expect(source.forCountryOrWorld(null, snapshot), await source.forCountry(null));
+      expect(await source.forCountry(fra), equals(worldFilename), reason: 'empty manifest → world');
+      manifestPort.seedWith(_manifestWithFra(fra));
+      expect(await source.forCountry(fra), equals(source.forCountryOrWorld(fra, _manifestWithFra(fra))));
+      expect(await source.forCountry(null), equals(worldFilename));
     });
 
-    test('PmtilesSource always emits local-only URIs (never http)', () async {
+    test('every result is an absolute filesystem path that never starts with http or pmtiles:// (MAP-05)', () async {
       final CountryCode fra = CountryCode.parse('fra');
-      manifestPort.seedWith(
-        InstalledManifest(
-          schemaVersion: 1,
-          catalogVersion: 'v20260419',
-          installed: <String, InstalledCountry>{
-            'fra': InstalledCountry(
-              alpha3: fra,
-              installedAtUtc: DateTime.utc(2026, 4, 20),
-              fileSize: 1024,
-              pmtilesVersion: 'v20260419',
-              sha256: 'a' * 64,
-              filePath: 'maps/countries/fra.pmtiles',
-            ),
-          },
-        ),
-      );
-
-      final String uriCountry = await source.forCountry(fra);
-      final String uriWorld = await source.forCountry(null);
-      for (final String u in <String>[uriCountry, uriWorld]) {
-        expect(u.toLowerCase(), isNot(contains('pmtiles://http')));
-        expect(u, startsWith('pmtiles://file:///'));
+      manifestPort.seedWith(_manifestWithFra(fra));
+      final List<String> results = <String>[
+        await source.forCountry(fra),
+        await source.forCountry(null),
+        await source.forCountry(CountryCode.world),
+        source.forCountryOrWorld(CountryCode.parse('deu'), InstalledManifest.empty()),
+      ];
+      for (final String path in results) {
+        expect(p.isAbsolute(path), isTrue, reason: '$path must be absolute — PmTilesVectorTileProvider.fromSource routes it to FileAt');
+        expect(path.toLowerCase(), isNot(startsWith('http')), reason: 'an http(s) prefix would make pmtiles open an HttpAt reader');
+        expect(path.toLowerCase(), isNot(startsWith('pmtiles://')), reason: 'the pmtiles:// URI scheme was a MapLibre protocol-handler artefact');
+        expect(path, endsWith('.pmtiles'));
       }
     });
   });
