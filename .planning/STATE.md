@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 3
-status: "Plan 09.1-01 shipped 2026-09-09 (4 task commits 68b5207 / 9027dbd / fc40166 / dee75da): flutter_map 7.0.2 + vector_map_tiles 8.0.0 + vector_map_tiles_pmtiles 1.5.0 + vector_tile_renderer 5.2.0 + pmtiles 1.2.0 + latlong2 0.9.1 strictly pinned and resolved with NO new override next to maplibre_gl 0.25.0 (+18 lock entries, 0 removals, 0 drift) ; DEPENDENCIES.md 6 direct + 12 transitive rows dated 2026-09-09 (LICENSE files read from pub cache, verbatim network grep, telemetry 0) ; `tool/check_avoid_flutter_map_leak.dart` + 12-case paired test replace the maplibre gate (perimeter = lib/infrastructure/map/** + fog_layer.dart / fog_clip_path.dart / map_screen.dart), CI step renamed ; Phase 09.1 constants block (kMap* envelope + style source key, kMirkFogReferenceZoom 13 / kMirkFogNoiseTilePx 384, kMirkWisp* world basis, kMirkFogDiag* verbose-only) locked by 11 tests. Every commit: analyze clean, 1055 tests green, 102 tool tests green. Wave 2 next: 09.1-02 (adapter, removes maplibre_gl) ∥ 09.1-03 (seam + 42-slot shader ABI)."
-stopped_at: Completed 09.1-03-PLAN.md
-last_updated: "2026-09-09T10:33:29.736Z"
+current_plan: 4
+status: "Plan 09.1-02 shipped 2026-09-09 (task commits 866c07c / e765934 / 50e44b6 / 84a83a0 / c265330 + handoff chore 39c6954): map engine swapped to flutter_map 7.0.2 — `FlutterMapMapViewWidget` / `_FlutterMapMapViewAdapter` (sole FlutterMap / MapController / VectorTileLayer site, adapter published from `MapOptions.onMapReady`, `fogLayers` slot for 09.1-07), `MapThemeLoader` (style.json 6 couches sans `mirk_fog`, id `mirkfall-standard`, compilé une fois par thème), `PmtilesSource` en chemins absolus, `_ArchiveTileProvider` (fermeture d'archive refcountée), `MapView` à 13 membres, `FakeMapView` aligné ; maplibre_gl retiré (lock −6 : maplibre_gl, platform_interface, web, image, archive, posix ; DEPENDENCIES.md −6 lignes), assets glyphs / sprites + prepare_style supprimés, `check_avoid_remote_pmtiles` étendu (fromUri / fromSource('http…')), constants −7 / +4 (`kMapUserPuck*`), main.dart : erreurs silencieuses + CancellationException vector_map_tiles en FINE. MirkOverlay reste un sibling du Stack jusqu'à 09.1-07. À HEAD : analyze clean, format clean, 9/9 gates OK, 1095 tests + airplane-mode verts, 96 tool tests. Handoff 09.1-03 absorbé : exclusion CI mirk_paint_context_test + normalisation LF de 19 fichiers (check_headers était rouge). Wave 2 close ; next : Wave 3 = 09.1-04 (FogLayer) ∥ 09.1-05 (SdfCache + wisps)."
+stopped_at: Completed 09.1-02-PLAN.md
+last_updated: "2026-09-09T10:52:19.112Z"
 last_activity: 2026-09-09
 progress:
   total_phases: 18
   completed_phases: 10
   total_plans: 65
-  completed_plans: 60
-  percent: 91
+  completed_plans: 61
+  percent: 94
 ---
 
 # Project State
@@ -22,17 +22,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Ne jamais perdre sa progression — import/export JSON versionné durable entre instances.
-**Current focus:** Phase 09.1 (INSERTED 2026-09-09) IN PROGRESS — port-back same-canvas fog from POC `mirk-poc-debug` @ 90c9321, replaces maplibre_gl with flutter_map 7.0.2 + vector_map_tiles. Plan 09.1-01 (Wave 1) complete: 6 packages pinned + 18-row DEPENDENCIES.md audit, `check_avoid_flutter_map_leak` gate replaces the maplibre gate in CI, Phase 09.1 constants locked. maplibre_gl still in the graph until 09.1-02 Task 2. Next: Wave 2 = 09.1-02 (adapter) + 09.1-03 (seam + shader ABI) in parallel. Phase 09 Fog Rendering CLOSED 2026-04-25 (10/10); BUG-014 (fog lags camera) is the architectural driver of 09.1.
+**Current focus:** Phase 09.1 (INSERTED 2026-09-09) IN PROGRESS — port-back same-canvas fog from POC `mirk-poc-debug` @ 90c9321. Wave 1 (09.1-01: flutter_map stack + gate + constants) and Wave 2 (09.1-02: flutter_map engine swap, maplibre_gl REMOVED ; 09.1-03: MirkPaintContext seam + 42-slot shader ABI) complete. The map now renders through `FlutterMapMapViewWidget`; the fog is still the `MirkOverlay` Stack sibling (laggy, BUG-014) until 09.1-07 mounts `FogLayer` inside the FlutterMap children. Next: Wave 3 = 09.1-04 (FogLayer same-canvas) + 09.1-05 (SdfCache + wisps) in parallel. Phase 09 Fog Rendering CLOSED 2026-04-25 (10/10); BUG-014 is the architectural driver of 09.1.
 
 ## Current Position
 
-Phase: 09.1 of 16.x (Port-back same-canvas fog — flutter_map migration, INSERTED) — IN PROGRESS — 2 / 8 plans complete (09.1-01 — Wave 1 ; 09.1-03 — Wave 2 ; 09.1-02 in progress in parallel)
-Current Plan: 3
+Phase: 09.1 of 16.x (Port-back same-canvas fog — flutter_map migration, INSERTED) — IN PROGRESS — 3 / 8 plans complete (09.1-01 — Wave 1 ; 09.1-02 + 09.1-03 — Wave 2)
+Current Plan: 4
 Total Plans in Phase: 8
-Status: Plan 09.1-03 shipped 2026-09-09 (3 task commits 9b46972 / c057959 / 2b0d36e): `MirkPaintContext` extended ONCE (pixelOrigin / zoomScale / sdfRect / canvasOffset / projectToScreen / metersToPixels + `GeoPoint`), `MirkRenderer` back to 3 members, `atmospheric_fog.frag` = POC 42 slots (uPixelOrigin + uZoomScale), `applyPlatformShaderCorrections` pure (FOG-21/23), `FogShaderRenderer` seam in atmospheric + heavenly, `buildTestMirkPaintContext` / `RecordingFogShaderRenderer` / `ImmediateStubSdfBuilder` test toolkit ; offscreen_fog_renderer removed. HANDOFF: ci.yml plain-dart step must exclude test/domain/mirk/mirk_paint_context_test.dart (dart:ui Offset in the context) — file owned by 09.1-02 (Wave 2). Shared-index sweeps between parallel executors documented (50e44b6 / 2b0d36e). Previous: Plan 09.1-01 shipped 2026-09-09 (4 task commits 68b5207 / 9027dbd / fc40166 / dee75da): flutter_map 7.0.2 + vector_map_tiles 8.0.0 + vector_map_tiles_pmtiles 1.5.0 + vector_tile_renderer 5.2.0 + pmtiles 1.2.0 + latlong2 0.9.1 strictly pinned and resolved with NO new override next to maplibre_gl 0.25.0 (+18 lock entries, 0 removals, 0 drift) ; DEPENDENCIES.md 6 direct + 12 transitive rows dated 2026-09-09 (LICENSE files read from pub cache, verbatim network grep, telemetry 0) ; `tool/check_avoid_flutter_map_leak.dart` + 12-case paired test replace the maplibre gate (perimeter = lib/infrastructure/map/** + fog_layer.dart / fog_clip_path.dart / map_screen.dart), CI step renamed ; Phase 09.1 constants block (kMap* envelope + style source key, kMirkFogReferenceZoom 13 / kMirkFogNoiseTilePx 384, kMirkWisp* world basis, kMirkFogDiag* verbose-only) locked by 11 tests. Every commit: analyze clean, 1055 tests green, 102 tool tests green. Wave 2 next: 09.1-02 (adapter, removes maplibre_gl) ∥ 09.1-03 (seam + 42-slot shader ABI).
+Status: Plan 09.1-02 shipped 2026-09-09 (task commits 866c07c / e765934 / 50e44b6 / 84a83a0 / c265330 + handoff chore 39c6954): map engine swapped to flutter_map 7.0.2 — `FlutterMapMapViewWidget` / `_FlutterMapMapViewAdapter` (sole FlutterMap / MapController / VectorTileLayer site, adapter published from `MapOptions.onMapReady`, `fogLayers` slot for 09.1-07), `MapThemeLoader` (style.json 6 couches sans `mirk_fog`, id `mirkfall-standard`, compilé une fois par thème), `PmtilesSource` en chemins absolus, `_ArchiveTileProvider` (fermeture d'archive refcountée), `MapView` à 13 membres, `FakeMapView` aligné ; maplibre_gl retiré (lock −6 : maplibre_gl, platform_interface, web, image, archive, posix ; DEPENDENCIES.md −6 lignes), assets glyphs / sprites + prepare_style supprimés, `check_avoid_remote_pmtiles` étendu (fromUri / fromSource('http…')), constants −7 / +4 (`kMapUserPuck*`), main.dart : erreurs silencieuses + CancellationException vector_map_tiles en FINE. MirkOverlay reste un sibling du Stack jusqu'à 09.1-07. À HEAD : analyze clean, format clean, 9/9 gates OK, 1095 tests + airplane-mode verts, 96 tool tests. Handoff 09.1-03 absorbé : exclusion CI mirk_paint_context_test + normalisation LF de 19 fichiers (check_headers était rouge). Wave 2 close ; next : Wave 3 = 09.1-04 (FogLayer) ∥ 09.1-05 (SdfCache + wisps). Previous: Plan 09.1-03 shipped 2026-09-09 (9b46972 / c057959 / 2b0d36e): MirkPaintContext extended once, MirkRenderer 3 members, 42-slot shader ABI, FogShaderRenderer seam. Plan 09.1-01 shipped 2026-09-09 (68b5207 / 9027dbd / fc40166 / dee75da): flutter_map stack pinned + audited, check_avoid_flutter_map_leak gate, Phase 09.1 constants.
 Last Activity: 2026-09-09
 
-Progress: [█████████░] 91% — 59 / 65 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 closed 10/10 ; Phase 09.1 in progress 1/8 — 09.1-01).
+Progress: [█████████░] 94% — 61 / 65 plans executed (Phase 07 closed 7/7 ; Phase 08 closed 5/5 ; Phase 08.1 closed 5/5 ; Phase 09 closed 10/10 ; Phase 09.1 in progress 3/8 — 09.1-01, 09.1-02, 09.1-03).
 
 ## Performance Metrics
 
@@ -105,6 +105,7 @@ Progress: [█████████░] 91% — 59 / 65 plans executed (Phase
 | Phase 09 P08 | 32 min | 3 tasks | 11 files |
 | Phase 09.1 P01 | 18 min | 3 tasks | 17 files |
 | Phase 09.1 P03 | 28 min | 2 tasks | 32 files |
+| Phase 09.1 P02 | 55min | 3 tasks | 59 files |
 
 ## Accumulated Context
 
@@ -390,6 +391,10 @@ Recent decisions carried from research (2026-04-17) :
 - [Phase 09.1]: ui.FragmentShader is base in Flutter 3.41.7: the 42-slot shader layout is locked by source reflection over fog_shader_uniforms.dart + the .frag and by the FogShaderRenderer seam, not by a fake shader
 - [Phase 09.1]: ScreenProjector returns dart:ui Offset per the plan contract; test/domain/mirk/mirk_paint_context_test.dart therefore needs the ci.yml plain-dart exclusion (handed off: ci.yml owned by 09.1-02 in Wave 2)
 - [Phase 09.1]: Parallel-executor index sweeps (offscreen_fog_renderer deletion in 50e44b6, three 09.1-02 deletions in 2b0d36e) documented, history not rewritten
+- [Phase 09.1]: 09.1-02: MapView adapter published directly from flutter_map MapOptions.onMapReady (post-frame callback) — the maplibre #717 post-frame defer and SIGABRT workaround are gone
+- [Phase 09.1]: 09.1-02: _ArchiveTileProvider refcounts in-flight PMTiles reads and closes the archive only when idle (pmtiles throws on read-after-close while VectorTileLayer keeps reading after re-key / unmount); post-close reads answered with a 404 ProviderException
+- [Phase 09.1]: 09.1-02: vector_map_tiles CancellationException (transitive executor_lib) downgraded to FINE by type name in main.dart error sinks + silent FlutterError reports at FINE; no direct executor_lib pin for a single is-check
+- [Phase 09.1]: 09.1-02: maplibre_gl removal dropped 6 lock packages (maplibre_gl, platform_interface, web, image, archive, posix) — DEPENDENCIES.md rows removed; glyph / sprite assets + prepare_style deleted (vector_tile_renderer renders text via TextPainter)
 
 ### Roadmap Evolution
 
@@ -429,6 +434,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-09T10:33:29.730Z
-Stopped at: Completed 09.1-03-PLAN.md
+Last session: 2026-09-09T10:52:19.106Z
+Stopped at: Completed 09.1-02-PLAN.md
 Resume file: None
