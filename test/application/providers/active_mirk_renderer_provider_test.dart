@@ -137,6 +137,10 @@ class _FakeActiveSessionController extends ActiveSessionController {
 
   @override
   ActiveSessionState build() => _seed.state;
+
+  /// Publishes [next] the way the real controller does on an accepted fix
+  /// (`state = AsyncData(current.copyWith(...))`) — a NEW state instance on the SAME session.
+  void emit(ActiveSessionState next) => state = AsyncData<ActiveSessionState>(next);
 }
 
 /// Factory test-double building a NEW observable [FakeMirkRenderer] per `create` call — the
@@ -346,6 +350,38 @@ void main() {
       expect(factory.createCallCount, 2, reason: 'factory.create once per session');
       expect(factory.created.first.disposeCallCount, 1, reason: 'the session-A renderer is disposed exactly once');
       expect(factory.created.last.disposeCallCount, 0, reason: 'the session-B renderer is live');
+    });
+
+    test('a new fix on the SAME session (Tracking.copyWith) keeps the SAME renderer — nothing re-created, nothing disposed', () async {
+      // Phase 09.1 UAT regression: the controller publishes `copyWith(fixCount:, lastFix:)` on
+      // every accepted fix; watching the whole state re-created the renderer (new SdfCache,
+      // shader reload, wisp warm-up, fallback-fog flash) on every GPS flush. The provider must
+      // key on the session id alone.
+      final _CountingFactory factory = _CountingFactory();
+      const sessionA = SessionId('sess_same_session_fix');
+      final sessionStore = _FakeSessionStore(<SessionId, Session>{sessionA: _buildSession(id: sessionA)});
+      final Tracking tracking = _buildTracking(sessionA);
+      final container = _buildContainer(initialSessionState: tracking, sessionStore: sessionStore, styleStore: FakeMirkStyleStore(), factoryOverride: factory);
+      addTearDown(container.dispose);
+      // A live listener, as the FogLayerConnector is in production: without one an auto-dispose
+      // provider is torn down between two `read`s and the test would measure that, not fixes.
+      final ProviderSubscription<AsyncValue<MirkRenderer>> subscription = container.listen(activeMirkRendererProvider, (_, _) {});
+      addTearDown(subscription.close);
+
+      final MirkRenderer first = await container.read(activeMirkRendererProvider.future);
+      expect(factory.createCallCount, 1);
+
+      final controller = container.read(activeSessionControllerProvider.notifier) as _FakeActiveSessionController;
+      const int fixesPerWalkSample = 3;
+      for (int fixCount = 1; fixCount <= fixesPerWalkSample; fixCount++) {
+        controller.emit(tracking.copyWith(fixCount: fixCount));
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      final MirkRenderer afterFixes = await container.read(activeMirkRendererProvider.future);
+      expect(identical(afterFixes, first), isTrue, reason: 'same session → same renderer across fixes');
+      expect(factory.createCallCount, 1, reason: 'no factory.create per fix');
+      expect(factory.created.single.disposeCallCount, 0, reason: 'the live renderer is never disposed by a fix');
     });
 
     test('Noop fallback path also routes through ref.onDispose', () async {

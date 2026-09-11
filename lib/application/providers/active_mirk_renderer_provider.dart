@@ -3,8 +3,8 @@
 // See LICENSE file for details
 
 import 'package:logging/logging.dart';
-import 'package:mirkfall/application/controllers/active_session_controller.dart';
-import 'package:mirkfall/application/state/active_session_state.dart';
+import 'package:mirkfall/application/providers/active_session_id_provider.dart';
+import 'package:mirkfall/domain/ids/session_id.dart';
 import 'package:mirkfall/domain/mirk/mirk_renderer.dart';
 import 'package:mirkfall/domain/mirk/mirk_style_config.dart';
 import 'package:mirkfall/infrastructure/mirk/noop_mirk_renderer.dart';
@@ -47,17 +47,17 @@ final Logger _log = Logger('application.mirk.active_renderer');
 ///   the user picks a new style mid-session.
 @riverpod
 Future<MirkRenderer> activeMirkRenderer(Ref ref) async {
-  final sessionAsync = ref.watch(activeSessionControllerProvider);
+  // 1. Watch ONLY the session id (`activeSessionIdProvider`), never the controller itself:
+  //    the controller re-emits a new `Tracking` on every accepted fix
+  //    (`copyWith(fixCount:, lastFix:)`), and watching it re-created the renderer — SdfCache,
+  //    shader, wisp warm-up — on every GPS flush (Phase 09.1 UAT log: three
+  //    `FragmentProgram.fromAsset` loads in 80 s, one per flush, a fallback-fog flash each
+  //    time). The POC keeps ONE renderer per session; a style change still arrives through
+  //    `ref.invalidate` (burger menu), a session switch through a new id. No session → Noop.
+  //    Loading / error controller states surface as a null id → Noop — the
+  //    `FogLayerConnector` (plan 09.1-07) renders nothing while this provider itself loads.
+  final SessionId? activeSessionId = ref.watch(activeSessionIdProvider);
   final factory = ref.watch(mirkRendererFactoryProvider);
-
-  // 1. No session → Noop. Loading / error AsyncValue states also
-  //    surface as Noop — the `FogLayerConnector` (plan 09.1-07) renders
-  //    nothing while this provider itself is still loading.
-  final sessionState = sessionAsync.value;
-  final activeSessionId = switch (sessionState) {
-    Tracking(:final sessionId) => sessionId,
-    Idle() || Starting() || null => null,
-  };
 
   if (activeSessionId == null) {
     final noop = const NoopMirkRenderer();
