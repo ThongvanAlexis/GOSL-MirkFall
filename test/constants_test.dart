@@ -522,7 +522,6 @@ void main() {
       expect(kMirkFogWispPeakAlpha, equals(0.35));
       expect(kMirkFogWispBirthRadiusPx, equals(6.0));
       expect(kMirkFogWispDeathRadiusPx, equals(22.0));
-      expect(kMirkFogSdfViewportDebounceMs, equals(200));
     });
   });
 }

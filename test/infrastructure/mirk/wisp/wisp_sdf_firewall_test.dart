@@ -8,7 +8,7 @@
 // No file under `lib/infrastructure/mirk/wisp/` may import:
 //   * `sdf/sdf_cache.dart`, `sdf/revealed_sdf_builder.dart`, `sdf_rebuild_logger.dart` — the
 //     wisps and the SDF are independent consumers of the same disc list; a wisp system that
-//     reads the SDF would couple the puff timing to the (debounced, cached) fog build;
+//     reads the SDF would couple the puff timing to the (async, cached) fog build;
 //   * `package:latlong2` / `package:flutter_map` — wisps live in the domain `GeoPoint` record
 //     and are projected by the renderer through `MirkPaintContext.projectToScreen`.
 //

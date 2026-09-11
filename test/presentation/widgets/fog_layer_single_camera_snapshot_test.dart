@@ -83,7 +83,7 @@ void main() {
       expect(counter.count, 3, reason: 'FOG-07: third rebuild → readCount == 3 (never more, never fewer); the renderer MUST NOT add reads.');
 
       // The renderer is owned by the test (in production by the provider), not by
-      // the layer — dispose it inside the test body so its SDF / debounce timers
+      // the layer — dispose it inside the test body so its SDF build / logger timers
       // are cancelled before the widget-test pending-timer check.
       await renderer.dispose();
     },

@@ -47,8 +47,9 @@ RevealDisc centreTestDisc({double radiusMeters = 25.0, String id = 'rvd_test_cen
 
 /// Mounts a real `FlutterMap` sized [viewportSize] with a `FogLayer` delegating
 /// to [renderer]. The diagnostic loggers are constructed but never started (no
-/// pending timers). Sizes the test screen to [viewportSize] (dpr 1) and pumps
-/// one extra frame so the first build has run.
+/// pending timers). Sizes the test screen to [viewportSize] LOGICAL pixels at
+/// [devicePixelRatio] (1.0 by default) and pumps one extra frame so the first
+/// build has run. [isAndroid] switches the FOG-21 / FOG-23 corrections on.
 Future<void> pumpFogLayerInFlutterMap(
   WidgetTester tester, {
   required MirkRenderer renderer,
@@ -57,11 +58,13 @@ Future<void> pumpFogLayerInFlutterMap(
   LatLng initialCenter = kTestMapCenter,
   double initialZoom = kTestMapZoom,
   Size viewportSize = kTestFogViewportSize,
+  double devicePixelRatio = 1.0,
+  bool isAndroid = false,
 }) async {
   // The default test screen is 800×600 logical px: a taller SizedBox would be
   // clamped by the Scaffold body and camera.size would silently differ.
-  tester.view.physicalSize = viewportSize;
-  tester.view.devicePixelRatio = 1.0;
+  tester.view.physicalSize = viewportSize * devicePixelRatio;
+  tester.view.devicePixelRatio = devicePixelRatio;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final probe = FrameDeltaProbe();
@@ -77,7 +80,9 @@ Future<void> pumpFogLayerInFlutterMap(
           child: FlutterMap(
             mapController: mapController,
             options: MapOptions(initialCenter: initialCenter, initialZoom: initialZoom),
-            children: <Widget>[FogLayer(renderer: renderer, discs: discs, frameDeltaProbe: probe, fogTransformLogger: fogTransformLogger, isAndroid: false)],
+            children: <Widget>[
+              FogLayer(renderer: renderer, discs: discs, frameDeltaProbe: probe, fogTransformLogger: fogTransformLogger, isAndroid: isAndroid),
+            ],
           ),
         ),
       ),

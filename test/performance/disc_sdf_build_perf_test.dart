@@ -56,7 +56,7 @@ const int _kTimedIterations = 10;
 /// The point of this test is regression detection, not device readiness;
 /// per-frame paints would never accept this latency, but the SDF rebuild
 /// only fires on session-disc-list changes (≤ once per second from GPS
-/// fix cadence) and on viewport changes (debounced 200 ms per BUG-012).
+/// fix cadence) and on every viewport change (quantised-key cache, one build in flight).
 const int _kMedianBudgetMs5000Discs = 3000;
 
 /// Builds a list of [count] reveal discs uniformly distributed inside

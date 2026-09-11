@@ -20,12 +20,13 @@ import 'revealed_sdf_builder.dart';
 ///   * viewport bbox — each edge rounded to 1e-4° (~11 m at the equator). Above per-paint
 ///     micro-drift, below any GPS-fix-driven jump.
 ///
-/// At zoom 15 the quantised bbox still changes every ~2-3 px of pan, so with MirkFall's
-/// persisted disc volumes (far above the POC's 5-50 discs) the renderer keeps its 200 ms
-/// viewport-only debounce IN FRONT of [getOrBuild] (RESEARCH §7, Pitfall 5): the cache only
-/// removes the redundant rebuilds the debounce lets through (same quantised viewport after the
-/// timer fires, sub-quantisation drift). Disc-list changes bypass the debounce and land here
-/// immediately.
+/// The renderers call [getOrBuild] on EVERY camera change (one build in flight, later requests
+/// coalesced) — the POC policy. The quantised key is the only rate limiter: at zoom 15 the bbox
+/// key still changes every ~2-3 px of pan, so with MirkFall's persisted disc volumes (far above
+/// the POC's 5-50 discs) the rebuild cost during a pan is bounded by build time, not by a timer
+/// (RESEARCH §7, Pitfall 5 stays open for Phase 10: spatial index / isolate build). A
+/// gesture-level debounce is NOT an option here: the shader samples the texture through the
+/// platform-static `sdfRect`, so a stale SDF is pinned to the screen (Phase 09.1 UAT drift).
 ///
 /// The cache OWNS every `ui.Image` it returns: a miss disposes the previous image before
 /// replacing it (GPU memory under sustained pan), [dispose] releases the current one, and an

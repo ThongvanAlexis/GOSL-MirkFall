@@ -36,7 +36,7 @@ typedef AtmosphericFogHarness = ({AtmosphericMirkRenderer renderer, RecordingFog
 /// `AtmosphericMirkRenderer` with a recording GPU seam, then waits (real event
 /// loop, bounded) until the seam has recorded at least one render (SDF resolved).
 ///
-/// The renderer owns timers (SDF rebuild logger, viewport debounce): the test
+/// The renderer owns timers and an in-flight SDF build (rebuild logger, cache): the test
 /// body MUST end with `await harness.renderer.dispose()` — a teardown callback
 /// runs after the widget-test pending-timer check and would be too late.
 Future<AtmosphericFogHarness> pumpAtmosphericFogLayer(

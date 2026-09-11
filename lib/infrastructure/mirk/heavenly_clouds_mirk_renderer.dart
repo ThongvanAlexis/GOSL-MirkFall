@@ -2,7 +2,6 @@
 // Licensed under the Good Old Software License v1.0
 // See LICENSE file for details
 
-import 'dart:async' show Timer;
 import 'dart:math' as math;
 import 'dart:typed_data' show Float64List;
 import 'dart:ui' as ui show FragmentProgram, FragmentShader, Image, ImageShader, TileMode;
@@ -66,8 +65,8 @@ final Color _kNoiseOverlayTint = const Color(0xFFFFFFFF).withValues(alpha: kMirk
 ///   - Slightly larger noise scales — cloud blobs read as bigger puffs.
 ///
 /// See `AtmosphericMirkRenderer` for the full architecture rationale
-/// (shader path + fallback path, `SdfCache` behind the viewport
-/// debounce, per-disc wisp emergence). The structure of this class
+/// (shader path + fallback path, `SdfCache` refreshed on every camera
+/// change, per-disc wisp emergence). The structure of this class
 /// is parallel — only the uniform values + wisp tint differ.
 ///
 /// ## Phase 09.1 (plan 09.1-06): the `FogLayer` owns the clip
@@ -173,13 +172,9 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   /// GPS fix landed (or discs entered / left the padded query) → rebuild IMMEDIATELY.
   int? _lastDiscSignature;
 
-  /// Viewport of the last scheduled build. A viewport-only change is debounced (BUG-012).
+  /// Viewport of the last scheduled build. A viewport change rebuilds immediately, like a disc
+  /// change — see [_refreshSdfIfNeeded] for why there is no gesture-level debounce here.
   MirkViewportBbox? _lastViewport;
-
-  /// Debounce timer for viewport-only SDF rebuilds (BUG-012). Re-armed on every viewport-only
-  /// paint; when it fires, the LATEST viewport goes to the cache (whose quantised key then
-  /// decides whether anything is actually rebuilt).
-  Timer? _viewportDebounceTimer;
 
   /// Public future used by tests to wait until the shader has loaded
   /// (or failed to load).
@@ -487,36 +482,21 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
     canvas.drawRect(viewport, noisePaint);
   }
 
-  /// Decides whether the SDF must be (re)built for this paint.
-  ///
-  /// BUG-012: the disc list and the viewport are compared SEPARATELY. A disc-list change (GPS
-  /// fix landed, discs entered / left the padded query) rebuilds immediately — the reveal must
-  /// appear now. A viewport-only change (pan / zoom) re-arms a [kMirkFogSdfViewportDebounceMs]
-  /// timer; the current (stale) SDF stays on screen meanwhile, which is visually stable, and the
-  /// LATEST viewport is what reaches the cache when the timer fires. The cache's quantised key
-  /// (RESEARCH §7, Pitfall 5) then absorbs whatever redundancy the debounce let through.
+  /// Decides whether the SDF must be (re)built for this paint: a disc-list change OR a viewport
+  /// change schedules a build NOW through [_scheduleSdfBuild] — the POC policy. No gesture-level
+  /// debounce: the shader samples the SDF through the platform-static `sdfRect`, so a stale
+  /// texture is pinned to the screen and slides off the puck during a pan (Phase 09.1 UAT). The
+  /// full rationale (BUG-012 it. 1 vs it. 2) is on `AtmosphericMirkRenderer._refreshSdfIfNeeded`.
   void _refreshSdfIfNeeded(MirkPaintContext context) {
     final List<RevealDisc> discs = context.discs;
     final MirkViewportBbox viewport = context.viewportBbox;
     final int discSignature = _discListSignature(discs);
     final bool discsChanged = discSignature != _lastDiscSignature;
     final bool viewportChanged = viewport != _lastViewport;
-    if (discsChanged) {
-      _lastDiscSignature = discSignature;
-      _lastViewport = viewport;
-      _viewportDebounceTimer?.cancel();
-      _viewportDebounceTimer = null;
-      _scheduleSdfBuild(discs, viewport);
-      return;
-    }
-    if (!viewportChanged) return;
+    if (!discsChanged && !viewportChanged) return;
+    _lastDiscSignature = discSignature;
     _lastViewport = viewport;
-    _viewportDebounceTimer?.cancel();
-    _viewportDebounceTimer = Timer(const Duration(milliseconds: kMirkFogSdfViewportDebounceMs), () {
-      _viewportDebounceTimer = null;
-      if (_disposed) return;
-      _scheduleSdfBuild(discs, viewport);
-    });
+    _scheduleSdfBuild(discs, viewport);
   }
 
   /// Starts ONE [SdfCache.getOrBuild] at a time. A request arriving while a build is in flight
@@ -568,8 +548,6 @@ class HeavenlyCloudsMirkRenderer implements MirkRenderer {
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
-    _viewportDebounceTimer?.cancel();
-    _viewportDebounceTimer = null;
     _rebuildRequested = false;
     _requestedDiscs = null;
     _requestedViewport = null;
@@ -608,5 +586,5 @@ Float64List _textureToScreenMatrix({required double scale, required double trans
 
 /// Cheap content signature of a disc list — ids + geometry. Two lists holding the same discs in
 /// the same order share a signature even when the provider handed out a fresh `List` instance
-/// (it does, on every query), which is what keeps the viewport-only debounce effective.
+/// (it does, on every query), so a paint with an unchanged camera never re-enters the cache.
 int _discListSignature(List<RevealDisc> discs) => Object.hashAll(discs.map((RevealDisc d) => Object.hash(d.id, d.lat, d.lon, d.radiusMeters)));
